@@ -11,6 +11,11 @@ import searchIndicatorCurrentSrc from "../assets/historical/ios4.1/springboard/s
 import badgeBackgroundSrc from "../assets/historical/ios4.1/springboard/system/SBBadgeBG@2x.png";
 import badgeMaskSrc from "../assets/historical/ios4.1/springboard/system/SBBadgeBGMask@2x.png";
 import folderIconSrc from "../assets/historical/ios4.1/springboard/folder/FolderIconBG@2x.png";
+import folderLinenSrc from "../assets/historical/ios4.1/springboard/folder/chrome/FolderSwitcherBG@2x.png";
+import folderShadowBottomSrc from "../assets/historical/ios4.1/springboard/folder/chrome/FolderShadowBottom@2x.png";
+import folderShadowBottomNotchSrc from "../assets/historical/ios4.1/springboard/folder/chrome/FolderShadowBottomNotch@2x.png";
+import folderShadowTopSrc from "../assets/historical/ios4.1/springboard/folder/chrome/FolderShadowTop@2x.png";
+import folderShadowTopNotchSrc from "../assets/historical/ios4.1/springboard/folder/chrome/FolderShadowTopNotch@2x.png";
 import { FolderEvent, FolderState } from "../state/folderState";
 
 type SpringBoardProps = {
@@ -165,6 +170,20 @@ function SpringBoardFolder({ state, dispatch }: { state: FolderState; dispatch: 
         if (event.target === event.currentTarget) dispatch("ANIMATION_COMPLETE");
       }}
     >
+      <img className="springboard-folder-linen" src={folderLinenSrc} alt="" aria-hidden="true" />
+      <span
+        className="springboard-folder-shadow is-top"
+        style={{ backgroundImage: `url(${folderShadowTopSrc})` }}
+        aria-hidden="true"
+      />
+      <span
+        className="springboard-folder-shadow is-bottom"
+        style={{ backgroundImage: `url(${folderShadowBottomSrc})` }}
+        aria-hidden="true"
+      />
+      <img className="springboard-folder-notch is-top" src={folderShadowTopNotchSrc} alt="" aria-hidden="true" />
+      <img className="springboard-folder-notch is-bottom" src={folderShadowBottomNotchSrc} alt="" aria-hidden="true" />
+      <div className="springboard-folder-title-layer" aria-hidden="true" />
       <div className="springboard-folder-grid">
         {Array.from({ length: 12 }, (_, index) => <span className="springboard-folder-empty-slot" key={index} />)}
       </div>

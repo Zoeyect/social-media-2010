@@ -1,4 +1,4 @@
-import { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, useReducer, useRef, useState } from "react";
+import { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, useRef, useState } from "react";
 import dockSrc from "../assets/historical/ios4.1/springboard/system/SBDockBG@2x.png";
 import cameraIconSrc from "../assets/historical/ios4.1/springboard/apps/Camera@2x.png";
 import messagesIconSrc from "../assets/historical/ios4.1/springboard/apps/Messages@2x.png";
@@ -10,12 +10,15 @@ import searchIndicatorSrc from "../assets/historical/ios4.1/springboard/system/S
 import searchIndicatorCurrentSrc from "../assets/historical/ios4.1/springboard/system/SBSearchPageIndicatorCurrent@2x.png";
 import badgeBackgroundSrc from "../assets/historical/ios4.1/springboard/system/SBBadgeBG@2x.png";
 import badgeMaskSrc from "../assets/historical/ios4.1/springboard/system/SBBadgeBGMask@2x.png";
-import { FolderEvent, folderStateTransition, FolderState } from "../state/folderState";
+import folderIconSrc from "../assets/historical/ios4.1/springboard/folder/FolderIconBG@2x.png";
+import { FolderEvent, FolderState } from "../state/folderState";
 
 type SpringBoardProps = {
   statusBar: ReactNode;
   currentPage: 0 | 1;
   onPageChange: (page: 0 | 1) => void;
+  folderState: FolderState;
+  dispatchFolderEvent: Dispatch<FolderEvent>;
 };
 
 type SwipeStart = {
@@ -47,6 +50,10 @@ const PAGE_ONE_APPS = [
   undefined,
   undefined,
 ] as const;
+const PAGE_TWO_APPS = [
+  { name: "Social", iconSrc: folderIconSrc, kind: "folder" as const },
+  ...Array.from({ length: 15 }, () => undefined),
+] as const;
 const DOCK_APPS = [
   { name: "Messages", iconSrc: messagesIconSrc },
   { name: "Safari", iconSrc: safariIconSrc },
@@ -54,11 +61,10 @@ const DOCK_APPS = [
   { name: "YouTube", iconSrc: youtubeIconSrc },
 ] as const;
 
-export function SpringBoard({ statusBar, currentPage, onPageChange }: SpringBoardProps) {
+export function SpringBoard({ statusBar, currentPage, onPageChange, folderState, dispatchFolderEvent }: SpringBoardProps) {
   const swipeStart = useRef<SwipeStart | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
 
   const beginSwipe = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary || event.button !== 0) return;
@@ -126,7 +132,9 @@ export function SpringBoard({ statusBar, currentPage, onPageChange }: SpringBoar
         style={{ transform: `translateX(${-currentPage * PAGE_WIDTH + dragOffset}px)` }}
       >
         <SpringBoardPage apps={PAGE_ONE_APPS} pageNumber={1} />
-        <SpringBoardPage apps={Array.from({ length: 16 })} pageNumber={2} />
+        <SpringBoardPage apps={PAGE_TWO_APPS} pageNumber={2} onAppActivate={index => {
+          if (index === 0 && folderState === "closed") dispatchFolderEvent("OPEN");
+        }} />
       </div>
     </div>
     <SpringBoardPageIndicator currentPage={currentPage} />
@@ -164,22 +172,42 @@ function SpringBoardFolder({ state, dispatch }: { state: FolderState; dispatch: 
   </div>;
 }
 
-function SpringBoardPage({ apps, pageNumber }: { apps: readonly ({ name: string; iconSrc: string } | undefined)[]; pageNumber: number }) {
+function SpringBoardPage({ apps, pageNumber, onAppActivate }: {
+  apps: readonly ({ name: string; iconSrc: string; kind?: "folder" } | undefined)[];
+  pageNumber: number;
+  onAppActivate?: (index: number) => void;
+}) {
   return <div className="springboard-page" aria-label={`Home screen page ${pageNumber}`}>
     <div className="springboard-icon-grid">
       {apps.map((app, index) => <SpringBoardIcon
         key={app?.name ?? `empty-${index}`}
         {...app}
+        onActivate={app && onAppActivate ? () => onAppActivate(index) : undefined}
       />)}
     </div>
   </div>;
 }
 
-function SpringBoardIcon({ name, iconSrc, dock = false }: { name?: string; iconSrc?: string; dock?: boolean }) {
-  return <span className={dock ? "springboard-dock-slot" : "springboard-icon-slot"} data-app-name={name}>
-    {iconSrc && <img className="springboard-system-icon" src={iconSrc} alt={name ?? ""} />}
+function SpringBoardIcon({ name, iconSrc, kind, dock = false, onActivate }: {
+  name?: string;
+  iconSrc?: string;
+  kind?: "folder";
+  dock?: boolean;
+  onActivate?: () => void;
+}) {
+  const content = <>
+    {iconSrc && <img className={`springboard-system-icon${kind === "folder" ? " is-folder" : ""}`} src={iconSrc} alt={name ?? ""} />}
     {iconSrc && name && <span className="springboard-icon-label">{name}</span>}
-  </span>;
+  </>;
+
+  if (onActivate) return <button
+    className="springboard-icon-slot springboard-icon-button"
+    data-app-name={name}
+    onPointerDown={event => event.stopPropagation()}
+    onClick={onActivate}
+  >{content}</button>;
+
+  return <span className={dock ? "springboard-dock-slot" : "springboard-icon-slot"} data-app-name={name}>{content}</span>;
 }
 
 function SpringBoardPageIndicator({ currentPage }: { currentPage: 0 | 1 }) {

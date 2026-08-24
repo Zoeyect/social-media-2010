@@ -1,7 +1,8 @@
-import { FormEvent, PointerEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, PointerEvent, useEffect, useReducer, useRef, useState } from "react";
 import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.png?inline";
 import lowBatterySrc from "../assets/device/low-battery-iphone4.png";
 import { batteryPercent, BOOT_DURATION_MS, elapsedMs, formatDeviceDate, formatDeviceTime, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
+import { folderStateTransition } from "../state/folderState";
 import { createStatusBarState } from "../state/statusBarModel";
 import { LockScreen } from "./LockScreen";
 import { SpringBoard } from "./SpringBoard";
@@ -14,6 +15,7 @@ const AUTO_SLEEP_PHASES = new Set<Session["phase"]>(["locked", "springboard", "a
 export function App() {
   const [session, setSession] = useState<Session>(loadSession);
   const [springBoardPage, setSpringBoardPage] = useState<0 | 1>(0);
+  const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
   const [now, setNow] = useState(Date.now());
   const [powerProgress, setPowerProgress] = useState(0);
   const [homePressed, setHomePressed] = useState(false);
@@ -139,6 +141,10 @@ export function App() {
     event.currentTarget.releasePointerCapture(event.pointerId);
     homePointer.current = null;
     setHomePressed(false);
+    if (session.phase === "springboard" && (folderState === "open" || folderState === "opening")) {
+      dispatchFolderEvent("CLOSE");
+      return;
+    }
     const transition = homeButtonTransition(session);
     if (transition) update(transition);
   };
@@ -173,6 +179,8 @@ export function App() {
           statusBar={<StatusBar state={statusBarState} />}
           currentPage={springBoardPage}
           onPageChange={setSpringBoardPage}
+          folderState={folderState}
+          dispatchFolderEvent={dispatchFolderEvent}
         />}
         {session.phase === "sleeping" && <div className="dead" />}
         {session.phase === "powerOffConfirm" && <PowerOffConfirm onCancel={() => update({ phase: session.previousPhase ?? "locked", previousPhase: null })} onConfirm={() => update({ phase: "shutdown" })} />}

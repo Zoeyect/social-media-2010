@@ -1,0 +1,66 @@
+:root { font-family: Arial, Helvetica, sans-serif; color: #f5f5f5; background: #101010; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input { font: inherit; }
+.hero, .stage { min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, #282828, #090909 65%); }
+.hero form { width: min(560px, calc(100vw - 48px)); display: grid; gap: 22px; }
+.hero label { font-family: Georgia, serif; font-size: clamp(34px, 6vw, 72px); letter-spacing: -.04em; }
+.hero input { width: 100%; color: white; background: transparent; border: 0; border-bottom: 1px solid #777; padding: 10px 0; font-size: 28px; outline: 0; }
+.hero span { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; }
+.stage { align-content: center; gap: 22px; padding: 28px; }
+.device { position: relative; width: 380px; height: 746px; border-radius: 55px; background: linear-gradient(100deg,#111,#333 4%,#050505 10%,#111 90%,#444 96%,#111); box-shadow: 0 26px 80px #000, inset 0 0 0 2px #555; }
+.screen { position: absolute; left: 30px; top: 133px; width: 320px; height: 480px; overflow: hidden; background: #000; }
+.power { position: absolute; width: 68px; height: 9px; right: 56px; top: -7px; border: 1px solid #444; border-radius: 5px 5px 1px 1px; background: #171717; cursor: pointer; }
+.speaker { position: absolute; width: 58px; height: 7px; top: 74px; left: 161px; border-radius: 8px; background: #030303; box-shadow: inset 0 1px 2px #333; }
+.camera { position: absolute; width: 10px; height: 10px; top: 72px; left: 124px; border-radius: 50%; background: #071323; box-shadow: inset 0 0 3px #235; }
+.home { position: absolute; left: 158px; bottom: 25px; width: 64px; height: 64px; border: 1px solid #333; border-radius: 50%; background: radial-gradient(circle,#151515,#050505); }
+.home.is-pressed { border-color: #2b2b2b; background: radial-gradient(circle,#101010,#030303); box-shadow: inset 0 1px 3px #000; }
+.home i { display: block; width: 20px; height: 20px; margin: auto; border: 2px solid #777; border-radius: 3px; }
+.off, .boot, .dead { height: 100%; display: grid; place-items: center; }
+.boot { position: relative; background: #000; }
+.off p { align-self: end; margin-bottom: 40px; color: #aaa; font-size: 12px; }
+.hold { position: absolute; left: 50%; bottom: 24px; width: 160px; height: 2px; transform: translateX(-50%); background: #333; }
+.hold i { display: block; height: 100%; background: #ddd; }
+.boot-logo { position: absolute; left: 112px; top: 160px; width: 96px; height: 160px; display: block; }
+.status { height: 20px; padding: 2px 6px; display: grid; grid-template-columns: 21px auto auto 1fr 10px auto 24px; gap: 3px; align-items: center; color: white; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1; background: rgba(0,0,0,.62); text-shadow: 0 1px 1px #000; }
+.status strong { justify-self: center; font-size: 12px; }
+.signal { height: 11px; display: flex; align-items: end; gap: 1px; }
+.signal i { width: 3px; background: white; }
+.signal i:nth-child(1) { height: 3px; }
+.signal i:nth-child(2) { height: 5px; }
+.signal i:nth-child(3) { height: 7px; }
+.signal i:nth-child(4) { height: 9px; }
+.signal i:nth-child(5) { height: 11px; }
+.carrier, .network, .battery-percent { white-space: nowrap; }
+.bluetooth { width: 9px; height: 15px; color: white; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.battery { position: relative; width: 22px; height: 9px; padding: 1px; border: 1px solid white; color: white; }
+.battery::after { content: ""; position: absolute; right: -3px; top: 2px; width: 2px; height: 3px; background: currentColor; }
+.battery i { display: block; height: 100%; background: currentColor; }
+.battery.is-low i { background: #e21b23; }
+.lockscreen { position: relative; height: 100%; background: #000 url("../assets/historical/ios4.1/lockscreen/DefaultWallpaper@2x~iphone.png") center / 320px 480px no-repeat; }
+.locktime { padding: 16px 0 20px; text-align: center; font-weight: 200; font-size: 62px; text-shadow: 0 1px 2px #000; border-bottom: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.22); }
+.lock-clock-slot, .lock-date-slot { display: block; }
+.lock-date-slot { font-size: 16px; }
+.lockscreen-bottom-bar { position: absolute; left: 50%; bottom: 14px; width: 294px; height: 72px; padding: 10px 0; transform: translateX(-50%); background: url("../assets/historical/ios4.1/lockscreen/BarBottomLock.png") center / 1px 100% repeat-x; }
+.unlock-track { position: relative; height: 52px; background: transparent; text-align: center; line-height: 52px; color: #ccc; font-size: 21px; }
+.unlock-track > span { display: inline-block; transform: translateX(-10px); }
+.unlock-track button { position: absolute; z-index: 1; left: 0; top: 2.5px; width: 71px; height: 47px; padding: 0; border: 0; background: transparent url("../assets/historical/ios4.1/lockscreen/bottombarknobgray@2x.png") center / 71px 47px no-repeat; touch-action: none; user-select: none; cursor: grab; }
+.unlock-track button:active { cursor: grabbing; }
+.screen > .springboard { height: 100%; background: linear-gradient(160deg,#1a2730,#51696d 55%,#172026); }
+.apps { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px 10px; padding: 18px 9px; }
+.app { position: relative; display: grid; justify-items: center; gap: 5px; border: 0; color: white; background: transparent; font-size: 10px; opacity: 1; }
+.app:disabled { color: white; }
+.icon-hold { position: relative; width: 57px; height: 57px; display: grid; place-items: center; border: 1px dashed rgba(255,255,255,.7); border-radius: 11px; background: rgba(10,10,10,.55); color: #aaa; font-size: 9px; }
+.icon-hold b { position: absolute; right: -7px; top: -8px; min-width: 21px; height: 21px; padding: 0 5px; display: grid; place-items: center; border: 2px solid white; border-radius: 12px; background: #d3131b; color: white; font-size: 11px; }
+.app em { font-style: normal; text-shadow: 0 1px 2px #000; }
+.hold-note { position: absolute; bottom: 4px; width: 100%; color: rgba(255,255,255,.55); text-align: center; font-size: 9px; }
+.low-battery-screen { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.modal-shade { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(0,0,0,.45); }
+.battery-alert { width: 260px; padding: 18px; border: 1px dashed #ddd; background: #202020; text-align: center; }
+.battery-alert p { color: #aaa; font-size: 11px; }
+.battery-alert button { color: white; border: 1px solid #777; background: #333; padding: 8px; }
+.stage aside { display: grid; gap: 4px; text-align: center; }
+.stage aside strong { letter-spacing: .14em; font-size: 12px; }
+.stage aside span { color: #777; font-size: 11px; }
+@media (max-height: 820px) { .device { transform: scale(.82); margin-block: -67px; } }
+@media (max-width: 430px) { .device { transform: scale(.86); margin-inline: -28px; } }

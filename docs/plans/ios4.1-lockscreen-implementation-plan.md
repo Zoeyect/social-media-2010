@@ -70,15 +70,15 @@ Evidence status: shared live time and locale-formatted date are **SOURCE-DERIVED
 Planned work:
 
 1. Promote the current elapsed-time-derived instant to a single value, conceptually `deviceDateTime`.
-2. Derive both `deviceTime` and `deviceDate` from that same instant and the same fixed simulation time zone (`Asia/Tokyo`).
+2. Derive both `deviceTime` and `deviceDate` from that same instant and the same fixed simulation time zone (`America/Los_Angeles`).
 3. Pass formatted values into Lock Screen and other screens; individual screen components must not contain a hardcoded clock or date literal.
-4. Use 24-hour time for the project locale and an English long weekday/month date for the specified historical presentation, unless a later locale requirement supersedes it.
+4. Use the en-US 12-hour clock cycle for the project locale and an English long weekday/month date. The planned Lock Screen and Status Bar presentation is `12:02`, without a visible 24-hour value.
 5. Update time and date on the existing shared timer tick. Do not add a Lock Screen-specific interval.
 
 Formatting contract:
 
 - Time source: `SESSION_START_ISO + elapsedMs`.
-- Time format: two-digit hour and minute, 24-hour clock.
+- Time format: hour and two-digit minute using the en-US 12-hour clock cycle; planned surface text at session start is `12:02`.
 - Date source: the same computed instant, not the host's unrelated current date.
 - Date format for the current English presentation: `Wednesday, October 20` pattern generated through `Intl.DateTimeFormat`, not stored as component text.
 

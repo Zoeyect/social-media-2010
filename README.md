@@ -1,6 +1,6 @@
 # SOCIAL MEDIA, 2010
 
-Independent Device Layer prototype for a historically controlled reconstruction of a black GSM iPhone 4 running iOS 4.1 in Tokyo on October 20, 2010.
+Independent Device Layer prototype for a historically controlled reconstruction of a U.S. black GSM iPhone 4 running iOS 4.1 shortly after midnight Pacific Time on October 20, 2010.
 
 ## Scope
 

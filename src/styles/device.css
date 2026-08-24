@@ -75,6 +75,12 @@ button, input { font: inherit; }
 .springboard-folder-overlay.is-closing .springboard-folder-panel { animation: springboard-folder-close 160ms ease-in both; }
 @keyframes springboard-folder-open { from { opacity: 0; transform: scale(.194); } to { opacity: 1; transform: scale(1); } }
 @keyframes springboard-folder-close { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.194); } }
+.app-launch-container { position: absolute; z-index: 20; inset: 0; width: 320px; height: 480px; overflow: hidden; background: #000; transform-origin: center; }
+.app-runtime-surface { position: absolute; inset: 20px 0 0; background: #000; }
+.app-launch-container.is-launching { animation: app-runtime-open 180ms ease-out both; }
+.app-launch-container.is-closing { animation: app-runtime-close 160ms ease-in both; }
+@keyframes app-runtime-open { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+@keyframes app-runtime-close { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.94); } }
 .springboard-badge { position: relative; width: 29px; height: 31px; display: block; }
 .springboard-badge-artwork { position: absolute; inset: 0; display: block; background-position: center; background-size: 29px 31px; background-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; -webkit-mask-size: 29px 31px; mask-size: 29px 31px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
 .low-battery-screen { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }

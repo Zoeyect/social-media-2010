@@ -25,6 +25,7 @@ type SpringBoardProps = {
   onPageChange: (page: 0 | 1) => void;
   folderState: FolderState;
   dispatchFolderEvent: Dispatch<FolderEvent>;
+  onLaunchApp: (appId: string) => void;
 };
 
 type SwipeStart = {
@@ -67,7 +68,7 @@ const DOCK_APPS = [
   { name: "YouTube", iconSrc: youtubeIconSrc },
 ] as const;
 
-export function SpringBoard({ statusBar, currentPage, onPageChange, folderState, dispatchFolderEvent }: SpringBoardProps) {
+export function SpringBoard({ statusBar, currentPage, onPageChange, folderState, dispatchFolderEvent, onLaunchApp }: SpringBoardProps) {
   const swipeStart = useRef<SwipeStart | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -148,11 +149,15 @@ export function SpringBoard({ statusBar, currentPage, onPageChange, folderState,
       <img className="springboard-dock-artwork" src={dockSrc} alt="" aria-hidden="true" />
       {DOCK_APPS.map(app => <SpringBoardIcon key={app.name} {...app} dock />)}
     </div>
-    <SpringBoardFolder state={folderState} dispatch={dispatchFolderEvent} />
+    <SpringBoardFolder state={folderState} dispatch={dispatchFolderEvent} onLaunchApp={onLaunchApp} />
   </div>;
 }
 
-function SpringBoardFolder({ state, dispatch }: { state: FolderState; dispatch: Dispatch<FolderEvent> }) {
+function SpringBoardFolder({ state, dispatch, onLaunchApp }: {
+  state: FolderState;
+  dispatch: Dispatch<FolderEvent>;
+  onLaunchApp: (appId: string) => void;
+}) {
   if (state === "closed") return null;
 
   return <div
@@ -187,7 +192,7 @@ function SpringBoardFolder({ state, dispatch }: { state: FolderState; dispatch: 
       <div className="springboard-folder-title-layer" aria-hidden="true" />
       <div className="springboard-folder-grid">
         {SOCIAL_FOLDER_SLOTS.map((app, index) => app?.iconStatus === "READY" && app.available && app.iconSrc
-          ? <SpringBoardIcon key={app.name} name={app.name} iconSrc={app.iconSrc} />
+          ? <SpringBoardIcon key={app.id} name={app.name} iconSrc={app.iconSrc} onActivate={() => onLaunchApp(app.id)} />
           : <span className="springboard-folder-empty-slot" key={`empty-${index}`} />)}
       </div>
     </div>

@@ -1,17 +1,21 @@
-import { PointerEvent, ReactNode, useRef, useState } from "react";
+import { PointerEvent, useRef, useState } from "react";
+import { SMSNotification } from "../state/smsNotificationState";
+import { LockScreenModel } from "../state/lockScreenModel";
 
 const PROVISIONAL_UNLOCK_THRESHOLD = 0.78;
+type SliderState = "idle" | "dragging" | "success" | "returning";
 
 type LockScreenProps = {
-  statusBar: ReactNode;
-  deviceTime: string;
-  deviceDate: string;
+  model: LockScreenModel;
   onUnlock: () => void;
+  smsNotification?: SMSNotification | null;
+  onViewSMS?: () => void;
 };
 
-export function LockScreen({ statusBar, deviceTime, deviceDate, onUnlock }: LockScreenProps) {
+export function LockScreen({ model, onUnlock, smsNotification, onViewSMS }: LockScreenProps) {
   const [slideProgress, setSlideProgress] = useState(0);
   const [slideOffset, setSlideOffset] = useState(0);
+  const [sliderState, setSliderState] = useState<SliderState>("idle");
   const trackRef = useRef<HTMLDivElement>(null);
   const knobRef = useRef<HTMLButtonElement>(null);
   const pointerId = useRef<number | null>(null);
@@ -34,6 +38,7 @@ export function LockScreen({ statusBar, deviceTime, deviceDate, onUnlock }: Lock
   };
 
   const beginDrag = (event: PointerEvent<HTMLButtonElement>) => {
+    setSliderState("dragging");
     pointerId.current = event.pointerId;
     pointerStartX.current = event.clientX;
     progressAtStart.current = progressRef.current;
@@ -54,29 +59,44 @@ export function LockScreen({ statusBar, deviceTime, deviceDate, onUnlock }: Lock
     }
     pointerId.current = null;
     const completed = progressRef.current >= PROVISIONAL_UNLOCK_THRESHOLD;
+    setSliderState(completed ? "success" : "returning");
     setProgress(0);
-    if (completed) onUnlock();
+    if (completed) {
+      if (smsNotification?.status === "presenting" && onViewSMS) onViewSMS();
+      else onUnlock();
+    } else {
+      window.requestAnimationFrame(() => setSliderState("idle"));
+    }
   };
 
   const cancelDrag = (event: PointerEvent<HTMLButtonElement>) => {
     if (pointerId.current !== event.pointerId) return;
     pointerId.current = null;
+    setSliderState("returning");
     setProgress(0);
+    window.requestAnimationFrame(() => setSliderState("idle"));
   };
 
   return <div className="lockscreen" data-wallpaper-asset-status="READY">
-    <div className="lockscreen-status-slot" data-status-glyph-assets="HOLD">{statusBar}</div>
     <div className="locktime">
-      <time className="lock-clock-slot">{deviceTime}</time>
-      <time className="lock-date-slot">{deviceDate}</time>
+      <time className="lock-clock-slot">{model.clock}</time>
+      <time className="lock-date-slot">{model.date}</time>
     </div>
+    {smsNotification?.status === "presenting" && <section className="lockscreen-sms-alert" aria-label="Text Message">
+      <strong>Text Message</strong>
+      <b>{smsNotification.sender}</b>
+      <p>{smsNotification.message}</p>
+    </section>}
     <div className="lockscreen-bottom-bar">
       <div
         className="unlock-track"
         ref={trackRef}
+        data-slider-state={sliderState}
         data-slider-background-asset-status="READY"
       >
-        <span>slide to unlock</span>
+        <span className="unlock-track-raster" aria-hidden="true" />
+        <span className="unlock-track-label">{smsNotification?.status === "presenting" ? "slide to view" : "slide to unlock"}</span>
+        <span className="unlock-track-highlight" aria-hidden="true">{smsNotification?.status === "presenting" ? "slide to view" : "slide to unlock"}</span>
         <button
           ref={knobRef}
           type="button"

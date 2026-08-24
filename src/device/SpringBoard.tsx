@@ -1,4 +1,4 @@
-import { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, useRef, useState } from "react";
+import { Dispatch, PointerEvent as ReactPointerEvent, useRef, useState } from "react";
 import dockSrc from "../assets/historical/ios4.1/springboard/system/SBDockBG@2x.png";
 import cameraIconSrc from "../assets/historical/ios4.1/springboard/apps/Camera@2x.png";
 import messagesIconSrc from "../assets/historical/ios4.1/springboard/apps/Messages@2x.png";
@@ -20,12 +20,12 @@ import { SOCIAL_FOLDER_SLOTS } from "../data/socialFolderApps";
 import { FolderEvent, FolderState } from "../state/folderState";
 
 type SpringBoardProps = {
-  statusBar: ReactNode;
   currentPage: 0 | 1;
   onPageChange: (page: 0 | 1) => void;
   folderState: FolderState;
   dispatchFolderEvent: Dispatch<FolderEvent>;
   onLaunchApp: (appId: string) => void;
+  messagesBadgeCount: number;
 };
 
 type SwipeStart = {
@@ -68,7 +68,7 @@ const DOCK_APPS = [
   { name: "YouTube", iconSrc: youtubeIconSrc },
 ] as const;
 
-export function SpringBoard({ statusBar, currentPage, onPageChange, folderState, dispatchFolderEvent, onLaunchApp }: SpringBoardProps) {
+export function SpringBoard({ currentPage, onPageChange, folderState, dispatchFolderEvent, onLaunchApp, messagesBadgeCount }: SpringBoardProps) {
   const swipeStart = useRef<SwipeStart | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -126,7 +126,6 @@ export function SpringBoard({ statusBar, currentPage, onPageChange, folderState,
   };
 
   return <div className="springboard">
-    {statusBar}
     <div
       className="springboard-pages"
       onPointerDown={beginSwipe}
@@ -138,7 +137,9 @@ export function SpringBoard({ statusBar, currentPage, onPageChange, folderState,
         className={`springboard-pages-track${isDragging ? " is-dragging" : ""}`}
         style={{ transform: `translateX(${-currentPage * PAGE_WIDTH + dragOffset}px)` }}
       >
-        <SpringBoardPage apps={PAGE_ONE_APPS} pageNumber={1} />
+        <SpringBoardPage apps={PAGE_ONE_APPS} pageNumber={1} badgeCounts={{ 0: messagesBadgeCount }} onAppActivate={index => {
+          if (index === 0) onLaunchApp("messages");
+        }} />
         <SpringBoardPage apps={PAGE_TWO_APPS} pageNumber={2} onAppActivate={index => {
           if (index === 0 && folderState === "closed") dispatchFolderEvent("OPEN");
         }} />
@@ -147,7 +148,13 @@ export function SpringBoard({ statusBar, currentPage, onPageChange, folderState,
     <SpringBoardPageIndicator currentPage={currentPage} />
     <div className="springboard-dock">
       <img className="springboard-dock-artwork" src={dockSrc} alt="" aria-hidden="true" />
-      {DOCK_APPS.map(app => <SpringBoardIcon key={app.name} {...app} dock />)}
+      {DOCK_APPS.map(app => <SpringBoardIcon
+        key={app.name}
+        {...app}
+        dock
+        badgeCount={app.name === "Messages" ? messagesBadgeCount : 0}
+        onActivate={app.name === "Messages" ? () => onLaunchApp("messages") : undefined}
+      />)}
     </div>
     <SpringBoardFolder state={folderState} dispatch={dispatchFolderEvent} onLaunchApp={onLaunchApp} />
   </div>;
@@ -199,36 +206,40 @@ function SpringBoardFolder({ state, dispatch, onLaunchApp }: {
   </div>;
 }
 
-function SpringBoardPage({ apps, pageNumber, onAppActivate }: {
+function SpringBoardPage({ apps, pageNumber, onAppActivate, badgeCounts }: {
   apps: readonly ({ name: string; iconSrc: string; kind?: "folder" } | undefined)[];
   pageNumber: number;
   onAppActivate?: (index: number) => void;
+  badgeCounts?: Partial<Record<number, number>>;
 }) {
   return <div className="springboard-page" aria-label={`Home screen page ${pageNumber}`}>
     <div className="springboard-icon-grid">
       {apps.map((app, index) => <SpringBoardIcon
         key={app?.name ?? `empty-${index}`}
         {...app}
+        badgeCount={badgeCounts?.[index] ?? 0}
         onActivate={app && onAppActivate ? () => onAppActivate(index) : undefined}
       />)}
     </div>
   </div>;
 }
 
-function SpringBoardIcon({ name, iconSrc, kind, dock = false, onActivate }: {
+function SpringBoardIcon({ name, iconSrc, kind, dock = false, onActivate, badgeCount = 0 }: {
   name?: string;
   iconSrc?: string;
   kind?: "folder";
   dock?: boolean;
   onActivate?: () => void;
+  badgeCount?: number;
 }) {
   const content = <>
     {iconSrc && <img className={`springboard-system-icon${kind === "folder" ? " is-folder" : ""}`} src={iconSrc} alt={name ?? ""} />}
     {iconSrc && name && <span className="springboard-icon-label">{name}</span>}
+    {!!badgeCount && <SpringBoardBadge count={badgeCount} />}
   </>;
 
   if (onActivate) return <button
-    className="springboard-icon-slot springboard-icon-button"
+    className={`${dock ? "springboard-dock-slot" : "springboard-icon-slot"} springboard-icon-button`}
     data-app-name={name}
     onPointerDown={event => event.stopPropagation()}
     onClick={onActivate}
@@ -258,11 +269,12 @@ function SpringBoardPageIndicator({ currentPage }: { currentPage: 0 | 1 }) {
   </div>;
 }
 
-export function SpringBoardBadge() {
-  return <span className="springboard-badge" aria-hidden="true">
+export function SpringBoardBadge({ count }: { count: number }) {
+  return <span className="springboard-badge" aria-label={`${count} unread messages`}>
     <span
       className="springboard-badge-artwork"
       style={{ backgroundImage: `url(${badgeBackgroundSrc})`, maskImage: `url(${badgeMaskSrc})`, WebkitMaskImage: `url(${badgeMaskSrc})` }}
     />
+    <b>{count}</b>
   </span>;
 }

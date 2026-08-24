@@ -9,6 +9,7 @@ export type StatusBarState = {
   batteryPercentage: number;
   batteryStatus: BatteryStatus;
   carrier: string;
+  carrierArtworkSrc: string | null;
   clock: string;
 };
 
@@ -19,6 +20,7 @@ type CreateStatusBarStateOptions = {
   batteryPercentage: number;
   charging: boolean;
   carrier: string;
+  carrierArtworkSrc?: string | null;
   clock: string;
 };
 
@@ -31,6 +33,7 @@ export function createStatusBarState(options: CreateStatusBarStateOptions): Stat
     batteryPercentage,
     batteryStatus: options.charging ? "charging" : batteryPercentage <= 20 ? "critical" : "normal",
     carrier: options.carrier,
+    carrierArtworkSrc: options.carrierArtworkSrc ?? null,
     clock: options.clock,
   };
 }

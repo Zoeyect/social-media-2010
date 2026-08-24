@@ -24,20 +24,26 @@ const networkGlyphs = {
 export function StatusBar({ state }: { state: StatusBarState }) {
   const batteryFill = state.batteryStatus === "critical" ? batteryLowFillSrc : batteryFillSrc;
 
-  return <div className="status" data-battery-status={state.batteryStatus}>
-    <img className="signal" src={signalGlyphs[state.signalStrength]} data-signal-strength={state.signalStrength} alt={`${state.signalStrength} of 5 signal bars`} />
-    <span className="carrier">{state.carrier}</span>
-    {state.network !== "none" && <img className="network" src={networkGlyphs[state.network]} data-network={state.network} alt={state.network} />}
-    <strong>{state.clock}</strong>
-    {state.bluetoothEnabled && <img className="bluetooth" src={bluetoothSrc} alt="Bluetooth" />}
-    <span className="battery-percent">{state.batteryPercentage}%</span>
-    {state.batteryStatus === "charging"
-      ? <img className="battery-glyph" src={batteryChargingSrc} alt="Charging" />
-      : <span className="battery-glyph" role="img" aria-label={`${state.batteryPercentage}% battery`}>
-          <span className="battery-fill-well">
-            <span className="battery-fill" style={{ width: `${state.batteryPercentage}%`, backgroundImage: `url(${batteryFill})` }} />
-          </span>
-          <img className="battery-frame" src={batteryFrameSrc} alt="" aria-hidden="true" />
-        </span>}
+  return <div className="system-status-bar" data-battery-status={state.batteryStatus}>
+    <div className="status-region status-region-left">
+      <img className="status-signal" src={signalGlyphs[state.signalStrength]} data-signal-strength={state.signalStrength} alt={`${state.signalStrength} of 5 signal bars`} />
+      {state.carrierArtworkSrc
+        ? <img className="status-carrier" src={state.carrierArtworkSrc} data-carrier={state.carrier} alt={state.carrier} />
+        : <span className="status-carrier status-text" data-carrier={state.carrier}>{state.carrier}</span>}
+      {state.network !== "none" && <img className="status-network" src={networkGlyphs[state.network]} data-network={state.network} alt={state.network} />}
+    </div>
+    <div className="status-region status-region-center"><strong className="status-clock">{state.clock}</strong></div>
+    <div className="status-region status-region-right">
+      {state.bluetoothEnabled && <img className="status-bluetooth" src={bluetoothSrc} alt="Bluetooth" />}
+      <span className="status-battery-percent status-text">{state.batteryPercentage}%</span>
+      {state.batteryStatus === "charging"
+        ? <img className="status-battery-glyph" src={batteryChargingSrc} alt="Charging" />
+        : <span className="status-battery-glyph" role="img" aria-label={`${state.batteryPercentage}% battery`}>
+            <span className="battery-fill-well">
+              <span className="battery-fill" style={{ width: `${state.batteryPercentage}%`, backgroundImage: `url(${batteryFill})` }} />
+            </span>
+            <img className="battery-frame" src={batteryFrameSrc} alt="" aria-hidden="true" />
+          </span>}
+    </div>
   </div>;
 }

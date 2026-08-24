@@ -2,7 +2,9 @@ export const BOOT_DURATION_MS = 30_000;
 export const POWER_HOLD_MS = 1_000;
 export const SESSION_DURATION_MS = 15 * 60_000;
 export const SESSION_KEY = "social-media-2010.session.v1";
-export const SESSION_START_ISO = "2010-10-20T22:02:00+09:00";
+export const SESSION_START_ISO = "2010-10-20T00:02:00-07:00";
+export const DEVICE_TIME_ZONE = "America/Los_Angeles";
+export const DEVICE_LOCALE = "en-US";
 
 export type DevicePhase = "hero" | "poweredOff" | "booting" | "locked" | "springboard" | "app" | "sleeping" | "powerOffConfirm" | "shutdown" | "lowBatteryWarning";
 export type WarningLevel = 20 | 10;
@@ -121,12 +123,32 @@ export function simulatedDeviceDateTime(elapsed: number) {
   return new Date(base + elapsed);
 }
 
+const deviceTimeFormatter = new Intl.DateTimeFormat(DEVICE_LOCALE, {
+  timeZone: DEVICE_TIME_ZONE,
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
 export function formatDeviceTime(deviceDateTime: Date) {
-  return new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit", hour12: false }).format(deviceDateTime);
+  return deviceTimeFormatter.format(deviceDateTime);
+}
+
+export function formatLockScreenTime(deviceDateTime: Date) {
+  return deviceTimeFormatter.formatToParts(deviceDateTime)
+    .filter(part => part.type !== "dayPeriod")
+    .map(part => part.value)
+    .join("")
+    .trim();
 }
 
 export function formatDeviceDate(deviceDateTime: Date) {
-  return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tokyo", weekday: "long", month: "long", day: "numeric" }).format(deviceDateTime);
+  return new Intl.DateTimeFormat(DEVICE_LOCALE, {
+    timeZone: DEVICE_TIME_ZONE,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(deviceDateTime);
 }
 
 export function simulatedClock(elapsed: number) {

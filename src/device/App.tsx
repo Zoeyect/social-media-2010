@@ -3,13 +3,22 @@ import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.p
 import lowBatterySrc from "../assets/device/low-battery-iphone4.png";
 import { DeviceAudio } from "../audio/deviceAudio";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
-import { batteryPercent, BOOT_DURATION_MS, elapsedMs, formatDeviceDate, formatDeviceTime, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
+import { DEVICE_CARRIER_CONFIG } from "../state/carrierConfig";
+import { batteryPercent, BOOT_DURATION_MS, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
 import { multitaskingBarStateTransition } from "../state/multitaskingBarState";
+import { initialMessagesState, messagesStateTransition } from "../state/messagesState";
+import { createLockScreenModel } from "../state/lockScreenModel";
+import { messagesBadgeStateTransition } from "../state/messagesBadgeState";
+import { smsNotificationStateTransition } from "../state/smsNotificationState";
 import { createStatusBarState } from "../state/statusBarModel";
+import { smsMessageReceived } from "../system/smsNotification";
 import { LockScreen } from "./LockScreen";
+import { LockScreenStatusPresentation } from "./LockScreenStatusPresentation";
 import { AppLaunchContainer } from "./AppLaunchContainer";
 import { MultitaskingBar } from "./MultitaskingBar";
+import { MessagesExperience } from "./MessagesExperience";
+import { SMSAlertOverlay } from "./SMSAlertOverlay";
 import { SpringBoard } from "./SpringBoard";
 import { StatusBar } from "./StatusBar";
 
@@ -17,6 +26,8 @@ const LOW_BATTERY_REVEAL_DELAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
 const AUTO_SLEEP_PHASES = new Set<Session["phase"]>(["locked", "springboard", "app"]);
 const HOME_DOUBLE_PRESS_MS = 300;
+const INITIAL_SMS_DELAY_MS = 3 * 60_000;
+const INITIAL_SMS = { id: "mom-home-yet", sender: "Mom", message: "Home yet?" } as const;
 
 export function App() {
   const [session, setSession] = useState<Session>(loadSession);
@@ -24,6 +35,9 @@ export function App() {
   const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
   const [multitaskingBar, dispatchMultitaskingBar] = useReducer(multitaskingBarStateTransition, "closed");
+  const [messagesState, dispatchMessages] = useReducer(messagesStateTransition, initialMessagesState);
+  const [messagesUnreadIds, dispatchMessagesBadge] = useReducer(messagesBadgeStateTransition, []);
+  const [smsNotification, dispatchSMSNotification] = useReducer(smsNotificationStateTransition, null);
   const [now, setNow] = useState(Date.now());
   const [powerProgress, setPowerProgress] = useState(0);
   const [homePressed, setHomePressed] = useState(false);
@@ -35,17 +49,20 @@ export function App() {
   const pendingAppHomePress = useRef<number | null>(null);
   const elapsed = elapsedMs(session, now);
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
-  const deviceTime = formatDeviceTime(deviceDateTime);
+  const deviceStatusTime = formatDeviceTime(deviceDateTime);
+  const lockScreenTime = formatLockScreenTime(deviceDateTime);
   const deviceDate = formatDeviceDate(deviceDateTime);
   const statusBarState = createStatusBarState({
     signalStrength: 5,
-    network: "3G",
+    network: DEVICE_CARRIER_CONFIG.networkType,
     bluetoothEnabled: false,
     batteryPercentage: batteryPercent(elapsed),
     charging: false,
-    carrier: "SoftBank",
-    clock: deviceTime,
+    carrier: DEVICE_CARRIER_CONFIG.carrier,
+    carrierArtworkSrc: DEVICE_CARRIER_CONFIG.carrierArtworkSrc,
+    clock: deviceStatusTime,
   });
+  const lockScreenModel = createLockScreenModel(lockScreenTime, deviceDate, statusBarState);
 
   const update = (change: Partial<Session>) => setSession(s => ({ ...s, ...change }));
 
@@ -54,6 +71,24 @@ export function App() {
     if (pendingAppHomePress.current !== null) window.clearTimeout(pendingAppHomePress.current);
   }, []);
   useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id); }, []);
+  useEffect(() => {
+    if (!session.unlockEpochMs || elapsed < INITIAL_SMS_DELAY_MS || smsNotification !== null) return;
+    const source = session.phase === "sleeping" || session.phase === "locked" ? "lockscreen" : "foreground";
+    smsMessageReceived(INITIAL_SMS, source, {
+      notificationDispatch: dispatchSMSNotification,
+      badgeDispatch: dispatchMessagesBadge,
+      messagesDispatch: dispatchMessages,
+    });
+    if (session.phase === "sleeping") update({ phase: "locked" });
+  }, [elapsed, session.phase, session.unlockEpochMs, smsNotification]);
+  useEffect(() => {
+    if (messagesState.momReply !== "pending") return;
+    const id = window.setTimeout(() => {
+      dispatchMessages({ type: "RECEIVE_MOM_REPLY" });
+      DeviceAudio.notificationReceived("message");
+    }, 1_000);
+    return () => window.clearTimeout(id);
+  }, [messagesState.momReply]);
   useEffect(() => {
     if (!session.unlockEpochMs || session.phase === "hero" || session.phase === "poweredOff" || session.phase === "booting" || session.phase === "powerOffConfirm" || session.phase === "shutdown") return;
     if (elapsed >= SESSION_DURATION_MS && session.activeWarning !== 1 && !session.batteryCriticalPending) {
@@ -110,6 +145,25 @@ export function App() {
   }, [appRuntime.phase, multitaskingBar, session.phase, session.previousPhase]);
 
   const recordInteraction = () => setActivityRevision(revision => revision + 1);
+  const openMessagesConversation = () => {
+    dispatchMessages({ type: "OPEN_CONVERSATION" });
+    if (messagesState.initialMessage) {
+      dispatchMessagesBadge({ type: "MARK_READ", messageId: messagesState.initialMessage.id });
+    }
+    if (smsNotification) dispatchSMSNotification({ type: "VIEW" });
+
+    if (appRuntime.activeAppId === "messages") {
+      if (appRuntime.phase === "suspended") dispatchAppRuntime({ type: "RESUME", appId: "messages" });
+      else if (appRuntime.phase === "none") dispatchAppRuntime({ type: "LAUNCH", appId: "messages" });
+    } else {
+      if (appRuntime.phase === "running" || appRuntime.phase === "launching" || appRuntime.phase === "resuming") {
+        dispatchAppRuntime({ type: "SUSPEND" });
+      }
+      dispatchAppRuntime({ type: "LAUNCH", appId: "messages" });
+    }
+    setUnlockReturnAppId(null);
+    update({ phase: "app" });
+  };
   const continueDeviceInteraction = (event: PointerEvent<HTMLElement>) => {
     if (event.buttons !== 0) recordInteraction();
   };
@@ -227,12 +281,17 @@ export function App() {
       <button className="power" aria-label="Power button" onPointerDown={beginPower} onPointerUp={endPower} onPointerCancel={cancelPower} onPointerLeave={cancelPower} />
       <div className="speaker" /><div className="camera" />
       <div className={`screen ${session.phase}`}>
+        {(session.phase === "locked" || session.phase === "springboard" || session.phase === "app") && <div className="device-status-bar-layer">
+          {session.phase === "locked"
+            ? <LockScreenStatusPresentation model={lockScreenModel} />
+            : <StatusBar state={statusBarState} />}
+        </div>}
         {session.phase === "poweredOff" && <div className="off"><p>Press and hold the power button.</p><div className="hold"><i style={{ width: `${powerProgress * 100}%` }} /></div></div>}
         {session.phase === "booting" && <div className="boot"><BootLogo /></div>}
         {session.phase === "locked" && <LockScreen
-          statusBar={<StatusBar state={statusBarState} />}
-          deviceTime={deviceTime}
-          deviceDate={deviceDate}
+          model={lockScreenModel}
+          smsNotification={smsNotification}
+          onViewSMS={openMessagesConversation}
           onUnlock={() => {
             const canResume = unlockReturnAppId !== null
               && (appRuntime.activeAppId === unlockReturnAppId || appRuntime.suspendedAppIds.includes(unlockReturnAppId));
@@ -249,11 +308,11 @@ export function App() {
           }}
         />}
         {session.phase === "springboard" && <SpringBoard
-          statusBar={<StatusBar state={statusBarState} />}
           currentPage={springBoardPage}
           onPageChange={setSpringBoardPage}
           folderState={folderState}
           dispatchFolderEvent={dispatchFolderEvent}
+          messagesBadgeCount={messagesUnreadIds.length}
           onLaunchApp={appId => {
             if (appRuntime.phase !== "none" && appRuntime.phase !== "suspended") return;
             dispatchAppRuntime({ type: "LAUNCH", appId });
@@ -262,10 +321,15 @@ export function App() {
         />}
         {session.phase === "app" && <AppLaunchContainer
           runtime={appRuntime}
-          statusBar={<StatusBar state={statusBarState} />}
           dispatch={dispatchAppRuntime}
           onClosed={() => update({ phase: "springboard" })}
-        />}
+        >
+          {appRuntime.activeAppId === "messages" && <MessagesExperience
+            state={messagesState}
+            dispatch={dispatchMessages}
+            onOpenConversation={openMessagesConversation}
+          />}
+        </AppLaunchContainer>}
         {session.phase === "app" && <MultitaskingBar
           state={multitaskingBar}
           appRuntime={appRuntime}
@@ -281,6 +345,11 @@ export function App() {
         {session.phase === "powerOffConfirm" && <PowerOffConfirm onCancel={() => update({ phase: session.previousPhase ?? "locked", previousPhase: null })} onConfirm={() => update({ phase: "shutdown" })} />}
         {session.phase === "shutdown" && <div className="dead" />}
         {session.phase === "lowBatteryWarning" && <img className="low-battery-screen" src={lowBatterySrc} alt="" aria-hidden="true" />}
+        {smsNotification?.status === "presenting" && session.phase !== "locked" && session.phase !== "sleeping" && <SMSAlertOverlay
+          notification={smsNotification}
+          onClose={() => dispatchSMSNotification({ type: "DISMISS" })}
+          onView={openMessagesConversation}
+        />}
       </div>
       <button
         className={`home${homePressed ? " is-pressed" : ""}`}

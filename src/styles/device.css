@@ -22,27 +22,43 @@ button, input { font: inherit; }
 .hold { position: absolute; left: 50%; bottom: 24px; width: 160px; height: 2px; transform: translateX(-50%); background: #333; }
 .hold i { display: block; height: 100%; background: #ddd; }
 .boot-logo { position: absolute; left: 112px; top: 160px; width: 96px; height: 160px; display: block; }
-.status { height: 20px; padding: 2px 6px; display: grid; grid-template-columns: 21px auto auto 1fr 10px auto 24px; gap: 3px; align-items: center; color: white; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1; background: rgba(0,0,0,.62); text-shadow: 0 1px 1px #000; }
-.status strong { grid-column: 4; justify-self: center; font-size: 12px; }
-.signal { width: 19px; height: 20px; display: block; object-fit: contain; }
-.carrier, .network, .battery-percent { white-space: nowrap; }
-.network { grid-column: 3; width: auto; height: 20px; display: block; object-fit: contain; }
-.bluetooth { width: 11px; height: 20px; display: block; object-fit: contain; }
-.bluetooth { grid-column: 5; }
-.battery-percent { grid-column: 6; }
-.battery-glyph { position: relative; grid-column: 7; width: 21px; height: 20px; display: block; }
+.device-status-bar-layer { position: absolute; z-index: 30; left: 0; top: 0; width: 320px; height: 20px; overflow: hidden; }
+.system-status-bar { position: relative; width: 320px; height: 20px; overflow: hidden; color: #fff; background: rgba(0,0,0,.62); font-family: Arial, Helvetica, sans-serif; font-size: 11px; text-shadow: 0 1px 1px #000; }
+.status-region { position: absolute; top: 0; height: 20px; overflow: hidden; }
+.status-region-left { left: 0; width: 90px; }
+.status-region-center { left: 115px; width: 90px; }
+.status-region-right { left: 230px; width: 90px; }
+.status-text { position: absolute; top: 0; height: 20px; line-height: 20px; white-space: nowrap; }
+.status-signal { position: absolute; left: 6px; top: 0; width: 19px; height: 20px; display: block; object-fit: contain; }
+.status-carrier { position: absolute; left: 30px; top: 0; width: 31.5px; height: 20px; display: block; object-fit: contain; }
+.status-carrier.status-text { width: auto; }
+.status-network { position: absolute; left: 64.5px; top: 0; width: auto; height: 20px; display: block; object-fit: contain; }
+.status-clock { position: absolute; left: 0; top: 0; width: 90px; height: 20px; display: block; font-size: 12px; line-height: 20px; text-align: center; }
+.status-lock { position: absolute; left: 40px; top: 0; width: 10px; height: 20px; display: block; object-fit: contain; }
+.status-bluetooth { position: absolute; left: 4px; top: 0; width: 11px; height: 20px; display: block; object-fit: contain; }
+.status-battery-percent { right: 30px; text-align: right; }
+.status-battery-glyph { position: absolute; right: 6px; top: 0; width: 21px; height: 20px; display: block; }
 .battery-fill-well { position: absolute; z-index: 0; left: 1.5px; top: 0; width: 17px; height: 20px; overflow: hidden; }
 .battery-fill { height: 20px; display: block; background-position: left top; background-repeat: repeat-x; background-size: 3px 20px; }
 .battery-frame { position: absolute; z-index: 1; inset: 0; width: 21px; height: 20px; display: block; }
-.lockscreen { position: relative; height: 100%; background: #000 url("../assets/historical/ios4.1/lockscreen/DefaultWallpaper@2x~iphone.png") center / 320px 480px no-repeat; }
-.locktime { padding: 16px 0 20px; text-align: center; font-weight: 200; font-size: 62px; text-shadow: 0 1px 2px #000; border-bottom: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.22); }
+.lockscreen { position: relative; height: 100%; padding-top: 20px; background: #000 url("../assets/historical/ios4.1/lockscreen/DefaultWallpaper@2x~iphone.png") center / 320px 480px no-repeat; }
+.locktime { height: 96px; padding: 3px 0 0; text-align: center; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 300; color: #fff; border-bottom: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.22); }
 .lock-clock-slot, .lock-date-slot { display: block; }
-.lock-date-slot { font-size: 16px; }
-.lockscreen-bottom-bar { position: absolute; left: 50%; bottom: 14px; width: 294px; height: 72px; padding: 10px 0; transform: translateX(-50%); background: url("../assets/historical/ios4.1/lockscreen/BarBottomLock.png") center / 1px 100% repeat-x; }
-.unlock-track { position: relative; height: 52px; background: transparent; text-align: center; line-height: 52px; color: #ccc; font-size: 21px; }
-.unlock-track > span { display: inline-block; transform: translateX(-10px); }
-.unlock-track button { position: absolute; z-index: 1; left: 0; top: 2.5px; width: 71px; height: 47px; padding: 0; border: 0; background: transparent url("../assets/historical/ios4.1/lockscreen/bottombarknobgray@2x.png") center / 71px 47px no-repeat; touch-action: none; user-select: none; cursor: grab; }
+.lock-clock-slot { height: 65px; font-size: 62px; line-height: 65px; }
+.lock-date-slot { font-size: 16px; line-height: 20px; }
+.lockscreen-sms-alert { position: absolute; left: 24px; top: 151px; width: 272px; padding: 10px 12px; display: grid; gap: 4px; color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: 8px; background: rgba(24,31,42,.92); text-align: left; text-shadow: 0 -1px #000; }
+.lockscreen-sms-alert strong { text-align: center; font-size: 16px; }
+.lockscreen-sms-alert b { font-size: 14px; }
+.lockscreen-sms-alert p { margin: 0; font-size: 14px; }
+.lockscreen-bottom-bar { position: absolute; left: 0; bottom: 0; width: 320px; height: 96px; background: url("../assets/historical/ios4.1/lockscreen/BarBottomLock@2x.png") center / .5px 96px repeat-x; }
+.unlock-track { position: absolute; left: 20px; bottom: 21px; width: 280px; height: 52px; overflow: hidden; text-align: center; line-height: 52px; color: #ccc; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 21px; }
+.unlock-track-raster { position: absolute; z-index: 0; inset: 0; border: 13px solid transparent; border-image-source: url("../assets/historical/ios4.1/lockscreen/WellLock@2x.png"); border-image-slice: 26 fill; border-image-width: 13px; border-image-repeat: stretch; pointer-events: none; }
+.unlock-track-label { position: absolute; z-index: 1; left: 75px; top: 0; width: 205px; height: 52px; display: block; color: rgba(255,255,255,.38); text-align: center; text-shadow: 0 1px rgba(0,0,0,.2); }
+.unlock-track-highlight { position: absolute; z-index: 2; left: 75px; top: 0; width: 205px; height: 52px; color: #fff; text-align: center; -webkit-mask-image: url("../assets/historical/ios4.1/lockscreen/bottombarlocktextmask@2x.png"); mask-image: url("../assets/historical/ios4.1/lockscreen/bottombarlocktextmask@2x.png"); -webkit-mask-position: -80px center; mask-position: -80px center; -webkit-mask-size: 80px 32px; mask-size: 80px 32px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; animation: slider-highlight 2.8s linear infinite; pointer-events: none; }
+.unlock-track[data-slider-state="dragging"] .unlock-track-highlight, .unlock-track[data-slider-state="success"] .unlock-track-highlight, .unlock-track[data-slider-state="returning"] .unlock-track-highlight { animation-play-state: paused; opacity: 0; }
+.unlock-track button { position: absolute; z-index: 1; left: 3px; top: 4px; width: 71px; height: 47px; padding: 0; border: 0; background: transparent url("../assets/historical/ios4.1/lockscreen/bottombarknobgray@2x.png") center / 71px 47px no-repeat; touch-action: none; user-select: none; cursor: grab; }
 .unlock-track button:active { cursor: grabbing; }
+@keyframes slider-highlight { 0% { opacity: 0; -webkit-mask-position: -80px center; mask-position: -80px center; } 30% { opacity: .3; } 50% { opacity: .4; } 70% { opacity: 0; -webkit-mask-position: 205px center; mask-position: 205px center; } 100% { opacity: 0; -webkit-mask-position: 205px center; mask-position: 205px center; } }
 .screen > .springboard { position: relative; height: 100%; background: #000 url("../assets/historical/ios4.1/lockscreen/DefaultWallpaper@2x~iphone.png") center / 320px 480px no-repeat; }
 .springboard-pages { position: absolute; inset: 0 0 84px; overflow: hidden; touch-action: pan-y; }
 .springboard-pages-track { width: 640px; height: 100%; display: flex; transition: transform 220ms ease-out; }
@@ -77,6 +93,22 @@ button, input { font: inherit; }
 @keyframes springboard-folder-close { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.194); } }
 .app-launch-container { position: absolute; z-index: 20; inset: 0; width: 320px; height: 480px; overflow: hidden; background: #000; transform-origin: center; }
 .app-runtime-surface { position: absolute; inset: 20px 0 0; background: #000; }
+.messages-app { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #111; background: #e9e9e9; font-family: Arial, Helvetica, sans-serif; }
+.messages-navigation-bar { position: relative; flex: 0 0 44px; display: grid; place-items: center; padding: 0 8px; color: #fff; border-top: 1px solid #aab7c8; border-bottom: 1px solid #2f3f55; background: linear-gradient(#8fa4bc,#58718f 50%,#415c7d 51%,#526b89); text-shadow: 0 -1px 0 #26384e; }
+.messages-navigation-bar strong { font-size: 18px; }
+.messages-back-button { position: absolute; left: 7px; top: 7px; height: 30px; padding: 0 9px; color: #fff; border: 1px solid #263d5a; border-radius: 5px; background: linear-gradient(#8299b3,#466382); box-shadow: inset 0 1px rgba(255,255,255,.35); font-size: 12px; font-weight: bold; text-shadow: 0 -1px #26384e; }
+.messages-conversation-row { position: relative; width: 100%; min-height: 62px; padding: 9px 36px 8px 12px; display: grid; gap: 4px; color: #111; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
+.messages-conversation-row strong { font-size: 17px; }
+.messages-conversation-row span { overflow: hidden; color: #666; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.messages-conversation-row i { position: absolute; right: 12px; top: 17px; color: #888; font: normal 28px/28px Arial, sans-serif; }
+.messages-thread { flex: 1 1 auto; min-height: 0; padding: 12px 9px; display: flex; flex-direction: column; gap: 9px; overflow-y: auto; background: #d8d8d8; }
+.sms-bubble { max-width: 226px; margin: 0; padding: 7px 11px 8px; border: 1px solid; border-radius: 14px; font-size: 15px; line-height: 19px; overflow-wrap: break-word; }
+.sms-bubble.is-incoming { align-self: flex-start; border-color: #aaa; background: linear-gradient(#fff,#dedede); box-shadow: inset 0 1px #fff; }
+.sms-bubble.is-outgoing { align-self: flex-end; border-color: #4a8b16; background: linear-gradient(#c4f78d,#70ca37); box-shadow: inset 0 1px rgba(255,255,255,.7); }
+.messages-composer { flex: 0 0 44px; padding: 6px; display: grid; grid-template-columns: 1fr auto; gap: 6px; border-top: 1px solid #888; background: linear-gradient(#eee,#bbb); }
+.messages-composer input { min-width: 0; height: 31px; padding: 4px 8px; color: #111; border: 1px solid #777; border-radius: 15px; background: #fff; outline: none; }
+.messages-composer button { height: 30px; padding: 0 10px; color: #fff; border: 1px solid #315c11; border-radius: 5px; background: linear-gradient(#8ad65d,#4fae24); font-size: 13px; font-weight: bold; text-shadow: 0 -1px #376f1c; }
+.messages-composer button:disabled { color: #ddd; border-color: #888; background: linear-gradient(#bbb,#999); text-shadow: none; }
 .app-launch-container.is-launching { animation: app-runtime-open 180ms ease-out both; }
 .app-launch-container.is-resuming { animation: app-runtime-open 180ms ease-out both; }
 .app-launch-container.is-closing { animation: app-runtime-close 160ms ease-in both; }
@@ -89,8 +121,19 @@ button, input { font: inherit; }
 .multitasking-app-icon { width: 59px; height: 60px; display: block; }
 .multitasking-delete-control { position: absolute; left: -7px; top: -7px; width: 22px; height: 22px; padding: 0; border: 2px solid #fff; border-radius: 50%; color: #fff; background: #c00; font: bold 20px/16px Arial, Helvetica, sans-serif; text-align: center; }
 @keyframes multitasking-bar-open { from { opacity: 0; transform: translateY(96px); } to { opacity: 1; transform: translateY(0); } }
-.springboard-badge { position: relative; width: 29px; height: 31px; display: block; }
+.sms-system-alert-layer { position: absolute; z-index: 40; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.28); }
+.sms-alert-sheet { width: 270px; overflow: hidden; color: #fff; border: 1px solid #111827; border-radius: 11px; background: rgba(31,42,58,.97); box-shadow: 0 2px 8px rgba(0,0,0,.75); text-align: center; text-shadow: 0 -1px #000; }
+.sms-alert-sheet > strong { display: block; padding: 12px 12px 4px; font-size: 18px; }
+.sms-alert-content { padding: 0 16px 12px; display: grid; gap: 5px; font-size: 14px; }
+.sms-alert-content b { font-size: 15px; }
+.sms-alert-content p { margin: 0; }
+.sms-alert-content small { color: #d4d8df; font-size: 12px; }
+.sms-alert-actions { height: 43px; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #111827; }
+.sms-alert-actions button { color: #fff; border: 0; border-right: 1px solid #111827; background: #4e6583; font-size: 16px; font-weight: bold; text-shadow: 0 -1px #1d2a3a; }
+.sms-alert-actions button:last-child { border-right: 0; }
+.springboard-badge { position: absolute; z-index: 3; right: -7px; top: -7px; width: 29px; height: 31px; display: block; }
 .springboard-badge-artwork { position: absolute; inset: 0; display: block; background-position: center; background-size: 29px 31px; background-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; -webkit-mask-size: 29px 31px; mask-size: 29px 31px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+.springboard-badge > b { position: absolute; z-index: 1; inset: 0; color: #fff; font: bold 12px/29px Arial, Helvetica, sans-serif; text-align: center; text-shadow: 0 -1px 1px #700; }
 .low-battery-screen { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
 .modal-shade { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(0,0,0,.45); }
 .battery-alert { width: 260px; padding: 18px; border: 1px dashed #ddd; background: #202020; text-align: center; }

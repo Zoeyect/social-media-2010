@@ -3,12 +3,12 @@ import { AppRuntimeEvent, AppRuntimeState } from "../state/appRuntimeState";
 
 type AppLaunchContainerProps = {
   runtime: AppRuntimeState;
-  statusBar: ReactNode;
   dispatch: Dispatch<AppRuntimeEvent>;
   onClosed: () => void;
+  children?: ReactNode;
 };
 
-export function AppLaunchContainer({ runtime, statusBar, dispatch, onClosed }: AppLaunchContainerProps) {
+export function AppLaunchContainer({ runtime, dispatch, onClosed, children }: AppLaunchContainerProps) {
   if (runtime.phase === "none") return null;
 
   return <div
@@ -24,7 +24,6 @@ export function AppLaunchContainer({ runtime, statusBar, dispatch, onClosed }: A
       }
     }}
   >
-    {statusBar}
-    <div className="app-runtime-surface" aria-hidden="true" />
+    <div className="app-runtime-surface" aria-hidden={children ? undefined : true}>{children}</div>
   </div>;
 }

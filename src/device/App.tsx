@@ -2,15 +2,18 @@ import { FormEvent, PointerEvent, useEffect, useRef, useState } from "react";
 import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.png?inline";
 import lowBatterySrc from "../assets/device/low-battery-iphone4.png";
 import { batteryPercent, BOOT_DURATION_MS, elapsedMs, formatDeviceDate, formatDeviceTime, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
+import { createStatusBarState } from "../state/statusBarModel";
 import { LockScreen } from "./LockScreen";
+import { SpringBoard } from "./SpringBoard";
+import { StatusBar } from "./StatusBar";
 
-const APPS = ["Messages", "Calendar", "Photos", "Camera", "Facebook", "Twitter", "Instagram", "Foursquare", "Flickr", "Tumblr"];
 const LOW_BATTERY_REVEAL_DELAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
 const AUTO_SLEEP_PHASES = new Set<Session["phase"]>(["locked", "springboard", "app"]);
 
 export function App() {
   const [session, setSession] = useState<Session>(loadSession);
+  const [springBoardPage, setSpringBoardPage] = useState<0 | 1>(0);
   const [now, setNow] = useState(Date.now());
   const [powerProgress, setPowerProgress] = useState(0);
   const [homePressed, setHomePressed] = useState(false);
@@ -22,6 +25,15 @@ export function App() {
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
   const deviceTime = formatDeviceTime(deviceDateTime);
   const deviceDate = formatDeviceDate(deviceDateTime);
+  const statusBarState = createStatusBarState({
+    signalStrength: 5,
+    network: "3G",
+    bluetoothEnabled: false,
+    batteryPercentage: batteryPercent(elapsed),
+    charging: false,
+    carrier: "SoftBank",
+    clock: deviceTime,
+  });
 
   const update = (change: Partial<Session>) => setSession(s => ({ ...s, ...change }));
 
@@ -148,7 +160,7 @@ export function App() {
         {session.phase === "poweredOff" && <div className="off"><p>Press and hold the power button.</p><div className="hold"><i style={{ width: `${powerProgress * 100}%` }} /></div></div>}
         {session.phase === "booting" && <div className="boot"><BootLogo /></div>}
         {session.phase === "locked" && <LockScreen
-          statusBar={<StatusBar clock={deviceTime} battery={batteryPercent(elapsed)} />}
+          statusBar={<StatusBar state={statusBarState} />}
           deviceTime={deviceTime}
           deviceDate={deviceDate}
           onUnlock={() => update({
@@ -157,11 +169,11 @@ export function App() {
             batteryCriticalRevealAtMs: session.batteryCriticalPending ? Date.now() + LOW_BATTERY_REVEAL_DELAY_MS : null,
           })}
         />}
-        {session.phase === "springboard" && <div className="springboard">
-          <StatusBar clock={deviceTime} battery={batteryPercent(elapsed)} />
-          <div className="apps">{APPS.map(name => <button className="app" key={name} disabled><span className="icon-hold">HOLD{session.badges[name] ? <b>{session.badges[name]}</b> : null}</span><em>{name}</em></button>)}</div>
-          <p className="hold-note">App icon artwork is on HOLD pending evidence.</p>
-        </div>}
+        {session.phase === "springboard" && <SpringBoard
+          statusBar={<StatusBar state={statusBarState} />}
+          currentPage={springBoardPage}
+          onPageChange={setSpringBoardPage}
+        />}
         {session.phase === "sleeping" && <div className="dead" />}
         {session.phase === "powerOffConfirm" && <PowerOffConfirm onCancel={() => update({ phase: session.previousPhase ?? "locked", previousPhase: null })} onConfirm={() => update({ phase: "shutdown" })} />}
         {session.phase === "shutdown" && <div className="dead" />}
@@ -186,20 +198,6 @@ export function App() {
 
 function BootLogo() {
   return <img className="boot-logo" src={bootLogoSrc} alt="" aria-hidden="true" />;
-}
-
-function StatusBar({ clock, battery }: { clock: string; battery: number }) {
-  const percentage = Math.max(1, Math.round(battery));
-  const lowBattery = percentage <= 20;
-  return <div className="status">
-    <span className="signal" aria-label="Five signal bars"><i /><i /><i /><i /><i /></span>
-    <span className="carrier">SoftBank</span>
-    <span className="network">3G</span>
-    <strong>{clock}</strong>
-    <svg className="bluetooth" viewBox="0 0 10 16" role="img" aria-label="Bluetooth"><path d="M2 4l6 8V4l-6 8 4-4-4-4 4 4" /></svg>
-    <span className="battery-percent">{percentage}%</span>
-    <span className={`battery${lowBattery ? " is-low" : ""}`}><i style={{ width: `${percentage}%` }} /></span>
-  </div>;
 }
 
 function PowerOffConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {

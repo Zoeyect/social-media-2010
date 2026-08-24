@@ -1,0 +1,213 @@
+import { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, useReducer, useRef, useState } from "react";
+import dockSrc from "../assets/historical/ios4.1/springboard/system/SBDockBG@2x.png";
+import cameraIconSrc from "../assets/historical/ios4.1/springboard/apps/Camera@2x.png";
+import messagesIconSrc from "../assets/historical/ios4.1/springboard/apps/Messages@2x.png";
+import safariIconSrc from "../assets/historical/ios4.1/springboard/apps/Safari@2x.png";
+import youtubeIconSrc from "../assets/historical/ios4.1/springboard/apps/YouTube@2x.png";
+import pageIndicatorSrc from "../assets/historical/ios4.1/springboard/system/UIPageIndicator.png";
+import pageIndicatorCurrentSrc from "../assets/historical/ios4.1/springboard/system/UIPageIndicatorCurrent.png";
+import searchIndicatorSrc from "../assets/historical/ios4.1/springboard/system/SBSearchPageIndicator@2x.png";
+import searchIndicatorCurrentSrc from "../assets/historical/ios4.1/springboard/system/SBSearchPageIndicatorCurrent@2x.png";
+import badgeBackgroundSrc from "../assets/historical/ios4.1/springboard/system/SBBadgeBG@2x.png";
+import badgeMaskSrc from "../assets/historical/ios4.1/springboard/system/SBBadgeBGMask@2x.png";
+import { FolderEvent, folderStateTransition, FolderState } from "../state/folderState";
+
+type SpringBoardProps = {
+  statusBar: ReactNode;
+  currentPage: 0 | 1;
+  onPageChange: (page: 0 | 1) => void;
+};
+
+type SwipeStart = {
+  pointerId: number;
+  x: number;
+  y: number;
+  axis: "pending" | "horizontal";
+};
+
+const PAGE_WIDTH = 320;
+const SWIPE_THRESHOLD = 48;
+const AXIS_LOCK_THRESHOLD = 6;
+
+const PAGE_ONE_APPS = [
+  { name: "Messages", iconSrc: messagesIconSrc },
+  undefined,
+  undefined,
+  { name: "Camera", iconSrc: cameraIconSrc },
+  { name: "YouTube", iconSrc: youtubeIconSrc },
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+  { name: "Safari", iconSrc: safariIconSrc },
+  undefined,
+  undefined,
+  undefined,
+] as const;
+const DOCK_APPS = [
+  { name: "Messages", iconSrc: messagesIconSrc },
+  { name: "Safari", iconSrc: safariIconSrc },
+  { name: "Camera", iconSrc: cameraIconSrc },
+  { name: "YouTube", iconSrc: youtubeIconSrc },
+] as const;
+
+export function SpringBoard({ statusBar, currentPage, onPageChange }: SpringBoardProps) {
+  const swipeStart = useRef<SwipeStart | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
+
+  const beginSwipe = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary || event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    swipeStart.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, axis: "pending" };
+    setDragOffset(0);
+    setIsDragging(false);
+  };
+
+  const moveSwipe = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = swipeStart.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+
+    if (start.axis === "pending") {
+      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < AXIS_LOCK_THRESHOLD) return;
+      if (Math.abs(deltaY) >= Math.abs(deltaX)) {
+        swipeStart.current = null;
+        setDragOffset(0);
+        setIsDragging(false);
+        event.currentTarget.releasePointerCapture(event.pointerId);
+        return;
+      }
+      start.axis = "horizontal";
+      setIsDragging(true);
+    }
+
+    event.preventDefault();
+    const boundedDelta = currentPage === 0 ? Math.min(0, deltaX) : Math.max(0, deltaX);
+    setDragOffset(boundedDelta);
+  };
+
+  const finishSwipe = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = swipeStart.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - start.x;
+    if (start.axis === "horizontal" && Math.abs(deltaX) >= SWIPE_THRESHOLD) {
+      onPageChange(deltaX < 0 ? 1 : 0);
+    }
+    swipeStart.current = null;
+    setDragOffset(0);
+    setIsDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const cancelSwipe = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (swipeStart.current?.pointerId !== event.pointerId) return;
+    swipeStart.current = null;
+    setDragOffset(0);
+    setIsDragging(false);
+  };
+
+  return <div className="springboard">
+    {statusBar}
+    <div
+      className="springboard-pages"
+      onPointerDown={beginSwipe}
+      onPointerMove={moveSwipe}
+      onPointerUp={finishSwipe}
+      onPointerCancel={cancelSwipe}
+    >
+      <div
+        className={`springboard-pages-track${isDragging ? " is-dragging" : ""}`}
+        style={{ transform: `translateX(${-currentPage * PAGE_WIDTH + dragOffset}px)` }}
+      >
+        <SpringBoardPage apps={PAGE_ONE_APPS} pageNumber={1} />
+        <SpringBoardPage apps={Array.from({ length: 16 })} pageNumber={2} />
+      </div>
+    </div>
+    <SpringBoardPageIndicator currentPage={currentPage} />
+    <div className="springboard-dock">
+      <img className="springboard-dock-artwork" src={dockSrc} alt="" aria-hidden="true" />
+      {DOCK_APPS.map(app => <SpringBoardIcon key={app.name} {...app} dock />)}
+    </div>
+    <SpringBoardFolder state={folderState} dispatch={dispatchFolderEvent} />
+  </div>;
+}
+
+function SpringBoardFolder({ state, dispatch }: { state: FolderState; dispatch: Dispatch<FolderEvent> }) {
+  if (state === "closed") return null;
+
+  return <div
+    className={`springboard-folder-overlay is-${state}`}
+    aria-hidden={state === "closing"}
+    onPointerDown={event => {
+      if (state === "open" && event.target === event.currentTarget) dispatch("CLOSE");
+    }}
+  >
+    <div
+      className="springboard-folder-panel"
+      role="group"
+      aria-label="Folder"
+      onPointerDown={event => event.stopPropagation()}
+      onAnimationEnd={event => {
+        if (event.target === event.currentTarget) dispatch("ANIMATION_COMPLETE");
+      }}
+    >
+      <div className="springboard-folder-grid">
+        {Array.from({ length: 12 }, (_, index) => <span className="springboard-folder-empty-slot" key={index} />)}
+      </div>
+    </div>
+  </div>;
+}
+
+function SpringBoardPage({ apps, pageNumber }: { apps: readonly ({ name: string; iconSrc: string } | undefined)[]; pageNumber: number }) {
+  return <div className="springboard-page" aria-label={`Home screen page ${pageNumber}`}>
+    <div className="springboard-icon-grid">
+      {apps.map((app, index) => <SpringBoardIcon
+        key={app?.name ?? `empty-${index}`}
+        {...app}
+      />)}
+    </div>
+  </div>;
+}
+
+function SpringBoardIcon({ name, iconSrc, dock = false }: { name?: string; iconSrc?: string; dock?: boolean }) {
+  return <span className={dock ? "springboard-dock-slot" : "springboard-icon-slot"} data-app-name={name}>
+    {iconSrc && <img className="springboard-system-icon" src={iconSrc} alt={name ?? ""} />}
+    {iconSrc && name && <span className="springboard-icon-label">{name}</span>}
+  </span>;
+}
+
+function SpringBoardPageIndicator({ currentPage }: { currentPage: 0 | 1 }) {
+  const spotlightCurrent = false;
+  const pageCount = 2;
+
+  return <div className="springboard-page-indicator" aria-label={`Home screen page ${currentPage + 1} of 2`}>
+    <img
+      className="springboard-search-indicator"
+      src={spotlightCurrent ? searchIndicatorCurrentSrc : searchIndicatorSrc}
+      alt=""
+      aria-hidden="true"
+    />
+    {Array.from({ length: pageCount }, (_, page) => <img
+      className="springboard-page-dot"
+      src={page === currentPage ? pageIndicatorCurrentSrc : pageIndicatorSrc}
+      alt=""
+      aria-hidden="true"
+      key={page}
+    />)}
+  </div>;
+}
+
+export function SpringBoardBadge() {
+  return <span className="springboard-badge" aria-hidden="true">
+    <span
+      className="springboard-badge-artwork"
+      style={{ backgroundImage: `url(${badgeBackgroundSrc})`, maskImage: `url(${badgeMaskSrc})`, WebkitMaskImage: `url(${badgeMaskSrc})` }}
+    />
+  </span>;
+}

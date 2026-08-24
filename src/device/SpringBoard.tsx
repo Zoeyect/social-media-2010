@@ -16,6 +16,7 @@ import folderShadowBottomSrc from "../assets/historical/ios4.1/springboard/folde
 import folderShadowBottomNotchSrc from "../assets/historical/ios4.1/springboard/folder/chrome/FolderShadowBottomNotch@2x.png";
 import folderShadowTopSrc from "../assets/historical/ios4.1/springboard/folder/chrome/FolderShadowTop@2x.png";
 import folderShadowTopNotchSrc from "../assets/historical/ios4.1/springboard/folder/chrome/FolderShadowTopNotch@2x.png";
+import { SOCIAL_FOLDER_SLOTS } from "../data/socialFolderApps";
 import { FolderEvent, FolderState } from "../state/folderState";
 
 type SpringBoardProps = {
@@ -185,7 +186,9 @@ function SpringBoardFolder({ state, dispatch }: { state: FolderState; dispatch: 
       <img className="springboard-folder-notch is-bottom" src={folderShadowBottomNotchSrc} alt="" aria-hidden="true" />
       <div className="springboard-folder-title-layer" aria-hidden="true" />
       <div className="springboard-folder-grid">
-        {Array.from({ length: 12 }, (_, index) => <span className="springboard-folder-empty-slot" key={index} />)}
+        {SOCIAL_FOLDER_SLOTS.map((app, index) => app?.iconStatus === "READY" && app.available && app.iconSrc
+          ? <SpringBoardIcon key={app.name} name={app.name} iconSrc={app.iconSrc} />
+          : <span className="springboard-folder-empty-slot" key={`empty-${index}`} />)}
       </div>
     </div>
   </div>;

@@ -1,31 +1,38 @@
 import { FormEvent, PointerEvent, useEffect, useReducer, useRef, useState } from "react";
 import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.png?inline";
 import lowBatterySrc from "../assets/device/low-battery-iphone4.png";
+import { DeviceAudio } from "../audio/deviceAudio";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
 import { batteryPercent, BOOT_DURATION_MS, elapsedMs, formatDeviceDate, formatDeviceTime, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
+import { multitaskingBarStateTransition } from "../state/multitaskingBarState";
 import { createStatusBarState } from "../state/statusBarModel";
 import { LockScreen } from "./LockScreen";
 import { AppLaunchContainer } from "./AppLaunchContainer";
+import { MultitaskingBar } from "./MultitaskingBar";
 import { SpringBoard } from "./SpringBoard";
 import { StatusBar } from "./StatusBar";
 
 const LOW_BATTERY_REVEAL_DELAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
 const AUTO_SLEEP_PHASES = new Set<Session["phase"]>(["locked", "springboard", "app"]);
+const HOME_DOUBLE_PRESS_MS = 300;
 
 export function App() {
   const [session, setSession] = useState<Session>(loadSession);
   const [springBoardPage, setSpringBoardPage] = useState<0 | 1>(0);
   const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
+  const [multitaskingBar, dispatchMultitaskingBar] = useReducer(multitaskingBarStateTransition, "closed");
   const [now, setNow] = useState(Date.now());
   const [powerProgress, setPowerProgress] = useState(0);
   const [homePressed, setHomePressed] = useState(false);
   const [activityRevision, setActivityRevision] = useState(0);
+  const [unlockReturnAppId, setUnlockReturnAppId] = useState<string | null>(null);
   const powerStarted = useRef<number | null>(null);
   const powerFrame = useRef<number | null>(null);
   const homePointer = useRef<number | null>(null);
+  const pendingAppHomePress = useRef<number | null>(null);
   const elapsed = elapsedMs(session, now);
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
   const deviceTime = formatDeviceTime(deviceDateTime);
@@ -43,6 +50,9 @@ export function App() {
   const update = (change: Partial<Session>) => setSession(s => ({ ...s, ...change }));
 
   useEffect(() => saveSession(session), [session]);
+  useEffect(() => () => {
+    if (pendingAppHomePress.current !== null) window.clearTimeout(pendingAppHomePress.current);
+  }, []);
   useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id); }, []);
   useEffect(() => {
     if (!session.unlockEpochMs || session.phase === "hero" || session.phase === "poweredOff" || session.phase === "booting" || session.phase === "powerOffConfirm" || session.phase === "shutdown") return;
@@ -75,16 +85,29 @@ export function App() {
   useEffect(() => {
     if (!AUTO_SLEEP_PHASES.has(session.phase)) return;
     const id = window.setTimeout(() => {
+      const returnAppId = session.phase === "app" ? appRuntime.activeAppId : null;
+      setUnlockReturnAppId(returnAppId);
+      if (returnAppId) dispatchAppRuntime({ type: "SUSPEND" });
+      dispatchMultitaskingBar("RESET");
+      DeviceAudio.lock();
       setSession(current => AUTO_SLEEP_PHASES.has(current.phase) ? { ...current, phase: "sleeping" } : current);
     }, AUTO_SLEEP_DELAY_MS);
     return () => window.clearTimeout(id);
-  }, [activityRevision, session.phase]);
+  }, [activityRevision, appRuntime.activeAppId, session.phase]);
   useEffect(() => {
     const appTemporarilyCoveredByPowerConfirmation = session.phase === "powerOffConfirm" && session.previousPhase === "app";
-    if (session.phase !== "app" && !appTemporarilyCoveredByPowerConfirmation && appRuntime.phase !== "none") {
+    const runtimeMustReset = session.phase === "hero" || session.phase === "poweredOff" || session.phase === "booting" || session.phase === "shutdown";
+    if (runtimeMustReset && appRuntime.phase !== "none") {
       dispatchAppRuntime({ type: "RESET" });
     }
-  }, [appRuntime.phase, session.phase, session.previousPhase]);
+    if (session.phase !== "app" && !appTemporarilyCoveredByPowerConfirmation && multitaskingBar !== "closed") {
+      dispatchMultitaskingBar("RESET");
+    }
+    if (session.phase !== "app" && !appTemporarilyCoveredByPowerConfirmation && pendingAppHomePress.current !== null) {
+      window.clearTimeout(pendingAppHomePress.current);
+      pendingAppHomePress.current = null;
+    }
+  }, [appRuntime.phase, multitaskingBar, session.phase, session.previousPhase]);
 
   const recordInteraction = () => setActivityRevision(revision => revision + 1);
   const continueDeviceInteraction = (event: PointerEvent<HTMLElement>) => {
@@ -122,7 +145,16 @@ export function App() {
   const endPower = () => {
     if (powerStarted.current !== null && session.phase !== "poweredOff") {
       const transition = shortPowerTransition(session);
-      if (transition) update(transition);
+      if (transition) {
+        if (transition.phase === "sleeping") {
+          const returnAppId = session.phase === "app" ? appRuntime.activeAppId : null;
+          setUnlockReturnAppId(returnAppId);
+          if (returnAppId) dispatchAppRuntime({ type: "SUSPEND" });
+          dispatchMultitaskingBar("RESET");
+          DeviceAudio.lock();
+        }
+        update(transition);
+      }
     }
     powerStarted.current = null;
     if (powerFrame.current) cancelAnimationFrame(powerFrame.current);
@@ -154,8 +186,27 @@ export function App() {
       dispatchFolderEvent("CLOSE");
       return;
     }
-    if (session.phase === "app" && (appRuntime.phase === "launching" || appRuntime.phase === "running")) {
-      dispatchAppRuntime({ type: "CLOSE" });
+    if (session.phase === "app" && multitaskingBar !== "closed") {
+      dispatchMultitaskingBar("CLOSE");
+      return;
+    }
+    if (session.phase === "app" && appRuntime.phase === "running") {
+      if (pendingAppHomePress.current !== null) {
+        window.clearTimeout(pendingAppHomePress.current);
+        pendingAppHomePress.current = null;
+        dispatchMultitaskingBar("OPEN");
+        return;
+      }
+      pendingAppHomePress.current = window.setTimeout(() => {
+        pendingAppHomePress.current = null;
+        dispatchAppRuntime({ type: "SUSPEND" });
+        update({ phase: "springboard" });
+      }, HOME_DOUBLE_PRESS_MS);
+      return;
+    }
+    if (session.phase === "app" && (appRuntime.phase === "launching" || appRuntime.phase === "resuming")) {
+      dispatchAppRuntime({ type: "SUSPEND" });
+      update({ phase: "springboard" });
       return;
     }
     const transition = homeButtonTransition(session);
@@ -182,11 +233,20 @@ export function App() {
           statusBar={<StatusBar state={statusBarState} />}
           deviceTime={deviceTime}
           deviceDate={deviceDate}
-          onUnlock={() => update({
-            phase: "springboard",
-            unlockEpochMs: session.unlockEpochMs ?? Date.now(),
-            batteryCriticalRevealAtMs: session.batteryCriticalPending ? Date.now() + LOW_BATTERY_REVEAL_DELAY_MS : null,
-          })}
+          onUnlock={() => {
+            const canResume = unlockReturnAppId !== null
+              && (appRuntime.activeAppId === unlockReturnAppId || appRuntime.suspendedAppIds.includes(unlockReturnAppId));
+            if (canResume && unlockReturnAppId) dispatchAppRuntime({ type: "RESUME", appId: unlockReturnAppId });
+            DeviceAudio.unlock();
+            update({
+              phase: canResume ? "app" : "springboard",
+              unlockEpochMs: session.unlockEpochMs ?? Date.now(),
+              batteryCriticalRevealAtMs: !canResume && session.batteryCriticalPending
+                ? Date.now() + LOW_BATTERY_REVEAL_DELAY_MS
+                : null,
+            });
+            setUnlockReturnAppId(null);
+          }}
         />}
         {session.phase === "springboard" && <SpringBoard
           statusBar={<StatusBar state={statusBarState} />}
@@ -195,7 +255,7 @@ export function App() {
           folderState={folderState}
           dispatchFolderEvent={dispatchFolderEvent}
           onLaunchApp={appId => {
-            if (appRuntime.phase !== "none") return;
+            if (appRuntime.phase !== "none" && appRuntime.phase !== "suspended") return;
             dispatchAppRuntime({ type: "LAUNCH", appId });
             update({ phase: "app" });
           }}
@@ -205,6 +265,17 @@ export function App() {
           statusBar={<StatusBar state={statusBarState} />}
           dispatch={dispatchAppRuntime}
           onClosed={() => update({ phase: "springboard" })}
+        />}
+        {session.phase === "app" && <MultitaskingBar
+          state={multitaskingBar}
+          appRuntime={appRuntime}
+          dispatch={dispatchMultitaskingBar}
+          onSelectApp={appId => {
+            dispatchMultitaskingBar("CLOSE");
+            if (appRuntime.activeAppId !== appId || appRuntime.phase !== "running") {
+              dispatchAppRuntime({ type: "RESUME", appId });
+            }
+          }}
         />}
         {session.phase === "sleeping" && <div className="dead" />}
         {session.phase === "powerOffConfirm" && <PowerOffConfirm onCancel={() => update({ phase: session.previousPhase ?? "locked", previousPhase: null })} onConfirm={() => update({ phase: "shutdown" })} />}

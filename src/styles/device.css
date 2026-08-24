@@ -78,9 +78,17 @@ button, input { font: inherit; }
 .app-launch-container { position: absolute; z-index: 20; inset: 0; width: 320px; height: 480px; overflow: hidden; background: #000; transform-origin: center; }
 .app-runtime-surface { position: absolute; inset: 20px 0 0; background: #000; }
 .app-launch-container.is-launching { animation: app-runtime-open 180ms ease-out both; }
+.app-launch-container.is-resuming { animation: app-runtime-open 180ms ease-out both; }
 .app-launch-container.is-closing { animation: app-runtime-close 160ms ease-in both; }
 @keyframes app-runtime-open { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
 @keyframes app-runtime-close { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.94); } }
+.multitasking-bar { position: absolute; z-index: 30; left: 0; bottom: 0; width: 320px; height: 96px; overflow: hidden; background: #000; }
+.multitasking-bar.is-opening { animation: multitasking-bar-open 180ms ease-out both; }
+.multitasking-icon-strip { height: 100%; padding: 12px 16px 10px; display: flex; gap: 17px; overflow-x: auto; overflow-y: hidden; }
+.multitasking-icon-slot { position: relative; flex: 0 0 59px; width: 59px; height: 74px; }
+.multitasking-app-icon { width: 59px; height: 60px; display: block; }
+.multitasking-delete-control { position: absolute; left: -7px; top: -7px; width: 22px; height: 22px; padding: 0; border: 2px solid #fff; border-radius: 50%; color: #fff; background: #c00; font: bold 20px/16px Arial, Helvetica, sans-serif; text-align: center; }
+@keyframes multitasking-bar-open { from { opacity: 0; transform: translateY(96px); } to { opacity: 1; transform: translateY(0); } }
 .springboard-badge { position: relative; width: 29px; height: 31px; display: block; }
 .springboard-badge-artwork { position: absolute; inset: 0; display: block; background-position: center; background-size: 29px 31px; background-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; -webkit-mask-size: 29px 31px; mask-size: 29px 31px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
 .low-battery-screen { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }

@@ -19,7 +19,7 @@ export function AppLaunchContainer({ runtime, statusBar, dispatch, onClosed }: A
       if (runtime.phase === "closing") {
         dispatch({ type: "ANIMATION_COMPLETE" });
         onClosed();
-      } else if (runtime.phase === "launching") {
+      } else if (runtime.phase === "launching" || runtime.phase === "resuming") {
         dispatch({ type: "ANIMATION_COMPLETE" });
       }
     }}

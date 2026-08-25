@@ -12,12 +12,23 @@ export type TwitterTweet = {
   origin: ContentOrigin;
 };
 
+export type TwitterReply = {
+  id: string;
+  targetTweetId: string;
+  displayName: string;
+  text: string;
+};
+
 export type TwitterState = {
   currentView: TwitterView;
   timeline: TwitterTweet[];
   selectedTweetId: string | null;
   scrollPosition: number;
   favoriteTweetIds: string[];
+  retweetedTweetIds: string[];
+  replies: TwitterReply[];
+  replyComposerTweetId: string | null;
+  replyDraft: string;
 };
 
 export type TwitterEvent =
@@ -25,6 +36,11 @@ export type TwitterEvent =
   | { type: "BACK_TO_TIMELINE" }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
   | { type: "TOGGLE_FAVORITE"; tweetId: string }
+  | { type: "TOGGLE_RETWEET"; tweetId: string }
+  | { type: "BEGIN_REPLY"; tweetId: string }
+  | { type: "EDIT_REPLY"; value: string }
+  | { type: "CANCEL_REPLY" }
+  | { type: "SUBMIT_REPLY"; displayName: string }
   | { type: "DELIVER_TIMELINE_TWEET"; tweet: Omit<TwitterTweet, "contentStatus" | "origin"> }
   | { type: "RESET"; displayName?: string };
 
@@ -39,6 +55,10 @@ export function createInitialTwitterState(sessionDisplayName: string): TwitterSt
     selectedTweetId: null,
     scrollPosition: 0,
     favoriteTweetIds: [],
+    retweetedTweetIds: [],
+    replies: [],
+    replyComposerTweetId: null,
+    replyDraft: "",
   };
 }
 
@@ -60,6 +80,40 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
       return state.favoriteTweetIds.includes(event.tweetId)
         ? { ...state, favoriteTweetIds: state.favoriteTweetIds.filter(id => id !== event.tweetId) }
         : { ...state, favoriteTweetIds: [...state.favoriteTweetIds, event.tweetId] };
+    case "TOGGLE_RETWEET":
+      if (!state.timeline.some(tweet => tweet.id === event.tweetId)) return state;
+      return state.retweetedTweetIds.includes(event.tweetId)
+        ? { ...state, retweetedTweetIds: state.retweetedTweetIds.filter(id => id !== event.tweetId) }
+        : { ...state, retweetedTweetIds: [...state.retweetedTweetIds, event.tweetId] };
+    case "BEGIN_REPLY":
+      if (!state.timeline.some(tweet => tweet.id === event.tweetId)) return state;
+      return {
+        ...state,
+        replyComposerTweetId: event.tweetId,
+        replyDraft: state.replyComposerTweetId === event.tweetId ? state.replyDraft : "",
+      };
+    case "EDIT_REPLY":
+      return state.replyComposerTweetId === null
+        ? state
+        : { ...state, replyDraft: event.value.slice(0, 140) };
+    case "CANCEL_REPLY":
+      return { ...state, replyComposerTweetId: null, replyDraft: "" };
+    case "SUBMIT_REPLY": {
+      const text = state.replyDraft.trim();
+      const targetTweetId = state.replyComposerTweetId;
+      if (!text || targetTweetId === null || !state.timeline.some(tweet => tweet.id === targetTweetId)) return state;
+      return {
+        ...state,
+        replies: [...state.replies, {
+          id: `twitter-reply-${state.replies.length + 1}`,
+          targetTweetId,
+          displayName: event.displayName,
+          text,
+        }],
+        replyComposerTweetId: null,
+        replyDraft: "",
+      };
+    }
     case "DELIVER_TIMELINE_TWEET":
       if (state.timeline.some(tweet => tweet.id === event.tweet.id)) return state;
       return {

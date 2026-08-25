@@ -1,5 +1,6 @@
 import { Dispatch, useLayoutEffect, useRef } from "react";
 import { TwitterEvent, TwitterState, TwitterTweet } from "../state/twitterState";
+import { useSessionIdentity } from "../state/sessionIdentity";
 
 type TwitterContainerProps = {
   state: TwitterState;
@@ -7,6 +8,7 @@ type TwitterContainerProps = {
 };
 
 export function TwitterContainer({ state, dispatch }: TwitterContainerProps) {
+  const sessionIdentity = useSessionIdentity();
   const timelineRef = useRef<HTMLDivElement>(null);
   const selectedTweet = state.timeline.find(tweet => tweet.id === state.selectedTweetId) ?? null;
 
@@ -37,6 +39,8 @@ export function TwitterContainer({ state, dispatch }: TwitterContainerProps) {
         {state.timeline.map(tweet => <TimelineTweet
           key={tweet.id}
           tweet={tweet}
+          retweetedBySession={state.retweetedTweetIds.includes(tweet.id)}
+          sessionDisplayName={sessionIdentity.name}
           onOpen={() => dispatch({
             type: "OPEN_TWEET",
             tweetId: tweet.id,
@@ -47,12 +51,27 @@ export function TwitterContainer({ state, dispatch }: TwitterContainerProps) {
       : selectedTweet && <TweetDetail
         tweet={selectedTweet}
         favorite={state.favoriteTweetIds.includes(selectedTweet.id)}
+        retweeted={state.retweetedTweetIds.includes(selectedTweet.id)}
+        replies={state.replies.filter(reply => reply.targetTweetId === selectedTweet.id)}
+        replying={state.replyComposerTweetId === selectedTweet.id}
+        replyDraft={state.replyDraft}
+        sessionDisplayName={sessionIdentity.name}
+        onBeginReply={() => dispatch({ type: "BEGIN_REPLY", tweetId: selectedTweet.id })}
+        onEditReply={value => dispatch({ type: "EDIT_REPLY", value })}
+        onCancelReply={() => dispatch({ type: "CANCEL_REPLY" })}
+        onSubmitReply={() => dispatch({ type: "SUBMIT_REPLY", displayName: sessionIdentity.name })}
+        onToggleRetweet={() => dispatch({ type: "TOGGLE_RETWEET", tweetId: selectedTweet.id })}
         onToggleFavorite={() => dispatch({ type: "TOGGLE_FAVORITE", tweetId: selectedTweet.id })}
       />}
   </section>;
 }
 
-function TimelineTweet({ tweet, onOpen }: { tweet: TwitterTweet; onOpen: () => void }) {
+function TimelineTweet({ tweet, retweetedBySession, sessionDisplayName, onOpen }: {
+  tweet: TwitterTweet;
+  retweetedBySession: boolean;
+  sessionDisplayName: string;
+  onOpen: () => void;
+}) {
   return <button
     type="button"
     className="twitter-timeline-row"
@@ -64,13 +83,38 @@ function TimelineTweet({ tweet, onOpen }: { tweet: TwitterTweet; onOpen: () => v
       <strong>{tweet.displayName}</strong>
       <span>{tweet.text}</span>
       <time>{tweet.timestamp}</time>
+      {retweetedBySession && <small>Retweeted by {sessionDisplayName}</small>}
     </span>
   </button>;
 }
 
-function TweetDetail({ tweet, favorite, onToggleFavorite }: {
+function TweetDetail({
+  tweet,
+  favorite,
+  retweeted,
+  replies,
+  replying,
+  replyDraft,
+  sessionDisplayName,
+  onBeginReply,
+  onEditReply,
+  onCancelReply,
+  onSubmitReply,
+  onToggleRetweet,
+  onToggleFavorite,
+}: {
   tweet: TwitterTweet;
   favorite: boolean;
+  retweeted: boolean;
+  replies: TwitterState["replies"];
+  replying: boolean;
+  replyDraft: string;
+  sessionDisplayName: string;
+  onBeginReply: () => void;
+  onEditReply: (value: string) => void;
+  onCancelReply: () => void;
+  onSubmitReply: () => void;
+  onToggleRetweet: () => void;
   onToggleFavorite: () => void;
 }) {
   return <article className="twitter-tweet-detail" data-content-status={tweet.contentStatus}>
@@ -81,8 +125,18 @@ function TweetDetail({ tweet, favorite, onToggleFavorite }: {
     <p>{tweet.text}</p>
     <time>October 20, 2010 · {tweet.timestamp}</time>
     <div className="twitter-detail-actions" aria-label="Tweet actions">
-      <button type="button" disabled data-control-status="HOLD">Reply</button>
-      <button type="button" disabled data-control-status="HOLD">Retweet</button>
+      <button
+        type="button"
+        aria-expanded={replying}
+        onClick={onBeginReply}
+        data-control-status="FUNCTIONAL"
+      >Reply</button>
+      <button
+        type="button"
+        aria-pressed={retweeted}
+        onClick={onToggleRetweet}
+        data-control-status="FUNCTIONAL"
+      >{retweeted ? "Retweeted" : "Retweet"}</button>
       <button
         type="button"
         aria-pressed={favorite}
@@ -90,5 +144,30 @@ function TweetDetail({ tweet, favorite, onToggleFavorite }: {
         data-control-status="PERIOD-EVIDENCE"
       >{favorite ? "Favorited" : "Favorite"}</button>
     </div>
+    {replying && <form
+      className="twitter-reply-composer"
+      onSubmit={event => {
+        event.preventDefault();
+        onSubmitReply();
+      }}
+    >
+      <textarea
+        aria-label="Reply"
+        value={replyDraft}
+        maxLength={140}
+        onChange={event => onEditReply(event.currentTarget.value)}
+      />
+      <div>
+        <span>{140 - replyDraft.length}</span>
+        <button type="button" onClick={onCancelReply}>Cancel</button>
+        <button type="submit" disabled={!replyDraft.trim()}>Reply</button>
+      </div>
+    </form>}
+    {replies.length > 0 && <section className="twitter-reply-activity" aria-label="Your replies">
+      {replies.map(reply => <article key={reply.id}>
+        <strong>{reply.displayName || sessionDisplayName}</strong>
+        <p>{reply.text}</p>
+      </article>)}
+    </section>}
   </article>;
 }

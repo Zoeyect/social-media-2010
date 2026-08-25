@@ -145,6 +145,24 @@ try {
   assert.equal([...twitterState.timeline, ...scheduledTwitterPosts].filter(tweet => /Apple/i.test(tweet.text)).length, 1, "Twitter seed plus live timeline may contain only one Apple-event reference");
   assert.ok(scheduledTwitterPosts.every(post => !twitterState.timeline.some(tweet => tweet.id === post.id)), "no live Twitter post may exist in seed");
   assert.equal(twitterState.timeline.some(tweet => scheduledTwitterPosts.some(post => post.id === tweet.id)), false, "live Twitter content must not be seeded");
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "OPEN_TWEET", tweetId: "still-awake", scrollPosition: 144 });
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "BEGIN_REPLY", tweetId: "still-awake" });
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "EDIT_REPLY", value: "x".repeat(141) });
+  assert.equal(twitterState.replyDraft.length, 140, "Twitter replies must enforce the 140-character limit in state");
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "CANCEL_REPLY" });
+  assert.equal(twitterState.replyComposerTweetId, null);
+  assert.equal(twitterState.replyDraft, "");
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "BEGIN_REPLY", tweetId: "still-awake" });
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "EDIT_REPLY", value: "still here" });
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "BACK_TO_TIMELINE" });
+  assert.equal(twitterState.replyDraft, "still here", "reply draft must survive navigation and suspension-equivalent retained state");
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "SUBMIT_REPLY", displayName: "Zoey" });
+  assert.deepEqual(twitterState.replies, [{ id: "twitter-reply-1", targetTweetId: "still-awake", displayName: "Zoey", text: "still here" }]);
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "TOGGLE_RETWEET", tweetId: "still-awake" });
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "TOGGLE_FAVORITE", tweetId: "still-awake" });
+  assert.deepEqual(twitterState.retweetedTweetIds, ["still-awake"]);
+  assert.deepEqual(twitterState.favoriteTweetIds, ["still-awake"]);
+  assert.equal(twitterState.replies.length, 1, "Reply, Retweet, and Favorite state must remain independent");
   twitterState = twitter.twitterStateTransition(twitterState, { type: "SET_SCROLL_POSITION", scrollPosition: 144 });
   scheduledTwitterPosts.forEach(post => {
     twitterState = twitter.twitterStateTransition(twitterState, { type: "DELIVER_TIMELINE_TWEET", tweet: post });
@@ -158,9 +176,15 @@ try {
     ["nora-homework", "late-night-line", "eva-school-tomorrow"],
     "live Twitter activity must remain newest-first",
   );
-  twitterState = twitter.twitterStateTransition(twitterState, { type: "TOGGLE_FAVORITE", tweetId: "still-awake" });
+  assert.deepEqual(twitterState.retweetedTweetIds, ["still-awake"], "live delivery must preserve Retweet state");
+  assert.deepEqual(twitterState.favoriteTweetIds, ["still-awake"], "live delivery must preserve Favorite state");
+  assert.equal(twitterState.replies.length, 1, "live delivery must preserve user replies");
   const twitterReset = twitter.twitterStateTransition(twitterState, { type: "RESET", displayName: "Alex" });
   assert.equal(twitterReset.favoriteTweetIds.length, 0);
+  assert.equal(twitterReset.retweetedTweetIds.length, 0);
+  assert.equal(twitterReset.replies.length, 0);
+  assert.equal(twitterReset.replyComposerTweetId, null);
+  assert.equal(twitterReset.replyDraft, "");
   assert.equal(twitterReset.timeline.length, 9);
   assert.ok(scheduledTwitterPosts.every(post => !twitterReset.timeline.some(tweet => tweet.id === post.id)), "session reset must remove every live Twitter addition");
   assert.equal(twitterReset.timeline.find(tweet => tweet.id === "late-night-user").displayName, "Alex");

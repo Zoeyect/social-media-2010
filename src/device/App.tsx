@@ -18,6 +18,7 @@ import { messagesBadgeStateTransition } from "../state/messagesBadgeState";
 import { initialSMSNotificationState, smsNotificationStateTransition } from "../state/smsNotificationState";
 import { createSessionIdentity, SessionIdentityContext } from "../state/sessionIdentity";
 import { createStatusBarState } from "../state/statusBarModel";
+import { createInitialTwitterState, twitterStateTransition } from "../state/twitterState";
 import { createSMSLockNotification, smsMessageReceived } from "../system/smsNotification";
 import { LockScreen } from "./LockScreen";
 import { CameraContainer } from "./CameraContainer";
@@ -28,6 +29,7 @@ import { MobileSMSContainer } from "./MobileSMSContainer";
 import { SMSAlertOverlay } from "./SMSAlertOverlay";
 import { SpringBoard } from "./SpringBoard";
 import { StatusBar } from "./StatusBar";
+import { TwitterContainer } from "./TwitterContainer";
 
 const TERMINAL_DEPLETED_DISPLAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
@@ -62,6 +64,11 @@ export function App() {
   const [messagesUnreadIds, dispatchMessagesBadge] = useReducer(messagesBadgeStateTransition, []);
   const [smsNotification, dispatchSMSNotification] = useReducer(smsNotificationStateTransition, initialSMSNotificationState);
   const [activeLockNotification, dispatchLockNotification] = useReducer(lockNotificationStateTransition, initialLockNotificationState);
+  const [twitterState, dispatchTwitter] = useReducer(
+    twitterStateTransition,
+    session.sessionIdentity.name,
+    createInitialTwitterState,
+  );
   const [now, setNow] = useState(Date.now());
   const [powerProgress, setPowerProgress] = useState(0);
   const [homePressed, setHomePressed] = useState(false);
@@ -256,6 +263,7 @@ export function App() {
     dispatchMessagesBadge({ type: "RESET" });
     dispatchSMSNotification({ type: "RESET" });
     dispatchLockNotification({ type: "RESET" });
+    dispatchTwitter({ type: "RESET" });
     dispatchAppRuntime({ type: "RESET" });
     dispatchCameraRuntime({ type: "RESET", owner: "cameraApp" });
     dispatchCameraRuntime({ type: "RESET", owner: "cameraPicker" });
@@ -375,12 +383,15 @@ export function App() {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const name = String(data.get("name") || "").trim();
-    if (name) update({
-      sessionIdentity: createSessionIdentity(name),
-      phase: "poweredOff",
-      shutdownReason: null,
-      returnToHeroPending: false,
-    });
+    if (name) {
+      dispatchTwitter({ type: "RESET", displayName: name });
+      update({
+        sessionIdentity: createSessionIdentity(name),
+        phase: "poweredOff",
+        shutdownReason: null,
+        returnToHeroPending: false,
+      });
+    }
   };
 
   const beginPower = () => {
@@ -564,6 +575,10 @@ export function App() {
               dispatchCameraRuntime({ type: "CANCEL", owner: "cameraPicker" });
             }}
           />}
+          {appRuntime.activeAppId === "twitter" && <TwitterContainer
+            state={twitterState}
+            dispatch={dispatchTwitter}
+          />}
         </AppLaunchContainer>}
         {session.phase === "app" && <MultitaskingBar
           state={multitaskingBar}
@@ -615,7 +630,15 @@ export function App() {
         onKeyUp={event => event.preventDefault()}
       ><i /></button>
     </section>
-    <aside><strong>SOCIAL MEDIA, 2010</strong><span>Z.tokyo</span></aside>
+    <aside>
+      <strong>SOCIAL MEDIA, 2010</strong><span>Z.tokyo</span>
+      {import.meta.env.DEV && new URLSearchParams(window.location.search).get("devApp") === "twitter" && <button
+        type="button"
+        className="dev-twitter-route"
+        disabled={session.phase !== "springboard"}
+        onClick={() => launchSpringBoardApp("twitter")}
+      >DEV · Open Twitter</button>}
+    </aside>
   </main></SessionIdentityContext.Provider>;
 }
 

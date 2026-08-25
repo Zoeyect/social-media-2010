@@ -124,6 +124,27 @@ button, input { font: inherit; }
 .mobilesms-composer button:disabled { color: #eee; border-color: #858585; background: linear-gradient(#c7c7c7,#9d9d9d); box-shadow: inset 0 1px rgba(255,255,255,.48); text-shadow: 0 -1px rgba(0,0,0,.25); }
 .mobilesms-composer .mobilesms-camera-slot { width: 30px; height: 30px; display: block; padding: 0; appearance: none; -webkit-appearance: none; border: 0; border-radius: 0; background: transparent url("../assets/historical/ios4.1/mobilesms/PhotoButton@2x~iphone.png") center / 26px 27px no-repeat; box-shadow: none; }
 .mobilesms-composer .mobilesms-camera-slot:active { background-image: url("../assets/historical/ios4.1/mobilesms/PhotoButtonPressed@2x~iphone.png"); box-shadow: none; }
+.twitter-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #222; background: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.twitter-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-bottom: 1px solid #274f68; background: linear-gradient(#79bad9,#3b8fb8 50%,#277ca7 51%,#3189b3); box-shadow: inset 0 1px rgba(255,255,255,.45); text-shadow: 0 -1px rgba(0,0,0,.55); }
+.twitter-navigation-bar > strong { font-size: 20px; line-height: 44px; }
+.twitter-back-button { position: absolute; left: 8px; top: 7px; height: 30px; padding: 0 9px; color: #fff; border: 1px solid #245b78; border-radius: 5px; background: linear-gradient(#75b5d4,#3387ae); box-shadow: inset 0 1px rgba(255,255,255,.35); font-size: 13px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.55); }
+.twitter-timeline { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
+.twitter-timeline-row { width: 100%; min-height: 88px; padding: 9px 10px; display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 9px; color: #222; border: 0; border-bottom: 1px solid #c9c9c9; background: #fff; text-align: left; }
+.twitter-avatar-hold { width: 48px; height: 48px; display: block; }
+.twitter-tweet-copy { min-width: 0; display: grid; align-content: start; grid-template-columns: 1fr auto; column-gap: 7px; }
+.twitter-tweet-copy strong { overflow: hidden; color: #222; font-size: 15px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.twitter-tweet-copy > span { grid-column: 1 / -1; padding-top: 2px; color: #222; font-size: 14px; line-height: 18px; overflow-wrap: break-word; }
+.twitter-tweet-copy time { grid-column: 2; grid-row: 1; color: #888; font-size: 11px; line-height: 18px; white-space: nowrap; }
+.twitter-tweet-detail { flex: 1 1 auto; min-height: 0; padding: 14px 12px; background: #fff; }
+.twitter-tweet-detail > header { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 10px; }
+.twitter-tweet-detail > header strong { font-size: 17px; }
+.twitter-tweet-detail > p { margin: 16px 0 10px; color: #222; font-size: 19px; line-height: 25px; }
+.twitter-tweet-detail > time { display: block; padding-bottom: 12px; color: #777; border-bottom: 1px solid #ccc; font-size: 12px; }
+.twitter-detail-actions { height: 42px; display: grid; grid-template-columns: repeat(3,1fr); border-bottom: 1px solid #ccc; }
+.twitter-detail-actions button { padding: 0; color: #35799b; border: 0; border-right: 1px solid #d0d0d0; background: linear-gradient(#fff,#e8e8e8); font-size: 12px; font-weight: bold; }
+.twitter-detail-actions button:last-child { border-right: 0; }
+.twitter-detail-actions button:disabled { color: #aaa; }
+.twitter-detail-actions button[aria-pressed="true"] { color: #9b7215; }
 .app-launch-container.is-launching { animation: app-runtime-open 180ms ease-out both; }
 .app-launch-container.is-resuming { animation: app-runtime-open 180ms ease-out both; }
 .app-launch-container.is-closing { animation: app-runtime-close 160ms ease-in both; }
@@ -161,5 +182,7 @@ button, input { font: inherit; }
 .stage aside { display: grid; gap: 4px; text-align: center; }
 .stage aside strong { letter-spacing: .14em; font-size: 12px; }
 .stage aside span { color: #777; font-size: 11px; }
+.dev-twitter-route { margin-top: 8px; padding: 5px 8px; color: #9ed8f3; border: 1px solid #31576b; background: #111; font-size: 10px; letter-spacing: .06em; }
+.dev-twitter-route:disabled { opacity: .35; }
 @media (max-height: 820px) { .device { transform: scale(.82); margin-block: -67px; } }
 @media (max-width: 430px) { .device { transform: scale(.86); margin-inline: -28px; } }

@@ -55,6 +55,10 @@ function loadRuntimeSession(): Session {
 
 export function App() {
   const [session, setSession] = useState<Session>(loadRuntimeSession);
+  const twitterDevAccessEnabled = import.meta.env.DEV
+    && new URLSearchParams(window.location.search).get("devApp") === "twitter";
+  const twitterDevAutoOpen = twitterDevAccessEnabled
+    && new URLSearchParams(window.location.search).get("autoOpen") === "1";
   const [springBoardPage, setSpringBoardPage] = useState<0 | 1>(0);
   const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
@@ -78,6 +82,7 @@ export function App() {
   const powerFrame = useRef<number | null>(null);
   const homePointer = useRef<number | null>(null);
   const pendingAppHomePress = useRef<number | null>(null);
+  const twitterDevAutoOpenConsumed = useRef(false);
   const elapsed = elapsedMs(session, now);
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
   const deviceStatusTime = formatDeviceTime(deviceDateTime);
@@ -494,10 +499,20 @@ export function App() {
     if (transition) update(transition);
   };
 
-  if (session.phase === "hero") return <main className="hero"><form onSubmit={submitName}><label htmlFor="name">What was your name?</label><input id="name" name="name" autoFocus autoComplete="name" /><span>Press Enter</span></form></main>;
+  useEffect(() => {
+    if (!twitterDevAutoOpen || twitterDevAutoOpenConsumed.current || session.phase !== "springboard") return;
+    twitterDevAutoOpenConsumed.current = true;
+    launchSpringBoardApp("twitter");
+  }, [session.phase, twitterDevAutoOpen]);
 
-  return <SessionIdentityContext.Provider value={session.sessionIdentity}><main className="stage">
-    <section
+  if (session.phase === "hero") return <>
+    <main className="hero"><form onSubmit={submitName}><label htmlFor="name">What was your name?</label><input id="name" name="name" autoFocus autoComplete="name" /><span>Press Enter</span></form></main>
+    <TwitterDevAccess visible={twitterDevAccessEnabled} disabled onOpen={() => {}} />
+  </>;
+
+  return <SessionIdentityContext.Provider value={session.sessionIdentity}>
+    <main className="stage">
+      <section
       className="device"
       aria-label="Black iPhone 4"
       onPointerDownCapture={recordInteraction}
@@ -630,16 +645,27 @@ export function App() {
         onKeyUp={event => event.preventDefault()}
       ><i /></button>
     </section>
-    <aside>
-      <strong>SOCIAL MEDIA, 2010</strong><span>Z.tokyo</span>
-      {import.meta.env.DEV && new URLSearchParams(window.location.search).get("devApp") === "twitter" && <button
-        type="button"
-        className="dev-twitter-route"
-        disabled={session.phase !== "springboard"}
-        onClick={() => launchSpringBoardApp("twitter")}
-      >DEV · Open Twitter</button>}
-    </aside>
-  </main></SessionIdentityContext.Provider>;
+      <aside><strong>SOCIAL MEDIA, 2010</strong><span>Z.tokyo</span></aside>
+    </main>
+    <TwitterDevAccess
+      visible={twitterDevAccessEnabled}
+      disabled={session.phase !== "springboard"}
+      onOpen={() => launchSpringBoardApp("twitter")}
+    />
+  </SessionIdentityContext.Provider>;
+}
+
+function TwitterDevAccess({ visible, disabled, onOpen }: {
+  visible: boolean;
+  disabled: boolean;
+  onOpen: () => void;
+}) {
+  if (!visible) return null;
+  return <aside className="twitter-dev-access" aria-label="Twitter development access">
+    <strong>DEV</strong>
+    <button type="button" disabled={disabled} onClick={onOpen}>DEV · Open Twitter</button>
+    {disabled && <span>Available on SpringBoard</span>}
+  </aside>;
 }
 
 function LowBatteryAlert({ level, onDismiss }: { level: 20 | 10; onDismiss: () => void }) {

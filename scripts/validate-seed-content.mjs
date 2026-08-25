@@ -281,7 +281,8 @@ try {
 
   let foursquareState = foursquare.createInitialFoursquareState();
   assert.equal(foursquareState.points, 0);
-  assert.deepEqual(foursquareState.checkInState, {});
+  assert.deepEqual(foursquareState.checkIns, {});
+  assert.deepEqual(foursquareState.shoutDrafts, {});
   assert.equal(foursquareState.mayorState, "otherUser");
   assert.deepEqual(foursquareState.earnedBadges, []);
   assert.equal(foursquareState.socialActivities.length, 1);
@@ -291,9 +292,51 @@ try {
   assert.equal(foursquareState.socialActivities.length, 2);
   assert.equal(foursquareState.unreadActivityCount, 1);
   assert.equal(foursquareState.points, 0, "ambient activity must not mutate user gameplay state");
-  assert.deepEqual(foursquareState.checkInState, {}, "ambient activity must not check in the session owner");
+  assert.deepEqual(foursquareState.checkIns, {}, "ambient activity must not check in the session owner");
   assert.equal(foursquareState.mayorState, "otherUser");
   assert.deepEqual(foursquareState.earnedBadges, []);
+
+  let foursquarePlayability = foursquare.foursquareStateTransition(foursquareState, { type: "OPEN_VENUE", venueId: "night-owl", scrollPosition: 73 });
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "OPEN_TIP", venueId: "night-owl", tipId: "night-owl-tip" });
+  assert.equal(foursquarePlayability.selectedTipId, "night-owl-tip", "a venue Tip must open without changing user gameplay");
+  assert.equal(foursquarePlayability.points, 0);
+  assert.equal(foursquarePlayability.scrollPosition, 73);
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "EDIT_CHECK_IN_SHOUT", venueId: "night-owl", value: "late coffee" });
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, {
+    type: "CHECK_IN",
+    venueId: "night-owl",
+    checkedInBy: "Zoey",
+    checkInTimestamp: 1_287_552_600_000,
+  });
+  assert.deepEqual(foursquarePlayability.checkIns["night-owl"], {
+    checkedIn: true,
+    checkedInBy: "Zoey",
+    checkInTimestamp: 1_287_552_600_000,
+    shout: "late coffee",
+    pointsAwarded: 1,
+  });
+  assert.equal(foursquarePlayability.points, 1);
+  assert.equal(foursquarePlayability.selectedTipId, "night-owl-tip", "check-in must not close or mutate the selected Tip");
+  assert.equal(foursquarePlayability.mayorState, "otherUser", "one check-in must not promote the session owner to Mayor");
+  assert.deepEqual(foursquarePlayability.earnedBadges, [], "check-in must not award a badge");
+  const afterFirstCheckIn = foursquarePlayability;
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, {
+    type: "CHECK_IN",
+    venueId: "night-owl",
+    checkedInBy: "Zoey",
+    checkInTimestamp: 1_287_552_660_000,
+  });
+  assert.strictEqual(foursquarePlayability, afterFirstCheckIn, "duplicate venue check-in must not mutate state or award points");
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "OPEN_VENUE", venueId: "corner-diner", scrollPosition: 73 });
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, {
+    type: "CHECK_IN",
+    venueId: "corner-diner",
+    checkedInBy: "Zoey",
+    checkInTimestamp: 1_287_552_720_000,
+  });
+  assert.equal(foursquarePlayability.checkIns["corner-diner"].shout, null, "empty shout must still permit check-in");
+  assert.equal(foursquarePlayability.points, 2);
+  assert.equal(foursquarePlayability.socialActivities.length, 2, "user check-in must remain separate from ambient seed/live activity");
 
   let tumblrState = tumblr.createInitialTumblrState();
   assert.ok(tumblrState.posts.every(post => post.origin === "seed"));
@@ -334,10 +377,7 @@ try {
   const facebookAlex = facebook.facebookStateTransition(facebookZoey, { type: "RESET", displayName: "Alex" });
   const flickrAlex = flickr.flickrStateTransition(flickrA, { type: "RESET" });
   const tumblrAlex = tumblr.tumblrStateTransition(tumblrZoey, { type: "RESET" });
-  const foursquareAlex = foursquare.foursquareStateTransition(
-    foursquare.foursquareStateTransition(foursquare.createInitialFoursquareState(), { type: "CHECK_IN", venueId: "night-owl" }),
-    { type: "RESET" },
-  );
+  const foursquareAlex = foursquare.foursquareStateTransition(foursquarePlayability, { type: "RESET" });
   assert.deepEqual(facebookAlex.likedItemIds, []);
   assert.equal(facebookAlex.friendRequestState, "none");
   assert.deepEqual(facebookAlex.friends, []);
@@ -352,8 +392,11 @@ try {
   assert.deepEqual(flickrAlex.favoritePhotoIds, []);
   assert.deepEqual(tumblrAlex.likedPostIds, []);
   assert.deepEqual(tumblrAlex.rebloggedPostIds, []);
-  assert.deepEqual(foursquareAlex.checkInState, {});
+  assert.deepEqual(foursquareAlex.checkIns, {});
+  assert.deepEqual(foursquareAlex.shoutDrafts, {});
   assert.equal(foursquareAlex.points, 0);
+  assert.equal(foursquareAlex.selectedTipId, null);
+  assert.equal(foursquareAlex.socialActivities.length, 1, "new session must restore the seeded ambient baseline and remove live/user mutations");
 
   const seedSource = await readFile(resolve(projectRoot, "src/data/sessionSeedContent.ts"), "utf8");
   assert.doesNotMatch(seedSource, /DeviceAudio|deviceEventScheduler|smsNotification/, "seed definitions must not depend on delivery systems");

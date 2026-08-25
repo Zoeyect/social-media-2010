@@ -2,8 +2,15 @@ import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
 
 export type FoursquareView = "places" | "venue";
-export type FoursquareCheckInState = "notCheckedIn" | "checkedIn";
 export type FoursquareMayorState = "otherUser";
+
+export type FoursquareCheckInRecord = {
+  checkedIn: true;
+  checkedInBy: string;
+  checkInTimestamp: number;
+  shout: string | null;
+  pointsAwarded: number;
+};
 
 export type FoursquareVenue = {
   id: string;
@@ -23,7 +30,8 @@ export type FoursquareState = {
   currentView: FoursquareView;
   selectedVenueId: string | null;
   scrollPosition: number;
-  checkInState: Record<string, FoursquareCheckInState>;
+  checkIns: Record<string, FoursquareCheckInRecord>;
+  shoutDrafts: Record<string, string>;
   points: number;
   mayorState: FoursquareMayorState;
   earnedBadges: string[];
@@ -37,7 +45,10 @@ export type FoursquareEvent =
   | { type: "OPEN_VENUE"; venueId: string; scrollPosition: number }
   | { type: "SHOW_PLACES" }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
-  | { type: "CHECK_IN"; venueId: string }
+  | { type: "EDIT_CHECK_IN_SHOUT"; venueId: string; value: string }
+  | { type: "CHECK_IN"; venueId: string; checkedInBy: string; checkInTimestamp: number }
+  | { type: "OPEN_TIP"; venueId: string; tipId: string }
+  | { type: "CLOSE_TIP" }
   | { type: "DELIVER_SOCIAL_ACTIVITY"; activity: { id: string; message: string } }
   | { type: "RESET" };
 
@@ -46,7 +57,8 @@ export function createInitialFoursquareState(): FoursquareState {
     currentView: "places",
     selectedVenueId: null,
     scrollPosition: 0,
-    checkInState: {},
+    checkIns: {},
+    shoutDrafts: {},
     points: 0,
     mayorState: "otherUser",
     earnedBadges: [],
@@ -63,18 +75,39 @@ export function foursquareStateTransition(state: FoursquareState, event: Foursqu
   switch (event.type) {
     case "OPEN_VENUE":
       if (!state.venues.some(venue => venue.id === event.venueId)) return state;
-      return { ...state, currentView: "venue", selectedVenueId: event.venueId, scrollPosition: Math.max(0, event.scrollPosition) };
+      return { ...state, currentView: "venue", selectedVenueId: event.venueId, selectedTipId: null, scrollPosition: Math.max(0, event.scrollPosition) };
     case "SHOW_PLACES":
       return { ...state, currentView: "places", selectedVenueId: null, selectedTipId: null };
     case "SET_SCROLL_POSITION":
       return { ...state, scrollPosition: Math.max(0, event.scrollPosition) };
+    case "EDIT_CHECK_IN_SHOUT":
+      if (!state.venues.some(venue => venue.id === event.venueId) || state.checkIns[event.venueId]) return state;
+      return { ...state, shoutDrafts: { ...state.shoutDrafts, [event.venueId]: event.value.slice(0, 140) } };
     case "CHECK_IN":
-      if (!state.venues.some(venue => venue.id === event.venueId) || state.checkInState[event.venueId] === "checkedIn") return state;
+      if (!state.venues.some(venue => venue.id === event.venueId) || state.checkIns[event.venueId]) return state;
       return {
         ...state,
-        checkInState: { ...state.checkInState, [event.venueId]: "checkedIn" },
+        checkIns: {
+          ...state.checkIns,
+          [event.venueId]: {
+            checkedIn: true,
+            checkedInBy: event.checkedInBy,
+            checkInTimestamp: event.checkInTimestamp,
+            shout: state.shoutDrafts[event.venueId]?.trim() || null,
+            pointsAwarded: 1,
+          },
+        },
+        shoutDrafts: Object.fromEntries(Object.entries(state.shoutDrafts).filter(([venueId]) => venueId !== event.venueId)),
         points: state.points + 1,
       };
+    case "OPEN_TIP": {
+      const venue = state.venues.find(candidate => candidate.id === event.venueId);
+      return state.selectedVenueId === venue?.id && venue.tip?.id === event.tipId
+        ? { ...state, selectedTipId: event.tipId }
+        : state;
+    }
+    case "CLOSE_TIP":
+      return { ...state, selectedTipId: null };
     case "DELIVER_SOCIAL_ACTIVITY":
       return state.socialActivities.some(activity => activity.id === event.activity.id)
         ? state

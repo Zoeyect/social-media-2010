@@ -12,7 +12,7 @@ Curated live events and user-generated session actions remain separate. All muta
 | --- | --- | --- | --- | --- | --- |
 | Twitter | Reply, native Retweet timeline activity; preserve Favorite | v0.3 implemented and code-tested | None found | Exact immediate client insertion, attribution chrome, and geometry remain C/HOLD; browser interaction NOT TESTED | `Integrate Twitter Retweets into the timeline` |
 | Facebook | Jack friend outcome, June reply thread, one plain Feed comment interaction | Implemented and code-tested | None found | Exact Facebook 2010 Friends/message/comment chrome remains C/HOLD; browser interaction NOT TESTED | `Add Facebook v0.2 friend, message, and comment playability` |
-| Foursquare | Optional check-in shout; Tip/To-Do only if verified | Planned | Not assessed | To-Do, mayor, and badge behavior remain HOLD | Pending |
+| Foursquare | Optional check-in shout, per-venue record, open/close Tip | Implemented and code-tested | None found | Exact shout limit/timestamp chrome and To-Do interaction remain HOLD; Mayor read-only and badges excluded | `Add Foursquare v0.2 shout and Tip playability` |
 | Flickr | Plain comments; minimal Sets path if architecture supports it | Planned | Not assessed | Exact comments/Sets chrome remains HOLD | Pending |
 | Tumblr | Reblog confirmation with optional short text; Notes only if evidenced | Planned | Not assessed | Exact reblog and Notes behavior remains HOLD | Pending |
 | Instagram | Camera/first-photo flow only if launch-era evidence is sufficient | HOLD | Not assessed | Do not populate or fabricate the empty account | Pending |
@@ -40,6 +40,17 @@ Curated live events and user-generated session actions remain separate. All muta
 - Like, Comment, Friend Request, and June Message mutations remain independent and retain feed scroll state.
 - Reset removes Friends, June state/replies/draft, comments/draft, Likes, and the scheduled live records, then restores the Facebook seed baseline with the new identity.
 - Global timeline definitions, scheduler code, frozen System modules, Messages, and Twitter were not modified.
+
+## Foursquare v0.2 result
+
+- Each successful check-in now stores the current session identity, action timestamp, optional trimmed shout, and points awarded for its venue.
+- Empty shout remains valid; a compact 140-character functional limit prevents the local composer from becoming long-form, while the exact historical limit remains HOLD.
+- A venue may award points only once in the current session. Repeated check-in returns the unchanged state.
+- The existing seed Tip can be opened and closed without affecting check-in, points, Mayor, badges, or ambient activity.
+- To-Dos remain unimplemented: project evidence verifies the historical feature but still classifies the exact interaction as HOLD.
+- Mayor stays assigned to the seeded other user and no badge is awarded.
+- Reset clears check-ins, shout drafts, points, venue/Tip selection, and live activity, restoring the immutable ambient seed baseline.
+- Global scheduler/timeline definitions, frozen System modules, Twitter, Facebook, and other apps were not modified.
 
 ## Phase status
 

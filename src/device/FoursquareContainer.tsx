@@ -32,7 +32,7 @@ export function FoursquareContainer({ state, dispatch }: FoursquareContainerProp
       {state.venues.map(item => <VenueRow
         key={item.id}
         venue={item}
-        checkedIn={state.checkInState[item.id] === "checkedIn"}
+        checkedIn={Boolean(state.checkIns[item.id])}
         onOpen={() => dispatch({ type: "OPEN_VENUE", venueId: item.id, scrollPosition: placesRef.current?.scrollTop ?? state.scrollPosition })}
       />)}
     </div>}
@@ -47,10 +47,35 @@ export function FoursquareContainer({ state, dispatch }: FoursquareContainerProp
         <div><dt>Mayor</dt><dd>{venue.mayor}</dd></div>
         <div><dt>Points</dt><dd>{state.points}</dd></div>
       </dl>
-      {venue.tip && <section className="foursquare-tip"><strong>Tip from {venue.tip.author}</strong><p>{venue.tip.text}</p></section>}
-      {state.checkInState[venue.id] === "checkedIn"
-        ? <section className="foursquare-checkin-confirmation" role="status"><strong>Checked in.</strong><span>{identity.name} earned 1 point.</span></section>
-        : <button className="foursquare-checkin-button" type="button" onClick={() => dispatch({ type: "CHECK_IN", venueId: venue.id })}>Check In</button>}
+      {venue.tip && state.selectedTipId !== venue.tip.id && <button
+        className="foursquare-tip-row"
+        type="button"
+        onClick={() => dispatch({ type: "OPEN_TIP", venueId: venue.id, tipId: venue.tip!.id })}
+      >Tips <span>1</span></button>}
+      {venue.tip && state.selectedTipId === venue.tip.id && <section className="foursquare-tip">
+        <strong>Tip from {venue.tip.author}</strong>
+        <p>{venue.tip.text}</p>
+        <button type="button" onClick={() => dispatch({ type: "CLOSE_TIP" })}>Close</button>
+      </section>}
+      {state.checkIns[venue.id]
+        ? <section className="foursquare-checkin-confirmation" role="status">
+          <strong>Checked in.</strong>
+          <span>{state.checkIns[venue.id].checkedInBy} earned {state.checkIns[venue.id].pointsAwarded} point.</span>
+          {state.checkIns[venue.id].shout && <p>{state.checkIns[venue.id].shout}</p>}
+        </section>
+        : <form className="foursquare-checkin-form" onSubmit={event => {
+          event.preventDefault();
+          dispatch({ type: "CHECK_IN", venueId: venue.id, checkedInBy: identity.name, checkInTimestamp: Date.now() });
+        }}>
+          <label htmlFor={`foursquare-shout-${venue.id}`}>Shout (optional)</label>
+          <textarea
+            id={`foursquare-shout-${venue.id}`}
+            maxLength={140}
+            value={state.shoutDrafts[venue.id] ?? ""}
+            onChange={event => dispatch({ type: "EDIT_CHECK_IN_SHOUT", venueId: venue.id, value: event.currentTarget.value })}
+          />
+          <button className="foursquare-checkin-button" type="submit">Check In</button>
+        </form>}
     </article>}
   </section>;
 }

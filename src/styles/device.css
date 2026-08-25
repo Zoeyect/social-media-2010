@@ -246,10 +246,17 @@ button, input { font: inherit; }
 .foursquare-tip { padding: 11px 13px; border-bottom: 1px solid #bbb; }
 .foursquare-tip strong { color: #245f7d; font-size: 12px; }
 .foursquare-tip p { margin: 5px 0 0; font-size: 13px; line-height: 17px; }
+.foursquare-tip button { margin-top: 8px; padding: 4px 9px; color: #245f7d; border: 1px solid #aaa; border-radius: 3px; background: #eee; font-size: 11px; }
+.foursquare-tip-row { width: 100%; min-height: 38px; padding: 0 13px; display: flex; align-items: center; justify-content: space-between; color: #245f7d; border: 0; border-bottom: 1px solid #bbb; background: #fff; font-size: 13px; font-weight: bold; text-align: left; }
+.foursquare-checkin-form { margin: 12px 13px 0; display: grid; gap: 6px; }
+.foursquare-checkin-form label { color: #666; font-size: 11px; }
+.foursquare-checkin-form textarea { box-sizing: border-box; width: 100%; min-height: 48px; padding: 6px; resize: none; border: 1px solid #aaa; border-radius: 3px; background: #fff; font: 13px/17px "Helvetica Neue",Helvetica,Arial,sans-serif; }
 .foursquare-checkin-button { width: calc(100% - 26px); height: 38px; margin: 14px 13px 0; color: #fff; border: 1px solid #24516b; border-radius: 5px; background: #3b7898; font-size: 15px; font-weight: bold; }
+.foursquare-checkin-form .foursquare-checkin-button { width: 100%; margin: 0; }
 .foursquare-checkin-confirmation { margin: 14px 13px 0; padding: 11px; display: grid; gap: 4px; color: #253b1e; border: 1px solid #769567; background: #e8f0e3; text-align: center; }
 .foursquare-checkin-confirmation strong { font-size: 16px; }
 .foursquare-checkin-confirmation span { font-size: 12px; }
+.foursquare-checkin-confirmation p { margin: 4px 0 0; font-size: 13px; }
 .flickr-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #1a1a1a; background: #dfded8; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
 .flickr-navigation-bar { flex: 0 0 44px; height: 44px; position: relative; display: grid; align-items: center; justify-items: center; color: #fff; border-bottom: 1px solid #3f3f3f; background: #676767; text-shadow: 0 -1px rgba(0,0,0,.6); }
 .flickr-navigation-bar > strong { font-size: 18px; line-height: 44px; }

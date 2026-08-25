@@ -11,7 +11,7 @@ Curated live events and user-generated session actions remain separate. All muta
 | App | Planned interaction | Status | A/B findings | C backlog / HOLD | Checkpoint |
 | --- | --- | --- | --- | --- | --- |
 | Twitter | Reply, native Retweet; preserve Favorite | Implemented and code-tested | None found | Exact 2010 reply/Retweet chrome and geometry remain C/HOLD; browser interaction NOT TESTED because no browser session was available | `Add Twitter v0.2 reply and retweet playability` |
-| Facebook | Friend-request downstream state; June thread; optional historically safe comment | Planned | Not assessed | Messaging/comment fidelity must be audited before expansion | Pending |
+| Facebook | Jack friend outcome, June reply thread, one plain Feed comment interaction | Implemented and code-tested | None found | Exact Facebook 2010 Friends/message/comment chrome remains C/HOLD; browser interaction NOT TESTED | `Add Facebook v0.2 friend, message, and comment playability` |
 | Foursquare | Optional check-in shout; Tip/To-Do only if verified | Planned | Not assessed | To-Do, mayor, and badge behavior remain HOLD | Pending |
 | Flickr | Plain comments; minimal Sets path if architecture supports it | Planned | Not assessed | Exact comments/Sets chrome remains HOLD | Pending |
 | Tumblr | Reblog confirmation with optional short text; Notes only if evidenced | Planned | Not assessed | Exact reblog and Notes behavior remains HOLD | Pending |
@@ -27,6 +27,17 @@ Curated live events and user-generated session actions remain separate. All muta
 - Twitter-local mutations survive retained runtime state and live timeline deliveries.
 - A new-session reset removes replies, reply drafts, Retweets, Favorites, and live additions while restoring the seed timeline.
 - The global live-event scheduler and all other app state modules were left unchanged.
+
+## Facebook v0.2 result
+
+- Accepting the scheduled Jack request removes it from pending and creates one minimal session-local Jack friend record.
+- Ignoring the request removes it without adding Jack; later duplicate delivery cannot recreate either resolved request.
+- The scheduled June message remains absent before delivery, becomes unread on delivery, read on opening, and replied after a successful plain-text response.
+- June replies use the shared `sessionIdentity.name`; there is no scripted June response or modern Messenger behavior.
+- A Feed detail can accept plain session-local comments attributed to the shared session identity.
+- Like, Comment, Friend Request, and June Message mutations remain independent and retain feed scroll state.
+- Reset removes Friends, June state/replies/draft, comments/draft, Likes, and the scheduled live records, then restores the Facebook seed baseline with the new identity.
+- Global timeline definitions, scheduler code, frozen System modules, Messages, and Twitter were not modified.
 
 ## Phase status
 

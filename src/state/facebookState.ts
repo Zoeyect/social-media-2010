@@ -3,7 +3,18 @@ import type { ContentOrigin } from "../data/sessionSeedContent";
 
 export type FacebookView = "feed" | "feedDetail" | "friendRequests" | "messages" | "messageDetail";
 export type FacebookFriendRequestState = "none" | "pending" | "accepted" | "ignored";
-export type FacebookMessageState = "none" | "unread" | "read";
+export type FacebookMessageState = "none" | "unread" | "read" | "replied";
+
+export type FacebookFriend = {
+  id: string;
+  name: string;
+};
+
+export type FacebookUserText = {
+  id: string;
+  author: string;
+  text: string;
+};
 
 export type FacebookFeedItem = {
   id: string;
@@ -31,9 +42,15 @@ export type FacebookState = {
   scrollPosition: number;
   likedItemIds: string[];
   friendRequestState: FacebookFriendRequestState;
+  friends: FacebookFriend[];
   juneMessageState: FacebookMessageState;
   inboxThreads: FacebookMessageThread[];
   selectedMessageId: string | null;
+  juneReplies: FacebookUserText[];
+  juneReplyDraft: string;
+  comments: Array<FacebookUserText & { itemId: string }>;
+  commentComposerItemId: string | null;
+  commentDraft: string;
 };
 
 export type FacebookEvent =
@@ -47,6 +64,12 @@ export type FacebookEvent =
   | { type: "SHOW_MESSAGES" }
   | { type: "OPEN_MESSAGE"; messageId: string }
   | { type: "OPEN_JUNE_MESSAGE" }
+  | { type: "EDIT_JUNE_REPLY"; value: string }
+  | { type: "SUBMIT_JUNE_REPLY"; displayName: string }
+  | { type: "BEGIN_COMMENT"; itemId: string }
+  | { type: "EDIT_COMMENT"; value: string }
+  | { type: "CANCEL_COMMENT" }
+  | { type: "SUBMIT_COMMENT"; displayName: string }
   | { type: "DELIVER_JACK_REQUEST" }
   | { type: "DELIVER_JUNE_MESSAGE" }
   | { type: "RESET"; displayName?: string };
@@ -63,9 +86,15 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     scrollPosition: 0,
     likedItemIds: [],
     friendRequestState: "none",
+    friends: [],
     juneMessageState: "none",
     inboxThreads: SESSION_SEED_CONTENT.facebook.inbox.map(message => ({ ...message })),
     selectedMessageId: null,
+    juneReplies: [],
+    juneReplyDraft: "",
+    comments: [],
+    commentComposerItemId: null,
+    commentDraft: "",
   };
 }
 
@@ -91,7 +120,13 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "SHOW_FRIEND_REQUESTS":
       return { ...state, currentView: "friendRequests", selectedFeedItemId: null };
     case "ACCEPT_JACK":
-      return state.friendRequestState === "pending" ? { ...state, friendRequestState: "accepted" } : state;
+      return state.friendRequestState === "pending" ? {
+        ...state,
+        friendRequestState: "accepted",
+        friends: state.friends.some(friend => friend.id === "jack")
+          ? state.friends
+          : [...state.friends, { id: "jack", name: "Jack" }],
+      } : state;
     case "IGNORE_JACK":
       return state.friendRequestState === "pending" ? { ...state, friendRequestState: "ignored" } : state;
     case "SHOW_MESSAGES":
@@ -104,13 +139,58 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         currentView: "messageDetail",
         selectedMessageId: message.id,
         inboxThreads: state.inboxThreads.map(thread => thread.id === message.id ? { ...thread, status: "read" } : thread),
-        juneMessageState: message.id === "june-live-message" ? "read" : state.juneMessageState,
+        juneMessageState: message.id === "june-live-message" && state.juneMessageState === "unread"
+          ? "read"
+          : state.juneMessageState,
         selectedFeedItemId: null,
       };
     }
     case "OPEN_JUNE_MESSAGE":
       if (state.juneMessageState === "none") return state;
       return facebookStateTransition(state, { type: "OPEN_MESSAGE", messageId: "june-live-message" });
+    case "EDIT_JUNE_REPLY":
+      return state.juneMessageState === "none" ? state : { ...state, juneReplyDraft: event.value };
+    case "SUBMIT_JUNE_REPLY": {
+      const text = state.juneReplyDraft.trim();
+      if (!text || state.juneMessageState === "none") return state;
+      return {
+        ...state,
+        juneMessageState: "replied",
+        juneReplies: [...state.juneReplies, {
+          id: `facebook-june-reply-${state.juneReplies.length + 1}`,
+          author: event.displayName,
+          text,
+        }],
+        juneReplyDraft: "",
+      };
+    }
+    case "BEGIN_COMMENT":
+      if (!state.feed.some(item => item.id === event.itemId)) return state;
+      return {
+        ...state,
+        commentComposerItemId: event.itemId,
+        commentDraft: state.commentComposerItemId === event.itemId ? state.commentDraft : "",
+      };
+    case "EDIT_COMMENT":
+      return state.commentComposerItemId === null ? state : { ...state, commentDraft: event.value };
+    case "CANCEL_COMMENT":
+      return { ...state, commentComposerItemId: null, commentDraft: "" };
+    case "SUBMIT_COMMENT": {
+      const text = state.commentDraft.trim();
+      const itemId = state.commentComposerItemId;
+      if (!text || itemId === null || !state.feed.some(item => item.id === itemId)) return state;
+      return {
+        ...state,
+        comments: [...state.comments, {
+          id: `facebook-comment-${state.comments.length + 1}`,
+          itemId,
+          author: event.displayName,
+          text,
+        }],
+        commentComposerItemId: null,
+        commentDraft: "",
+      };
+    }
     case "DELIVER_JACK_REQUEST":
       return state.friendRequestState === "none" ? { ...state, friendRequestState: "pending" } : state;
     case "DELIVER_JUNE_MESSAGE":

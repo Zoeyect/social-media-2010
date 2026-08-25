@@ -104,6 +104,37 @@ try {
   assert.equal(facebookB.friendRequestState, "none");
   assert.equal(facebookB.inboxThreads.some(thread => thread.id === "june-live-message"), false);
 
+  let facebookAccept = facebook.facebookStateTransition(facebookA, { type: "ACCEPT_JACK" });
+  assert.equal(facebookAccept.friendRequestState, "accepted");
+  assert.deepEqual(facebookAccept.friends, [{ id: "jack", name: "Jack" }], "accepting Jack must add one session-local friend record");
+  facebookAccept = facebook.facebookStateTransition(facebookAccept, { type: "DELIVER_JACK_REQUEST" });
+  assert.equal(facebookAccept.friends.length, 1, "Jack request must not recreate or duplicate after acceptance");
+  let facebookIgnore = facebook.facebookStateTransition(
+    facebook.facebookStateTransition(facebook.createInitialFacebookState("Zoey"), { type: "DELIVER_JACK_REQUEST" }),
+    { type: "IGNORE_JACK" },
+  );
+  assert.equal(facebookIgnore.friendRequestState, "ignored");
+  assert.deepEqual(facebookIgnore.friends, [], "ignoring Jack must not add a friend record");
+  facebookIgnore = facebook.facebookStateTransition(facebookIgnore, { type: "DELIVER_JACK_REQUEST" });
+  assert.equal(facebookIgnore.friendRequestState, "ignored", "ignored request must not be recreated");
+
+  let facebookPlayability = facebook.facebookStateTransition(facebookA, { type: "OPEN_JUNE_MESSAGE" });
+  assert.equal(facebookPlayability.juneMessageState, "read", "opening June must mark only the live June message read");
+  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "EDIT_JUNE_REPLY", value: "Still awake." });
+  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "SUBMIT_JUNE_REPLY", displayName: "Zoey" });
+  assert.equal(facebookPlayability.juneMessageState, "replied");
+  assert.deepEqual(facebookPlayability.juneReplies, [{ id: "facebook-june-reply-1", author: "Zoey", text: "Still awake." }]);
+  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "OPEN_FEED_ITEM", itemId: "jack-movie", scrollPosition: 96 });
+  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "BEGIN_COMMENT", itemId: "jack-movie" });
+  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "EDIT_COMMENT", value: "I thought so too." });
+  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "SUBMIT_COMMENT", displayName: "Zoey" });
+  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "TOGGLE_LIKE", itemId: "jack-movie" });
+  assert.deepEqual(facebookPlayability.comments, [{ id: "facebook-comment-1", itemId: "jack-movie", author: "Zoey", text: "I thought so too." }]);
+  assert.deepEqual(facebookPlayability.likedItemIds, ["jack-movie"]);
+  assert.equal(facebookPlayability.juneMessageState, "replied", "Feed interaction must not mutate June state");
+  assert.deepEqual(facebookPlayability.friends, [], "Feed and message interaction must not mutate Friends state");
+  assert.equal(facebookPlayability.scrollPosition, 96, "Facebook playability mutations must preserve feed scroll state");
+
   const twitterSeed = seed.twitter;
   assert.equal(twitterSeed.length, 9, "Twitter must start with nine seed tweets");
   assert.deepEqual(
@@ -234,6 +265,13 @@ try {
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "TOGGLE_LIKE", itemId: facebookZoey.feed[0].id });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "DELIVER_JACK_REQUEST" });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "ACCEPT_JACK" });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "DELIVER_JUNE_MESSAGE" });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "OPEN_JUNE_MESSAGE" });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "EDIT_JUNE_REPLY", value: "yes" });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "SUBMIT_JUNE_REPLY", displayName: "Zoey" });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "BEGIN_COMMENT", itemId: facebookZoey.feed[0].id });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "EDIT_COMMENT", value: "Zoey session comment" });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "SUBMIT_COMMENT", displayName: "Zoey" });
   const facebookAlex = facebook.facebookStateTransition(facebookZoey, { type: "RESET", displayName: "Alex" });
   const flickrAlex = flickr.flickrStateTransition(flickrA, { type: "RESET" });
   const tumblrAlex = tumblr.tumblrStateTransition(tumblrZoey, { type: "RESET" });
@@ -243,6 +281,14 @@ try {
   );
   assert.deepEqual(facebookAlex.likedItemIds, []);
   assert.equal(facebookAlex.friendRequestState, "none");
+  assert.deepEqual(facebookAlex.friends, []);
+  assert.equal(facebookAlex.juneMessageState, "none");
+  assert.deepEqual(facebookAlex.juneReplies, []);
+  assert.equal(facebookAlex.juneReplyDraft, "");
+  assert.deepEqual(facebookAlex.comments, []);
+  assert.equal(facebookAlex.commentComposerItemId, null);
+  assert.equal(facebookAlex.commentDraft, "");
+  assert.equal(facebookAlex.inboxThreads.some(thread => thread.id === "june-live-message"), false);
   assert.equal(facebookAlex.feed.find(item => item.id === "owner-late").author, "Alex");
   assert.deepEqual(flickrAlex.favoritePhotoIds, []);
   assert.deepEqual(tumblrAlex.likedPostIds, []);

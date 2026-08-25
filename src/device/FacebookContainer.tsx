@@ -1,5 +1,6 @@
 import { Dispatch, useLayoutEffect, useRef } from "react";
 import { FacebookEvent, FacebookFeedItem, FacebookState } from "../state/facebookState";
+import { useSessionIdentity } from "../state/sessionIdentity";
 
 type FacebookContainerProps = {
   state: FacebookState;
@@ -7,6 +8,7 @@ type FacebookContainerProps = {
 };
 
 export function FacebookContainer({ state, dispatch }: FacebookContainerProps) {
+  const sessionIdentity = useSessionIdentity();
   const feedRef = useRef<HTMLDivElement>(null);
   const selectedItem = state.feed.find(item => item.id === state.selectedFeedItemId) ?? null;
   const selectedMessage = state.inboxThreads.find(message => message.id === state.selectedMessageId) ?? null;
@@ -50,16 +52,32 @@ export function FacebookContainer({ state, dispatch }: FacebookContainerProps) {
       <time>October 20, 2010 · {selectedItem.timestamp}</time>
       <div className="facebook-detail-actions">
         <button type="button" aria-pressed={state.likedItemIds.includes(selectedItem.id)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: selectedItem.id })}>{state.likedItemIds.includes(selectedItem.id) ? "Unlike" : "Like"}</button>
-        <button type="button" disabled data-control-status="HOLD">Comment</button>
+        <button type="button" aria-expanded={state.commentComposerItemId === selectedItem.id} onClick={() => dispatch({ type: "BEGIN_COMMENT", itemId: selectedItem.id })}>Comment</button>
       </div>
+      {state.comments.filter(comment => comment.itemId === selectedItem.id).map(comment => <article className="facebook-comment" key={comment.id}>
+        <strong>{comment.author}</strong>
+        <span>{comment.text}</span>
+      </article>)}
+      {state.commentComposerItemId === selectedItem.id && <form className="facebook-comment-composer" onSubmit={event => {
+        event.preventDefault();
+        dispatch({ type: "SUBMIT_COMMENT", displayName: sessionIdentity.name });
+      }}>
+        <textarea aria-label="Comment" value={state.commentDraft} onChange={event => dispatch({ type: "EDIT_COMMENT", value: event.currentTarget.value })} />
+        <div>
+          <button type="button" onClick={() => dispatch({ type: "CANCEL_COMMENT" })}>Cancel</button>
+          <button type="submit" disabled={!state.commentDraft.trim()}>Post</button>
+        </div>
+      </form>}
     </article>}
 
     {state.currentView === "friendRequests" && <div className="facebook-request-list">
-      {state.friendRequestState !== "none" && <section className="facebook-request-row">
+      {state.friendRequestState === "pending" && <section className="facebook-request-row">
         <strong>Jack</strong>
-        {state.friendRequestState === "pending"
-          ? <div><button type="button" onClick={() => dispatch({ type: "ACCEPT_JACK" })}>Accept</button><button type="button" onClick={() => dispatch({ type: "IGNORE_JACK" })}>Ignore</button></div>
-          : <span>{state.friendRequestState === "accepted" ? "Request accepted" : "Request ignored"}</span>}
+        <div><button type="button" onClick={() => dispatch({ type: "ACCEPT_JACK" })}>Accept</button><button type="button" onClick={() => dispatch({ type: "IGNORE_JACK" })}>Ignore</button></div>
+      </section>}
+      {state.friends.length > 0 && <section className="facebook-friends" aria-label="Friends">
+        <h2>Friends</h2>
+        {state.friends.map(friend => <div key={friend.id}><strong>{friend.name}</strong></div>)}
       </section>}
     </div>}
 
@@ -74,7 +92,21 @@ export function FacebookContainer({ state, dispatch }: FacebookContainerProps) {
     {state.currentView === "messageDetail" && selectedMessage && <article className="facebook-message-detail">
       <strong>{selectedMessage.sender}</strong>
       <p>{selectedMessage.preview}</p>
-      <span data-reply-status="HOLD">Reply unavailable in v0.1</span>
+      {selectedMessage.id === "june-live-message"
+        ? <>
+          {state.juneReplies.map(reply => <section className="facebook-message-reply" key={reply.id}>
+            <strong>{reply.author}</strong>
+            <p>{reply.text}</p>
+          </section>)}
+          <form className="facebook-message-composer" onSubmit={event => {
+            event.preventDefault();
+            dispatch({ type: "SUBMIT_JUNE_REPLY", displayName: sessionIdentity.name });
+          }}>
+            <textarea aria-label="Reply to June" value={state.juneReplyDraft} onChange={event => dispatch({ type: "EDIT_JUNE_REPLY", value: event.currentTarget.value })} />
+            <button type="submit" disabled={!state.juneReplyDraft.trim()}>Reply</button>
+          </form>
+        </>
+        : <span data-reply-status="HOLD">Reply unavailable in v0.2</span>}
     </article>}
   </section>;
 }

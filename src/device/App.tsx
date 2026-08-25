@@ -23,11 +23,13 @@ import { createSessionIdentity, SessionIdentityContext } from "../state/sessionI
 import { createStatusBarState } from "../state/statusBarModel";
 import { createInitialTwitterState, twitterStateTransition } from "../state/twitterState";
 import { createSMSLockNotification, smsMessageReceived } from "../system/smsNotification";
+import { flickrStateTransition, initialFlickrState } from "../state/flickrState";
 import { LockScreen } from "./LockScreen";
 import { CameraContainer } from "./CameraContainer";
 import { FacebookContainer } from "./FacebookContainer";
 import { FoursquareContainer } from "./FoursquareContainer";
 import { InstagramContainer } from "./InstagramContainer";
+import { FlickrContainer } from "./FlickrContainer";
 import { LockScreenStatusPresentation } from "./LockScreenStatusPresentation";
 import { AppLaunchContainer } from "./AppLaunchContainer";
 import { MultitaskingBar } from "./MultitaskingBar";
@@ -62,7 +64,7 @@ function loadRuntimeSession(): Session {
 export function App() {
   const [session, setSession] = useState<Session>(loadRuntimeSession);
   const requestedDevApp = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("devApp") : null;
-  const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" || requestedDevApp === "foursquare" ? requestedDevApp : null;
+  const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" || requestedDevApp === "foursquare" || requestedDevApp === "flickr" ? requestedDevApp : null;
   const devAutoOpen = devAppId !== null && new URLSearchParams(window.location.search).get("autoOpen") === "1";
   const [springBoardPage, setSpringBoardPage] = useState<0 | 1>(0);
   const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
@@ -80,6 +82,7 @@ export function App() {
   );
   const [instagramState, dispatchInstagram] = useReducer(instagramStateTransition, initialInstagramState);
   const [foursquareState, dispatchFoursquare] = useReducer(foursquareStateTransition, initialFoursquareState);
+  const [flickrState, dispatchFlickr] = useReducer(flickrStateTransition, initialFlickrState);
   const [twitterState, dispatchTwitter] = useReducer(
     twitterStateTransition,
     session.sessionIdentity.name,
@@ -283,6 +286,7 @@ export function App() {
     dispatchFacebook({ type: "RESET" });
     dispatchInstagram({ type: "RESET" });
     dispatchFoursquare({ type: "RESET" });
+    dispatchFlickr({ type: "RESET" });
     dispatchTwitter({ type: "RESET" });
     dispatchAppRuntime({ type: "RESET" });
     dispatchCameraRuntime({ type: "RESET", owner: "cameraApp" });
@@ -618,6 +622,10 @@ export function App() {
             state={instagramState}
             dispatch={dispatchInstagram}
           />}
+          {appRuntime.activeAppId === "flickr" && <FlickrContainer
+            state={flickrState}
+            dispatch={dispatchFlickr}
+          />}
           {appRuntime.activeAppId === "foursquare" && <FoursquareContainer
             state={foursquareState}
             dispatch={dispatchFoursquare}
@@ -684,12 +692,16 @@ export function App() {
 }
 
 function AppDevAccess({ appId, disabled, onOpen }: {
-  appId: "twitter" | "facebook" | "instagram" | "foursquare" | null;
+  appId: "twitter" | "facebook" | "instagram" | "foursquare" | "flickr" | null;
   disabled: boolean;
   onOpen: () => void;
 }) {
   if (!appId) return null;
-  const appName = appId === "twitter" ? "Twitter" : appId === "facebook" ? "Facebook" : appId === "instagram" ? "Instagram" : "Foursquare";
+  const appName = appId === "twitter" ? "Twitter"
+    : appId === "facebook" ? "Facebook"
+      : appId === "instagram" ? "Instagram"
+        : appId === "foursquare" ? "Foursquare"
+          : "Flickr";
   return <aside className="app-dev-access" aria-label={`${appName} development access`}>
     <strong>DEV</strong>
     <button type="button" disabled={disabled} onClick={onOpen}>DEV · Open {appName}</button>

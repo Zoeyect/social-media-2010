@@ -23,6 +23,8 @@ export type FoursquareState = {
   earnedBadges: string[];
   selectedTipId: string | null;
   venues: FoursquareVenue[];
+  socialActivity: { id: string; message: string } | null;
+  unreadActivityCount: number;
 };
 
 export type FoursquareEvent =
@@ -30,6 +32,7 @@ export type FoursquareEvent =
   | { type: "SHOW_PLACES" }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
   | { type: "CHECK_IN"; venueId: string }
+  | { type: "DELIVER_SOCIAL_ACTIVITY"; activity: { id: string; message: string } }
   | { type: "RESET" };
 
 const venues: FoursquareVenue[] = [
@@ -49,6 +52,8 @@ export const initialFoursquareState: FoursquareState = {
   earnedBadges: [],
   selectedTipId: null,
   venues,
+  socialActivity: null,
+  unreadActivityCount: 0,
 };
 
 export function foursquareStateTransition(state: FoursquareState, event: FoursquareEvent): FoursquareState {
@@ -67,6 +72,10 @@ export function foursquareStateTransition(state: FoursquareState, event: Foursqu
         checkInState: { ...state.checkInState, [event.venueId]: "checkedIn" },
         points: state.points + 1,
       };
+    case "DELIVER_SOCIAL_ACTIVITY":
+      return state.socialActivity?.id === event.activity.id
+        ? state
+        : { ...state, socialActivity: event.activity, unreadActivityCount: state.unreadActivityCount + 1 };
     case "RESET":
       return initialFoursquareState;
   }

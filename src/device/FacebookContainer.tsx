@@ -54,20 +54,20 @@ export function FacebookContainer({ state, dispatch }: FacebookContainerProps) {
     </article>}
 
     {state.currentView === "friendRequests" && <div className="facebook-request-list">
-      <section className="facebook-request-row">
+      {state.friendRequestState !== "none" && <section className="facebook-request-row">
         <strong>Jack</strong>
         {state.friendRequestState === "pending"
           ? <div><button type="button" onClick={() => dispatch({ type: "ACCEPT_JACK" })}>Accept</button><button type="button" onClick={() => dispatch({ type: "IGNORE_JACK" })}>Ignore</button></div>
           : <span>{state.friendRequestState === "accepted" ? "Request accepted" : "Request ignored"}</span>}
-      </section>
+      </section>}
     </div>}
 
     {state.currentView === "messages" && <div className="facebook-message-list">
-      <button type="button" onClick={() => dispatch({ type: "OPEN_JUNE_MESSAGE" })}>
+      {state.juneMessageState !== "none" && <button type="button" onClick={() => dispatch({ type: "OPEN_JUNE_MESSAGE" })}>
         <strong>June</strong>
         <span>Hey, are you online?</span>
         {state.juneMessageState === "unread" && <i aria-label="Unread" />}
-      </button>
+      </button>}
     </div>}
 
     {state.currentView === "messageDetail" && <article className="facebook-message-detail">

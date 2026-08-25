@@ -21,6 +21,7 @@ export type TwitterEvent =
   | { type: "BACK_TO_TIMELINE" }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
   | { type: "TOGGLE_FAVORITE"; tweetId: string }
+  | { type: "DELIVER_TIMELINE_TWEET"; tweet: Omit<TwitterTweet, "contentStatus"> }
   | { type: "RESET"; displayName?: string };
 
 const periodTimeline = (sessionDisplayName: string): TwitterTweet[] => [
@@ -96,6 +97,13 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
       return state.favoriteTweetIds.includes(event.tweetId)
         ? { ...state, favoriteTweetIds: state.favoriteTweetIds.filter(id => id !== event.tweetId) }
         : { ...state, favoriteTweetIds: [...state.favoriteTweetIds, event.tweetId] };
+    case "DELIVER_TIMELINE_TWEET":
+      if (state.timeline.some(tweet => tweet.id === event.tweet.id)) return state;
+      return {
+        ...state,
+        timeline: [...state.timeline, { ...event.tweet, contentStatus: "HOLD-fictional" as const }]
+          .sort((a, b) => Date.parse(`2010-10-20 ${b.timestamp}`) - Date.parse(`2010-10-20 ${a.timestamp}`)),
+      };
     case "RESET":
       return createInitialTwitterState(event.displayName ?? "");
   }

@@ -26,6 +26,7 @@ export type TumblrEvent =
   | { type: "TOGGLE_LIKE"; postId: string }
   | { type: "TOGGLE_REBLOG"; postId: string }
   | { type: "SET_DASHBOARD_SCROLL_POSITION"; dashboardScrollPosition: number }
+  | { type: "DELIVER_BACKGROUND_POST"; post: TumblrPost }
   | { type: "RESET" };
 
 const initialPosts: TumblrPost[] = [
@@ -105,6 +106,10 @@ export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): T
         ...state,
         dashboardScrollPosition: Math.max(0, event.dashboardScrollPosition),
       };
+    case "DELIVER_BACKGROUND_POST":
+      return state.posts.some(post => post.id === event.post.id)
+        ? state
+        : { ...state, posts: [...state.posts, event.post] };
     case "RESET":
       return {
         ...initialTumblrState,

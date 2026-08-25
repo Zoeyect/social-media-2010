@@ -1,6 +1,6 @@
 export type FacebookView = "feed" | "feedDetail" | "friendRequests" | "messages" | "messageDetail";
-export type FacebookFriendRequestState = "pending" | "accepted" | "ignored";
-export type FacebookMessageState = "unread" | "read";
+export type FacebookFriendRequestState = "none" | "pending" | "accepted" | "ignored";
+export type FacebookMessageState = "none" | "unread" | "read";
 
 export type FacebookFeedItem = {
   id: string;
@@ -31,6 +31,8 @@ export type FacebookEvent =
   | { type: "IGNORE_JACK" }
   | { type: "SHOW_MESSAGES" }
   | { type: "OPEN_JUNE_MESSAGE" }
+  | { type: "DELIVER_JACK_REQUEST" }
+  | { type: "DELIVER_JUNE_MESSAGE" }
   | { type: "RESET"; displayName?: string };
 
 const periodFeed = (sessionDisplayName: string): FacebookFeedItem[] => [
@@ -83,8 +85,8 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     selectedFeedItemId: null,
     scrollPosition: 0,
     likedItemIds: [],
-    friendRequestState: "pending",
-    juneMessageState: "unread",
+    friendRequestState: "none",
+    juneMessageState: "none",
   };
 }
 
@@ -116,7 +118,12 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "SHOW_MESSAGES":
       return { ...state, currentView: "messages", selectedFeedItemId: null };
     case "OPEN_JUNE_MESSAGE":
+      if (state.juneMessageState === "none") return state;
       return { ...state, currentView: "messageDetail", juneMessageState: "read", selectedFeedItemId: null };
+    case "DELIVER_JACK_REQUEST":
+      return state.friendRequestState === "none" ? { ...state, friendRequestState: "pending" } : state;
+    case "DELIVER_JUNE_MESSAGE":
+      return state.juneMessageState === "none" ? { ...state, juneMessageState: "unread" } : state;
     case "RESET":
       return createInitialFacebookState(event.displayName ?? "");
   }

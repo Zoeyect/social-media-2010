@@ -24,6 +24,7 @@ export type Session = {
   batteryCriticalRevealAtMs: number | null;
   sessionStartEpochMs: number | null;
   deviceEvents: DeviceEvent[];
+  deliveredTimelineEventIds: string[];
   dismissedWarnings: WarningLevel[];
   badges: Record<string, number>;
 };
@@ -39,6 +40,7 @@ export const initialSession: Session = {
   batteryCriticalRevealAtMs: null,
   sessionStartEpochMs: null,
   deviceEvents: [],
+  deliveredTimelineEventIds: [],
   dismissedWarnings: [],
   badges: { Facebook: 3, Twitter: 12, Instagram: 1, Foursquare: 1 },
 };

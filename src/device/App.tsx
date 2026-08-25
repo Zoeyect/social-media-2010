@@ -2,11 +2,12 @@ import { FormEvent, PointerEvent, useEffect, useReducer, useRef, useState } from
 import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.png?inline";
 import lowBatterySrc from "../assets/device/low-battery-iphone4.png";
 import { DeviceAudio } from "../audio/deviceAudio";
+import { buildSessionTimelineEvents } from "../data/sessionTimeline";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
 import { DEVICE_CARRIER_CONFIG } from "../state/carrierConfig";
 import { cameraRuntimeTransition, initialCameraRuntimeState } from "../state/cameraRuntime";
 import type { CameraOwner } from "../state/cameraRuntime";
-import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent } from "../state/deviceEventScheduler";
+import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent, scheduleDeviceEvents } from "../state/deviceEventScheduler";
 import { batteryPercent, BOOT_DURATION_MS, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
 import { createInitialFacebookState, facebookStateTransition } from "../state/facebookState";
@@ -45,11 +46,9 @@ const TERMINAL_DEPLETED_DISPLAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
 const AUTO_SLEEP_PHASES = new Set<Session["phase"]>(["locked", "springboard", "app"]);
 const HOME_DOUBLE_PRESS_MS = 300;
-const INITIAL_SMS_DELAY_MS = 60_000;
 const MOM_REPLY_DELAY_MS = 30_000;
 const SHUTDOWN_BLACK_SCREEN_MS = 500;
 const TERMINAL_POWERED_OFF_MS = 500;
-const INITIAL_SMS = { id: "mom-home-yet", sender: "Mom", message: "Home yet?", timestamp: "12:03 AM" } as const;
 const MOM_REPLY_SMS = { id: "mom-sleep-early", sender: "Mom", message: "Good. Sleep early." } as const;
 
 function loadRuntimeSession(): Session {
@@ -101,6 +100,7 @@ export function App() {
   const homePointer = useRef<number | null>(null);
   const pendingAppHomePress = useRef<number | null>(null);
   const devAutoOpenConsumed = useRef(false);
+  const deliveredEventClaims = useRef(new Set<string>());
   const elapsed = elapsedMs(session, now);
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
   const deviceStatusTime = formatDeviceTime(deviceDateTime);
@@ -133,34 +133,62 @@ export function App() {
   useEffect(() => {
     const event = nextDueDeviceEvent(session.deviceEvents, elapsed);
     if (!event) return;
+    const isTimelineEvent = event.type !== "momReply";
+    if (isTimelineEvent && (session.deliveredTimelineEventIds.includes(event.id) || deliveredEventClaims.current.has(event.id))) {
+      setSession(current => ({ ...current, deviceEvents: removeDeviceEvent(current.deviceEvents, event.id) }));
+      return;
+    }
+    if (isTimelineEvent) deliveredEventClaims.current.add(event.id);
     const source = session.phase === "sleeping" || session.phase === "locked" ? "lockscreen" : "foreground";
     const displayingMomConversation = session.phase === "app"
       && appRuntime.activeAppId === "messages"
       && messagesState.view === "conversation";
+    let wakesSleepingDevice = false;
 
-    if (event.type === "initialSMS") {
-      smsMessageReceived(INITIAL_SMS, source, {
+    if (event.type === "initialSMS" && event.payload?.kind === "initial-sms") {
+      smsMessageReceived(event.payload, source, {
         notificationDispatch: dispatchSMSNotification,
         badgeDispatch: dispatchMessagesBadge,
         messagesDispatch: dispatchMessages,
         lockNotificationDispatch: dispatchLockNotification,
       });
-    } else if (messagesState.momReply === "pending" && displayingMomConversation) {
-      dispatchMessages({ type: "DELIVER_MOM_REPLY" });
-    } else if (messagesState.momReply === "pending") {
-      smsMessageReceived(MOM_REPLY_SMS, source, {
-        notificationDispatch: dispatchSMSNotification,
-        badgeDispatch: dispatchMessagesBadge,
-        messagesDispatch: dispatchMessages,
-        lockNotificationDispatch: dispatchLockNotification,
+      wakesSleepingDevice = session.phase === "sleeping";
+    } else if (event.type === "momReply") {
+      if (messagesState.momReply === "pending" && displayingMomConversation) {
+        dispatchMessages({ type: "DELIVER_MOM_REPLY" });
+      } else if (messagesState.momReply === "pending") {
+        smsMessageReceived(MOM_REPLY_SMS, source, {
+          notificationDispatch: dispatchSMSNotification,
+          badgeDispatch: dispatchMessagesBadge,
+          messagesDispatch: dispatchMessages,
+          lockNotificationDispatch: dispatchLockNotification,
+        });
+        dispatchMessages({ type: "MARK_MOM_REPLY_DELIVERED" });
+        wakesSleepingDevice = session.phase === "sleeping";
+      }
+    } else if (event.type === "facebookJackRequest") {
+      dispatchFacebook({ type: "DELIVER_JACK_REQUEST" });
+    } else if (event.type === "facebookJuneMessage") {
+      dispatchFacebook({ type: "DELIVER_JUNE_MESSAGE" });
+    } else if (event.type === "twitterBackgroundTweet" && event.payload?.kind === "twitter-post") {
+      dispatchTwitter({ type: "DELIVER_TIMELINE_TWEET", tweet: event.payload.post });
+    } else if (event.type === "foursquareActivity" && event.payload?.kind === "foursquare-activity") {
+      dispatchFoursquare({
+        type: "DELIVER_SOCIAL_ACTIVITY",
+        activity: { id: event.payload.activityId, message: event.payload.message },
       });
-      dispatchMessages({ type: "MARK_MOM_REPLY_DELIVERED" });
+    } else if (event.type === "tumblrBackgroundPost" && event.payload?.kind === "tumblr-post") {
+      dispatchTumblr({ type: "DELIVER_BACKGROUND_POST", post: event.payload.post });
     }
-    update({
-      deviceEvents: removeDeviceEvent(session.deviceEvents, event.id),
-      ...(session.phase === "sleeping" ? { phase: "locked" as const } : {}),
-    });
-  }, [appRuntime.activeAppId, elapsed, messagesState.momReply, messagesState.view, session.deviceEvents, session.phase]);
+    setSession(current => ({
+      ...current,
+      deviceEvents: removeDeviceEvent(current.deviceEvents, event.id),
+      deliveredTimelineEventIds: isTimelineEvent && !current.deliveredTimelineEventIds.includes(event.id)
+        ? [...current.deliveredTimelineEventIds, event.id]
+        : current.deliveredTimelineEventIds,
+      ...(wakesSleepingDevice && current.phase === "sleeping" ? { phase: "locked" as const } : {}),
+    }));
+  }, [appRuntime.activeAppId, elapsed, messagesState.momReply, messagesState.view, session.deliveredTimelineEventIds, session.deviceEvents, session.phase]);
   useEffect(() => {
     if ((session.phase !== "sleeping" && session.phase !== "locked") || smsNotification.status !== "alert-visible") return;
     dispatchSMSNotification({ type: "SHOW_PREVIEW" });
@@ -270,18 +298,16 @@ export function App() {
         phase: "locked",
         sessionStartEpochMs: startsSession ? Date.now() : current.sessionStartEpochMs,
         deviceEvents: startsSession
-          ? scheduleDeviceEvent(current.deviceEvents, {
-              id: "initial-sms-mom-home-yet",
-              type: "initialSMS",
-              dueElapsedMs: INITIAL_SMS_DELAY_MS,
-            })
+          ? scheduleDeviceEvents([], buildSessionTimelineEvents())
           : current.deviceEvents,
+        deliveredTimelineEventIds: startsSession ? [] : current.deliveredTimelineEventIds,
       };
     }), BOOT_DURATION_MS);
     return () => clearTimeout(id);
   }, [session.phase]);
   useEffect(() => {
     if (session.phase !== "shutdown") return;
+    deliveredEventClaims.current.clear();
     dispatchMessages({ type: "RESET_RUNTIME" });
     dispatchMessagesBadge({ type: "RESET" });
     dispatchSMSNotification({ type: "RESET" });

@@ -15,7 +15,7 @@ Curated live events and user-generated session actions remain separate. All muta
 | Foursquare | Optional check-in shout, per-venue record, open/close Tip | Implemented and code-tested | None found | Exact shout limit/timestamp chrome and To-Do interaction remain HOLD; Mayor read-only and badges excluded | `Add Foursquare v0.2 shout and Tip playability` |
 | Flickr | Seed/user comments and two ID-based Sets with origin-aware Back routing | Implemented and code-tested | None found | Exact 2010 comments/Sets chrome, seed commenter identity, and imagery remain C/HOLD | `Add Flickr v0.2 comments and Sets playability` |
 | Tumblr | Confirmed Reblog relation with optional text; seed/user Notes | Implemented and code-tested | None found | Exact 2010 Reblog/Notes chrome, wording, timing, and seed blog identities remain C/HOLD | `Add Tumblr v0.2 Reblog and Notes playability` |
-| Instagram | Camera/first-photo flow only if launch-era evidence is sufficient | HOLD | Not assessed | Do not populate or fabricate the empty account | Pending |
+| Instagram | One-photo source, Original filter, confirmation, and post flow using a non-photographic DEV fixture | Implemented and code-tested | None found | Exact launch-era picker/filter/share chrome, complete filter names, and approved photography remain C/HOLD | `Add Instagram v0.2 first-photo playability` |
 | Messages | No expansion in this phase unless explicitly requested | Unchanged | None | Additional scripted replies remain out of scope | Existing freeze retained |
 
 ## Twitter v0.2 result
@@ -74,6 +74,16 @@ Curated live events and user-generated session actions remain separate. All muta
 - Full posting/composer types remain HOLD and were not introduced.
 - Global scheduler/timeline definitions, frozen System modules, Twitter, Facebook, Foursquare, Flickr, and other apps were not modified.
 
+## Instagram v0.2 result
+
+- Every session still begins with an empty account: `0` Photos, `0` Followers, and `0` Following.
+- Period evidence already recorded for v0.1 supports the broad capture/select, filter, and post sequence. Exact launch-era chrome and the complete filter list remain HOLD.
+- The repository contains no approved photographic fixture, so the source step exposes one explicitly labeled, non-photographic DEV-only fixture instead of fabricating a photo or borrowing historical system artwork.
+- The functional flow is Source → `Original` → Share → one session-local photo record. A second photo is rejected by the state layer as well as disabled in the UI.
+- The photo record keeps owner identity, source, filter, creation time, and `origin: "user"`; it does not mutate the immutable Instagram seed baseline.
+- Feed/Profile navigation and scroll state retain the photo during the current session. Reset removes the photo and draft and restores the intentional empty baseline for the next identity.
+- Camera Runtime, global scheduler/timeline definitions, frozen System modules, and all other app state modules were not modified.
+
 ## Phase status
 
-**IN PROGRESS.** Twitter is the only app expanded in this checkpoint. The phase must not be declared complete until each selected app receives its own implementation and functional sweep.
+**IN PROGRESS.** Instagram now has its v0.2 app-local functional slice. Remaining phase work must continue app by app and must not be declared complete before all selected app checkpoints are finished.

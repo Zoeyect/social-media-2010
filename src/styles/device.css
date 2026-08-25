@@ -206,11 +206,21 @@ button, input { font: inherit; }
 .facebook-message-reply p { margin: 4px 0 0; font-size: 14px; }
 .facebook-message-composer { grid-template-columns: 1fr auto; align-items: end; border-top: 1px solid #bbb; }
 .instagram-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #26211d; background: #eeeae3; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
-.instagram-navigation-bar { flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-bottom: 1px solid #322a22; background: #554a3e; text-shadow: 0 -1px rgba(0,0,0,.75); }
+.instagram-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-bottom: 1px solid #322a22; background: #554a3e; text-shadow: 0 -1px rgba(0,0,0,.75); }
 .instagram-navigation-bar strong { font-size: 18px; line-height: 44px; }
-.instagram-empty-feed { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; align-content: center; justify-items: center; color: #70675f; background: #f4f1ec; text-align: center; }
+.instagram-navigation-bar button { position: absolute; top: 7px; height: 30px; padding: 0 9px; color: #fff; border: 1px solid #322a22; border-radius: 4px; background: #685c50; font-size: 12px; font-weight: bold; }
+.instagram-navigation-cancel { left: 7px; }
+.instagram-navigation-next { right: 7px; }
+.instagram-feed { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #f4f1ec; }
+.instagram-empty-feed { min-height: 368px; display: grid; align-content: center; justify-items: center; color: #70675f; text-align: center; }
 .instagram-empty-feed p,.instagram-empty-profile > p { margin: 0; color: #4d4741; font-size: 18px; font-weight: bold; }
 .instagram-empty-feed span { margin-top: 6px; font-size: 11px; }
+.instagram-photo-record { border-bottom: 1px solid #b8b0a7; background: #eeeae3; }
+.instagram-photo-record > header { height: 36px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.instagram-photo-record > header span { color: #70675f; font-size: 10px; }
+.instagram-dev-photo-surface { width: 100%; min-height: 230px; display: grid; place-content: center; gap: 4px; color: #514b45; border-top: 1px solid #aaa39b; border-bottom: 1px solid #aaa39b; background: #d2cec8; text-align: center; }
+.instagram-dev-photo-surface strong { font-size: 16px; }
+.instagram-dev-photo-surface span { font-size: 10px; }
 .instagram-empty-profile { flex: 1 1 auto; background: #f4f1ec; }
 .instagram-empty-profile > header { padding: 16px 12px 12px; border-bottom: 1px solid #b8b0a7; background: #e2ddd6; }
 .instagram-empty-profile > header > strong { display: block; padding-bottom: 12px; font-size: 18px; }
@@ -219,6 +229,14 @@ button, input { font: inherit; }
 .instagram-empty-profile dt { color: #6e665e; font-size: 10px; text-transform: uppercase; }
 .instagram-empty-profile dd { margin: 0; color: #292520; font-size: 18px; font-weight: bold; }
 .instagram-empty-profile > p { padding-top: 72px; text-align: center; }
+.instagram-first-photo-step { flex: 1 1 auto; min-height: 0; padding: 18px 16px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 12px; overflow-y: auto; background: #f4f1ec; text-align: center; }
+.instagram-first-photo-step h2,.instagram-first-photo-step p { margin: 0; }
+.instagram-first-photo-step h2 { font-size: 18px; }
+.instagram-first-photo-step p { color: #514b45; font-size: 13px; }
+.instagram-first-photo-step > button { min-height: 34px; color: #fff; border: 1px solid #322a22; border-radius: 4px; background: #685c50; font-weight: bold; }
+.instagram-first-photo-step > button[aria-pressed="true"] { background: #3f3933; }
+.instagram-first-photo-step small { color: #746c64; font-size: 10px; }
+.instagram-first-photo-step .instagram-dev-photo-surface { flex: 0 0 210px; min-height: 210px; }
 .instagram-development-navigation { flex: 0 0 48px; height: 48px; display: grid; grid-template-columns: repeat(5,1fr); border-top: 1px solid #302b26; background: #4b443d; }
 .instagram-development-navigation button { padding: 0; color: #e9e4df; border: 0; border-right: 1px solid rgba(0,0,0,.35); background: transparent; font-size: 9px; }
 .instagram-development-navigation button:last-child { border-right: 0; }

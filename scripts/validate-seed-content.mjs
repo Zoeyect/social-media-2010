@@ -440,8 +440,41 @@ try {
   assert.deepEqual(flickrA.favoritePhotoIds, ["sunset-brooklyn"]);
   assert.equal(flickrA.commentsState.filter(comment => comment.origin === "user").length, 1);
 
-  const instagramState = instagram.createInitialInstagramState();
+  let instagramState = instagram.createInitialInstagramState();
   assert.deepEqual({ photos: instagramState.photos.length, followers: instagramState.followers, following: instagramState.following }, { photos: 0, followers: 0, following: 0 });
+  assert.equal(instagramState.currentView, "feed");
+  assert.deepEqual(instagramState.draft, { source: null, filter: null });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
+  assert.equal(instagramState.currentView, "source");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_SOURCE", source: "dev-fixture" });
+  assert.equal(instagramState.currentView, "filter");
+  assert.deepEqual(instagramState.draft, { source: "dev-fixture", filter: "Original" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "CANCEL_FIRST_PHOTO" });
+  assert.equal(instagramState.currentView, "feed");
+  assert.deepEqual(instagramState.draft, { source: null, filter: null }, "cancel must discard the first-photo draft");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_SOURCE", source: "dev-fixture" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_FILTER", filter: "Original" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "CONTINUE_TO_SHARE" });
+  assert.equal(instagramState.currentView, "share");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "POST_FIRST_PHOTO", owner: "Zoey", createdAt: 1_287_552_900_000 });
+  assert.deepEqual(instagramState.photos, [{
+    id: "instagram-first-photo",
+    owner: "Zoey",
+    source: "dev-fixture",
+    filter: "Original",
+    createdAt: 1_287_552_900_000,
+    origin: "user",
+  }]);
+  assert.deepEqual({ followers: instagramState.followers, following: instagramState.following }, { followers: 0, following: 0 });
+  const instagramAfterSecondAttempt = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
+  assert.strictEqual(instagramAfterSecondAttempt, instagramState, "v0.2 must allow at most one user photo");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SET_SCROLL_POSITION", scrollPosition: 37 });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SHOW_PROFILE" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SHOW_FEED" });
+  assert.equal(instagramState.photos.length, 1, "navigation must retain the current-session photo");
+  assert.equal(instagramState.scrollPosition, 37);
+  assert.deepEqual(seed.instagram.photos, [], "first-photo activity must not mutate the Instagram seed baseline");
 
   const tumblrZoey = tumblrPlayability;
   let facebookZoey = facebook.createInitialFacebookState("Zoey");
@@ -459,6 +492,7 @@ try {
   const flickrAlex = flickr.flickrStateTransition(flickrA, { type: "RESET" });
   const tumblrAlex = tumblr.tumblrStateTransition(tumblrZoey, { type: "RESET" });
   const foursquareAlex = foursquare.foursquareStateTransition(foursquarePlayability, { type: "RESET" });
+  const instagramAlex = instagram.instagramStateTransition(instagramState, { type: "RESET" });
   assert.deepEqual(facebookAlex.likedItemIds, []);
   assert.equal(facebookAlex.friendRequestState, "none");
   assert.deepEqual(facebookAlex.friends, []);
@@ -492,6 +526,12 @@ try {
   assert.equal(foursquareAlex.points, 0);
   assert.equal(foursquareAlex.selectedTipId, null);
   assert.equal(foursquareAlex.socialActivities.length, 1, "new session must restore the seeded ambient baseline and remove live/user mutations");
+  assert.deepEqual(instagramAlex.photos, []);
+  assert.equal(instagramAlex.currentView, "feed");
+  assert.equal(instagramAlex.selectedPhotoId, null);
+  assert.equal(instagramAlex.scrollPosition, 0);
+  assert.deepEqual(instagramAlex.draft, { source: null, filter: null });
+  assert.deepEqual({ followers: instagramAlex.followers, following: instagramAlex.following }, { followers: 0, following: 0 });
 
   const seedSource = await readFile(resolve(projectRoot, "src/data/sessionSeedContent.ts"), "utf8");
   assert.doesNotMatch(seedSource, /DeviceAudio|deviceEventScheduler|smsNotification/, "seed definitions must not depend on delivery systems");

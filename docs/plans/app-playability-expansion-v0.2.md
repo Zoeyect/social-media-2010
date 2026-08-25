@@ -85,6 +85,16 @@ Curated live events and user-generated session actions remain separate. All muta
 - Existing scheduled timing, Like, Comment, June reply, session reset, shared lifecycle, scheduler, and sibling applications remain unchanged.
 - Exact Facebook chrome, icon rasters, typography, gradients, notification-area treatment, and pixel geometry remain C/HOLD.
 
+## Cross-App Jack Party Narrative v0.4 result
+
+- The existing June-reply and Jack-accept paths continue to converge on the single deduplicated `facebook-party-invite` Inbox delivery.
+- Matt's short party reaction replaces one generic pre-session Twitter filler record, preserving the fourteen-item seed density without adding a scheduler event.
+- One Alex Facebook post with `friends-of-friends` visibility is reused by News Feed, Alex Wall, Detail, Like, and Comment state.
+- Jay contributes one canonical seed comment; Ryan contributes one separately typed `EPHEMERAL_FRIEND_OF_FRIEND` comment and is not added to the character registry.
+- Luca's Facebook photo activity stores canonical Chris participation and a four-photo count while exact tag UI and all photo assets remain HOLD.
+- User comments coexist with baseline comments and reset independently with the existing Facebook session state.
+- Scheduler architecture, Cross-App Timeline timing, simulated date/time, other apps, and historical assets were not modified.
+
 ## Foursquare v0.2 result
 
 - Each successful check-in now stores the current session identity, action timestamp, optional trimmed shout, and points awarded for its venue.

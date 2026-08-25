@@ -28,6 +28,10 @@ export type FacebookFeedItem = {
   text: string;
   timestamp: string;
   kind: "status" | "photoActivity" | "socialActivity";
+  visibility?: "friends" | "friends-of-friends" | "everyone" | "custom";
+  photoCount?: number;
+  relatedCharacterIds?: readonly CoreSocialCharacterId[];
+  tagUiStatus?: "HOLD";
   contentStatus: "HOLD-fictional";
   origin: ContentOrigin;
 };
@@ -40,6 +44,23 @@ export type FacebookMessageThread = {
   timestamp: string;
   status: "unread" | "read";
   origin: ContentOrigin;
+};
+
+export type FacebookEphemeralIdentity = {
+  id: string;
+  displayName: string;
+  classification: "EPHEMERAL_FRIEND_OF_FRIEND";
+};
+
+export type FacebookComment = {
+  id: string;
+  itemId: string;
+  author: string;
+  text: string;
+  origin: "seed" | "user";
+  characterId?: CoreSocialCharacterId;
+  classification?: "CURATED";
+  ephemeralAuthor?: FacebookEphemeralIdentity;
 };
 
 export type FacebookState = {
@@ -60,7 +81,7 @@ export type FacebookState = {
   selectedMessageId: string | null;
   juneReplies: FacebookUserText[];
   juneReplyDraft: string;
-  comments: Array<FacebookUserText & { itemId: string }>;
+  comments: FacebookComment[];
   commentComposerItemId: string | null;
   commentDraft: string;
 };
@@ -118,7 +139,16 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     selectedMessageId: null,
     juneReplies: [],
     juneReplyDraft: "",
-    comments: [],
+    comments: SESSION_SEED_CONTENT.facebook.comments.map(comment => ({
+      id: comment.id,
+      itemId: comment.itemId,
+      author: comment.author.displayName,
+      text: comment.text,
+      origin: comment.origin,
+      ...(comment.author.type === "canonical"
+        ? { characterId: comment.author.characterId, classification: comment.author.classification }
+        : { ephemeralAuthor: { id: comment.author.id, displayName: comment.author.displayName, classification: comment.author.classification } }),
+    })),
     commentComposerItemId: null,
     commentDraft: "",
   };
@@ -248,10 +278,11 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       return {
         ...state,
         comments: [...state.comments, {
-          id: `facebook-comment-${state.comments.length + 1}`,
+          id: `facebook-comment-${state.comments.filter(comment => comment.origin === "user").length + 1}`,
           itemId,
           author: event.displayName,
           text,
+          origin: "user",
         }],
         commentComposerItemId: null,
         commentDraft: "",

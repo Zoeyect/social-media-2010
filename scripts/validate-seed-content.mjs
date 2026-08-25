@@ -184,7 +184,22 @@ try {
   assert.equal(facebook.selectFacebookJuneMessageState(facebookA), "none");
   assert.ok(facebookA.inboxThreads.every(thread => thread.origin === "seed" && thread.status === "read"));
   assert.deepEqual(facebookA.inboxThreads.map(thread => [thread.friendId, thread.sender]), [["katie", "Katie"], ["jay", "Jay"]]);
-  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["katie", "Katie"], ["jay", "Jay"]]);
+  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["alex", "Alex"], ["katie", "Katie"], ["jay", "Jay"], ["luca", "Luca"]]);
+  const alexPartyPost = facebookA.feed.find(item => item.id === "alex-jacks-party-friday");
+  assert.ok(alexPartyPost, "Alex's Friday party post must exist as one canonical Facebook record");
+  assert.deepEqual([alexPartyPost.friendId, alexPartyPost.visibility], ["alex", "friends-of-friends"]);
+  assert.strictEqual(facebookA.feed.filter(item => item.author === "Alex").find(item => item.id === alexPartyPost.id), alexPartyPost, "News Feed and Alex Wall must reference the same post object");
+  assert.deepEqual(
+    facebookA.comments.filter(comment => comment.itemId === alexPartyPost.id).map(comment => [comment.author, comment.characterId, comment.ephemeralAuthor?.classification]),
+    [["Jay", "jay", undefined], ["Ryan", undefined, "EPHEMERAL_FRIEND_OF_FRIEND"]],
+  );
+  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.ryan, undefined, "friend-of-friend commenter must not enter the canonical registry");
+  const lucaBasketballPost = facebookA.feed.find(item => item.id === "luca-pickup-basketball-photos");
+  assert.deepEqual(
+    [lucaBasketballPost?.friendId, lucaBasketballPost?.photoCount, lucaBasketballPost?.relatedCharacterIds, lucaBasketballPost?.tagUiStatus],
+    ["luca", 4, ["chris"], "HOLD"],
+    "Luca's photo story must retain canonical Chris participation without fabricated tag UI",
+  );
   facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JACK_REQUEST" });
   facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JUNE_MESSAGE" });
   facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JACK_REQUEST" });
@@ -305,7 +320,8 @@ try {
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "EDIT_COMMENT", value: "I thought so too." });
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "SUBMIT_COMMENT", displayName: "Zoey" });
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "TOGGLE_LIKE", itemId: "jack-movie" });
-  assert.deepEqual(facebookPlayability.comments, [{ id: "facebook-comment-1", itemId: "jack-movie", author: "Zoey", text: "I thought so too." }]);
+  assert.deepEqual(facebookPlayability.comments.filter(comment => comment.origin === "user"), [{ id: "facebook-comment-1", itemId: "jack-movie", author: "Zoey", text: "I thought so too.", origin: "user" }]);
+  assert.equal(facebookPlayability.comments.filter(comment => comment.origin === "seed").length, 2, "user comments must coexist with Alex's baseline discussion");
   assert.deepEqual(facebookPlayability.likedItemIds, ["jack-movie"]);
   assert.equal(facebook.selectFacebookJuneMessageState(facebookPlayability), "replied", "Feed interaction must not mutate June state");
   assert.deepEqual(facebookPlayability.friends, [], "Feed and message interaction must not mutate Friends state");
@@ -313,6 +329,9 @@ try {
 
   const twitterSeed = seed.twitter;
   assert.equal(twitterSeed.length, 14, "Twitter must start with the balanced fourteen-item seed timeline");
+  const mattPartyTweet = twitterSeed.find(tweet => tweet.id === "matt-jacks-party");
+  assert.deepEqual([mattPartyTweet?.friendId, mattPartyTweet?.displayName, mattPartyTweet?.text], ["matt", "Matt", "jack's party sounds exhausting lol"]);
+  assert.equal(seed.facebook.feed.some(item => item.friendId === "matt" && item.text.includes("party")), false, "Matt's party reaction must remain Twitter-specific");
   assert.deepEqual(
     twitterSeed.map(tweet => tweet.timestamp),
     ["11:58 PM", "11:53 PM", "11:49 PM", "11:41 PM", "11:26 PM", "11:09 PM", "11:03 PM", "10:47 PM", "10:22 PM", "10:05 PM", "9:47 PM", "9:12 PM", "9:08 PM", "8:30 PM"],
@@ -320,7 +339,8 @@ try {
   );
   assert.equal(twitterSeed.filter(tweet => tweet.contentType === "manual-retweet").length, 2);
   assert.equal(twitterSeed.filter(tweet => tweet.contentType === "celebrity-discussion").length, 1);
-  assert.equal(twitterSeed.filter(tweet => tweet.contentType === "ordinary").length, 5);
+  assert.equal(twitterSeed.filter(tweet => tweet.contentType === "ordinary").length, 4);
+  assert.equal(twitterSeed.filter(tweet => tweet.contentType === "party-reaction").length, 1);
   assert.equal(twitterSeed.filter(tweet => tweet.contentType === "work-life").length, 5, "five work-life seed Tweets must rebalance the demographic tone");
   assert.equal(twitterSeed.filter(tweet => tweet.contentType === "apple-reference").length, 1, "Twitter must retain exactly one Apple reference");
   assert.equal(
@@ -467,7 +487,8 @@ try {
   assert.equal(twitter.selectTwitterDirectMessagesUnreadCount(twitterState), 1);
   const timelineNames = new Set(twitterState.timeline.map(tweet => tweet.displayName.toLowerCase()));
   const mentionNames = twitterState.mentionTweets.map(tweet => tweet.displayName);
-  assert.ok([...mentionNames, ...twitterState.directMessages.map(item => item.sender)].every(name => !timelineNames.has(name.toLowerCase())), "Mention and DM identities must not overlap Timeline seed identities");
+  assert.ok([...mentionNames, twitterState.directMessages.find(item => item.friendId === "katie")?.sender].filter(Boolean).every(name => !timelineNames.has(name.toLowerCase())), "Alex, Chris, and Katie social records must remain outside the seed Timeline");
+  assert.ok(timelineNames.has("matt"), "Matt's canonical identity may span DM and Timeline for the party fragment");
   assert.equal(new Set([...mentionNames, ...twitterState.directMessages.map(item => item.sender)]).size, 4);
   assert.ok(twitterState.followedUserIds.includes("alex"), "Alex must be followed in the designed baseline graph");
   assert.equal(twitterState.followedUserIds.includes("chris"), false, "Chris must remain initially unfollowed");
@@ -970,7 +991,7 @@ try {
   assert.equal(facebook.selectFacebookJuneMessageState(facebookAlex), "none");
   assert.deepEqual(facebookAlex.juneReplies, []);
   assert.equal(facebookAlex.juneReplyDraft, "");
-  assert.deepEqual(facebookAlex.comments, []);
+  assert.deepEqual(facebookAlex.comments.map(comment => comment.id), ["alex-party-comment-jay", "alex-party-comment-ryan"]);
   assert.equal(facebookAlex.commentComposerItemId, null);
   assert.equal(facebookAlex.commentDraft, "");
   assert.equal(facebookAlex.inboxThreads.some(thread => thread.id === "june-live-message"), false);

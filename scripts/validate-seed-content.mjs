@@ -155,6 +155,31 @@ try {
   )), "mixed Twitter provenance metadata must remain intact");
 
   let twitterState = twitter.createInitialTwitterState("Zoey");
+  assert.equal(twitterState.activeTab, "timeline");
+  assert.equal(twitterState.currentView, "timeline");
+  assert.equal(twitterState.revealedTweetId, null);
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "SET_SCROLL_POSITION", scrollPosition: 64 });
+  for (const tab of ["mentions", "messages", "search", "more"]) {
+    twitterState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab });
+    assert.equal(twitterState.activeTab, tab);
+    assert.equal(twitterState.scrollPosition, 64, "secondary tab shells must not reset Timeline scroll");
+  }
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab: "timeline" });
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "TOGGLE_TWEET_ACTIONS", tweetId: "still-awake" });
+  assert.equal(twitterState.revealedTweetId, "still-awake", "timeline swipe state must reveal one tweet action pane");
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab: "mentions" });
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab: "timeline" });
+  assert.equal(twitterState.revealedTweetId, "still-awake", "tweet action state must survive tab switching");
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "TOGGLE_TWEET_ACTIONS", tweetId: "still-awake" });
+  assert.equal(twitterState.revealedTweetId, null);
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "BEGIN_NEW_TWEET" });
+  assert.equal(twitterState.currentView, "composer");
+  assert.equal(twitterState.composerKind, "new");
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "EDIT_REPLY", value: "draft from top compose" });
+  assert.equal(twitterState.replyDraft, "draft from top compose");
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "CANCEL_REPLY" });
+  assert.equal(twitterState.currentView, "timeline");
+  assert.equal(twitterState.composerKind, null);
   const scheduledTwitterPosts = timelineDefinitions
     .filter(event => event.payload?.kind === "twitter-post")
     .map(event => event.payload.post);
@@ -201,7 +226,14 @@ try {
   });
   assert.deepEqual(retweetOrderState.retweetActivities.map(activity => activity.id), ["user-retweet:still-awake"], "unretweet must preserve unrelated Retweet activity");
   twitterState = twitter.twitterStateTransition(twitterState, { type: "OPEN_TWEET", tweetId: "still-awake", scrollPosition: 144 });
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab: "messages" });
+  assert.equal(twitterState.currentView, "tweetDetail");
+  assert.equal(twitterState.selectedTweetId, "still-awake", "tab switching must retain the selected Tweet route");
+  twitterState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab: "timeline" });
   twitterState = twitter.twitterStateTransition(twitterState, { type: "BEGIN_REPLY", tweetId: "still-awake" });
+  assert.equal(twitterState.currentView, "composer");
+  assert.equal(twitterState.composerKind, "reply");
+  assert.equal(twitterState.replyDraft, "@june ", "Reply composer must prefill the target username approximation");
   twitterState = twitter.twitterStateTransition(twitterState, { type: "EDIT_REPLY", value: "x".repeat(141) });
   assert.equal(twitterState.replyDraft.length, 140, "Twitter replies must enforce the 140-character limit in state");
   twitterState = twitter.twitterStateTransition(twitterState, { type: "CANCEL_REPLY" });
@@ -275,6 +307,10 @@ try {
   assert.equal(twitterReset.replies.length, 0);
   assert.equal(twitterReset.replyComposerTweetId, null);
   assert.equal(twitterReset.replyDraft, "");
+  assert.equal(twitterReset.activeTab, "timeline");
+  assert.equal(twitterReset.currentView, "timeline");
+  assert.equal(twitterReset.composerKind, null);
+  assert.equal(twitterReset.revealedTweetId, null);
   assert.equal(twitterReset.timeline.length, 9);
   assert.ok(scheduledTwitterPosts.every(post => !twitterReset.timeline.some(tweet => tweet.id === post.id)), "session reset must remove every live Twitter addition");
   assert.equal(twitterReset.timeline.find(tweet => tweet.id === "late-night-user").displayName, "Alex");
@@ -534,7 +570,12 @@ try {
   assert.deepEqual({ followers: instagramAlex.followers, following: instagramAlex.following }, { followers: 0, following: 0 });
 
   const seedSource = await readFile(resolve(projectRoot, "src/data/sessionSeedContent.ts"), "utf8");
+  const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
   assert.doesNotMatch(seedSource, /DeviceAudio|deviceEventScheduler|smsNotification/, "seed definitions must not depend on delivery systems");
+  assert.ok(["Timeline", "Mentions", "Messages", "Search", "More"].every(label => twitterContainerSource.includes(`"${label}"`)), "Twitter must expose the five period tab destinations");
+  assert.match(twitterContainerSource, /twitter-tweet-action-row/, "Twitter must render the swipe-revealed action row");
+  assert.match(twitterContainerSource, /twitter-avatar-fixture/, "Twitter cells must not leave the avatar column visually empty");
+  assert.doesNotMatch(twitterContainerSource, /Quote Tweet|Explore|Spaces|Notifications/, "Twitter IA must not introduce later navigation/features");
   assert.ok(Object.isFrozen(seed) && Object.isFrozen(seed.messages) && Object.isFrozen(seed.twitter), "seed definitions must remain immutable");
 
   console.log("Historical seed-content state checks: PASS");

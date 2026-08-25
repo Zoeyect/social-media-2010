@@ -10,7 +10,7 @@ Curated live events and user-generated session actions remain separate. All muta
 
 | App | Planned interaction | Status | A/B findings | C backlog / HOLD | Checkpoint |
 | --- | --- | --- | --- | --- | --- |
-| Twitter | Reply, native Retweet timeline activity; preserve Favorite | v0.3 implemented and code-tested | None found | Exact immediate client insertion, attribution chrome, and geometry remain C/HOLD; browser interaction NOT TESTED | `Integrate Twitter Retweets into the timeline` |
+| Twitter | Period five-tab IA, swipe tweet actions, shared New Tweet/Reply composer; preserve Favorite/native Retweet | IA correction implemented and code-tested | None remaining | Exact 3.0.2 icon/chrome, profile/search content, confirmation UI, avatar art, and geometry remain C/HOLD; browser interaction NOT TESTED | `Correct Twitter 2010 native IA and layout` |
 | Facebook | Jack friend outcome, June reply thread, one plain Feed comment interaction | Implemented and code-tested | None found | Exact Facebook 2010 Friends/message/comment chrome remains C/HOLD; browser interaction NOT TESTED | `Add Facebook v0.2 friend, message, and comment playability` |
 | Foursquare | Optional check-in shout, per-venue record, open/close Tip | Implemented and code-tested | None found | Exact shout limit/timestamp chrome and To-Do interaction remain HOLD; Mayor read-only and badges excluded | `Add Foursquare v0.2 shout and Tip playability` |
 | Flickr | Seed/user comments and two ID-based Sets with origin-aware Back routing | Implemented and code-tested | None found | Exact 2010 comments/Sets chrome, seed commenter identity, and imagery remain C/HOLD | `Add Flickr v0.2 comments and Sets playability` |
@@ -29,6 +29,17 @@ Curated live events and user-generated session actions remain separate. All muta
 - Twitter-local mutations survive retained runtime state and live timeline deliveries.
 - A new-session reset removes replies, reply drafts, Retweets, Favorites, and live additions while restoring the seed timeline.
 - The global live-event scheduler and all other app state modules were left unchanged.
+
+## Twitter 2010 IA correction result
+
+- The signed-in shell now exposes the period five-tab order: Timeline, Mentions, Messages, Search, More. Only Timeline is populated; the other destinations are intentionally empty HOLD shells.
+- Timeline top navigation now contains account and compose controls. Their text chrome is structural/HOLD and does not claim original button artwork.
+- Tweet rows retain the avatar/content-column hierarchy. In the absence of approved portrait assets, neutral initial-based DEV identity fixtures make the column functional without fabricating people or celebrity images.
+- A rightward horizontal pointer gesture reveals the Twitter-local Reply / Retweet / Favorite action row. The existing detail route remains available as a secondary path.
+- Reply now routes through a shared `New Tweet` composer shell with target-handle prefill, a 140-character limit, remaining count, and period tool categories. General New Tweet sending and unsupported tools remain disabled/HOLD.
+- Manual `RT @…` seed records remain ordinary authored tweets. Native Retweets retain source ID/author/text/timestamp plus a separate current-user attribution relation.
+- Active tab, selected tweet, revealed action item, composer draft, Favorite, Retweet, replies, and Timeline scroll are root-owned Twitter state and survive retained runtime state. Reset restores Timeline and removes all user/live mutations.
+- Scheduler/timeline definitions, System Foundation, other apps, historical assets, and Camera Runtime were not modified.
 
 ## Facebook v0.2 result
 

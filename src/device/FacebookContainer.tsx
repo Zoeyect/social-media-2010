@@ -9,6 +9,7 @@ type FacebookContainerProps = {
 export function FacebookContainer({ state, dispatch }: FacebookContainerProps) {
   const feedRef = useRef<HTMLDivElement>(null);
   const selectedItem = state.feed.find(item => item.id === state.selectedFeedItemId) ?? null;
+  const selectedMessage = state.inboxThreads.find(message => message.id === state.selectedMessageId) ?? null;
 
   useLayoutEffect(() => {
     if (state.currentView !== "feed" || !feedRef.current) return;
@@ -63,16 +64,16 @@ export function FacebookContainer({ state, dispatch }: FacebookContainerProps) {
     </div>}
 
     {state.currentView === "messages" && <div className="facebook-message-list">
-      {state.juneMessageState !== "none" && <button type="button" onClick={() => dispatch({ type: "OPEN_JUNE_MESSAGE" })}>
-        <strong>June</strong>
-        <span>Hey, are you online?</span>
-        {state.juneMessageState === "unread" && <i aria-label="Unread" />}
-      </button>}
+      {state.inboxThreads.map(message => <button key={message.id} type="button" onClick={() => dispatch({ type: "OPEN_MESSAGE", messageId: message.id })}>
+        <strong>{message.sender}</strong>
+        <span>{message.preview}</span>
+        {message.status === "unread" && <i aria-label="Unread" />}
+      </button>)}
     </div>}
 
-    {state.currentView === "messageDetail" && <article className="facebook-message-detail">
-      <strong>June</strong>
-      <p>Hey, are you online?</p>
+    {state.currentView === "messageDetail" && selectedMessage && <article className="facebook-message-detail">
+      <strong>{selectedMessage.sender}</strong>
+      <p>{selectedMessage.preview}</p>
       <span data-reply-status="HOLD">Reply unavailable in v0.1</span>
     </article>}
   </section>;
@@ -95,6 +96,6 @@ function viewTitle(view: FacebookState["currentView"]): string {
     case "feedDetail": return "Post";
     case "friendRequests": return "Friend Requests";
     case "messages": return "Messages";
-    case "messageDetail": return "June";
+    case "messageDetail": return "Message";
   }
 }

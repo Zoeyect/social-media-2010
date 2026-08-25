@@ -1,3 +1,6 @@
+import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+import type { ContentOrigin } from "../data/sessionSeedContent";
+
 export type FlickrView = "photostream" | "photo";
 
 export type FlickrPhoto = {
@@ -6,6 +9,7 @@ export type FlickrPhoto = {
   timestamp: string;
   owner: string;
   comments?: string[];
+  origin: ContentOrigin;
 };
 
 export type FlickrState = {
@@ -25,21 +29,22 @@ export type FlickrEvent =
   | { type: "SET_SCROLL_POSITION"; photostreamScrollPosition: number }
   | { type: "RESET" };
 
-const initialPhotos: FlickrPhoto[] = [
-  { id: "sunset-brooklyn", title: "Evening Streetlight", owner: "flickr.demo", timestamp: "2010-10-20 12:01 AM", comments: ["Nice shot"] },
-  { id: "coffee-table", title: "Cup and Notepad", owner: "flickr.demo", timestamp: "2010-10-20 12:04 AM" },
-  { id: "platform", title: "Platform", owner: "flickr.demo", timestamp: "2010-10-20 12:09 AM" },
-];
+export function createInitialFlickrState(): FlickrState {
+  return {
+    currentView: "photostream",
+    selectedPhotoId: null,
+    photostreamScrollPosition: 0,
+    favoritePhotoIds: [],
+    currentSetId: null,
+    commentsState: [],
+    photos: SESSION_SEED_CONTENT.flickr.map(photo => ({
+      ...photo,
+      comments: "comments" in photo ? [...photo.comments] : undefined,
+    })),
+  };
+}
 
-export const initialFlickrState: FlickrState = {
-  currentView: "photostream",
-  selectedPhotoId: null,
-  photostreamScrollPosition: 0,
-  favoritePhotoIds: [],
-  currentSetId: null,
-  commentsState: [],
-  photos: initialPhotos,
-};
+export const initialFlickrState: FlickrState = createInitialFlickrState();
 
 export function flickrStateTransition(state: FlickrState, event: FlickrEvent): FlickrState {
   switch (event.type) {
@@ -74,9 +79,7 @@ export function flickrStateTransition(state: FlickrState, event: FlickrEvent): F
         photostreamScrollPosition: Math.max(0, event.photostreamScrollPosition),
       };
     case "RESET":
-      return {
-        ...initialFlickrState,
-      };
+      return createInitialFlickrState();
     default:
       return state;
   }

@@ -1,3 +1,6 @@
+import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+import type { ContentOrigin } from "../data/sessionSeedContent";
+
 export type FoursquareView = "places" | "venue";
 export type FoursquareCheckInState = "notCheckedIn" | "checkedIn";
 export type FoursquareMayorState = "otherUser";
@@ -9,9 +12,12 @@ export type FoursquareVenue = {
   address: string;
   distance: string;
   mayor: string;
-  tip: { id: string; author: string; text: string } | null;
+  tip: { id: string; author: string; text: string; origin: ContentOrigin } | null;
   contentStatus: "HOLD-fictional";
+  origin: ContentOrigin;
 };
+
+export type FoursquareSocialActivity = { id: string; message: string; timestamp: string; origin: ContentOrigin };
 
 export type FoursquareState = {
   currentView: FoursquareView;
@@ -23,7 +29,7 @@ export type FoursquareState = {
   earnedBadges: string[];
   selectedTipId: string | null;
   venues: FoursquareVenue[];
-  socialActivity: { id: string; message: string } | null;
+  socialActivities: FoursquareSocialActivity[];
   unreadActivityCount: number;
 };
 
@@ -35,26 +41,23 @@ export type FoursquareEvent =
   | { type: "DELIVER_SOCIAL_ACTIVITY"; activity: { id: string; message: string } }
   | { type: "RESET" };
 
-const venues: FoursquareVenue[] = [
-  { id: "night-owl", name: "Night Owl Cafe", category: "Coffee Shop", address: "214 4th Street", distance: "0.2 mi", mayor: "June", tip: { id: "night-owl-tip", author: "June", text: "The coffee is strongest after ten." }, contentStatus: "HOLD-fictional" },
-  { id: "corner-diner", name: "The Corner Diner", category: "Diner", address: "38 Market Street", distance: "0.3 mi", mayor: "Jack", tip: null, contentStatus: "HOLD-fictional" },
-  { id: "cedar-books", name: "Cedar Books", category: "Bookstore", address: "91 Cedar Avenue", distance: "0.5 mi", mayor: "Mia", tip: null, contentStatus: "HOLD-fictional" },
-  { id: "riverside-park", name: "Riverside Park", category: "Park", address: "Riverside Drive", distance: "0.7 mi", mayor: "Eli", tip: null, contentStatus: "HOLD-fictional" },
-];
+export function createInitialFoursquareState(): FoursquareState {
+  return {
+    currentView: "places",
+    selectedVenueId: null,
+    scrollPosition: 0,
+    checkInState: {},
+    points: 0,
+    mayorState: "otherUser",
+    earnedBadges: [],
+    selectedTipId: null,
+    venues: SESSION_SEED_CONTENT.foursquare.venues.map(venue => ({ ...venue, tip: venue.tip ? { ...venue.tip } : null, contentStatus: "HOLD-fictional" })),
+    socialActivities: SESSION_SEED_CONTENT.foursquare.activities.map(activity => ({ ...activity })),
+    unreadActivityCount: 0,
+  };
+}
 
-export const initialFoursquareState: FoursquareState = {
-  currentView: "places",
-  selectedVenueId: null,
-  scrollPosition: 0,
-  checkInState: {},
-  points: 0,
-  mayorState: "otherUser",
-  earnedBadges: [],
-  selectedTipId: null,
-  venues,
-  socialActivity: null,
-  unreadActivityCount: 0,
-};
+export const initialFoursquareState: FoursquareState = createInitialFoursquareState();
 
 export function foursquareStateTransition(state: FoursquareState, event: FoursquareEvent): FoursquareState {
   switch (event.type) {
@@ -73,10 +76,14 @@ export function foursquareStateTransition(state: FoursquareState, event: Foursqu
         points: state.points + 1,
       };
     case "DELIVER_SOCIAL_ACTIVITY":
-      return state.socialActivity?.id === event.activity.id
+      return state.socialActivities.some(activity => activity.id === event.activity.id)
         ? state
-        : { ...state, socialActivity: event.activity, unreadActivityCount: state.unreadActivityCount + 1 };
+        : {
+            ...state,
+            socialActivities: [...state.socialActivities, { ...event.activity, timestamp: "12:10 AM", origin: "live" }],
+            unreadActivityCount: state.unreadActivityCount + 1,
+          };
     case "RESET":
-      return initialFoursquareState;
+      return createInitialFoursquareState();
   }
 }

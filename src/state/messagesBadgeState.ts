@@ -1,9 +1,17 @@
+import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+
 export type MessagesBadgeState = readonly string[];
 
 export type MessagesBadgeEvent =
   | { type: "ADD_UNREAD"; messageId: string }
   | { type: "MARK_READ"; messageId: string }
   | { type: "RESET" };
+
+export function createInitialMessagesBadgeState(): MessagesBadgeState {
+  return SESSION_SEED_CONTENT.messages
+    .filter(message => message.status === "unread")
+    .map(message => message.id);
+}
 
 export function messagesBadgeStateTransition(
   state: MessagesBadgeState,
@@ -15,6 +23,6 @@ export function messagesBadgeStateTransition(
     case "MARK_READ":
       return state.filter(messageId => messageId !== event.messageId);
     case "RESET":
-      return [];
+      return createInitialMessagesBadgeState();
   }
 }

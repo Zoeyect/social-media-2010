@@ -6,6 +6,7 @@ import { SMSNotificationEvent, SMSNotificationSource } from "../state/smsNotific
 
 export type IncomingSMS = {
   id: string;
+  conversationId?: string;
   sender: string;
   message: string;
   timestamp?: string | null;
@@ -15,7 +16,7 @@ export function createSMSLockNotification(sms: IncomingSMS): ActiveLockNotificat
   return {
     id: sms.id,
     sourceApp: "messages",
-    target: { type: "messagesConversation", conversationId: "mom" },
+    target: { type: "messagesConversation", conversationId: sms.conversationId ?? sms.sender.toLocaleLowerCase("en-US") },
     timestamp: sms.timestamp ?? null,
     payload: {
       title: "Text Message",
@@ -40,7 +41,7 @@ export function smsMessageReceived(
   targets.notificationDispatch({ type: "RECEIVE", notification: { ...sms, source } });
   DeviceAudio.notificationReceived("message");
   targets.badgeDispatch({ type: "ADD_UNREAD", messageId: sms.id });
-  targets.messagesDispatch({ type: "RECEIVE_MESSAGE", id: sms.id, sender: sms.sender, message: sms.message, timestamp: sms.timestamp });
+  targets.messagesDispatch({ type: "RECEIVE_MESSAGE", id: sms.id, conversationId: sms.conversationId, sender: sms.sender, message: sms.message, timestamp: sms.timestamp });
   if (source === "lockscreen") {
     targets.lockNotificationDispatch?.({
       type: "PRESENT",

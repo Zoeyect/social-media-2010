@@ -1,3 +1,6 @@
+import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+import type { ContentOrigin } from "../data/sessionSeedContent";
+
 export type FacebookView = "feed" | "feedDetail" | "friendRequests" | "messages" | "messageDetail";
 export type FacebookFriendRequestState = "none" | "pending" | "accepted" | "ignored";
 export type FacebookMessageState = "none" | "unread" | "read";
@@ -9,6 +12,16 @@ export type FacebookFeedItem = {
   timestamp: string;
   kind: "status" | "photoActivity" | "socialActivity";
   contentStatus: "HOLD-fictional";
+  origin: ContentOrigin;
+};
+
+export type FacebookMessageThread = {
+  id: string;
+  sender: string;
+  preview: string;
+  timestamp: string;
+  status: "unread" | "read";
+  origin: ContentOrigin;
 };
 
 export type FacebookState = {
@@ -19,6 +32,8 @@ export type FacebookState = {
   likedItemIds: string[];
   friendRequestState: FacebookFriendRequestState;
   juneMessageState: FacebookMessageState;
+  inboxThreads: FacebookMessageThread[];
+  selectedMessageId: string | null;
 };
 
 export type FacebookEvent =
@@ -30,63 +45,27 @@ export type FacebookEvent =
   | { type: "ACCEPT_JACK" }
   | { type: "IGNORE_JACK" }
   | { type: "SHOW_MESSAGES" }
+  | { type: "OPEN_MESSAGE"; messageId: string }
   | { type: "OPEN_JUNE_MESSAGE" }
   | { type: "DELIVER_JACK_REQUEST" }
   | { type: "DELIVER_JUNE_MESSAGE" }
   | { type: "RESET"; displayName?: string };
 
-const periodFeed = (sessionDisplayName: string): FacebookFeedItem[] => [
-  {
-    id: "owner-home",
-    author: sessionDisplayName,
-    text: "finally home.",
-    timestamp: "12:10 AM",
-    kind: "status",
-    contentStatus: "HOLD-fictional",
-  },
-  {
-    id: "june-photo",
-    author: "June",
-    text: "added a new photo.",
-    timestamp: "12:04 AM",
-    kind: "photoActivity",
-    contentStatus: "HOLD-fictional",
-  },
-  {
-    id: "jack-movie",
-    author: "Jack",
-    text: "That movie was better than I expected.",
-    timestamp: "11:52 PM",
-    kind: "status",
-    contentStatus: "HOLD-fictional",
-  },
-  {
-    id: "mia-coffee",
-    author: "Mia",
-    text: "likes a coffee shop downtown.",
-    timestamp: "11:41 PM",
-    kind: "socialActivity",
-    contentStatus: "HOLD-fictional",
-  },
-  {
-    id: "eli-reading",
-    author: "Eli",
-    text: "One more chapter before bed.",
-    timestamp: "11:33 PM",
-    kind: "status",
-    contentStatus: "HOLD-fictional",
-  },
-];
-
 export function createInitialFacebookState(displayName: string): FacebookState {
   return {
     currentView: "feed",
-    feed: periodFeed(displayName),
+    feed: SESSION_SEED_CONTENT.facebook.feed.map(item => ({
+      ...item,
+      author: item.author === "session-owner" ? displayName : item.author,
+      contentStatus: "HOLD-fictional",
+    })),
     selectedFeedItemId: null,
     scrollPosition: 0,
     likedItemIds: [],
     friendRequestState: "none",
     juneMessageState: "none",
+    inboxThreads: SESSION_SEED_CONTENT.facebook.inbox.map(message => ({ ...message })),
+    selectedMessageId: null,
   };
 }
 
@@ -117,13 +96,29 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       return state.friendRequestState === "pending" ? { ...state, friendRequestState: "ignored" } : state;
     case "SHOW_MESSAGES":
       return { ...state, currentView: "messages", selectedFeedItemId: null };
+    case "OPEN_MESSAGE": {
+      const message = state.inboxThreads.find(thread => thread.id === event.messageId);
+      if (!message) return state;
+      return {
+        ...state,
+        currentView: "messageDetail",
+        selectedMessageId: message.id,
+        inboxThreads: state.inboxThreads.map(thread => thread.id === message.id ? { ...thread, status: "read" } : thread),
+        juneMessageState: message.id === "june-live-message" ? "read" : state.juneMessageState,
+        selectedFeedItemId: null,
+      };
+    }
     case "OPEN_JUNE_MESSAGE":
       if (state.juneMessageState === "none") return state;
-      return { ...state, currentView: "messageDetail", juneMessageState: "read", selectedFeedItemId: null };
+      return facebookStateTransition(state, { type: "OPEN_MESSAGE", messageId: "june-live-message" });
     case "DELIVER_JACK_REQUEST":
       return state.friendRequestState === "none" ? { ...state, friendRequestState: "pending" } : state;
     case "DELIVER_JUNE_MESSAGE":
-      return state.juneMessageState === "none" ? { ...state, juneMessageState: "unread" } : state;
+      return state.juneMessageState === "none" ? {
+        ...state,
+        juneMessageState: "unread",
+        inboxThreads: [{ id: "june-live-message", sender: "June", preview: "Hey, are you online?", timestamp: "12:06 AM", status: "unread", origin: "live" }, ...state.inboxThreads],
+      } : state;
     case "RESET":
       return createInitialFacebookState(event.displayName ?? "");
   }

@@ -1,0 +1,105 @@
+export type ContentOrigin = "seed" | "live";
+
+export const SESSION_SEED_CONTENT = Object.freeze({
+  messages: Object.freeze([
+    Object.freeze({
+      id: "dad-dinner-tonight",
+      conversationId: "dad",
+      sender: "Dad",
+      text: "Are you coming over for dinner tonight?",
+      direction: "incoming" as const,
+      timestamp: "5:48 PM",
+      status: "unread" as const,
+      origin: "seed" as const,
+    }),
+  ]),
+  facebook: Object.freeze({
+    feed: Object.freeze([
+      Object.freeze({ id: "owner-late", author: "session-owner", text: "Long day.", timestamp: "11:58 PM", kind: "status" as const, origin: "seed" as const }),
+      Object.freeze({ id: "jack-movie", author: "Jack", text: "That movie was better than I expected.", timestamp: "11:52 PM", kind: "status" as const, origin: "seed" as const }),
+      Object.freeze({ id: "mia-coffee", author: "Mia", text: "likes a coffee shop downtown.", timestamp: "11:41 PM", kind: "socialActivity" as const, origin: "seed" as const }),
+      Object.freeze({ id: "eli-reading", author: "Eli", text: "One more chapter before bed.", timestamp: "11:33 PM", kind: "status" as const, origin: "seed" as const }),
+    ]),
+    inbox: Object.freeze([
+      Object.freeze({ id: "eli-tomorrow", sender: "Eli", preview: "see you tomorrow", timestamp: "10:14 PM", status: "read" as const, origin: "seed" as const }),
+      Object.freeze({ id: "mia-photo", sender: "Mia", preview: "send me the photo", timestamp: "9:16 PM", status: "read" as const, origin: "seed" as const }),
+    ]),
+  }),
+  twitter: Object.freeze([
+    Object.freeze({ id: "still-awake", displayName: "June", text: "anyone still awake?", timestamp: "11:58 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+    Object.freeze({
+      id: "manual-rt-kanye-album-cover",
+      displayName: "Nora",
+      text: "RT @kanyewest In response to the reaction of my album cover... \"I'm deeply sorry if I haven't offended everybody\"",
+      timestamp: "11:53 PM",
+      timestampProvenance: "CURATED" as const,
+      contentType: "manual-retweet" as const,
+      sourceTweetProvenance: "HOLD" as const,
+      retweetWrapperProvenance: "CURATED" as const,
+      sourceTweet: Object.freeze({
+        displayName: "Kanye West",
+        handle: "@kanyewest",
+        text: "In response to the reaction of my album cover... \"I'm deeply sorry if I haven't offended everybody\"",
+        sourceDate: "2010-10-19",
+        sourceTimestamp: "2010-10-19T16:05:11Z",
+        pacificTime: "9:05:11 AM PDT",
+        sourceUrl: "https://yzy-twts.com/2010",
+        note: "Later archive metadata; no original status capture recovered.",
+      }),
+      origin: "seed" as const,
+    }),
+    Object.freeze({ id: "late-night-user", displayName: "session-owner", text: "can't sleep", timestamp: "11:41 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+    Object.freeze({ id: "kanye-discussion", displayName: "Mia", text: "why is everyone talking about Kanye tonight", timestamp: "11:26 PM", timestampProvenance: "CURATED" as const, contentType: "celebrity-discussion" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+    Object.freeze({
+      id: "manual-rt-conan-fan-question",
+      displayName: "Eli",
+      text: "RT @ConanOBrien This week I answer another fan's question and punish my head writer in the process: http://bit.ly/cGrEgh",
+      timestamp: "11:03 PM",
+      timestampProvenance: "CURATED" as const,
+      contentType: "manual-retweet" as const,
+      sourceTweetProvenance: "HOLD" as const,
+      retweetWrapperProvenance: "CURATED" as const,
+      sourceTweet: Object.freeze({
+        displayName: "Conan O'Brien",
+        handle: "@ConanOBrien",
+        text: "This week I answer another fan's question and punish my head writer in the process: http://bit.ly/cGrEgh",
+        sourceDate: "2010-10-19",
+        sourceTimestamp: null,
+        pacificTime: null,
+        sourceUrl: "https://wicoco.fandom.com/wiki/Conan_O%27Brien%27s_Twitter_account/Archive",
+        note: "Later date-only archive; exact time, client, and original permalink remain unresolved.",
+      }),
+      origin: "seed" as const,
+    }),
+    Object.freeze({ id: "apple-event", displayName: "Sam", text: "Apple event tomorrow morning. Might follow the liveblogs.", timestamp: "10:47 PM", timestampProvenance: "CURATED" as const, contentType: "apple-reference" as const, contentProvenance: "CURATED/HOLD" as const, origin: "seed" as const }),
+    Object.freeze({ id: "class-tomorrow", displayName: "Jack", text: "class tomorrow and I'm still watching TV", timestamp: "10:05 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+    Object.freeze({ id: "rain-stopped", displayName: "June", text: "The rain finally stopped.", timestamp: "9:12 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+    Object.freeze({ id: "need-food", displayName: "Nora", text: "Need something to eat.", timestamp: "8:30 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+  ]),
+  foursquare: Object.freeze({
+    venues: Object.freeze([
+      Object.freeze({ id: "night-owl", name: "Night Owl Cafe", category: "Coffee Shop", address: "214 4th Street", distance: "0.2 mi", mayor: "June", tip: Object.freeze({ id: "night-owl-tip", author: "June", text: "The coffee is strongest after ten.", origin: "seed" as const }), origin: "seed" as const }),
+      Object.freeze({ id: "corner-diner", name: "The Corner Diner", category: "Diner", address: "38 Market Street", distance: "0.3 mi", mayor: "Jack", tip: null, origin: "seed" as const }),
+      Object.freeze({ id: "cedar-books", name: "Cedar Books", category: "Bookstore", address: "91 Cedar Avenue", distance: "0.5 mi", mayor: "Mia", tip: null, origin: "seed" as const }),
+      Object.freeze({ id: "riverside-park", name: "Riverside Park", category: "Park", address: "Riverside Drive", distance: "0.7 mi", mayor: "Eli", tip: null, origin: "seed" as const }),
+    ]),
+    activities: Object.freeze([
+      Object.freeze({ id: "mia-cedar-books", message: "Mia checked in at Cedar Books.", timestamp: "8:42 PM", origin: "seed" as const }),
+    ]),
+  }),
+  flickr: Object.freeze([
+    Object.freeze({ id: "sunset-brooklyn", title: "Evening Streetlight", owner: "flickr.demo", timestamp: "2010-10-19 11:54 PM", comments: Object.freeze(["Nice shot"]), origin: "seed" as const }),
+    Object.freeze({ id: "coffee-table", title: "Cup and Notepad", owner: "flickr.demo", timestamp: "2010-10-19 11:27 PM", origin: "seed" as const }),
+    Object.freeze({ id: "platform", title: "Platform", owner: "flickr.demo", timestamp: "2010-10-19 10:49 PM", origin: "seed" as const }),
+  ]),
+  tumblr: Object.freeze([
+    Object.freeze({ id: "sunset-note", type: "text" as const, blog: "dayonejournal", title: "Evening walk", content: "The lights on the avenue feel older than we used to remember.", timestamp: "2010-10-19 11:51 PM", origin: "seed" as const }),
+    Object.freeze({ id: "corner-photo", type: "photo" as const, blog: "streetlog", title: "Corner shot", content: "Photo post (placeholder, no fixture image in v0.1).", timestamp: "2010-10-19 11:36 PM", origin: "seed" as const }),
+    Object.freeze({ id: "quote-post", type: "quote" as const, blog: "tinyquotes", title: "Quote", content: "“The long night begins with one silent decision.”", timestamp: "2010-10-19 11:18 PM", origin: "seed" as const }),
+  ]),
+  instagram: Object.freeze({
+    photos: Object.freeze([]),
+    followers: 0,
+    following: 0,
+  }),
+});

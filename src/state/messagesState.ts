@@ -1,3 +1,6 @@
+import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+import type { ContentOrigin } from "../data/sessionSeedContent";
+
 export type MessagesView = "list" | "conversation";
 export type MessageDirection = "incoming" | "outgoing";
 export type MessageStatus = "unread" | "read" | "sent";
@@ -7,15 +10,18 @@ export type MomReplyClassification = "affirmative" | "negative" | "ambiguous";
 
 export type MobileSMSMessage = {
   id: string;
+  conversationId: string;
   sender: string;
   text: string;
   direction: MessageDirection;
   timestamp: string | null;
   status: MessageStatus;
+  origin: ContentOrigin;
 };
 
 export type MessagesState = {
   view: MessagesView;
+  activeConversationId: string | null;
   messages: readonly MobileSMSMessage[];
   draft: string;
   momReplyEligibility: MomReplyEligibility;
@@ -23,8 +29,8 @@ export type MessagesState = {
 };
 
 export type MessagesEvent =
-  | { type: "OPEN_CONVERSATION" }
-  | { type: "RECEIVE_MESSAGE"; id: string; sender: string; message: string; timestamp?: string | null }
+  | { type: "OPEN_CONVERSATION"; conversationId?: string }
+  | { type: "RECEIVE_MESSAGE"; id: string; conversationId?: string; sender: string; message: string; timestamp?: string | null }
   | { type: "BACK_TO_LIST" }
   | { type: "EDIT_DRAFT"; value: string }
   | { type: "SEND" }
@@ -32,13 +38,18 @@ export type MessagesEvent =
   | { type: "MARK_MOM_REPLY_DELIVERED" }
   | { type: "RESET_RUNTIME" };
 
-export const initialMessagesState: MessagesState = {
-  view: "list",
-  messages: [],
-  draft: "",
-  momReplyEligibility: "none",
-  momReply: "none",
-};
+export function createInitialMessagesState(): MessagesState {
+  return {
+    view: "list",
+    activeConversationId: null,
+    messages: SESSION_SEED_CONTENT.messages.map(message => ({ ...message })),
+    draft: "",
+    momReplyEligibility: "none",
+    momReply: "none",
+  };
+}
+
+export const initialMessagesState: MessagesState = createInitialMessagesState();
 
 const NEGATIVE_MOM_REPLIES = new Set([
   "no",
@@ -84,16 +95,20 @@ export function classifyMomReply(text: string): MomReplyClassification {
 }
 
 export function shouldScheduleMomReply(state: MessagesState, text: string): boolean {
-  return state.momReply === "none" && classifyMomReply(text) === "affirmative";
+  return state.activeConversationId === "mom"
+    && state.momReply === "none"
+    && classifyMomReply(text) === "affirmative";
 }
 
 export function messagesStateTransition(state: MessagesState, event: MessagesEvent): MessagesState {
   switch (event.type) {
     case "OPEN_CONVERSATION":
+      const conversationId = event.conversationId ?? "mom";
       return {
         ...state,
         view: "conversation",
-        messages: state.messages.map(message => message.direction === "incoming" && message.status === "unread"
+        activeConversationId: conversationId,
+        messages: state.messages.map(message => message.conversationId === conversationId && message.direction === "incoming" && message.status === "unread"
           ? { ...message, status: "read" }
           : message),
       };
@@ -104,15 +119,17 @@ export function messagesStateTransition(state: MessagesState, event: MessagesEve
             ...state,
             messages: [...state.messages, {
               id: event.id,
+              conversationId: event.conversationId ?? event.sender.toLocaleLowerCase("en-US"),
               sender: event.sender,
               text: event.message,
               direction: "incoming",
               timestamp: event.timestamp ?? null,
               status: "unread",
+              origin: "live",
             }],
           };
     case "BACK_TO_LIST":
-      return { ...state, view: "list" };
+      return { ...state, view: "list", activeConversationId: null };
     case "EDIT_DRAFT":
       return { ...state, draft: event.value };
     case "SEND": {
@@ -127,11 +144,13 @@ export function messagesStateTransition(state: MessagesState, event: MessagesEve
             momReply: schedulesMomReply ? "pending" : state.momReply,
             messages: [...state.messages, {
               id: `user-message-${outgoingSequence}`,
+              conversationId: state.activeConversationId ?? "mom",
               sender: "Me",
               text,
               direction: "outgoing",
               timestamp: null,
               status: "sent",
+              origin: "live",
             }],
           }
         : state;
@@ -143,23 +162,19 @@ export function messagesStateTransition(state: MessagesState, event: MessagesEve
             momReply: "delivered",
             messages: [...state.messages, {
               id: "mom-sleep-early",
+              conversationId: "mom",
               sender: "Mom",
               text: "Good. Sleep early.",
               direction: "incoming",
               timestamp: null,
               status: "read",
+              origin: "live",
             }],
           }
         : state;
     case "MARK_MOM_REPLY_DELIVERED":
       return state.momReply === "pending" ? { ...state, momReply: "delivered" } : state;
     case "RESET_RUNTIME":
-      return {
-        view: "list",
-        messages: [],
-        draft: "",
-        momReplyEligibility: "none",
-        momReply: "none",
-      };
+      return createInitialMessagesState();
   }
 }

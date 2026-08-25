@@ -1,6 +1,6 @@
 import { Dispatch, useEffect, useRef, useState } from "react";
 import { DeviceAudio } from "../audio/deviceAudio";
-import { MessagesEvent, MessagesState, shouldScheduleMomReply } from "../state/messagesState";
+import { MessagesEvent, MessagesState, MobileSMSMessage, shouldScheduleMomReply } from "../state/messagesState";
 
 type KeyboardState = "idle" | "input-focused" | "keyboard-visible";
 
@@ -19,10 +19,11 @@ export function MobileSMSContainer({ state, dispatch, onScheduleMomReply, onOpen
   const pickerOpeningRequested = useRef(false);
   const keyboardStateBeforePicker = useRef<KeyboardState>("idle");
   const conversationOpen = state.view === "conversation";
-  const contactName = state.messages.find(message => message.direction === "incoming")?.sender ?? "Messages";
-  const latestMessage = state.messages[state.messages.length - 1];
-  const latestMessageTime = latestMessage?.timestamp
-    ?? (latestMessage?.id === "mom-home-yet" ? "12:03 AM" : null);
+  const conversationSummaries = createConversationSummaries(state.messages);
+  const activeMessages = state.activeConversationId
+    ? state.messages.filter(message => message.conversationId === state.activeConversationId)
+    : [];
+  const contactName = activeMessages.find(message => message.direction === "incoming")?.sender ?? "Messages";
   const canSend = Boolean(state.draft.trim());
 
   useEffect(() => {
@@ -39,7 +40,7 @@ export function MobileSMSContainer({ state, dispatch, onScheduleMomReply, onOpen
 
   return <section className="mobilesms-container" aria-label="Messages">
     <header className="mobilesms-navigation-bar">
-      {!conversationOpen && latestMessage && <span
+      {!conversationOpen && conversationSummaries.length > 0 && <span
         className="mobilesms-list-edit-control"
         data-control-evidence="PERIOD-EVIDENCE"
       >Edit</span>}
@@ -57,7 +58,7 @@ export function MobileSMSContainer({ state, dispatch, onScheduleMomReply, onOpen
     {conversationOpen
       ? <>
         <div className="mobilesms-conversation-scroll" role="log" aria-label={`Conversation with ${contactName}`}>
-          {state.messages.map(message => <div
+          {activeMessages.map(message => <div
             key={message.id}
             className={`mobilesms-message-row is-${message.direction}`}
           >
@@ -113,17 +114,28 @@ export function MobileSMSContainer({ state, dispatch, onScheduleMomReply, onOpen
         </div>
       </>
       : <div className="mobilesms-conversation-list">
-        {latestMessage && <button
+        {conversationSummaries.map(summary => <button
+          key={summary.conversationId}
           type="button"
           className="mobilesms-conversation-row"
-          onClick={() => dispatch({ type: "OPEN_CONVERSATION" })}
+          onClick={() => dispatch({ type: "OPEN_CONVERSATION", conversationId: summary.conversationId })}
         >
           <span className="mobilesms-conversation-copy">
-            <strong>{contactName}</strong>
-            <span>{latestMessage.text}</span>
+            <strong>{summary.contactName}</strong>
+            <span>{summary.latestMessage.text}</span>
           </span>
-          {latestMessageTime && <time>{latestMessageTime}</time>}
-        </button>}
+          {summary.latestMessage.timestamp && <time>{summary.latestMessage.timestamp}</time>}
+        </button>)}
       </div>}
   </section>;
+}
+
+function createConversationSummaries(messages: readonly MobileSMSMessage[]) {
+  const conversationIds = [...new Set(messages.map(message => message.conversationId))];
+  return conversationIds.map(conversationId => {
+    const conversationMessages = messages.filter(message => message.conversationId === conversationId);
+    const latestMessage = conversationMessages[conversationMessages.length - 1];
+    const contactName = conversationMessages.find(message => message.direction === "incoming")?.sender ?? conversationId;
+    return { conversationId, contactName, latestMessage, lastIndex: messages.lastIndexOf(latestMessage) };
+  }).sort((a, b) => b.lastIndex - a.lastIndex);
 }

@@ -1,3 +1,6 @@
+import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+import type { ContentOrigin } from "../data/sessionSeedContent";
+
 export type TumblrView = "dashboard" | "post";
 
 export type TumblrPostType = "text" | "photo" | "quote";
@@ -9,6 +12,7 @@ export type TumblrPost = {
   title: string;
   content: string;
   timestamp: string;
+  origin: ContentOrigin;
 };
 
 export type TumblrState = {
@@ -26,44 +30,21 @@ export type TumblrEvent =
   | { type: "TOGGLE_LIKE"; postId: string }
   | { type: "TOGGLE_REBLOG"; postId: string }
   | { type: "SET_DASHBOARD_SCROLL_POSITION"; dashboardScrollPosition: number }
-  | { type: "DELIVER_BACKGROUND_POST"; post: TumblrPost }
+  | { type: "DELIVER_BACKGROUND_POST"; post: Omit<TumblrPost, "origin"> }
   | { type: "RESET" };
 
-const initialPosts: TumblrPost[] = [
-  {
-    id: "sunset-note",
-    type: "text",
-    blog: "dayonejournal",
-    title: "Evening walk",
-    content: "The lights on the avenue feel older than we used to remember.",
-    timestamp: "2010-10-20 12:06 AM",
-  },
-  {
-    id: "corner-photo",
-    type: "photo",
-    blog: "streetlog",
-    title: "Corner shot",
-    content: "Photo post (placeholder, no fixture image in v0.1).",
-    timestamp: "2010-10-20 12:08 AM",
-  },
-  {
-    id: "quote-post",
-    type: "quote",
-    blog: "tinyquotes",
-    title: "Quote",
-    content: "“The long night begins with one silent decision.”",
-    timestamp: "2010-10-20 12:10 AM",
-  },
-];
+export function createInitialTumblrState(): TumblrState {
+  return {
+    currentView: "dashboard",
+    selectedPostId: null,
+    dashboardScrollPosition: 0,
+    likedPostIds: [],
+    rebloggedPostIds: [],
+    posts: SESSION_SEED_CONTENT.tumblr.map(post => ({ ...post })),
+  };
+}
 
-export const initialTumblrState: TumblrState = {
-  currentView: "dashboard",
-  selectedPostId: null,
-  dashboardScrollPosition: 0,
-  likedPostIds: [],
-  rebloggedPostIds: [],
-  posts: initialPosts,
-};
+export const initialTumblrState: TumblrState = createInitialTumblrState();
 
 export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): TumblrState {
   switch (event.type) {
@@ -109,11 +90,9 @@ export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): T
     case "DELIVER_BACKGROUND_POST":
       return state.posts.some(post => post.id === event.post.id)
         ? state
-        : { ...state, posts: [...state.posts, event.post] };
+        : { ...state, posts: [...state.posts, { ...event.post, origin: "live" }] };
     case "RESET":
-      return {
-        ...initialTumblrState,
-      };
+      return createInitialTumblrState();
     default:
       return state;
   }

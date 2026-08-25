@@ -1,3 +1,5 @@
+import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+
 export type InstagramView = "feed" | "profile";
 
 export type InstagramPhoto = {
@@ -20,14 +22,18 @@ export type InstagramEvent =
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
   | { type: "RESET" };
 
-export const initialInstagramState: InstagramState = {
-  currentView: "feed",
-  photos: [],
-  followers: 0,
-  following: 0,
-  selectedPhotoId: null,
-  scrollPosition: 0,
-};
+export function createInitialInstagramState(): InstagramState {
+  return {
+    currentView: "feed",
+    photos: [...SESSION_SEED_CONTENT.instagram.photos],
+    followers: SESSION_SEED_CONTENT.instagram.followers,
+    following: SESSION_SEED_CONTENT.instagram.following,
+    selectedPhotoId: null,
+    scrollPosition: 0,
+  };
+}
+
+export const initialInstagramState: InstagramState = createInitialInstagramState();
 
 export function instagramStateTransition(state: InstagramState, event: InstagramEvent): InstagramState {
   switch (event.type) {
@@ -38,6 +44,6 @@ export function instagramStateTransition(state: InstagramState, event: Instagram
     case "SET_SCROLL_POSITION":
       return { ...state, scrollPosition: Math.max(0, event.scrollPosition) };
     case "RESET":
-      return initialInstagramState;
+      return createInitialInstagramState();
   }
 }

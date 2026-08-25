@@ -11,21 +11,21 @@ import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent, scheduleDev
 import { batteryPercent, BOOT_DURATION_MS, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
 import { createInitialFacebookState, facebookStateTransition } from "../state/facebookState";
-import { foursquareStateTransition, initialFoursquareState } from "../state/foursquareState";
-import { initialInstagramState, instagramStateTransition } from "../state/instagramState";
+import { createInitialFoursquareState, foursquareStateTransition } from "../state/foursquareState";
+import { createInitialInstagramState, instagramStateTransition } from "../state/instagramState";
 import { multitaskingBarStateTransition } from "../state/multitaskingBarState";
-import { initialMessagesState, messagesStateTransition } from "../state/messagesState";
+import { createInitialMessagesState, messagesStateTransition } from "../state/messagesState";
 import { createLockScreenModel } from "../state/lockScreenModel";
 import { initialLockNotificationState, lockNotificationStateTransition } from "../state/lockNotificationState";
 import type { ActiveLockNotification } from "../state/lockNotificationState";
-import { messagesBadgeStateTransition } from "../state/messagesBadgeState";
+import { createInitialMessagesBadgeState, messagesBadgeStateTransition } from "../state/messagesBadgeState";
 import { initialSMSNotificationState, smsNotificationStateTransition } from "../state/smsNotificationState";
 import { createSessionIdentity, SessionIdentityContext } from "../state/sessionIdentity";
 import { createStatusBarState } from "../state/statusBarModel";
 import { createInitialTwitterState, twitterStateTransition } from "../state/twitterState";
 import { createSMSLockNotification, smsMessageReceived } from "../system/smsNotification";
-import { flickrStateTransition, initialFlickrState } from "../state/flickrState";
-import { initialTumblrState, tumblrStateTransition } from "../state/tumblrState";
+import { createInitialFlickrState, flickrStateTransition } from "../state/flickrState";
+import { createInitialTumblrState, tumblrStateTransition } from "../state/tumblrState";
 import { LockScreen } from "./LockScreen";
 import { CameraContainer } from "./CameraContainer";
 import { FacebookContainer } from "./FacebookContainer";
@@ -72,8 +72,8 @@ export function App() {
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
   const [cameraRuntime, dispatchCameraRuntime] = useReducer(cameraRuntimeTransition, initialCameraRuntimeState);
   const [multitaskingBar, dispatchMultitaskingBar] = useReducer(multitaskingBarStateTransition, "closed");
-  const [messagesState, dispatchMessages] = useReducer(messagesStateTransition, initialMessagesState);
-  const [messagesUnreadIds, dispatchMessagesBadge] = useReducer(messagesBadgeStateTransition, []);
+  const [messagesState, dispatchMessages] = useReducer(messagesStateTransition, undefined, createInitialMessagesState);
+  const [messagesUnreadIds, dispatchMessagesBadge] = useReducer(messagesBadgeStateTransition, undefined, createInitialMessagesBadgeState);
   const [smsNotification, dispatchSMSNotification] = useReducer(smsNotificationStateTransition, initialSMSNotificationState);
   const [activeLockNotification, dispatchLockNotification] = useReducer(lockNotificationStateTransition, initialLockNotificationState);
   const [facebookState, dispatchFacebook] = useReducer(
@@ -81,10 +81,10 @@ export function App() {
     session.sessionIdentity.name,
     createInitialFacebookState,
   );
-  const [instagramState, dispatchInstagram] = useReducer(instagramStateTransition, initialInstagramState);
-  const [foursquareState, dispatchFoursquare] = useReducer(foursquareStateTransition, initialFoursquareState);
-  const [flickrState, dispatchFlickr] = useReducer(flickrStateTransition, initialFlickrState);
-  const [tumblrState, dispatchTumblr] = useReducer(tumblrStateTransition, initialTumblrState);
+  const [instagramState, dispatchInstagram] = useReducer(instagramStateTransition, undefined, createInitialInstagramState);
+  const [foursquareState, dispatchFoursquare] = useReducer(foursquareStateTransition, undefined, createInitialFoursquareState);
+  const [flickrState, dispatchFlickr] = useReducer(flickrStateTransition, undefined, createInitialFlickrState);
+  const [tumblrState, dispatchTumblr] = useReducer(tumblrStateTransition, undefined, createInitialTumblrState);
   const [twitterState, dispatchTwitter] = useReducer(
     twitterStateTransition,
     session.sessionIdentity.name,
@@ -142,7 +142,8 @@ export function App() {
     const source = session.phase === "sleeping" || session.phase === "locked" ? "lockscreen" : "foreground";
     const displayingMomConversation = session.phase === "app"
       && appRuntime.activeAppId === "messages"
-      && messagesState.view === "conversation";
+      && messagesState.view === "conversation"
+      && messagesState.activeConversationId === "mom";
     let wakesSleepingDevice = false;
 
     if (event.type === "initialSMS" && event.payload?.kind === "initial-sms") {
@@ -188,7 +189,7 @@ export function App() {
         : current.deliveredTimelineEventIds,
       ...(wakesSleepingDevice && current.phase === "sleeping" ? { phase: "locked" as const } : {}),
     }));
-  }, [appRuntime.activeAppId, elapsed, messagesState.momReply, messagesState.view, session.deliveredTimelineEventIds, session.deviceEvents, session.phase]);
+  }, [appRuntime.activeAppId, elapsed, messagesState.activeConversationId, messagesState.momReply, messagesState.view, session.deliveredTimelineEventIds, session.deviceEvents, session.phase]);
   useEffect(() => {
     if ((session.phase !== "sleeping" && session.phase !== "locked") || smsNotification.status !== "alert-visible") return;
     dispatchSMSNotification({ type: "SHOW_PREVIEW" });
@@ -202,19 +203,31 @@ export function App() {
     });
   }, [session.phase, smsNotification.status]);
   useEffect(() => {
+    const unreadMessageIds = messagesState.messages
+      .filter(message => message.direction === "incoming" && message.status === "unread")
+      .map(message => message.id);
+    messagesUnreadIds.forEach(messageId => {
+      if (!unreadMessageIds.includes(messageId)) dispatchMessagesBadge({ type: "MARK_READ", messageId });
+    });
+    unreadMessageIds.forEach(messageId => {
+      if (!messagesUnreadIds.includes(messageId)) dispatchMessagesBadge({ type: "ADD_UNREAD", messageId });
+    });
+  }, [messagesState.messages, messagesUnreadIds]);
+  useEffect(() => {
     const displayingConversation = session.phase === "app"
       && appRuntime.activeAppId === "messages"
       && messagesState.view === "conversation";
     if (!displayingConversation || !smsNotification.notification) return;
     const messageId = smsNotification.notification.id;
-    if (!messagesState.messages.some(message => message.id === messageId)) return;
+    const displayedMessage = messagesState.messages.find(message => message.id === messageId);
+    if (!displayedMessage || messagesState.activeConversationId !== displayedMessage.conversationId) return;
     if (messagesUnreadIds.includes(messageId)) {
       dispatchMessagesBadge({ type: "MARK_READ", messageId });
     }
     if (smsNotification.notification?.id === messageId && smsNotification.status !== "opened") {
       dispatchSMSNotification({ type: "OPEN" });
     }
-  }, [appRuntime.activeAppId, messagesState.messages, messagesState.view, messagesUnreadIds, session.phase, smsNotification.notification, smsNotification.status]);
+  }, [appRuntime.activeAppId, messagesState.activeConversationId, messagesState.messages, messagesState.view, messagesUnreadIds, session.phase, smsNotification.notification, smsNotification.status]);
   useEffect(() => {
     if (cameraRuntime.cameraApp.phase === "launching"
       && appRuntime.activeAppId === "camera"

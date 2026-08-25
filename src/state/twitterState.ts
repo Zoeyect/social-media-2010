@@ -1,3 +1,6 @@
+import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+import type { ContentOrigin } from "../data/sessionSeedContent";
+
 export type TwitterView = "timeline" | "tweetDetail";
 
 export type TwitterTweet = {
@@ -6,6 +9,7 @@ export type TwitterTweet = {
   text: string;
   timestamp: string;
   contentStatus: "HOLD-fictional";
+  origin: ContentOrigin;
 };
 
 export type TwitterState = {
@@ -21,58 +25,17 @@ export type TwitterEvent =
   | { type: "BACK_TO_TIMELINE" }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
   | { type: "TOGGLE_FAVORITE"; tweetId: string }
-  | { type: "DELIVER_TIMELINE_TWEET"; tweet: Omit<TwitterTweet, "contentStatus"> }
+  | { type: "DELIVER_TIMELINE_TWEET"; tweet: Omit<TwitterTweet, "contentStatus" | "origin"> }
   | { type: "RESET"; displayName?: string };
-
-const periodTimeline = (sessionDisplayName: string): TwitterTweet[] => [
-  {
-    id: "late-night-user",
-    displayName: sessionDisplayName,
-    text: "can't sleep",
-    timestamp: "12:11 AM",
-    contentStatus: "HOLD-fictional",
-  },
-  {
-    id: "late-coffee",
-    displayName: "Mia",
-    text: "Coffee was probably a bad idea this late.",
-    timestamp: "12:07 AM",
-    contentStatus: "HOLD-fictional",
-  },
-  {
-    id: "apple-event",
-    displayName: "Sam",
-    text: "Wonder what Apple has planned for later today.",
-    timestamp: "12:01 AM",
-    contentStatus: "HOLD-fictional",
-  },
-  {
-    id: "late-bus",
-    displayName: "Nora",
-    text: "The bus was late again.",
-    timestamp: "11:56 PM",
-    contentStatus: "HOLD-fictional",
-  },
-  {
-    id: "last-chapter",
-    displayName: "Eli",
-    text: "Finished the last chapter.",
-    timestamp: "11:48 PM",
-    contentStatus: "HOLD-fictional",
-  },
-  {
-    id: "rain-stopped",
-    displayName: "June",
-    text: "The rain finally stopped.",
-    timestamp: "11:39 PM",
-    contentStatus: "HOLD-fictional",
-  },
-];
 
 export function createInitialTwitterState(sessionDisplayName: string): TwitterState {
   return {
     currentView: "timeline",
-    timeline: periodTimeline(sessionDisplayName),
+    timeline: SESSION_SEED_CONTENT.twitter.map(tweet => ({
+      ...tweet,
+      displayName: tweet.displayName === "session-owner" ? sessionDisplayName : tweet.displayName,
+      contentStatus: "HOLD-fictional",
+    })),
     selectedTweetId: null,
     scrollPosition: 0,
     favoriteTweetIds: [],
@@ -101,10 +64,19 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
       if (state.timeline.some(tweet => tweet.id === event.tweet.id)) return state;
       return {
         ...state,
-        timeline: [...state.timeline, { ...event.tweet, contentStatus: "HOLD-fictional" as const }]
-          .sort((a, b) => Date.parse(`2010-10-20 ${b.timestamp}`) - Date.parse(`2010-10-20 ${a.timestamp}`)),
+        timeline: [...state.timeline, { ...event.tweet, contentStatus: "HOLD-fictional" as const, origin: "live" as const }]
+          .sort((a, b) => twitterTimestampOrder(b.timestamp) - twitterTimestampOrder(a.timestamp)),
       };
     case "RESET":
       return createInitialTwitterState(event.displayName ?? "");
   }
+}
+
+function twitterTimestampOrder(timestamp: string): number {
+  const match = /^(\d{1,2}):(\d{2}) (AM|PM)$/.exec(timestamp);
+  if (!match) return 0;
+  const hour = Number(match[1]) % 12 + (match[3] === "PM" ? 12 : 0);
+  const minute = Number(match[2]);
+  const dayOffset = match[3] === "PM" ? -24 * 60 : 0;
+  return dayOffset + hour * 60 + minute;
 }

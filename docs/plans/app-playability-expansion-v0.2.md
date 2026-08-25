@@ -14,7 +14,7 @@ Curated live events and user-generated session actions remain separate. All muta
 | Facebook | Jack friend outcome, June reply thread, one plain Feed comment interaction | Implemented and code-tested | None found | Exact Facebook 2010 Friends/message/comment chrome remains C/HOLD; browser interaction NOT TESTED | `Add Facebook v0.2 friend, message, and comment playability` |
 | Foursquare | Optional check-in shout, per-venue record, open/close Tip | Implemented and code-tested | None found | Exact shout limit/timestamp chrome and To-Do interaction remain HOLD; Mayor read-only and badges excluded | `Add Foursquare v0.2 shout and Tip playability` |
 | Flickr | Seed/user comments and two ID-based Sets with origin-aware Back routing | Implemented and code-tested | None found | Exact 2010 comments/Sets chrome, seed commenter identity, and imagery remain C/HOLD | `Add Flickr v0.2 comments and Sets playability` |
-| Tumblr | Reblog confirmation with optional short text; Notes only if evidenced | Planned | Not assessed | Exact reblog and Notes behavior remains HOLD | Pending |
+| Tumblr | Confirmed Reblog relation with optional text; seed/user Notes | Implemented and code-tested | None found | Exact 2010 Reblog/Notes chrome, wording, timing, and seed blog identities remain C/HOLD | `Add Tumblr v0.2 Reblog and Notes playability` |
 | Instagram | Camera/first-photo flow only if launch-era evidence is sufficient | HOLD | Not assessed | Do not populate or fabricate the empty account | Pending |
 | Messages | No expansion in this phase unless explicitly requested | Unchanged | None | Additional scripted replies remain out of scope | Existing freeze retained |
 
@@ -62,6 +62,17 @@ Curated live events and user-generated session actions remain separate. All muta
 - Reset removes user comments, Favorites, selected photo/Set, navigation origin, drafts, and scroll, then recreates the seed comment and Set baseline.
 - Upload, Camera Roll, camera capture, EXIF, and maps remain HOLD; Camera Runtime was not modified.
 - Global scheduler/timeline definitions, frozen System modules, Twitter, Facebook, Foursquare, and other apps were not modified.
+
+## Tumblr v0.2 result
+
+- Reblog now opens a separate minimal confirmation flow that preserves the source post and accepts optional session-local text.
+- Confirm creates one stable `user-reblog:<sourcePostId>` relation with the current identity and an independent action timestamp; Cancel creates nothing.
+- Unreblog removes only the current-user relation and its local Note, preserving the source post, live/seed content, and Like state.
+- Notes provides a simple chronological state list containing CURATED/HOLD seed Notes and local Like/Reblog Notes with explicit `seed`/`user` origin.
+- Like, Reblog, and Notes remain independent. A post can remain Liked while its Reblog is removed.
+- Reset clears Likes, Reblogs, drafts, selection, scroll, user Notes, and live posts while restoring the seed Dashboard/Notes baseline.
+- Full posting/composer types remain HOLD and were not introduced.
+- Global scheduler/timeline definitions, frozen System modules, Twitter, Facebook, Foursquare, Flickr, and other apps were not modified.
 
 ## Phase status
 

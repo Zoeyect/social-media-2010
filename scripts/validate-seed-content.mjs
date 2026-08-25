@@ -340,6 +340,8 @@ try {
 
   let tumblrState = tumblr.createInitialTumblrState();
   assert.ok(tumblrState.posts.every(post => post.origin === "seed"));
+  assert.equal(tumblrState.notes.length, 2);
+  assert.ok(tumblrState.notes.every(note => note.origin === "seed" && tumblrState.posts.some(post => post.id === note.sourcePostId)), "Tumblr seed Notes must reference existing posts without mutating post objects");
   assert.equal(tumblrState.posts.some(post => post.id === "late-note"), false);
   const livePost = { id: "late-note", type: "text", blog: "latewatch", title: "After midnight", content: "Quiet.", timestamp: "2010-10-20 12:12 AM" };
   tumblrState = tumblr.tumblrStateTransition(tumblrState, { type: "DELIVER_BACKGROUND_POST", post: livePost });
@@ -347,6 +349,55 @@ try {
   assert.equal(tumblrState.posts.filter(post => post.id === livePost.id).length, 1);
   assert.equal(tumblrState.posts.at(-1).origin, "live");
   assert.equal(seed.tumblr.some(post => post.id === livePost.id), false, "Tumblr live item must not mutate the seed source");
+
+  let tumblrPlayability = tumblr.createInitialTumblrState();
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "OPEN_POST", postId: "sunset-note", dashboardScrollPosition: 82 });
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "TOGGLE_LIKE", postId: "sunset-note", blogName: "Zoey" });
+  assert.deepEqual(tumblrPlayability.likedPostIds, ["sunset-note"]);
+  assert.deepEqual(tumblrPlayability.notes.at(-1), { id: "user-like:sunset-note", sourcePostId: "sunset-note", blogName: "Zoey", type: "liked", origin: "user" });
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "OPEN_NOTES", postId: "sunset-note" });
+  assert.equal(tumblrPlayability.currentView, "notes");
+  assert.deepEqual(tumblrPlayability.rebloggedPostIds, [], "opening Notes must not mutate Reblog state");
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "BACK_TO_POST" });
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "OPEN_REBLOG", postId: "sunset-note" });
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "EDIT_REBLOG_TEXT", value: "x".repeat(141) });
+  assert.equal(tumblrPlayability.reblogDraft.length, 140, "minimal Reblog text must remain short in reducer state");
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "CANCEL_REBLOG" });
+  assert.equal(tumblrPlayability.currentView, "post");
+  assert.equal(tumblrPlayability.reblogDraft, "");
+  assert.deepEqual(tumblrPlayability.reblogs, [], "cancel must not create a Reblog relation");
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "OPEN_REBLOG", postId: "sunset-note" });
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "EDIT_REBLOG_TEXT", value: "same feeling" });
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "CONFIRM_REBLOG", rebloggedBy: "Zoey", actionTimestamp: 1_287_552_780_000 });
+  assert.deepEqual(tumblrPlayability.reblogs, [{
+    id: "user-reblog:sunset-note",
+    sourcePostId: "sunset-note",
+    reblogged: true,
+    rebloggedBy: "Zoey",
+    optionalUserText: "same feeling",
+    actionTimestamp: 1_287_552_780_000,
+  }]);
+  assert.deepEqual(tumblrPlayability.rebloggedPostIds, ["sunset-note"]);
+  assert.equal(tumblrPlayability.posts.find(post => post.id === "sunset-note").blog, "dayonejournal", "Reblog must preserve the source post author/content object");
+  assert.equal(tumblrPlayability.likedPostIds.includes("sunset-note"), true, "Reblog must not clear Like");
+  assert.equal(tumblrPlayability.notes.filter(note => note.id === "user-reblog:sunset-note").length, 1, "confirmed Reblog must create at most one user Note relation");
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "DELIVER_BACKGROUND_POST", post: livePost });
+  assert.equal(tumblrPlayability.reblogs.length, 1, "live delivery must preserve current-user Reblog state");
+  assert.equal(tumblrPlayability.dashboardScrollPosition, 82);
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "REMOVE_REBLOG", postId: "sunset-note" });
+  assert.deepEqual(tumblrPlayability.rebloggedPostIds, []);
+  assert.deepEqual(tumblrPlayability.reblogs, [], "unreblog must remove only the current-user relation");
+  assert.equal(tumblrPlayability.likedPostIds.includes("sunset-note"), true, "unreblog must preserve Like");
+  assert.equal(tumblrPlayability.notes.some(note => note.id === "user-like:sunset-note"), true, "unreblog must preserve the user Like Note");
+  assert.equal(tumblrPlayability.notes.some(note => note.id === "user-reblog:sunset-note"), false);
+  assert.equal(tumblrPlayability.posts.filter(post => post.id === "sunset-note").length, 1, "unreblog must preserve the original Dashboard post");
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "OPEN_REBLOG", postId: "sunset-note" });
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "CONFIRM_REBLOG", rebloggedBy: "Zoey", actionTimestamp: 1_287_552_840_000 });
+  assert.equal(tumblrPlayability.reblogs.length, 1, "reblogging again must restore one stable relation without duplicates");
+  tumblrPlayability = tumblr.tumblrStateTransition(tumblrPlayability, { type: "BACK_TO_DASHBOARD" });
+  assert.equal(tumblrPlayability.currentView, "dashboard");
+  assert.equal(tumblrPlayability.dashboardScrollPosition, 82, "Back must restore the existing Dashboard scroll position");
+  assert.equal(tumblrPlayability.reblogs.length, 1, "Back navigation must preserve Reblog state");
 
   let flickrA = flickr.createInitialFlickrState();
   const flickrB = flickr.createInitialFlickrState();
@@ -392,9 +443,7 @@ try {
   const instagramState = instagram.createInitialInstagramState();
   assert.deepEqual({ photos: instagramState.photos.length, followers: instagramState.followers, following: instagramState.following }, { photos: 0, followers: 0, following: 0 });
 
-  let tumblrZoey = tumblr.createInitialTumblrState();
-  tumblrZoey = tumblr.tumblrStateTransition(tumblrZoey, { type: "TOGGLE_LIKE", postId: tumblrZoey.posts[0].id });
-  tumblrZoey = tumblr.tumblrStateTransition(tumblrZoey, { type: "TOGGLE_REBLOG", postId: tumblrZoey.posts[0].id });
+  const tumblrZoey = tumblrPlayability;
   let facebookZoey = facebook.createInitialFacebookState("Zoey");
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "TOGGLE_LIKE", itemId: facebookZoey.feed[0].id });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "DELIVER_JACK_REQUEST" });
@@ -430,6 +479,14 @@ try {
   assert.deepEqual(flickrAlex.commentsState.map(comment => [comment.text, comment.origin]), [["Nice shot", "seed"]]);
   assert.deepEqual(tumblrAlex.likedPostIds, []);
   assert.deepEqual(tumblrAlex.rebloggedPostIds, []);
+  assert.deepEqual(tumblrAlex.reblogs, []);
+  assert.equal(tumblrAlex.reblogDraft, "");
+  assert.equal(tumblrAlex.currentView, "dashboard");
+  assert.equal(tumblrAlex.selectedPostId, null);
+  assert.equal(tumblrAlex.dashboardScrollPosition, 0);
+  assert.equal(tumblrAlex.notes.filter(note => note.origin === "user").length, 0);
+  assert.equal(tumblrAlex.notes.filter(note => note.origin === "seed").length, 2);
+  assert.equal(tumblrAlex.posts.some(post => post.id === "late-note"), false, "new session must remove live Tumblr additions and restore seed Dashboard baseline");
   assert.deepEqual(foursquareAlex.checkIns, {});
   assert.deepEqual(foursquareAlex.shoutDrafts, {});
   assert.equal(foursquareAlex.points, 0);

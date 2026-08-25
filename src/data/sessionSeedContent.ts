@@ -48,8 +48,10 @@ export const SESSION_SEED_CONTENT = Object.freeze({
       }),
       origin: "seed" as const,
     }),
+    Object.freeze({ id: "dana-office-deck", displayName: "Dana", text: "still at the office. this deck is never going to end", timestamp: "11:49 PM", timestampProvenance: "CURATED" as const, contentType: "work-life" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
     Object.freeze({ id: "late-night-user", displayName: "session-owner", text: "can't sleep", timestamp: "11:41 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
     Object.freeze({ id: "kanye-discussion", displayName: "Mia", text: "why is everyone talking about Kanye tonight", timestamp: "11:26 PM", timestampProvenance: "CURATED" as const, contentType: "celebrity-discussion" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+    Object.freeze({ id: "marcus-client-approved", displayName: "Marcus", text: "client approved the first version. honestly kind of suspicious", timestamp: "11:09 PM", timestampProvenance: "CURATED" as const, contentType: "work-life" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
     Object.freeze({
       id: "manual-rt-conan-fan-question",
       displayName: "Eli",
@@ -72,9 +74,35 @@ export const SESSION_SEED_CONTENT = Object.freeze({
       origin: "seed" as const,
     }),
     Object.freeze({ id: "apple-event", displayName: "Sam", text: "Apple event tomorrow morning. Might follow the liveblogs.", timestamp: "10:47 PM", timestampProvenance: "CURATED" as const, contentType: "apple-reference" as const, contentProvenance: "CURATED/HOLD" as const, origin: "seed" as const }),
+    Object.freeze({ id: "priya-file-typo", displayName: "Priya", text: "sent the file and immediately found a typo. perfect.", timestamp: "10:22 PM", timestampProvenance: "CURATED" as const, contentType: "work-life" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
     Object.freeze({ id: "class-tomorrow", displayName: "Jack", text: "class tomorrow and I'm still watching TV", timestamp: "10:05 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+    Object.freeze({ id: "claire-promotion-talk", displayName: "Claire", text: "promotion talk went way better than i expected", timestamp: "9:47 PM", timestampProvenance: "CURATED" as const, contentType: "work-life" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
     Object.freeze({ id: "rain-stopped", displayName: "June", text: "The rain finally stopped.", timestamp: "9:12 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+    Object.freeze({ id: "ben-home-from-work", displayName: "Ben", text: "home from work. not opening my laptop again tonight", timestamp: "9:08 PM", timestampProvenance: "CURATED" as const, contentType: "work-life" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
     Object.freeze({ id: "need-food", displayName: "Nora", text: "Need something to eat.", timestamp: "8:30 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+  ]),
+  twitterMentions: Object.freeze([
+    Object.freeze({ id: "mention-alex-conan", sender: "Alex", textTemplate: "@{handle} look at this lol", timestamp: "11:54 PM", unread: true, linkedTweetId: "historical-conan-jackass-3d", origin: "seed" as const, provenance: "CURATED" as const }),
+    Object.freeze({ id: "mention-chris-thing", sender: "Chris", textTemplate: "@{handle} did you ever finish that thing?", timestamp: "10:38 PM", unread: false, linkedTweetId: null, origin: "seed" as const, provenance: "CURATED" as const }),
+  ]),
+  twitterDirectMessages: Object.freeze([
+    Object.freeze({ id: "dm-katie", sender: "Katie", timestamp: "11:46 PM", unread: true, messages: Object.freeze([Object.freeze({ id: "dm-katie-1", text: "crazy ahaha", linkedTweetId: "historical-conan-jackass-3d", origin: "seed" as const })]), origin: "seed" as const, provenance: "CURATED" as const }),
+    Object.freeze({ id: "dm-matt", sender: "Matt", timestamp: "10:21 PM", unread: false, messages: Object.freeze([Object.freeze({ id: "dm-matt-1", text: "see you tomorrow", linkedTweetId: null, origin: "seed" as const })]), origin: "seed" as const, provenance: "CURATED" as const }),
+  ]),
+  twitterHistoricalLinkedTweets: Object.freeze([
+    Object.freeze({
+      id: "historical-conan-jackass-3d",
+      displayName: "Conan O'Brien",
+      authorHandle: "@ConanOBrien",
+      text: "Saw Jackass 3D. Not as good as the book.",
+      timestamp: "Oct 18",
+      sourceTimestamp: "2010-10-18T22:58:58Z",
+      pacificTime: "3:58:58 PM PDT",
+      sourceUrl: "https://web.archive.org/web/20101022080924id_/http://twitter.com/ConanOBrien/status/27777712177",
+      provenance: "PERIOD-EVIDENCE" as const,
+      evidenceNote: "Original Twitter status captured by Wayback; authentic but outside the primary target window.",
+      origin: "seed" as const,
+    }),
   ]),
   foursquare: Object.freeze({
     venues: Object.freeze([

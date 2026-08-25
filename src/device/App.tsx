@@ -9,6 +9,7 @@ import type { CameraOwner } from "../state/cameraRuntime";
 import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent } from "../state/deviceEventScheduler";
 import { batteryPercent, BOOT_DURATION_MS, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
+import { createInitialFacebookState, facebookStateTransition } from "../state/facebookState";
 import { multitaskingBarStateTransition } from "../state/multitaskingBarState";
 import { initialMessagesState, messagesStateTransition } from "../state/messagesState";
 import { createLockScreenModel } from "../state/lockScreenModel";
@@ -22,6 +23,7 @@ import { createInitialTwitterState, twitterStateTransition } from "../state/twit
 import { createSMSLockNotification, smsMessageReceived } from "../system/smsNotification";
 import { LockScreen } from "./LockScreen";
 import { CameraContainer } from "./CameraContainer";
+import { FacebookContainer } from "./FacebookContainer";
 import { LockScreenStatusPresentation } from "./LockScreenStatusPresentation";
 import { AppLaunchContainer } from "./AppLaunchContainer";
 import { MultitaskingBar } from "./MultitaskingBar";
@@ -55,10 +57,9 @@ function loadRuntimeSession(): Session {
 
 export function App() {
   const [session, setSession] = useState<Session>(loadRuntimeSession);
-  const twitterDevAccessEnabled = import.meta.env.DEV
-    && new URLSearchParams(window.location.search).get("devApp") === "twitter";
-  const twitterDevAutoOpen = twitterDevAccessEnabled
-    && new URLSearchParams(window.location.search).get("autoOpen") === "1";
+  const requestedDevApp = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("devApp") : null;
+  const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" ? requestedDevApp : null;
+  const devAutoOpen = devAppId !== null && new URLSearchParams(window.location.search).get("autoOpen") === "1";
   const [springBoardPage, setSpringBoardPage] = useState<0 | 1>(0);
   const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
@@ -68,6 +69,11 @@ export function App() {
   const [messagesUnreadIds, dispatchMessagesBadge] = useReducer(messagesBadgeStateTransition, []);
   const [smsNotification, dispatchSMSNotification] = useReducer(smsNotificationStateTransition, initialSMSNotificationState);
   const [activeLockNotification, dispatchLockNotification] = useReducer(lockNotificationStateTransition, initialLockNotificationState);
+  const [facebookState, dispatchFacebook] = useReducer(
+    facebookStateTransition,
+    session.sessionIdentity.name,
+    createInitialFacebookState,
+  );
   const [twitterState, dispatchTwitter] = useReducer(
     twitterStateTransition,
     session.sessionIdentity.name,
@@ -82,7 +88,7 @@ export function App() {
   const powerFrame = useRef<number | null>(null);
   const homePointer = useRef<number | null>(null);
   const pendingAppHomePress = useRef<number | null>(null);
-  const twitterDevAutoOpenConsumed = useRef(false);
+  const devAutoOpenConsumed = useRef(false);
   const elapsed = elapsedMs(session, now);
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
   const deviceStatusTime = formatDeviceTime(deviceDateTime);
@@ -268,6 +274,7 @@ export function App() {
     dispatchMessagesBadge({ type: "RESET" });
     dispatchSMSNotification({ type: "RESET" });
     dispatchLockNotification({ type: "RESET" });
+    dispatchFacebook({ type: "RESET" });
     dispatchTwitter({ type: "RESET" });
     dispatchAppRuntime({ type: "RESET" });
     dispatchCameraRuntime({ type: "RESET", owner: "cameraApp" });
@@ -389,6 +396,7 @@ export function App() {
     const data = new FormData(event.currentTarget);
     const name = String(data.get("name") || "").trim();
     if (name) {
+      dispatchFacebook({ type: "RESET", displayName: name });
       dispatchTwitter({ type: "RESET", displayName: name });
       update({
         sessionIdentity: createSessionIdentity(name),
@@ -500,14 +508,14 @@ export function App() {
   };
 
   useEffect(() => {
-    if (!twitterDevAutoOpen || twitterDevAutoOpenConsumed.current || session.phase !== "springboard") return;
-    twitterDevAutoOpenConsumed.current = true;
-    launchSpringBoardApp("twitter");
-  }, [session.phase, twitterDevAutoOpen]);
+    if (!devAutoOpen || !devAppId || devAutoOpenConsumed.current || session.phase !== "springboard") return;
+    devAutoOpenConsumed.current = true;
+    launchSpringBoardApp(devAppId);
+  }, [devAppId, devAutoOpen, session.phase]);
 
   if (session.phase === "hero") return <>
     <main className="hero"><form onSubmit={submitName}><label htmlFor="name">What was your name?</label><input id="name" name="name" autoFocus autoComplete="name" /><span>Press Enter</span></form></main>
-    <TwitterDevAccess visible={twitterDevAccessEnabled} disabled onOpen={() => {}} />
+    <AppDevAccess appId={devAppId} disabled onOpen={() => {}} />
   </>;
 
   return <SessionIdentityContext.Provider value={session.sessionIdentity}>
@@ -594,6 +602,10 @@ export function App() {
             state={twitterState}
             dispatch={dispatchTwitter}
           />}
+          {appRuntime.activeAppId === "facebook" && <FacebookContainer
+            state={facebookState}
+            dispatch={dispatchFacebook}
+          />}
         </AppLaunchContainer>}
         {session.phase === "app" && <MultitaskingBar
           state={multitaskingBar}
@@ -647,23 +659,24 @@ export function App() {
     </section>
       <aside><strong>SOCIAL MEDIA, 2010</strong><span>Z.tokyo</span></aside>
     </main>
-    <TwitterDevAccess
-      visible={twitterDevAccessEnabled}
+    <AppDevAccess
+      appId={devAppId}
       disabled={session.phase !== "springboard"}
-      onOpen={() => launchSpringBoardApp("twitter")}
+      onOpen={() => devAppId && launchSpringBoardApp(devAppId)}
     />
   </SessionIdentityContext.Provider>;
 }
 
-function TwitterDevAccess({ visible, disabled, onOpen }: {
-  visible: boolean;
+function AppDevAccess({ appId, disabled, onOpen }: {
+  appId: "twitter" | "facebook" | null;
   disabled: boolean;
   onOpen: () => void;
 }) {
-  if (!visible) return null;
-  return <aside className="twitter-dev-access" aria-label="Twitter development access">
+  if (!appId) return null;
+  const appName = appId === "twitter" ? "Twitter" : "Facebook";
+  return <aside className="app-dev-access" aria-label={`${appName} development access`}>
     <strong>DEV</strong>
-    <button type="button" disabled={disabled} onClick={onOpen}>DEV · Open Twitter</button>
+    <button type="button" disabled={disabled} onClick={onOpen}>DEV · Open {appName}</button>
     {disabled && <span>Available on SpringBoard</span>}
   </aside>;
 }

@@ -145,6 +145,42 @@ button, input { font: inherit; }
 .twitter-detail-actions button:last-child { border-right: 0; }
 .twitter-detail-actions button:disabled { color: #aaa; }
 .twitter-detail-actions button[aria-pressed="true"] { color: #9b7215; }
+.facebook-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #222; background: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.facebook-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-bottom: 1px solid #172d54; background: linear-gradient(#7488ad,#3b5998 52%,#304c87); box-shadow: inset 0 1px rgba(255,255,255,.3); text-shadow: 0 -1px rgba(0,0,0,.65); }
+.facebook-navigation-bar > strong { font-size: 18px; line-height: 44px; }
+.facebook-navigation-bar > button { position: absolute; left: 7px; top: 7px; height: 30px; padding: 0 8px; color: #fff; border: 1px solid #203969; border-radius: 4px; background: linear-gradient(#7386aa,#3d5c98); font-size: 12px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.6); }
+.facebook-section-strip { flex: 0 0 36px; height: 36px; display: grid; grid-template-columns: repeat(3,1fr); border-bottom: 1px solid #aaa; background: #e7e7e7; }
+.facebook-section-strip button { padding: 0; color: #3b5998; border: 0; border-right: 1px solid #bbb; background: linear-gradient(#fff,#ddd); font-size: 11px; font-weight: bold; }
+.facebook-section-strip button:last-child { border-right: 0; }
+.facebook-section-strip button[aria-current="page"] { color: #222; background: #ccc; box-shadow: inset 0 1px 2px rgba(0,0,0,.18); }
+.facebook-feed { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
+.facebook-feed-row { width: 100%; min-height: 88px; padding: 9px 10px; display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 9px; color: #222; border: 0; border-bottom: 1px solid #c9c9c9; background: #fff; text-align: left; }
+.facebook-avatar-hold { width: 48px; height: 48px; display: block; }
+.facebook-feed-copy { min-width: 0; display: grid; align-content: start; }
+.facebook-feed-copy strong { color: #3b5998; font-size: 14px; line-height: 18px; }
+.facebook-feed-copy > span { padding-top: 2px; font-size: 14px; line-height: 18px; overflow-wrap: break-word; }
+.facebook-feed-copy time { padding-top: 5px; color: #888; font-size: 11px; line-height: 14px; }
+.facebook-feed-detail { flex: 1 1 auto; padding: 14px 12px; background: #fff; }
+.facebook-feed-detail > strong { color: #3b5998; font-size: 16px; }
+.facebook-feed-detail > p { margin: 11px 0; font-size: 18px; line-height: 24px; }
+.facebook-feed-detail > time { display: block; padding-bottom: 12px; color: #777; border-bottom: 1px solid #ccc; font-size: 11px; }
+.facebook-detail-actions { height: 40px; display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #ccc; }
+.facebook-detail-actions button { padding: 0; color: #3b5998; border: 0; border-right: 1px solid #ccc; background: linear-gradient(#fff,#e7e7e7); font-size: 12px; font-weight: bold; }
+.facebook-detail-actions button:last-child { border-right: 0; }
+.facebook-detail-actions button:disabled { color: #999; }
+.facebook-request-list,.facebook-message-list { flex: 1 1 auto; background: #fff; }
+.facebook-request-row { min-height: 76px; padding: 10px 12px; display: grid; gap: 7px; border-bottom: 1px solid #bbb; }
+.facebook-request-row > strong,.facebook-message-list strong { color: #3b5998; font-size: 15px; }
+.facebook-request-row > div { display: flex; gap: 7px; }
+.facebook-request-row button { min-width: 66px; height: 27px; color: #fff; border: 1px solid #294576; border-radius: 4px; background: linear-gradient(#7186ad,#3b5998); font-size: 12px; font-weight: bold; }
+.facebook-request-row span { color: #777; font-size: 12px; }
+.facebook-message-list > button { position: relative; width: 100%; min-height: 60px; padding: 8px 28px 8px 12px; display: grid; gap: 3px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
+.facebook-message-list span { color: #666; font-size: 13px; }
+.facebook-message-list i { position: absolute; right: 12px; top: 25px; width: 8px; height: 8px; border-radius: 50%; background: #3b5998; }
+.facebook-message-detail { flex: 1 1 auto; padding: 14px 12px; background: #fff; }
+.facebook-message-detail > strong { color: #3b5998; font-size: 16px; }
+.facebook-message-detail > p { margin: 14px 0; font-size: 16px; }
+.facebook-message-detail > span { color: #888; font-size: 11px; }
 .app-launch-container.is-launching { animation: app-runtime-open 180ms ease-out both; }
 .app-launch-container.is-resuming { animation: app-runtime-open 180ms ease-out both; }
 .app-launch-container.is-closing { animation: app-runtime-close 160ms ease-in both; }
@@ -182,10 +218,10 @@ button, input { font: inherit; }
 .stage aside { display: grid; gap: 4px; text-align: center; }
 .stage aside strong { letter-spacing: .14em; font-size: 12px; }
 .stage aside span { color: #777; font-size: 11px; }
-.twitter-dev-access { position: fixed; z-index: 100; right: 16px; bottom: 16px; min-width: 156px; padding: 9px; display: grid; gap: 6px; color: #9ed8f3; border: 1px solid #31576b; background: #111; font-family: Arial,Helvetica,sans-serif; text-align: left; }
-.twitter-dev-access > strong { font-size: 9px; letter-spacing: .14em; }
-.twitter-dev-access > button { padding: 6px 8px; color: #9ed8f3; border: 1px solid #31576b; background: #17232a; font-size: 10px; letter-spacing: .06em; }
-.twitter-dev-access > button:disabled { opacity: .4; }
-.twitter-dev-access > span { color: #718791; font-size: 9px; }
+.app-dev-access { position: fixed; z-index: 100; right: 16px; bottom: 16px; min-width: 156px; padding: 9px; display: grid; gap: 6px; color: #9ed8f3; border: 1px solid #31576b; background: #111; font-family: Arial,Helvetica,sans-serif; text-align: left; }
+.app-dev-access > strong { font-size: 9px; letter-spacing: .14em; }
+.app-dev-access > button { padding: 6px 8px; color: #9ed8f3; border: 1px solid #31576b; background: #17232a; font-size: 10px; letter-spacing: .06em; }
+.app-dev-access > button:disabled { opacity: .4; }
+.app-dev-access > span { color: #718791; font-size: 9px; }
 @media (max-height: 820px) { .device { transform: scale(.82); margin-block: -67px; } }
 @media (max-width: 430px) { .device { transform: scale(.86); margin-inline: -28px; } }

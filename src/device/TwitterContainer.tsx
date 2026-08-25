@@ -36,11 +36,23 @@ export function TwitterContainer({ state, dispatch }: TwitterContainerProps) {
           scrollPosition: event.currentTarget.scrollTop,
         })}
       >
+        {state.retweetActivities.map(activity => {
+          const sourceTweet = state.timeline.find(tweet => tweet.id === activity.sourceTweetId);
+          return sourceTweet ? <TimelineTweet
+            key={activity.id}
+            tweet={sourceTweet}
+            retweetAttribution={`Retweeted by ${activity.retweetedBy}`}
+            userActivity
+            onOpen={() => dispatch({
+              type: "OPEN_TWEET",
+              tweetId: sourceTweet.id,
+              scrollPosition: timelineRef.current?.scrollTop ?? state.scrollPosition,
+            })}
+          /> : null;
+        })}
         {state.timeline.map(tweet => <TimelineTweet
           key={tweet.id}
           tweet={tweet}
-          retweetedBySession={state.retweetedTweetIds.includes(tweet.id)}
-          sessionDisplayName={sessionIdentity.name}
           onOpen={() => dispatch({
             type: "OPEN_TWEET",
             tweetId: tweet.id,
@@ -60,16 +72,21 @@ export function TwitterContainer({ state, dispatch }: TwitterContainerProps) {
         onEditReply={value => dispatch({ type: "EDIT_REPLY", value })}
         onCancelReply={() => dispatch({ type: "CANCEL_REPLY" })}
         onSubmitReply={() => dispatch({ type: "SUBMIT_REPLY", displayName: sessionIdentity.name })}
-        onToggleRetweet={() => dispatch({ type: "TOGGLE_RETWEET", tweetId: selectedTweet.id })}
+        onToggleRetweet={() => dispatch({
+          type: "TOGGLE_RETWEET",
+          tweetId: selectedTweet.id,
+          retweetedBy: sessionIdentity.name,
+          retweetActionTimestamp: Date.now(),
+        })}
         onToggleFavorite={() => dispatch({ type: "TOGGLE_FAVORITE", tweetId: selectedTweet.id })}
       />}
   </section>;
 }
 
-function TimelineTweet({ tweet, retweetedBySession, sessionDisplayName, onOpen }: {
+function TimelineTweet({ tweet, retweetAttribution, userActivity = false, onOpen }: {
   tweet: TwitterTweet;
-  retweetedBySession: boolean;
-  sessionDisplayName: string;
+  retweetAttribution?: string;
+  userActivity?: boolean;
   onOpen: () => void;
 }) {
   return <button
@@ -77,13 +94,14 @@ function TimelineTweet({ tweet, retweetedBySession, sessionDisplayName, onOpen }
     className="twitter-timeline-row"
     onClick={onOpen}
     data-content-status={tweet.contentStatus}
+    data-user-activity={userActivity || undefined}
   >
     <span className="twitter-avatar-hold" aria-hidden="true" />
     <span className="twitter-tweet-copy">
       <strong>{tweet.displayName}</strong>
       <span>{tweet.text}</span>
       <time>{tweet.timestamp}</time>
-      {retweetedBySession && <small>Retweeted by {sessionDisplayName}</small>}
+      {retweetAttribution && <small>{retweetAttribution}</small>}
     </span>
   </button>;
 }

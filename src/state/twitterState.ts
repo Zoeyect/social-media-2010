@@ -19,6 +19,14 @@ export type TwitterReply = {
   text: string;
 };
 
+export type TwitterRetweetActivity = {
+  id: string;
+  sourceTweetId: string;
+  retweetedBy: string;
+  originalTweetTimestamp: string;
+  retweetActionTimestamp: number;
+};
+
 export type TwitterState = {
   currentView: TwitterView;
   timeline: TwitterTweet[];
@@ -26,6 +34,7 @@ export type TwitterState = {
   scrollPosition: number;
   favoriteTweetIds: string[];
   retweetedTweetIds: string[];
+  retweetActivities: TwitterRetweetActivity[];
   replies: TwitterReply[];
   replyComposerTweetId: string | null;
   replyDraft: string;
@@ -36,7 +45,7 @@ export type TwitterEvent =
   | { type: "BACK_TO_TIMELINE" }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
   | { type: "TOGGLE_FAVORITE"; tweetId: string }
-  | { type: "TOGGLE_RETWEET"; tweetId: string }
+  | { type: "TOGGLE_RETWEET"; tweetId: string; retweetedBy: string; retweetActionTimestamp: number }
   | { type: "BEGIN_REPLY"; tweetId: string }
   | { type: "EDIT_REPLY"; value: string }
   | { type: "CANCEL_REPLY" }
@@ -56,6 +65,7 @@ export function createInitialTwitterState(sessionDisplayName: string): TwitterSt
     scrollPosition: 0,
     favoriteTweetIds: [],
     retweetedTweetIds: [],
+    retweetActivities: [],
     replies: [],
     replyComposerTweetId: null,
     replyDraft: "",
@@ -81,10 +91,29 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
         ? { ...state, favoriteTweetIds: state.favoriteTweetIds.filter(id => id !== event.tweetId) }
         : { ...state, favoriteTweetIds: [...state.favoriteTweetIds, event.tweetId] };
     case "TOGGLE_RETWEET":
-      if (!state.timeline.some(tweet => tweet.id === event.tweetId)) return state;
-      return state.retweetedTweetIds.includes(event.tweetId)
-        ? { ...state, retweetedTweetIds: state.retweetedTweetIds.filter(id => id !== event.tweetId) }
-        : { ...state, retweetedTweetIds: [...state.retweetedTweetIds, event.tweetId] };
+      {
+        const sourceTweet = state.timeline.find(tweet => tweet.id === event.tweetId);
+        if (!sourceTweet) return state;
+        const activityId = `user-retweet:${event.tweetId}`;
+        if (state.retweetedTweetIds.includes(event.tweetId)) {
+          return {
+            ...state,
+            retweetedTweetIds: state.retweetedTweetIds.filter(id => id !== event.tweetId),
+            retweetActivities: state.retweetActivities.filter(activity => activity.id !== activityId),
+          };
+        }
+        return {
+          ...state,
+          retweetedTweetIds: [...state.retweetedTweetIds, event.tweetId],
+          retweetActivities: [{
+            id: activityId,
+            sourceTweetId: sourceTweet.id,
+            retweetedBy: event.retweetedBy,
+            originalTweetTimestamp: sourceTweet.timestamp,
+            retweetActionTimestamp: event.retweetActionTimestamp,
+          }, ...state.retweetActivities.filter(activity => activity.id !== activityId)],
+        };
+      }
     case "BEGIN_REPLY":
       if (!state.timeline.some(tweet => tweet.id === event.tweetId)) return state;
       return {

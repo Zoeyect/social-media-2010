@@ -176,6 +176,30 @@ try {
   assert.equal([...twitterState.timeline, ...scheduledTwitterPosts].filter(tweet => /Apple/i.test(tweet.text)).length, 1, "Twitter seed plus live timeline may contain only one Apple-event reference");
   assert.ok(scheduledTwitterPosts.every(post => !twitterState.timeline.some(tweet => tweet.id === post.id)), "no live Twitter post may exist in seed");
   assert.equal(twitterState.timeline.some(tweet => scheduledTwitterPosts.some(post => post.id === tweet.id)), false, "live Twitter content must not be seeded");
+  let retweetOrderState = twitter.twitterStateTransition(twitter.createInitialTwitterState("Zoey"), {
+    type: "TOGGLE_RETWEET",
+    tweetId: "still-awake",
+    retweetedBy: "Zoey",
+    retweetActionTimestamp: 100,
+  });
+  retweetOrderState = twitter.twitterStateTransition(retweetOrderState, {
+    type: "TOGGLE_RETWEET",
+    tweetId: "class-tomorrow",
+    retweetedBy: "Zoey",
+    retweetActionTimestamp: 200,
+  });
+  assert.deepEqual(
+    retweetOrderState.retweetActivities.map(activity => activity.id),
+    ["user-retweet:class-tomorrow", "user-retweet:still-awake"],
+    "new current-user Retweet activities must prepend in action order",
+  );
+  retweetOrderState = twitter.twitterStateTransition(retweetOrderState, {
+    type: "TOGGLE_RETWEET",
+    tweetId: "class-tomorrow",
+    retweetedBy: "Zoey",
+    retweetActionTimestamp: 300,
+  });
+  assert.deepEqual(retweetOrderState.retweetActivities.map(activity => activity.id), ["user-retweet:still-awake"], "unretweet must preserve unrelated Retweet activity");
   twitterState = twitter.twitterStateTransition(twitterState, { type: "OPEN_TWEET", tweetId: "still-awake", scrollPosition: 144 });
   twitterState = twitter.twitterStateTransition(twitterState, { type: "BEGIN_REPLY", tweetId: "still-awake" });
   twitterState = twitter.twitterStateTransition(twitterState, { type: "EDIT_REPLY", value: "x".repeat(141) });
@@ -189,9 +213,23 @@ try {
   assert.equal(twitterState.replyDraft, "still here", "reply draft must survive navigation and suspension-equivalent retained state");
   twitterState = twitter.twitterStateTransition(twitterState, { type: "SUBMIT_REPLY", displayName: "Zoey" });
   assert.deepEqual(twitterState.replies, [{ id: "twitter-reply-1", targetTweetId: "still-awake", displayName: "Zoey", text: "still here" }]);
-  twitterState = twitter.twitterStateTransition(twitterState, { type: "TOGGLE_RETWEET", tweetId: "still-awake" });
+  twitterState = twitter.twitterStateTransition(twitterState, {
+    type: "TOGGLE_RETWEET",
+    tweetId: "still-awake",
+    retweetedBy: "Zoey",
+    retweetActionTimestamp: 1_287_552_360_000,
+  });
   twitterState = twitter.twitterStateTransition(twitterState, { type: "TOGGLE_FAVORITE", tweetId: "still-awake" });
   assert.deepEqual(twitterState.retweetedTweetIds, ["still-awake"]);
+  assert.deepEqual(twitterState.retweetActivities, [{
+    id: "user-retweet:still-awake",
+    sourceTweetId: "still-awake",
+    retweetedBy: "Zoey",
+    originalTweetTimestamp: "11:58 PM",
+    retweetActionTimestamp: 1_287_552_360_000,
+  }], "current-user Retweet must create one stable timeline activity without rewriting the source tweet");
+  assert.equal(twitterState.timeline.find(tweet => tweet.id === "still-awake")?.displayName, "June");
+  assert.equal(twitterState.timeline.find(tweet => tweet.id === "still-awake")?.timestamp, "11:58 PM");
   assert.deepEqual(twitterState.favoriteTweetIds, ["still-awake"]);
   assert.equal(twitterState.replies.length, 1, "Reply, Retweet, and Favorite state must remain independent");
   twitterState = twitter.twitterStateTransition(twitterState, { type: "SET_SCROLL_POSITION", scrollPosition: 144 });
@@ -208,11 +246,32 @@ try {
     "live Twitter activity must remain newest-first",
   );
   assert.deepEqual(twitterState.retweetedTweetIds, ["still-awake"], "live delivery must preserve Retweet state");
+  assert.equal(twitterState.retweetActivities.length, 1, "live delivery must preserve exactly one current-user Retweet activity");
   assert.deepEqual(twitterState.favoriteTweetIds, ["still-awake"], "live delivery must preserve Favorite state");
   assert.equal(twitterState.replies.length, 1, "live delivery must preserve user replies");
+  twitterState = twitter.twitterStateTransition(twitterState, {
+    type: "TOGGLE_RETWEET",
+    tweetId: "still-awake",
+    retweetedBy: "Zoey",
+    retweetActionTimestamp: 1_287_552_480_000,
+  });
+  assert.deepEqual(twitterState.retweetedTweetIds, []);
+  assert.deepEqual(twitterState.retweetActivities, [], "unretweet must remove only the related session activity");
+  assert.equal(twitterState.timeline.filter(tweet => tweet.id === "still-awake").length, 1, "unretweet must preserve the original tweet");
+  assert.deepEqual(twitterState.favoriteTweetIds, ["still-awake"], "unretweet must preserve Favorite state");
+  assert.equal(twitterState.replies.length, 1, "unretweet must preserve replies");
+  twitterState = twitter.twitterStateTransition(twitterState, {
+    type: "TOGGLE_RETWEET",
+    tweetId: "still-awake",
+    retweetedBy: "Zoey",
+    retweetActionTimestamp: 1_287_552_540_000,
+  });
+  assert.equal(twitterState.retweetActivities.length, 1, "re-retweet must restore one stable activity without duplicates");
+  assert.equal(twitterState.retweetActivities[0].id, "user-retweet:still-awake");
   const twitterReset = twitter.twitterStateTransition(twitterState, { type: "RESET", displayName: "Alex" });
   assert.equal(twitterReset.favoriteTweetIds.length, 0);
   assert.equal(twitterReset.retweetedTweetIds.length, 0);
+  assert.equal(twitterReset.retweetActivities.length, 0);
   assert.equal(twitterReset.replies.length, 0);
   assert.equal(twitterReset.replyComposerTweetId, null);
   assert.equal(twitterReset.replyDraft, "");

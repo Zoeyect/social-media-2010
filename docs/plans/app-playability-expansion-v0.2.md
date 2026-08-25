@@ -10,7 +10,7 @@ Curated live events and user-generated session actions remain separate. All muta
 
 | App | Planned interaction | Status | A/B findings | C backlog / HOLD | Checkpoint |
 | --- | --- | --- | --- | --- | --- |
-| Twitter | Reply, native Retweet; preserve Favorite | Implemented and code-tested | None found | Exact 2010 reply/Retweet chrome and geometry remain C/HOLD; browser interaction NOT TESTED because no browser session was available | `Add Twitter v0.2 reply and retweet playability` |
+| Twitter | Reply, native Retweet timeline activity; preserve Favorite | v0.3 implemented and code-tested | None found | Exact immediate client insertion, attribution chrome, and geometry remain C/HOLD; browser interaction NOT TESTED | `Integrate Twitter Retweets into the timeline` |
 | Facebook | Jack friend outcome, June reply thread, one plain Feed comment interaction | Implemented and code-tested | None found | Exact Facebook 2010 Friends/message/comment chrome remains C/HOLD; browser interaction NOT TESTED | `Add Facebook v0.2 friend, message, and comment playability` |
 | Foursquare | Optional check-in shout; Tip/To-Do only if verified | Planned | Not assessed | To-Do, mayor, and badge behavior remain HOLD | Pending |
 | Flickr | Plain comments; minimal Sets path if architecture supports it | Planned | Not assessed | Exact comments/Sets chrome remains HOLD | Pending |
@@ -23,6 +23,8 @@ Curated live events and user-generated session actions remain separate. All muta
 - Replies are limited to 140 characters in both the UI and state transition layer.
 - Replies use the shared `sessionIdentity.name` and are stored as Twitter-local activity.
 - Native Retweet state uses the period term “Retweet”; Quote Tweet is absent.
+- A current-user Retweet creates one stable `user-retweet:<sourceTweetId>` activity at the top of the rendered timeline while retaining the untouched source tweet.
+- Retweet activities record the source ID, current session identity, original tweet timestamp, and a separate action timestamp; unretweet removes only that user activity.
 - Reply, Retweet, and Favorite are independent.
 - Twitter-local mutations survive retained runtime state and live timeline deliveries.
 - A new-session reset removes replies, reply drafts, Retweets, Favorites, and live additions while restoring the seed timeline.

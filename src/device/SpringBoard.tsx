@@ -139,6 +139,7 @@ export function SpringBoard({ currentPage, onPageChange, folderState, dispatchFo
       >
         <SpringBoardPage apps={PAGE_ONE_APPS} pageNumber={1} badgeCounts={{ 0: messagesBadgeCount }} onAppActivate={index => {
           if (index === 0) onLaunchApp("messages");
+          if (index === 3) onLaunchApp("camera");
         }} />
         <SpringBoardPage apps={PAGE_TWO_APPS} pageNumber={2} onAppActivate={index => {
           if (index === 0 && folderState === "closed") dispatchFolderEvent("OPEN");
@@ -153,7 +154,11 @@ export function SpringBoard({ currentPage, onPageChange, folderState, dispatchFo
         {...app}
         dock
         badgeCount={app.name === "Messages" ? messagesBadgeCount : 0}
-        onActivate={app.name === "Messages" ? () => onLaunchApp("messages") : undefined}
+        onActivate={app.name === "Messages"
+          ? () => onLaunchApp("messages")
+          : app.name === "Camera"
+            ? () => onLaunchApp("camera")
+            : undefined}
       />)}
     </div>
     <SpringBoardFolder state={folderState} dispatch={dispatchFolderEvent} onLaunchApp={onLaunchApp} />

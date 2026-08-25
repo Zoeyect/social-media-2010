@@ -46,10 +46,11 @@ button, input { font: inherit; }
 .lock-clock-slot, .lock-date-slot { display: block; }
 .lock-clock-slot { height: 65px; font-size: 62px; line-height: 65px; }
 .lock-date-slot { font-size: 16px; line-height: 20px; }
-.lockscreen-sms-alert { position: absolute; left: 24px; top: 151px; width: 272px; padding: 10px 12px; display: grid; gap: 4px; color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: 8px; background: rgba(24,31,42,.92); text-align: left; text-shadow: 0 -1px #000; }
-.lockscreen-sms-alert strong { text-align: center; font-size: 16px; }
-.lockscreen-sms-alert b { font-size: 14px; }
-.lockscreen-sms-alert p { margin: 0; font-size: 14px; }
+/* Compact SBAway SMS preview approximation; exact 8B117 geometry/material remain HOLD. */
+.lockscreen-sms-alert { position: absolute; left: 30px; top: 136px; width: 260px; padding: 8px 11px 9px; display: grid; grid-template-rows: auto auto auto; row-gap: 0; overflow: hidden; color: #fff; border: 1px solid rgba(13,21,32,.96); border-radius: 8px; background: linear-gradient(rgba(76,93,117,.93) 0%,rgba(45,59,79,.94) 48%,rgba(27,38,53,.95) 100%); box-shadow: inset 0 1px rgba(255,255,255,.32), inset 0 -1px rgba(0,0,0,.38), 0 2px 6px rgba(0,0,0,.62); font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; text-align: left; text-shadow: 0 -1px rgba(0,0,0,.9); }
+.lockscreen-sms-alert-title { display: block; margin: 0 0 2px; color: #fff; font-size: 16px; font-weight: bold; line-height: 19px; text-align: center; }
+.lockscreen-sms-alert-sender { display: block; color: #fff; font-size: 13px; font-weight: bold; line-height: 16px; }
+.lockscreen-sms-alert-body { margin: 0; color: #fff; font-size: 13px; font-weight: normal; line-height: 16px; }
 .lockscreen-bottom-bar { position: absolute; left: 0; bottom: 0; width: 320px; height: 96px; background: url("../assets/historical/ios4.1/lockscreen/BarBottomLock@2x.png") center / .5px 96px repeat-x; }
 .unlock-track { position: absolute; left: 20px; bottom: 21px; width: 280px; height: 52px; overflow: hidden; text-align: center; line-height: 52px; color: #ccc; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 21px; }
 .unlock-track-raster { position: absolute; z-index: 0; inset: 0; border: 13px solid transparent; border-image-source: url("../assets/historical/ios4.1/lockscreen/WellLock@2x.png"); border-image-slice: 26 fill; border-image-width: 13px; border-image-repeat: stretch; pointer-events: none; }
@@ -93,22 +94,36 @@ button, input { font: inherit; }
 @keyframes springboard-folder-close { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.194); } }
 .app-launch-container { position: absolute; z-index: 20; inset: 0; width: 320px; height: 480px; overflow: hidden; background: #000; transform-origin: center; }
 .app-runtime-surface { position: absolute; inset: 20px 0 0; background: #000; }
-.messages-app { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #111; background: #e9e9e9; font-family: Arial, Helvetica, sans-serif; }
-.messages-navigation-bar { position: relative; flex: 0 0 44px; display: grid; place-items: center; padding: 0 8px; color: #fff; border-top: 1px solid #aab7c8; border-bottom: 1px solid #2f3f55; background: linear-gradient(#8fa4bc,#58718f 50%,#415c7d 51%,#526b89); text-shadow: 0 -1px 0 #26384e; }
-.messages-navigation-bar strong { font-size: 18px; }
-.messages-back-button { position: absolute; left: 7px; top: 7px; height: 30px; padding: 0 9px; color: #fff; border: 1px solid #263d5a; border-radius: 5px; background: linear-gradient(#8299b3,#466382); box-shadow: inset 0 1px rgba(255,255,255,.35); font-size: 12px; font-weight: bold; text-shadow: 0 -1px #26384e; }
-.messages-conversation-row { position: relative; width: 100%; min-height: 62px; padding: 9px 36px 8px 12px; display: grid; gap: 4px; color: #111; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
-.messages-conversation-row strong { font-size: 17px; }
-.messages-conversation-row span { overflow: hidden; color: #666; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
-.messages-conversation-row i { position: absolute; right: 12px; top: 17px; color: #888; font: normal 28px/28px Arial, sans-serif; }
-.messages-thread { flex: 1 1 auto; min-height: 0; padding: 12px 9px; display: flex; flex-direction: column; gap: 9px; overflow-y: auto; background: #d8d8d8; }
-.sms-bubble { max-width: 226px; margin: 0; padding: 7px 11px 8px; border: 1px solid; border-radius: 14px; font-size: 15px; line-height: 19px; overflow-wrap: break-word; }
-.sms-bubble.is-incoming { align-self: flex-start; border-color: #aaa; background: linear-gradient(#fff,#dedede); box-shadow: inset 0 1px #fff; }
-.sms-bubble.is-outgoing { align-self: flex-end; border-color: #4a8b16; background: linear-gradient(#c4f78d,#70ca37); box-shadow: inset 0 1px rgba(255,255,255,.7); }
-.messages-composer { flex: 0 0 44px; padding: 6px; display: grid; grid-template-columns: 1fr auto; gap: 6px; border-top: 1px solid #888; background: linear-gradient(#eee,#bbb); }
-.messages-composer input { min-width: 0; height: 31px; padding: 4px 8px; color: #111; border: 1px solid #777; border-radius: 15px; background: #fff; outline: none; }
-.messages-composer button { height: 30px; padding: 0 10px; color: #fff; border: 1px solid #315c11; border-radius: 5px; background: linear-gradient(#8ad65d,#4fae24); font-size: 13px; font-weight: bold; text-shadow: 0 -1px #376f1c; }
-.messages-composer button:disabled { color: #ddd; border-color: #888; background: linear-gradient(#bbb,#999); text-shadow: none; }
+.camera-runtime-container, .camera-runtime-preview-surface { width: 320px; height: 460px; }
+.camera-runtime-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #000; }
+.camera-runtime-preview-surface { pointer-events: none; }
+.camera-picker-cancel { position: absolute; z-index: 3; right: 10px; bottom: 9px; min-width: 58px; height: 30px; padding: 0 9px; display: block; color: #fff; border: 1px solid #555; border-radius: 5px; background: #222; font-size: 14px; pointer-events: auto; }
+.mobilesms-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #111; background: #e9e9e9; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.mobilesms-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; padding: 0 8px; color: #fff; border-top: 1px solid #b7c3d1; border-bottom: 1px solid #263a54; background: linear-gradient(#9aadc1 0%,#7188a2 48%,#526d8c 51%,#587492 100%); box-shadow: inset 0 1px rgba(255,255,255,.38), inset 0 -1px rgba(0,0,0,.18); text-shadow: 0 -1px 1px rgba(0,0,0,.72); }
+.mobilesms-navigation-bar > strong { color: #fff; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 20px; font-weight: bold; line-height: 44px; }
+.mobilesms-list-edit-control { position: absolute; left: 10px; top: 0; height: 44px; color: #fff; font-size: 13px; font-weight: bold; line-height: 44px; text-shadow: 0 -1px 1px #26384e; }
+.mobilesms-compose-control-hold { position: absolute; right: 8px; top: 7px; width: 30px; height: 30px; }
+.mobilesms-back-button { position: absolute; z-index: 1; left: 14px; top: 7px; height: 30px; padding: 0 10px 0 8px; color: #fff; border: 1px solid #29425f; border-left: 0; border-radius: 0 5px 5px 0; background: linear-gradient(#849bb4 0%,#617c9b 49%,#3f6083 52%,#4e6d8e 100%); box-shadow: inset 0 1px rgba(255,255,255,.4), inset 0 -1px rgba(0,0,0,.16); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; line-height: 28px; text-shadow: 0 -1px 1px #26384e; }
+.mobilesms-back-button::before { content: ""; position: absolute; z-index: -1; left: -8px; top: 4px; width: 20px; height: 20px; transform: rotate(45deg); border: 1px solid #29425f; border-right: 0; border-top: 0; border-radius: 3px 0 3px 0; background: linear-gradient(135deg,#8299b2 0%,#597694 52%,#426486 100%); box-shadow: inset 1px 1px rgba(255,255,255,.24); }
+.mobilesms-conversation-list { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; background: #fff; }
+.mobilesms-conversation-row { width: 100%; height: 61px; padding: 7px 11px 6px 12px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; column-gap: 8px; color: #000; border: 0; border-bottom: 1px solid #b7b7b7; background: #fff; text-align: left; }
+.mobilesms-conversation-copy { min-width: 0; display: grid; align-content: center; gap: 2px; }
+.mobilesms-conversation-copy strong { overflow: hidden; color: #000; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 17px; font-weight: bold; line-height: 21px; text-overflow: ellipsis; white-space: nowrap; }
+.mobilesms-conversation-copy > span { overflow: hidden; color: #777; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 15px; font-weight: normal; line-height: 19px; text-overflow: ellipsis; white-space: nowrap; }
+.mobilesms-conversation-row time { padding-top: 2px; color: #888; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 11px; font-weight: normal; line-height: 16px; text-align: right; white-space: nowrap; }
+.mobilesms-conversation-scroll { flex: 1 1 auto; min-height: 0; width: 320px; padding: 9px 8px; display: flex; flex-direction: column; gap: 6px; overflow-x: hidden; overflow-y: auto; background: #d8d8d8; }
+.mobilesms-message-row { flex: 0 0 auto; width: 100%; display: flex; }
+.mobilesms-message-row.is-incoming { justify-content: flex-start; }
+.mobilesms-message-row.is-outgoing { justify-content: flex-end; }
+.mobilesms-bubble { display: block; max-width: 224px; margin: 0; padding: 6px 10px 7px; color: #111; border: 1px solid; border-radius: 12px; font-size: 14px; font-weight: normal; line-height: 18px; opacity: 1; visibility: visible; overflow-wrap: break-word; }
+.mobilesms-bubble.is-incoming { border-color: #a7a7a7; background: linear-gradient(#fafafa,#dedede); box-shadow: inset 0 1px rgba(255,255,255,.8); }
+.mobilesms-bubble.is-outgoing { border-color: #559b29; background: linear-gradient(#c9f49c,#7bd047); box-shadow: inset 0 1px rgba(255,255,255,.55); }
+.mobilesms-composer { flex: 0 0 44px; height: 44px; padding: 7px 7px 7px 10px; display: grid; grid-template-columns: 30px minmax(0,1fr) 49px; align-items: center; gap: 6px; border-top: 1px solid #7e7e7e; background: #c9c9c9; box-shadow: inset 0 1px rgba(255,255,255,.78); }
+.mobilesms-composer input { min-width: 0; width: 100%; height: 29px; padding: 4px 7px; color: #111; border: 1px solid #747474; border-radius: 6px; background: #fff; box-shadow: inset 0 1px 2px rgba(0,0,0,.2), 0 1px rgba(255,255,255,.58); font-size: 14px; line-height: 19px; outline: 0; }
+.mobilesms-composer button { height: 30px; padding: 0 8px; color: #fff; border: 1px solid #29496d; border-radius: 5px; background: linear-gradient(#8ca6c1 0%,#6483a4 49%,#41698f 52%,#4f769b 100%); box-shadow: inset 0 1px rgba(255,255,255,.42), inset 0 -1px rgba(0,0,0,.16); font-size: 13px; font-weight: bold; text-shadow: 0 -1px #294461; }
+.mobilesms-composer button:disabled { color: #eee; border-color: #858585; background: linear-gradient(#c7c7c7,#9d9d9d); box-shadow: inset 0 1px rgba(255,255,255,.48); text-shadow: 0 -1px rgba(0,0,0,.25); }
+.mobilesms-composer .mobilesms-camera-slot { width: 30px; height: 30px; display: block; padding: 0; appearance: none; -webkit-appearance: none; border: 0; border-radius: 0; background: transparent url("../assets/historical/ios4.1/mobilesms/PhotoButton@2x~iphone.png") center / 26px 27px no-repeat; box-shadow: none; }
+.mobilesms-composer .mobilesms-camera-slot:active { background-image: url("../assets/historical/ios4.1/mobilesms/PhotoButtonPressed@2x~iphone.png"); box-shadow: none; }
 .app-launch-container.is-launching { animation: app-runtime-open 180ms ease-out both; }
 .app-launch-container.is-resuming { animation: app-runtime-open 180ms ease-out both; }
 .app-launch-container.is-closing { animation: app-runtime-close 160ms ease-in both; }
@@ -121,16 +136,20 @@ button, input { font: inherit; }
 .multitasking-app-icon { width: 59px; height: 60px; display: block; }
 .multitasking-delete-control { position: absolute; left: -7px; top: -7px; width: 22px; height: 22px; padding: 0; border: 2px solid #fff; border-radius: 50%; color: #fff; background: #c00; font: bold 20px/16px Arial, Helvetica, sans-serif; text-align: center; }
 @keyframes multitasking-bar-open { from { opacity: 0; transform: translateY(96px); } to { opacity: 1; transform: translateY(0); } }
+/* Period-UIKit approximation: exact SMSAlertSheet material and metrics remain HOLD. */
 .sms-system-alert-layer { position: absolute; z-index: 40; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.28); }
-.sms-alert-sheet { width: 270px; overflow: hidden; color: #fff; border: 1px solid #111827; border-radius: 11px; background: rgba(31,42,58,.97); box-shadow: 0 2px 8px rgba(0,0,0,.75); text-align: center; text-shadow: 0 -1px #000; }
-.sms-alert-sheet > strong { display: block; padding: 12px 12px 4px; font-size: 18px; }
-.sms-alert-content { padding: 0 16px 12px; display: grid; gap: 5px; font-size: 14px; }
-.sms-alert-content b { font-size: 15px; }
-.sms-alert-content p { margin: 0; }
-.sms-alert-content small { color: #d4d8df; font-size: 12px; }
-.sms-alert-actions { height: 43px; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #111827; }
-.sms-alert-actions button { color: #fff; border: 0; border-right: 1px solid #111827; background: #4e6583; font-size: 16px; font-weight: bold; text-shadow: 0 -1px #1d2a3a; }
+.sms-alert-sheet { width: 270px; overflow: hidden; color: #fff; border: 1px solid rgba(12,20,31,.96); border-radius: 11px; background: linear-gradient(rgba(79,96,121,.97) 0%,rgba(48,63,85,.97) 46%,rgba(29,41,58,.98) 100%); box-shadow: inset 0 1px rgba(255,255,255,.34), inset 0 -1px rgba(0,0,0,.42), 0 2px 8px rgba(0,0,0,.72); font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; text-align: center; text-shadow: 0 -1px rgba(0,0,0,.9); }
+.sms-alert-title { display: block; padding: 11px 12px 3px; color: #fff; font-size: 18px; font-weight: bold; line-height: 22px; }
+.sms-alert-content { padding: 0 16px 12px; display: grid; gap: 4px; font-size: 14px; }
+.sms-alert-sender { color: #fff; font-size: 15px; font-weight: bold; line-height: 18px; }
+.sms-alert-body { margin: 0; color: #fff; font-size: 14px; font-weight: normal; line-height: 18px; }
+.sms-alert-actions { height: 43px; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid rgba(10,17,27,.95); box-shadow: inset 0 1px rgba(255,255,255,.14); }
+.sms-alert-actions button { appearance: none; -webkit-appearance: none; padding: 0; color: #fff; border: 0; border-right: 1px solid rgba(10,17,27,.95); background: linear-gradient(rgba(101,126,157,.96) 0%,rgba(72,97,128,.97) 49%,rgba(53,76,105,.98) 52%,rgba(61,84,113,.98) 100%); box-shadow: inset 0 1px rgba(255,255,255,.22); font-size: 16px; font-weight: bold; line-height: 43px; text-align: center; text-shadow: 0 -1px rgba(18,31,48,.95); }
 .sms-alert-actions button:last-child { border-right: 0; }
+.sms-alert-actions button:active { background: linear-gradient(rgba(63,83,108,.98),rgba(39,57,80,.99)); box-shadow: inset 0 1px 2px rgba(0,0,0,.45); }
+.low-battery-alert .sms-alert-content { padding-top: 2px; }
+.low-battery-alert-actions { grid-template-columns: 1fr; }
+.low-battery-alert-actions button { border-right: 0; }
 .springboard-badge { position: absolute; z-index: 3; right: -7px; top: -7px; width: 29px; height: 31px; display: block; }
 .springboard-badge-artwork { position: absolute; inset: 0; display: block; background-position: center; background-size: 29px 31px; background-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; -webkit-mask-size: 29px 31px; mask-size: 29px 31px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
 .springboard-badge > b { position: absolute; z-index: 1; inset: 0; color: #fff; font: bold 12px/29px Arial, Helvetica, sans-serif; text-align: center; text-shadow: 0 -1px 1px #700; }

@@ -7,6 +7,7 @@ export type DeviceEventType =
   | "dadLoveReply"
   | "facebookJackRequest"
   | "facebookJuneMessage"
+  | "facebookPartyInvite"
   | "twitterBackgroundTweet"
   | "foursquareActivity"
   | "tumblrBackgroundPost";
@@ -15,6 +16,7 @@ export type DeviceEventPayload =
   | { kind: "initial-sms"; id: string; sender: string; message: string; timestamp: string }
   | { kind: "jack-request" }
   | { kind: "june-message"; sender: string; message: string }
+  | { kind: "facebook-party-invite" }
   | { kind: "twitter-post"; post: { id: string; displayName: string; text: string; timestamp: string } }
   | { kind: "foursquare-activity"; activityId: string; message: string }
   | { kind: "tumblr-post"; post: { id: string; type: "text" | "photo" | "quote"; blog: string; title: string; content: string; timestamp: string } };

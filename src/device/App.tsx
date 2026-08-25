@@ -10,7 +10,8 @@ import type { CameraOwner } from "../state/cameraRuntime";
 import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent, scheduleDeviceEvents } from "../state/deviceEventScheduler";
 import { batteryPercent, BOOT_DURATION_MS, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
-import { createInitialFacebookState, facebookStateTransition } from "../state/facebookState";
+import { createInitialFacebookState, deterministicFacebookPartyInviteDelayMs, FACEBOOK_PARTY_INVITE_EVENT_ID, facebookStateTransition } from "../state/facebookState";
+import type { FacebookEvent } from "../state/facebookState";
 import { createInitialFoursquareState, foursquareStateTransition } from "../state/foursquareState";
 import { createInitialInstagramState, instagramStateTransition } from "../state/instagramState";
 import { multitaskingBarStateTransition } from "../state/multitaskingBarState";
@@ -121,6 +122,28 @@ export function App() {
   const lockScreenModel = createLockScreenModel(lockScreenTime, deviceDate, statusBarState);
 
   const update = (change: Partial<Session>) => setSession(s => ({ ...s, ...change }));
+  const dispatchFacebookEvent = (event: FacebookEvent) => {
+    const validJuneTrigger = event.type === "SUBMIT_JUNE_REPLY"
+      && Boolean(facebookState.juneReplyDraft.trim())
+      && facebookState.inboxThreads.some(thread => thread.id === "june-live-message");
+    const validJackTrigger = event.type === "ACCEPT_JACK" && facebookState.friendRequestState === "pending";
+    const shouldSchedulePartyInvite = facebookState.partyInviteState === "none" && (validJuneTrigger || validJackTrigger);
+
+    dispatchFacebook(event);
+    if (!shouldSchedulePartyInvite) return;
+    setSession(current => ({
+      ...current,
+      deviceEvents: scheduleDeviceEvent(current.deviceEvents, {
+        id: FACEBOOK_PARTY_INVITE_EVENT_ID,
+        type: "facebookPartyInvite",
+        dueElapsedMs: elapsedMs(current, Date.now()) + deterministicFacebookPartyInviteDelayMs(current.sessionIdentity.name),
+        sourceApp: "facebook",
+        deliveryPolicy: "internal",
+        payload: { kind: "facebook-party-invite" },
+        provenanceStatus: "CURATED",
+      }),
+    }));
+  };
   const cameraOwnerForApp = (appId: string | null): CameraOwner | null => appId === "camera"
     ? "cameraApp"
     : appId === "messages" && cameraRuntime.cameraPicker.phase !== "none"
@@ -204,6 +227,8 @@ export function App() {
       dispatchFacebook({ type: "DELIVER_JACK_REQUEST" });
     } else if (event.type === "facebookJuneMessage") {
       dispatchFacebook({ type: "DELIVER_JUNE_MESSAGE" });
+    } else if (event.type === "facebookPartyInvite" && event.payload?.kind === "facebook-party-invite") {
+      dispatchFacebook({ type: "DELIVER_PARTY_INVITE", timestamp: deviceStatusTime });
     } else if (event.type === "twitterBackgroundTweet" && event.payload?.kind === "twitter-post") {
       dispatchTwitter({ type: "DELIVER_TIMELINE_TWEET", tweet: event.payload.post });
     } else if (event.type === "foursquareActivity" && event.payload?.kind === "foursquare-activity") {
@@ -715,7 +740,7 @@ export function App() {
           />}
           {appRuntime.activeAppId === "facebook" && <FacebookContainer
             state={facebookState}
-            dispatch={dispatchFacebook}
+            dispatch={dispatchFacebookEvent}
           />}
           {appRuntime.activeAppId === "instagram" && <InstagramContainer
             state={instagramState}

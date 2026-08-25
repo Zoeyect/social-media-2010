@@ -1,14 +1,17 @@
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
-import type { CoreSocialFriendId } from "../data/coreSocialFriends";
+import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
 
 export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "requests" | "inbox" | "messageDetail";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
 export type FacebookFriendRequestState = "none" | "pending" | "accepted" | "ignored";
 export type FacebookMessageState = "none" | "unread" | "read" | "replied";
+export type FacebookPartyInviteState = "none" | "eligible" | "delivered" | "opened" | "dismissed";
+
+export const FACEBOOK_PARTY_INVITE_EVENT_ID = "facebook-party-invite";
 
 export type FacebookFriend = {
-  id: string;
+  id: CoreSocialCharacterId;
   name: string;
 };
 
@@ -20,7 +23,7 @@ export type FacebookUserText = {
 
 export type FacebookFeedItem = {
   id: string;
-  friendId?: CoreSocialFriendId;
+  friendId?: CoreSocialCharacterId;
   author: string;
   text: string;
   timestamp: string;
@@ -31,7 +34,7 @@ export type FacebookFeedItem = {
 
 export type FacebookMessageThread = {
   id: string;
-  friendId?: CoreSocialFriendId;
+  friendId?: CoreSocialCharacterId;
   sender: string;
   preview: string;
   timestamp: string;
@@ -50,6 +53,9 @@ export type FacebookState = {
   likedItemIds: string[];
   friendRequestState: FacebookFriendRequestState;
   friends: FacebookFriend[];
+  partyInviteState: FacebookPartyInviteState;
+  partyInviteEligibleFromJune: boolean;
+  partyInviteEligibleFromJack: boolean;
   inboxThreads: FacebookMessageThread[];
   selectedMessageId: string | null;
   juneReplies: FacebookUserText[];
@@ -86,6 +92,7 @@ export type FacebookEvent =
   | { type: "SUBMIT_COMMENT"; displayName: string }
   | { type: "DELIVER_JACK_REQUEST" }
   | { type: "DELIVER_JUNE_MESSAGE" }
+  | { type: "DELIVER_PARTY_INVITE"; timestamp: string }
   | { type: "RESET"; displayName?: string };
 
 export function createInitialFacebookState(displayName: string): FacebookState {
@@ -104,6 +111,9 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     likedItemIds: [],
     friendRequestState: "none",
     friends: [],
+    partyInviteState: "none",
+    partyInviteEligibleFromJune: false,
+    partyInviteEligibleFromJack: false,
     inboxThreads: SESSION_SEED_CONTENT.facebook.inbox.map(message => ({ ...message })),
     selectedMessageId: null,
     juneReplies: [],
@@ -177,6 +187,8 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       return state.friendRequestState === "pending" ? {
         ...state,
         friendRequestState: "accepted",
+        partyInviteEligibleFromJack: true,
+        partyInviteState: state.partyInviteState === "none" ? "eligible" : state.partyInviteState,
         friends: state.friends.some(friend => friend.id === "jack")
           ? state.friends
           : [...state.friends, { id: "jack", name: "Jack" }],
@@ -188,6 +200,9 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       if (!message) return state;
       return {
         ...state,
+        partyInviteState: message.id === FACEBOOK_PARTY_INVITE_EVENT_ID && state.partyInviteState === "delivered"
+          ? "opened"
+          : state.partyInviteState,
         currentView: "messageDetail",
         navigationStack: [...state.navigationStack, "messageDetail"],
         selectedMessageId: message.id,
@@ -205,6 +220,8 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       if (!text || selectFacebookJuneMessageState(state) === "none") return state;
       return {
         ...state,
+        partyInviteEligibleFromJune: true,
+        partyInviteState: state.partyInviteState === "none" ? "eligible" : state.partyInviteState,
         juneReplies: [...state.juneReplies, {
           id: `facebook-june-reply-${state.juneReplies.length + 1}`,
           author: event.displayName,
@@ -247,6 +264,23 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         ...state,
         inboxThreads: [{ id: "june-live-message", sender: "June", preview: "Hey, are you online?", timestamp: "12:06 AM", status: "unread", origin: "live" }, ...state.inboxThreads],
       } : state;
+    case "DELIVER_PARTY_INVITE":
+      if (state.partyInviteState !== "eligible") return state;
+      return {
+        ...state,
+        partyInviteState: "delivered",
+        inboxThreads: state.inboxThreads.some(thread => thread.id === FACEBOOK_PARTY_INVITE_EVENT_ID)
+          ? state.inboxThreads
+          : [{
+              id: FACEBOOK_PARTY_INVITE_EVENT_ID,
+              friendId: "june",
+              sender: "June",
+              preview: "Party at Jack's Friday. You coming?",
+              timestamp: event.timestamp,
+              status: "unread",
+              origin: "live",
+            }, ...state.inboxThreads],
+      };
     case "RESET":
       return createInitialFacebookState(event.displayName ?? "");
   }
@@ -265,4 +299,14 @@ export function selectFacebookJuneMessageState(state: FacebookState): FacebookMe
   if (!juneThread) return "none";
   if (state.juneReplies.length > 0) return "replied";
   return juneThread.status;
+}
+
+export function deterministicFacebookPartyInviteDelayMs(sessionIdentity: string): number {
+  const seed = `${FACEBOOK_PARTY_INVITE_EVENT_ID}|${sessionIdentity.trim().toLowerCase()}`;
+  let hash = 2166136261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return 20_000 + ((hash >>> 0) % 40_001);
 }

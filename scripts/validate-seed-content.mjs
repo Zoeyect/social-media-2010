@@ -23,6 +23,25 @@ try {
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
 
   const seed = seedContent.SESSION_SEED_CONTENT;
+  assert.deepEqual(coreSocialFriends.CORE_SOCIAL_CHARACTER_IDS, ["katie", "matt", "alex", "chris", "jay", "june", "jack", "ben", "luca"]);
+  assert.deepEqual(
+    Object.values(coreSocialFriends.CORE_SOCIAL_CHARACTERS).map(character => [character.id, character.category, character.lifeStage, character.classification]),
+    [
+      ["katie", "core-friend", "young-social-circle", "CURATED FICTIONAL"],
+      ["matt", "core-friend", "young-social-circle", "CURATED FICTIONAL"],
+      ["alex", "core-friend", "young-social-circle", "CURATED FICTIONAL"],
+      ["chris", "core-friend", "young-social-circle", "CURATED FICTIONAL"],
+      ["jay", "core-friend", "young-social-circle", "CURATED FICTIONAL"],
+      ["june", "narrative-contact", "young-social-circle", "CURATED FICTIONAL"],
+      ["jack", "narrative-contact", "young-social-circle", "CURATED FICTIONAL"],
+      ["ben", "extended-friend", "working-adult", "CURATED FICTIONAL"],
+      ["luca", "extended-friend", "working-adult", "CURATED FICTIONAL"],
+    ],
+    "the canonical social character set, categories, and life-stage anchors must remain locked",
+  );
+  assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.katie, coreSocialFriends.CORE_SOCIAL_CHARACTERS.katie, "compatibility views must reuse canonical identity objects");
+  assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.jay, coreSocialFriends.CORE_SOCIAL_CHARACTERS.jay, "compatibility views must not duplicate character records");
+  assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => relationship.characterIds), [["katie", "ben"], ["chris", "luca"]]);
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_FRIEND_IDS, ["katie", "matt", "alex", "chris", "jay"]);
   assert.deepEqual(
     Object.values(coreSocialFriends.CORE_SOCIAL_FRIENDS).map(friend => [friend.id, friend.displayName, friend.fictional]),
@@ -179,6 +198,64 @@ try {
   assert.ok(facebookA.inboxThreads.filter(thread => thread.id !== "june-live-message").every(thread => thread.origin === "seed"), "older Facebook inbox content must survive live delivery");
   assert.equal(facebookB.friendRequestState, "none");
   assert.equal(facebookB.inboxThreads.some(thread => thread.id === "june-live-message"), false);
+
+  const partyInviteDelay = facebook.deterministicFacebookPartyInviteDelayMs("Zoey");
+  assert.ok(partyInviteDelay >= 20_000 && partyInviteDelay <= 60_000, "party invitation delay must stay within the curated 20-60 second window");
+  assert.equal(facebook.deterministicFacebookPartyInviteDelayMs("Zoey"), partyInviteDelay, "party invitation delay must be deterministic per session identity");
+  assert.equal(facebookA.partyInviteState, "none", "party invitation must not exist before either eligibility trigger");
+  assert.equal(facebookA.inboxThreads.some(thread => thread.id === facebook.FACEBOOK_PARTY_INVITE_EVENT_ID), false);
+
+  let junePartyState = facebook.facebookStateTransition(facebookA, { type: "OPEN_JUNE_MESSAGE" });
+  junePartyState = facebook.facebookStateTransition(junePartyState, { type: "EDIT_JUNE_REPLY", value: "Still awake." });
+  junePartyState = facebook.facebookStateTransition(junePartyState, { type: "SUBMIT_JUNE_REPLY", displayName: "Zoey" });
+  assert.equal(junePartyState.partyInviteEligibleFromJune, true, "any non-empty June reply must establish June eligibility");
+  assert.equal(junePartyState.partyInviteState, "eligible");
+
+  let ignoredJackPartyState = facebook.facebookStateTransition(facebook.createInitialFacebookState("Zoey"), { type: "DELIVER_JACK_REQUEST" });
+  ignoredJackPartyState = facebook.facebookStateTransition(ignoredJackPartyState, { type: "IGNORE_JACK" });
+  assert.equal(ignoredJackPartyState.partyInviteEligibleFromJack, false, "ignoring Jack must not establish eligibility");
+  assert.equal(ignoredJackPartyState.partyInviteState, "none");
+
+  let jackPartyState = facebook.facebookStateTransition(facebook.createInitialFacebookState("Zoey"), { type: "DELIVER_JACK_REQUEST" });
+  jackPartyState = facebook.facebookStateTransition(jackPartyState, { type: "ACCEPT_JACK" });
+  assert.equal(jackPartyState.partyInviteEligibleFromJack, true, "accepting Jack must establish Jack eligibility");
+  assert.equal(jackPartyState.partyInviteState, "eligible");
+
+  const partyInviteDueElapsedMs = 300_000 + partyInviteDelay;
+  let partyInviteEvents = scheduler.scheduleDeviceEvent([], {
+    id: facebook.FACEBOOK_PARTY_INVITE_EVENT_ID,
+    type: "facebookPartyInvite",
+    dueElapsedMs: partyInviteDueElapsedMs,
+    sourceApp: "facebook",
+    deliveryPolicy: "internal",
+    payload: { kind: "facebook-party-invite" },
+    provenanceStatus: "CURATED",
+  });
+  partyInviteEvents = scheduler.scheduleDeviceEvent(partyInviteEvents, { ...partyInviteEvents[0] });
+  assert.equal(partyInviteEvents.length, 1, "June and Jack paths must converge on one stable scheduled event ID");
+  assert.equal(scheduler.nextDueDeviceEvent(partyInviteEvents, partyInviteDueElapsedMs - 1), null, "party invitation must not arrive before its deterministic delay");
+  assert.equal(scheduler.nextDueDeviceEvent(partyInviteEvents, partyInviteDueElapsedMs)?.id, facebook.FACEBOOK_PARTY_INVITE_EVENT_ID);
+
+  let sharedPartyState = facebook.facebookStateTransition(junePartyState, { type: "DELIVER_JACK_REQUEST" });
+  sharedPartyState = facebook.facebookStateTransition(sharedPartyState, { type: "ACCEPT_JACK" });
+  assert.deepEqual([sharedPartyState.partyInviteEligibleFromJune, sharedPartyState.partyInviteEligibleFromJack], [true, true]);
+  sharedPartyState = facebook.facebookStateTransition(sharedPartyState, { type: "SHOW_HOME" });
+  assert.equal(sharedPartyState.partyInviteState, "eligible", "Facebook navigation must preserve invite eligibility");
+  sharedPartyState = facebook.facebookStateTransition(sharedPartyState, { type: "DELIVER_PARTY_INVITE", timestamp: "12:08 AM" });
+  sharedPartyState = facebook.facebookStateTransition(sharedPartyState, { type: "DELIVER_PARTY_INVITE", timestamp: "12:09 AM" });
+  assert.equal(sharedPartyState.partyInviteState, "delivered");
+  assert.equal(sharedPartyState.inboxThreads.filter(thread => thread.id === facebook.FACEBOOK_PARTY_INVITE_EVENT_ID).length, 1, "party invitation must be delivered at most once");
+  assert.equal(sharedPartyState.inboxThreads.find(thread => thread.id === facebook.FACEBOOK_PARTY_INVITE_EVENT_ID)?.status, "unread");
+  sharedPartyState = facebook.facebookStateTransition(sharedPartyState, { type: "OPEN_MESSAGE", messageId: facebook.FACEBOOK_PARTY_INVITE_EVENT_ID });
+  assert.equal(sharedPartyState.partyInviteState, "opened");
+  assert.equal(sharedPartyState.inboxThreads.find(thread => thread.id === facebook.FACEBOOK_PARTY_INVITE_EVENT_ID)?.status, "read");
+  const resetPartyState = facebook.facebookStateTransition(sharedPartyState, { type: "RESET", displayName: "Zoey" });
+  assert.deepEqual(
+    [resetPartyState.partyInviteState, resetPartyState.partyInviteEligibleFromJune, resetPartyState.partyInviteEligibleFromJack],
+    ["none", false, false],
+    "new session must clear party eligibility and delivery state",
+  );
+  assert.equal(resetPartyState.inboxThreads.some(thread => thread.id === facebook.FACEBOOK_PARTY_INVITE_EVENT_ID), false);
 
   let facebookNavigation = facebook.createInitialFacebookState("Zoey");
   facebookNavigation = facebook.facebookStateTransition(facebookNavigation, { type: "SHOW_FEED" });

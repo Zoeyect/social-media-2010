@@ -13,7 +13,7 @@ Curated live events and user-generated session actions remain separate. All muta
 | Twitter | Reply, native Retweet timeline activity; preserve Favorite | v0.3 implemented and code-tested | None found | Exact immediate client insertion, attribution chrome, and geometry remain C/HOLD; browser interaction NOT TESTED | `Integrate Twitter Retweets into the timeline` |
 | Facebook | Jack friend outcome, June reply thread, one plain Feed comment interaction | Implemented and code-tested | None found | Exact Facebook 2010 Friends/message/comment chrome remains C/HOLD; browser interaction NOT TESTED | `Add Facebook v0.2 friend, message, and comment playability` |
 | Foursquare | Optional check-in shout, per-venue record, open/close Tip | Implemented and code-tested | None found | Exact shout limit/timestamp chrome and To-Do interaction remain HOLD; Mayor read-only and badges excluded | `Add Foursquare v0.2 shout and Tip playability` |
-| Flickr | Plain comments; minimal Sets path if architecture supports it | Planned | Not assessed | Exact comments/Sets chrome remains HOLD | Pending |
+| Flickr | Seed/user comments and two ID-based Sets with origin-aware Back routing | Implemented and code-tested | None found | Exact 2010 comments/Sets chrome, seed commenter identity, and imagery remain C/HOLD | `Add Flickr v0.2 comments and Sets playability` |
 | Tumblr | Reblog confirmation with optional short text; Notes only if evidenced | Planned | Not assessed | Exact reblog and Notes behavior remains HOLD | Pending |
 | Instagram | Camera/first-photo flow only if launch-era evidence is sufficient | HOLD | Not assessed | Do not populate or fabricate the empty account | Pending |
 | Messages | No expansion in this phase unless explicitly requested | Unchanged | None | Additional scripted replies remain out of scope | Existing freeze retained |
@@ -51,6 +51,17 @@ Curated live events and user-generated session actions remain separate. All muta
 - Mayor stays assigned to the seeded other user and no badge is awarded.
 - Reset clears check-ins, shout drafts, points, venue/Tip selection, and live activity, restoring the immutable ambient seed baseline.
 - Global scheduler/timeline definitions, frozen System modules, Twitter, Facebook, and other apps were not modified.
+
+## Flickr v0.2 result
+
+- Existing seed comment strings are cloned into session-local records with `origin: "seed"`; no unsupported seed author is invented.
+- User comments use `sessionIdentity.name`, remain plain text and session-local, and carry `origin: "user"`.
+- Two small CURATED Sets reference existing photo IDs instead of duplicating photo records.
+- Photo Detail is reused from both Photostream and Set navigation. A local navigation-origin record returns Back to the correct source while retaining Photostream scroll.
+- Favorite, Comments, and Set membership remain independent.
+- Reset removes user comments, Favorites, selected photo/Set, navigation origin, drafts, and scroll, then recreates the seed comment and Set baseline.
+- Upload, Camera Roll, camera capture, EXIF, and maps remain HOLD; Camera Runtime was not modified.
+- Global scheduler/timeline definitions, frozen System modules, Twitter, Facebook, Foursquare, and other apps were not modified.
 
 ## Phase status
 

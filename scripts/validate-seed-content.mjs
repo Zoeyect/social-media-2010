@@ -353,9 +353,41 @@ try {
   assert.notStrictEqual(flickrA.photos, flickrB.photos);
   assert.notStrictEqual(flickrA.photos[0], flickrB.photos[0]);
   assert.ok(flickrA.photos.every(photo => photo.origin === "seed" && photo.timestamp < "2010-10-20 12:02 AM"));
+  assert.deepEqual(flickrA.commentsState.map(comment => [comment.text, comment.origin]), [["Nice shot", "seed"]], "existing Flickr comments must normalize into session-local seed records");
+  assert.ok(flickrA.sets.length <= 2 && flickrA.sets.every(set => set.photoIds.every(photoId => flickrA.photos.some(photo => photo.id === photoId))), "Flickr Sets must reference existing photo IDs without duplicate photo objects");
   flickrA = flickr.flickrStateTransition(flickrA, { type: "TOGGLE_FAVORITE", photoId: flickrA.photos[0].id });
   assert.equal(flickrA.favoritePhotoIds.length, 1);
   assert.equal(flickrB.favoritePhotoIds.length, 0, "Flickr Favorite state must remain session-local");
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_PHOTO", photoId: "sunset-brooklyn", origin: { view: "photostream" }, photostreamScrollPosition: 91 });
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_COMMENTS" });
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "EDIT_COMMENT", value: "Still beautiful." });
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "SUBMIT_COMMENT", author: "Zoey" });
+  assert.deepEqual(flickrA.commentsState.at(-1), {
+    id: "flickr-user-comment-1",
+    photoId: "sunset-brooklyn",
+    author: "Zoey",
+    text: "Still beautiful.",
+    origin: "user",
+  });
+  assert.deepEqual(seed.flickr[0].comments, ["Nice shot"], "user comment must not mutate the Flickr seed definition");
+  assert.deepEqual(flickrA.favoritePhotoIds, ["sunset-brooklyn"], "commenting must not alter Favorite state");
+  assert.equal(flickrA.photostreamScrollPosition, 91);
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "BACK_TO_PHOTO" });
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "BACK_FROM_PHOTO" });
+  assert.equal(flickrA.currentView, "photostream");
+  assert.equal(flickrA.photostreamScrollPosition, 91, "photo opened from Photostream must restore its scroll position");
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "SHOW_SETS" });
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_SET", setId: "late-night" });
+  const setMembershipBeforePhoto = [...flickrA.sets.find(set => set.id === "late-night").photoIds];
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_PHOTO", photoId: "platform", origin: { view: "set", setId: "late-night" } });
+  assert.equal(flickrA.currentView, "photo");
+  assert.deepEqual(flickrA.photoNavigationOrigin, { view: "set", setId: "late-night" });
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "BACK_FROM_PHOTO" });
+  assert.equal(flickrA.currentView, "set", "photo opened from a Set must return to that Set");
+  assert.equal(flickrA.currentSetId, "late-night");
+  assert.deepEqual(flickrA.sets.find(set => set.id === "late-night").photoIds, setMembershipBeforePhoto, "navigation and comments must not alter Set membership");
+  assert.deepEqual(flickrA.favoritePhotoIds, ["sunset-brooklyn"]);
+  assert.equal(flickrA.commentsState.filter(comment => comment.origin === "user").length, 1);
 
   const instagramState = instagram.createInitialInstagramState();
   assert.deepEqual({ photos: instagramState.photos.length, followers: instagramState.followers, following: instagramState.following }, { photos: 0, followers: 0, following: 0 });
@@ -390,6 +422,12 @@ try {
   assert.equal(facebookAlex.inboxThreads.some(thread => thread.id === "june-live-message"), false);
   assert.equal(facebookAlex.feed.find(item => item.id === "owner-late").author, "Alex");
   assert.deepEqual(flickrAlex.favoritePhotoIds, []);
+  assert.equal(flickrAlex.currentView, "photostream");
+  assert.equal(flickrAlex.selectedPhotoId, null);
+  assert.equal(flickrAlex.currentSetId, null);
+  assert.equal(flickrAlex.photostreamScrollPosition, 0);
+  assert.equal(flickrAlex.commentsState.filter(comment => comment.origin === "user").length, 0);
+  assert.deepEqual(flickrAlex.commentsState.map(comment => [comment.text, comment.origin]), [["Nice shot", "seed"]]);
   assert.deepEqual(tumblrAlex.likedPostIds, []);
   assert.deepEqual(tumblrAlex.rebloggedPostIds, []);
   assert.deepEqual(foursquareAlex.checkIns, {});

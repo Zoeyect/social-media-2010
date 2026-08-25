@@ -1,10 +1,10 @@
-import carrierArtworkSrc from "../assets/historical/ios4.1/statusbar/carrier/FSO_CARRIER_ATT@2x.png";
+import { STATUS_BAR_ASSETS } from "../data/statusBarAssets";
 
 export const DEVICE_CARRIER_CONFIG = {
   carrier: "AT&T",
   networkType: "3G",
   locale: "en-US",
   region: "US",
-  carrierArtworkSrc,
+  carrierArtworkSrc: STATUS_BAR_ASSETS.carrier.attFso,
   carrierArtworkVariant: "FSO",
 } as const;

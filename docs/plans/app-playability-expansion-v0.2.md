@@ -73,6 +73,18 @@ Curated live events and user-generated session actions remain separate. All muta
 - Reset removes Friends, June state/replies/draft, comments/draft, Likes, and the scheduled live records, then restores the Facebook seed baseline with the new identity.
 - Global timeline definitions, scheduler code, frozen System modules, Messages, and Twitter were not modified.
 
+## Facebook 2010 native IA correction v0.2 result
+
+- Facebook now launches into a Facebook-local Home hub instead of a persistent Feed/Requests/Messages strip.
+- The implemented Home destinations are limited to existing evidence-backed, functional surfaces: News Feed, current-user Profile, Friends, Inbox, and Requests. Places/Chat/Photos root functionality remains out of scope/HOLD.
+- A Facebook-local navigation stack preserves origin-aware Back behavior. Feed → Profile → Back restores Feed and its scroll position; Inbox → June → Back restores Inbox.
+- Feed avatar/name entry opens Profile/Wall. Wall reuses the same Feed records and Like state instead of cloning post entities.
+- Current-user Profile uses `sessionIdentity.name` and exposes structural Wall/Info/Photos/Friends sections. Unsupported Info/Photos content remains empty HOLD structure without fabricated assets.
+- Accepted Jack appears through the shared Friends relation; ignored or not-yet-delivered Jack does not. Requests and Inbox counts derive from pending/unread records.
+- June remains an integrated Inbox thread, not Chat or standalone Messenger. Opening Inbox alone does not clear unread; opening June does.
+- Existing scheduled timing, Like, Comment, June reply, session reset, shared lifecycle, scheduler, and sibling applications remain unchanged.
+- Exact Facebook chrome, icon rasters, typography, gradients, notification-area treatment, and pixel geometry remain C/HOLD.
+
 ## Foursquare v0.2 result
 
 - Each successful check-in now stores the current session identity, action timestamp, optional trimmed shout, and points awarded for its venue.

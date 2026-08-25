@@ -1,5 +1,6 @@
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
+import type { CoreSocialFriendId } from "../data/coreSocialFriends";
 
 export type TwitterTab = "timeline" | "mentions" | "messages" | "search" | "more";
 export type TwitterView = "timeline" | "tweetDetail" | "composer" | "userProfile" | "searchLanding" | "suggestedUsers" | "following" | "mentions" | "messagesList" | "dmThread";
@@ -26,6 +27,7 @@ export type TwitterAccountStatistics = {
 
 export type TwitterTweet = {
   id: string;
+  friendId?: CoreSocialFriendId;
   displayName: string;
   authorHandle?: string;
   text: string;
@@ -37,9 +39,9 @@ export type TwitterTweet = {
   linkedTweetId?: string | null;
 };
 
-export type TwitterMention = { id: string; tweetId: string; unread: boolean; homeTimelineEligible: boolean; origin: "seed"; provenance: "CURATED" };
+export type TwitterMention = { id: string; friendId: CoreSocialFriendId; tweetId: string; unread: boolean; homeTimelineEligible: boolean; origin: "seed"; provenance: "CURATED" };
 export type TwitterDirectMessage = { id: string; text: string; linkedTweetId: string | null; origin: "seed" };
-export type TwitterDirectMessageThread = { id: string; sender: string; timestamp: string; unread: boolean; messages: TwitterDirectMessage[]; origin: "seed"; provenance: "CURATED" };
+export type TwitterDirectMessageThread = { id: string; friendId: CoreSocialFriendId; sender: string; timestamp: string; unread: boolean; messages: TwitterDirectMessage[]; origin: "seed"; provenance: "CURATED" };
 
 export type TwitterReply = {
   id: string;
@@ -368,9 +370,10 @@ export function createInitialTwitterState(sessionDisplayName: string): TwitterSt
     ownerProfileStats: {
       ...OWNER_PROFILE_BASELINE,
     },
-    mentions: SESSION_SEED_CONTENT.twitterMentions.map(mention => ({ id: mention.id, tweetId: `tweet-${mention.id}`, unread: mention.unread, homeTimelineEligible: mention.sender === "Alex", origin: mention.origin, provenance: mention.provenance })),
+    mentions: SESSION_SEED_CONTENT.twitterMentions.map(mention => ({ id: mention.id, friendId: mention.friendId, tweetId: `tweet-${mention.id}`, unread: mention.unread, homeTimelineEligible: mention.sender === "Alex", origin: mention.origin, provenance: mention.provenance })),
     mentionTweets: SESSION_SEED_CONTENT.twitterMentions.map(mention => ({
       id: `tweet-${mention.id}`,
+      friendId: mention.friendId,
       displayName: mention.sender,
       authorHandle: twitterReplyHandle(mention.sender),
       text: mention.textTemplate.replace("{handle}", twitterReplyHandle(sessionDisplayName).slice(1)),

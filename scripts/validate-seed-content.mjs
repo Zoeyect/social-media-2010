@@ -17,11 +17,18 @@ try {
   const flickr = await vite.ssrLoadModule("/src/state/flickrState.ts");
   const instagram = await vite.ssrLoadModule("/src/state/instagramState.ts");
   const seedContent = await vite.ssrLoadModule("/src/data/sessionSeedContent.ts");
+  const coreSocialFriends = await vite.ssrLoadModule("/src/data/coreSocialFriends.ts");
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
 
   const seed = seedContent.SESSION_SEED_CONTENT;
+  assert.deepEqual(coreSocialFriends.CORE_SOCIAL_FRIEND_IDS, ["katie", "matt", "alex", "chris", "jay"]);
+  assert.deepEqual(
+    Object.values(coreSocialFriends.CORE_SOCIAL_FRIENDS).map(friend => [friend.id, friend.displayName, friend.fictional]),
+    [["katie", "Katie", true], ["matt", "Matt", true], ["alex", "Alex", true], ["chris", "Chris", true], ["jay", "Jay", true]],
+    "core social friend identities must remain centralized and immutable",
+  );
   const timelineDefinitions = sessionTimeline.SESSION_TIMELINE_EVENTS;
   const expectedTimeline = [
     ["initial-sms-mom-home-yet", 60, "initialSMS"],
@@ -150,24 +157,55 @@ try {
 
   let facebookA = facebook.createInitialFacebookState("Zoey");
   const facebookB = facebook.createInitialFacebookState("Alex");
+  assert.equal(facebookA.currentView, "home", "Facebook must launch into the audited Home hub");
+  assert.deepEqual(facebookA.navigationStack, ["home"]);
+  assert.equal(facebook.selectFacebookRequestCount(facebookA), 0);
+  assert.equal(facebook.selectFacebookInboxUnreadCount(facebookA), 0);
   assert.equal(facebookA.friendRequestState, "none");
-  assert.equal(facebookA.juneMessageState, "none");
+  assert.equal(facebook.selectFacebookJuneMessageState(facebookA), "none");
   assert.ok(facebookA.inboxThreads.every(thread => thread.origin === "seed" && thread.status === "read"));
+  assert.deepEqual(facebookA.inboxThreads.map(thread => [thread.friendId, thread.sender]), [["katie", "Katie"], ["jay", "Jay"]]);
+  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["katie", "Katie"], ["jay", "Jay"]]);
   facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JACK_REQUEST" });
   facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JUNE_MESSAGE" });
   facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JACK_REQUEST" });
   facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JUNE_MESSAGE" });
   assert.equal(facebookA.friendRequestState, "pending");
-  assert.equal(facebookA.juneMessageState, "unread");
+  assert.equal(facebook.selectFacebookJuneMessageState(facebookA), "unread");
+  assert.equal(facebook.selectFacebookRequestCount(facebookA), 1, "Requests count must derive from pending state");
+  assert.equal(facebook.selectFacebookInboxUnreadCount(facebookA), 1, "Inbox count must derive from unread threads");
   assert.equal(facebookA.inboxThreads.filter(thread => thread.id === "june-live-message").length, 1, "June live message must deliver once");
   assert.ok(facebookA.feed.every(item => item.origin === "seed"), "older Facebook feed content must remain seed content");
   assert.ok(facebookA.inboxThreads.filter(thread => thread.id !== "june-live-message").every(thread => thread.origin === "seed"), "older Facebook inbox content must survive live delivery");
   assert.equal(facebookB.friendRequestState, "none");
   assert.equal(facebookB.inboxThreads.some(thread => thread.id === "june-live-message"), false);
 
+  let facebookNavigation = facebook.createInitialFacebookState("Zoey");
+  facebookNavigation = facebook.facebookStateTransition(facebookNavigation, { type: "SHOW_FEED" });
+  facebookNavigation = facebook.facebookStateTransition(facebookNavigation, { type: "SET_SCROLL_POSITION", scrollPosition: 73 });
+  const feedAuthor = facebookNavigation.feed[0].author;
+  facebookNavigation = facebook.facebookStateTransition(facebookNavigation, { type: "OPEN_PROFILE", profileName: feedAuthor });
+  assert.equal(facebookNavigation.currentView, "profile");
+  assert.equal(facebookNavigation.selectedProfileName, feedAuthor);
+  assert.deepEqual(facebookNavigation.navigationStack, ["home", "feed", "profile"]);
+  facebookNavigation = facebook.facebookStateTransition(facebookNavigation, { type: "GO_BACK" });
+  assert.equal(facebookNavigation.currentView, "feed");
+  assert.equal(facebookNavigation.scrollPosition, 73, "Profile Back must preserve Feed position");
+
+  let facebookInbox = facebook.facebookStateTransition(facebookA, { type: "SHOW_INBOX" });
+  assert.equal(facebook.selectFacebookInboxUnreadCount(facebookInbox), 1, "opening Inbox alone must not clear June unread");
+  facebookInbox = facebook.facebookStateTransition(facebookInbox, { type: "OPEN_MESSAGE", messageId: "june-live-message" });
+  assert.equal(facebook.selectFacebookInboxUnreadCount(facebookInbox), 0, "opening June must clear only its thread unread state");
+  facebookInbox = facebook.facebookStateTransition(facebookInbox, { type: "GO_BACK" });
+  assert.equal(facebookInbox.currentView, "inbox", "June Back must return to Inbox");
+
   let facebookAccept = facebook.facebookStateTransition(facebookA, { type: "ACCEPT_JACK" });
   assert.equal(facebookAccept.friendRequestState, "accepted");
   assert.deepEqual(facebookAccept.friends, [{ id: "jack", name: "Jack" }], "accepting Jack must add one session-local friend record");
+  facebookAccept = facebook.facebookStateTransition(facebookAccept, { type: "SHOW_FRIENDS" });
+  assert.equal(facebookAccept.currentView, "friends");
+  assert.equal(facebookAccept.friends.some(friend => friend.id === "jack"), true, "accepted Jack must be available from Friends");
+  assert.equal(facebook.selectFacebookRequestCount(facebookAccept), 0, "accepted request must leave no pending count");
   facebookAccept = facebook.facebookStateTransition(facebookAccept, { type: "DELIVER_JACK_REQUEST" });
   assert.equal(facebookAccept.friends.length, 1, "Jack request must not recreate or duplicate after acceptance");
   let facebookIgnore = facebook.facebookStateTransition(
@@ -180,10 +218,10 @@ try {
   assert.equal(facebookIgnore.friendRequestState, "ignored", "ignored request must not be recreated");
 
   let facebookPlayability = facebook.facebookStateTransition(facebookA, { type: "OPEN_JUNE_MESSAGE" });
-  assert.equal(facebookPlayability.juneMessageState, "read", "opening June must mark only the live June message read");
+  assert.equal(facebook.selectFacebookJuneMessageState(facebookPlayability), "read", "opening June must mark only the live June message read");
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "EDIT_JUNE_REPLY", value: "Still awake." });
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "SUBMIT_JUNE_REPLY", displayName: "Zoey" });
-  assert.equal(facebookPlayability.juneMessageState, "replied");
+  assert.equal(facebook.selectFacebookJuneMessageState(facebookPlayability), "replied");
   assert.deepEqual(facebookPlayability.juneReplies, [{ id: "facebook-june-reply-1", author: "Zoey", text: "Still awake." }]);
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "OPEN_FEED_ITEM", itemId: "jack-movie", scrollPosition: 96 });
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "BEGIN_COMMENT", itemId: "jack-movie" });
@@ -192,7 +230,7 @@ try {
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "TOGGLE_LIKE", itemId: "jack-movie" });
   assert.deepEqual(facebookPlayability.comments, [{ id: "facebook-comment-1", itemId: "jack-movie", author: "Zoey", text: "I thought so too." }]);
   assert.deepEqual(facebookPlayability.likedItemIds, ["jack-movie"]);
-  assert.equal(facebookPlayability.juneMessageState, "replied", "Feed interaction must not mutate June state");
+  assert.equal(facebook.selectFacebookJuneMessageState(facebookPlayability), "replied", "Feed interaction must not mutate June state");
   assert.deepEqual(facebookPlayability.friends, [], "Feed and message interaction must not mutate Friends state");
   assert.equal(facebookPlayability.scrollPosition, 96, "Facebook playability mutations must preserve feed scroll state");
 
@@ -345,6 +383,9 @@ try {
   assert.deepEqual(twitterState.mentions.map(item => item.unread), [true, false]);
   assert.equal(twitterState.directMessages.length, 2);
   assert.deepEqual(twitterState.directMessages.map(item => item.unread), [true, false]);
+  assert.deepEqual(twitterState.mentions.map(item => item.friendId), ["alex", "chris"]);
+  assert.deepEqual(twitterState.directMessages.map(item => item.friendId), ["katie", "matt"]);
+  assert.equal(twitterState.directMessages[0].friendId, facebookA.inboxThreads.find(thread => thread.sender === "Katie")?.friendId, "Katie must reuse one cross-app friend ID");
   assert.equal(twitter.selectTwitterMentionsUnreadCount(twitterState), 1);
   assert.equal(twitter.selectTwitterDirectMessagesUnreadCount(twitterState), 1);
   const timelineNames = new Set(twitterState.timeline.map(tweet => tweet.displayName.toLowerCase()));
@@ -849,7 +890,7 @@ try {
   assert.deepEqual(facebookAlex.likedItemIds, []);
   assert.equal(facebookAlex.friendRequestState, "none");
   assert.deepEqual(facebookAlex.friends, []);
-  assert.equal(facebookAlex.juneMessageState, "none");
+  assert.equal(facebook.selectFacebookJuneMessageState(facebookAlex), "none");
   assert.deepEqual(facebookAlex.juneReplies, []);
   assert.equal(facebookAlex.juneReplyDraft, "");
   assert.deepEqual(facebookAlex.comments, []);

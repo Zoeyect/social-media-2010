@@ -1,3 +1,5 @@
+import { CORE_SOCIAL_FRIENDS } from "./coreSocialFriends";
+
 export type ContentOrigin = "seed" | "live";
 
 export const SESSION_SEED_CONTENT = Object.freeze({
@@ -17,12 +19,12 @@ export const SESSION_SEED_CONTENT = Object.freeze({
     feed: Object.freeze([
       Object.freeze({ id: "owner-late", author: "session-owner", text: "Long day.", timestamp: "11:58 PM", kind: "status" as const, origin: "seed" as const }),
       Object.freeze({ id: "jack-movie", author: "Jack", text: "That movie was better than I expected.", timestamp: "11:52 PM", kind: "status" as const, origin: "seed" as const }),
-      Object.freeze({ id: "mia-coffee", author: "Mia", text: "likes a coffee shop downtown.", timestamp: "11:41 PM", kind: "socialActivity" as const, origin: "seed" as const }),
-      Object.freeze({ id: "eli-reading", author: "Eli", text: "One more chapter before bed.", timestamp: "11:33 PM", kind: "status" as const, origin: "seed" as const }),
+      Object.freeze({ id: "katie-coffee", friendId: CORE_SOCIAL_FRIENDS.katie.id, author: CORE_SOCIAL_FRIENDS.katie.displayName, text: "likes a coffee shop downtown.", timestamp: "11:41 PM", kind: "socialActivity" as const, origin: "seed" as const }),
+      Object.freeze({ id: "jay-reading", friendId: CORE_SOCIAL_FRIENDS.jay.id, author: CORE_SOCIAL_FRIENDS.jay.displayName, text: "One more chapter before bed.", timestamp: "11:33 PM", kind: "status" as const, origin: "seed" as const }),
     ]),
     inbox: Object.freeze([
-      Object.freeze({ id: "eli-tomorrow", sender: "Eli", preview: "see you tomorrow", timestamp: "10:14 PM", status: "read" as const, origin: "seed" as const }),
-      Object.freeze({ id: "mia-photo", sender: "Mia", preview: "send me the photo", timestamp: "9:16 PM", status: "read" as const, origin: "seed" as const }),
+      Object.freeze({ id: "katie-tomorrow", friendId: CORE_SOCIAL_FRIENDS.katie.id, sender: CORE_SOCIAL_FRIENDS.katie.displayName, preview: "see you tomorrow", timestamp: "10:14 PM", status: "read" as const, origin: "seed" as const }),
+      Object.freeze({ id: "jay-photo", friendId: CORE_SOCIAL_FRIENDS.jay.id, sender: CORE_SOCIAL_FRIENDS.jay.displayName, preview: "send me the photo", timestamp: "9:16 PM", status: "read" as const, origin: "seed" as const }),
     ]),
   }),
   twitter: Object.freeze([
@@ -82,12 +84,12 @@ export const SESSION_SEED_CONTENT = Object.freeze({
     Object.freeze({ id: "need-food", displayName: "Nora", text: "Need something to eat.", timestamp: "8:30 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
   ]),
   twitterMentions: Object.freeze([
-    Object.freeze({ id: "mention-alex-conan", sender: "Alex", textTemplate: "@{handle} look at this lol", timestamp: "11:54 PM", unread: true, linkedTweetId: "historical-conan-jackass-3d", origin: "seed" as const, provenance: "CURATED" as const }),
-    Object.freeze({ id: "mention-chris-thing", sender: "Chris", textTemplate: "@{handle} did you ever finish that thing?", timestamp: "10:38 PM", unread: false, linkedTweetId: null, origin: "seed" as const, provenance: "CURATED" as const }),
+    Object.freeze({ id: "mention-alex-conan", friendId: CORE_SOCIAL_FRIENDS.alex.id, sender: CORE_SOCIAL_FRIENDS.alex.displayName, textTemplate: "@{handle} look at this lol", timestamp: "11:54 PM", unread: true, linkedTweetId: "historical-conan-jackass-3d", origin: "seed" as const, provenance: "CURATED" as const }),
+    Object.freeze({ id: "mention-chris-thing", friendId: CORE_SOCIAL_FRIENDS.chris.id, sender: CORE_SOCIAL_FRIENDS.chris.displayName, textTemplate: "@{handle} did you ever finish that thing?", timestamp: "10:38 PM", unread: false, linkedTweetId: null, origin: "seed" as const, provenance: "CURATED" as const }),
   ]),
   twitterDirectMessages: Object.freeze([
-    Object.freeze({ id: "dm-katie", sender: "Katie", timestamp: "11:46 PM", unread: true, messages: Object.freeze([Object.freeze({ id: "dm-katie-1", text: "crazy ahaha", linkedTweetId: "historical-conan-jackass-3d", origin: "seed" as const })]), origin: "seed" as const, provenance: "CURATED" as const }),
-    Object.freeze({ id: "dm-matt", sender: "Matt", timestamp: "10:21 PM", unread: false, messages: Object.freeze([Object.freeze({ id: "dm-matt-1", text: "see you tomorrow", linkedTweetId: null, origin: "seed" as const })]), origin: "seed" as const, provenance: "CURATED" as const }),
+    Object.freeze({ id: "dm-katie", friendId: CORE_SOCIAL_FRIENDS.katie.id, sender: CORE_SOCIAL_FRIENDS.katie.displayName, timestamp: "11:46 PM", unread: true, messages: Object.freeze([Object.freeze({ id: "dm-katie-1", text: "crazy ahaha", linkedTweetId: "historical-conan-jackass-3d", origin: "seed" as const })]), origin: "seed" as const, provenance: "CURATED" as const }),
+    Object.freeze({ id: "dm-matt", friendId: CORE_SOCIAL_FRIENDS.matt.id, sender: CORE_SOCIAL_FRIENDS.matt.displayName, timestamp: "10:21 PM", unread: false, messages: Object.freeze([Object.freeze({ id: "dm-matt-1", text: "see you tomorrow", linkedTweetId: null, origin: "seed" as const })]), origin: "seed" as const, provenance: "CURATED" as const }),
   ]),
   twitterHistoricalLinkedTweets: Object.freeze([
     Object.freeze({

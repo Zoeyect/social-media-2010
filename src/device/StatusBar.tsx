@@ -1,48 +1,29 @@
 import { StatusBarState } from "../state/statusBarModel";
-import signal0Src from "../assets/historical/ios4.1/statusbar/Black_0_Bars.png";
-import signal1Src from "../assets/historical/ios4.1/statusbar/Black_1_Bars.png";
-import signal2Src from "../assets/historical/ios4.1/statusbar/Black_2_Bars.png";
-import signal3Src from "../assets/historical/ios4.1/statusbar/Black_3_Bars.png";
-import signal4Src from "../assets/historical/ios4.1/statusbar/Black_4_Bars.png";
-import signal5Src from "../assets/historical/ios4.1/statusbar/Black_5_Bars.png";
-import edgeSrc from "../assets/historical/ios4.1/statusbar/Black_DataTypeEDGE.png";
-import threeGSrc from "../assets/historical/ios4.1/statusbar/Black_DataTypeUMTS.png";
-import wifiSrc from "../assets/historical/ios4.1/statusbar/Black_3_WifiBars.png";
-import bluetoothSrc from "../assets/historical/ios4.1/statusbar/Black_Bluetooth.png";
-import batteryChargingSrc from "../assets/historical/ios4.1/statusbar/Black_BatteryCharging.png";
-import batteryFrameSrc from "../assets/historical/ios4.1/statusbar/Black_BatteryDrainingBG.png";
-import batteryFillSrc from "../assets/historical/ios4.1/statusbar/Black_BatteryDrainingInsides.png";
-import batteryLowFillSrc from "../assets/historical/ios4.1/statusbar/Black_BatteryDrainingInsidesLow.png";
-
-const signalGlyphs = [signal0Src, signal1Src, signal2Src, signal3Src, signal4Src, signal5Src] as const;
-const networkGlyphs = {
-  EDGE: edgeSrc,
-  "3G": threeGSrc,
-  WiFi: wifiSrc,
-} as const;
+import { STATUS_BAR_ASSETS } from "../data/statusBarAssets";
+import { HistoricalStatusAsset } from "./HistoricalStatusAsset";
 
 export function StatusBar({ state }: { state: StatusBarState }) {
-  const batteryFill = state.batteryStatus === "critical" ? batteryLowFillSrc : batteryFillSrc;
+  const batteryFill = state.batteryStatus === "critical" ? STATUS_BAR_ASSETS.battery.lowFill : STATUS_BAR_ASSETS.battery.fill;
 
   return <div className="system-status-bar" data-battery-status={state.batteryStatus}>
     <div className="status-region status-region-left">
-      <img className="status-signal" src={signalGlyphs[state.signalStrength]} data-signal-strength={state.signalStrength} alt={`${state.signalStrength} of 5 signal bars`} />
+      <HistoricalStatusAsset className="status-signal" src={STATUS_BAR_ASSETS.signal[state.signalStrength]} data-signal-strength={state.signalStrength} alt={`${state.signalStrength} of 5 signal bars`} />
       {state.carrierArtworkSrc
-        ? <img className="status-carrier" src={state.carrierArtworkSrc} data-carrier={state.carrier} alt={state.carrier} />
+        ? <HistoricalStatusAsset className="status-carrier" src={state.carrierArtworkSrc} data-carrier={state.carrier} alt={state.carrier} />
         : <span className="status-carrier status-text" data-carrier={state.carrier}>{state.carrier}</span>}
-      {state.network !== "none" && <img className="status-network" src={networkGlyphs[state.network]} data-network={state.network} alt={state.network} />}
+      {state.network !== "none" && <HistoricalStatusAsset className="status-network" src={STATUS_BAR_ASSETS.network[state.network]} data-network={state.network} alt={state.network} />}
     </div>
     <div className="status-region status-region-center"><strong className="status-clock">{state.clock}</strong></div>
     <div className="status-region status-region-right">
-      {state.bluetoothEnabled && <img className="status-bluetooth" src={bluetoothSrc} alt="Bluetooth" />}
+      {state.bluetoothEnabled && <HistoricalStatusAsset className="status-bluetooth" src={STATUS_BAR_ASSETS.bluetooth} alt="Bluetooth" />}
       <span className="status-battery-percent status-text">{state.batteryPercentage}%</span>
       {state.batteryStatus === "charging"
-        ? <img className="status-battery-glyph" src={batteryChargingSrc} alt="Charging" />
+        ? <HistoricalStatusAsset className="status-battery-glyph" src={STATUS_BAR_ASSETS.battery.charging} alt="Charging" />
         : <span className="status-battery-glyph" role="img" aria-label={`${state.batteryPercentage}% battery`}>
             <span className="battery-fill-well">
               <span className="battery-fill" style={{ width: `${state.batteryPercentage}%`, backgroundImage: `url(${batteryFill})` }} />
             </span>
-            <img className="battery-frame" src={batteryFrameSrc} alt="" aria-hidden="true" />
+            <HistoricalStatusAsset className="battery-frame" src={STATUS_BAR_ASSETS.battery.frame} alt="" aria-hidden="true" />
           </span>}
     </div>
   </div>;

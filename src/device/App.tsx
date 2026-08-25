@@ -14,7 +14,7 @@ import { createInitialFacebookState, facebookStateTransition } from "../state/fa
 import { createInitialFoursquareState, foursquareStateTransition } from "../state/foursquareState";
 import { createInitialInstagramState, instagramStateTransition } from "../state/instagramState";
 import { multitaskingBarStateTransition } from "../state/multitaskingBarState";
-import { createInitialMessagesState, messagesStateTransition } from "../state/messagesState";
+import { createInitialMessagesState, DAD_LOVE_REPLY_DUE_ELAPSED_MS, deterministicMomLoveReplyDelayMs, messagesStateTransition } from "../state/messagesState";
 import { createLockScreenModel } from "../state/lockScreenModel";
 import { initialLockNotificationState, lockNotificationStateTransition } from "../state/lockNotificationState";
 import type { ActiveLockNotification } from "../state/lockNotificationState";
@@ -50,6 +50,8 @@ const MOM_REPLY_DELAY_MS = 30_000;
 const SHUTDOWN_BLACK_SCREEN_MS = 500;
 const TERMINAL_POWERED_OFF_MS = 500;
 const MOM_REPLY_SMS = { id: "mom-sleep-early", sender: "Mom", message: "Good. Sleep early." } as const;
+const MOM_LOVE_REPLY_SMS = { id: "mom-love-you-too", sender: "Mom", message: "I love you too." } as const;
+const DAD_LOVE_REPLY_SMS = { id: "dad-sleep-early", sender: "Dad", message: "Sleep early." } as const;
 
 function loadRuntimeSession(): Session {
   const persisted = loadSession();
@@ -133,7 +135,8 @@ export function App() {
   useEffect(() => {
     const event = nextDueDeviceEvent(session.deviceEvents, elapsed);
     if (!event) return;
-    const isTimelineEvent = event.type !== "momReply";
+    const isMessagesReplyEvent = event.type === "momReply" || event.type === "momLoveReply" || event.type === "dadLoveReply";
+    const isTimelineEvent = !isMessagesReplyEvent;
     if (isTimelineEvent && (session.deliveredTimelineEventIds.includes(event.id) || deliveredEventClaims.current.has(event.id))) {
       setSession(current => ({ ...current, deviceEvents: removeDeviceEvent(current.deviceEvents, event.id) }));
       return;
@@ -144,6 +147,10 @@ export function App() {
       && appRuntime.activeAppId === "messages"
       && messagesState.view === "conversation"
       && messagesState.activeConversationId === "mom";
+    const displayingDadConversation = session.phase === "app"
+      && appRuntime.activeAppId === "messages"
+      && messagesState.view === "conversation"
+      && messagesState.activeConversationId === "dad";
     let wakesSleepingDevice = false;
 
     if (event.type === "initialSMS" && event.payload?.kind === "initial-sms") {
@@ -165,6 +172,32 @@ export function App() {
           lockNotificationDispatch: dispatchLockNotification,
         });
         dispatchMessages({ type: "MARK_MOM_REPLY_DELIVERED" });
+        wakesSleepingDevice = session.phase === "sleeping";
+      }
+    } else if (event.type === "momLoveReply") {
+      if (messagesState.momLoveReply === "pending" && displayingMomConversation) {
+        dispatchMessages({ type: "DELIVER_MOM_LOVE_REPLY" });
+      } else if (messagesState.momLoveReply === "pending") {
+        smsMessageReceived(MOM_LOVE_REPLY_SMS, source, {
+          notificationDispatch: dispatchSMSNotification,
+          badgeDispatch: dispatchMessagesBadge,
+          messagesDispatch: dispatchMessages,
+          lockNotificationDispatch: dispatchLockNotification,
+        });
+        dispatchMessages({ type: "MARK_MOM_LOVE_REPLY_DELIVERED" });
+        wakesSleepingDevice = session.phase === "sleeping";
+      }
+    } else if (event.type === "dadLoveReply") {
+      if (messagesState.dadLoveReply === "pending" && displayingDadConversation) {
+        dispatchMessages({ type: "DELIVER_DAD_LOVE_REPLY" });
+      } else if (messagesState.dadLoveReply === "pending") {
+        smsMessageReceived(DAD_LOVE_REPLY_SMS, source, {
+          notificationDispatch: dispatchSMSNotification,
+          badgeDispatch: dispatchMessagesBadge,
+          messagesDispatch: dispatchMessages,
+          lockNotificationDispatch: dispatchLockNotification,
+        });
+        dispatchMessages({ type: "MARK_DAD_LOVE_REPLY_DELIVERED" });
         wakesSleepingDevice = session.phase === "sleeping";
       }
     } else if (event.type === "facebookJackRequest") {
@@ -189,7 +222,7 @@ export function App() {
         : current.deliveredTimelineEventIds,
       ...(wakesSleepingDevice && current.phase === "sleeping" ? { phase: "locked" as const } : {}),
     }));
-  }, [appRuntime.activeAppId, elapsed, messagesState.activeConversationId, messagesState.momReply, messagesState.view, session.deliveredTimelineEventIds, session.deviceEvents, session.phase]);
+  }, [appRuntime.activeAppId, elapsed, messagesState.activeConversationId, messagesState.dadLoveReply, messagesState.momLoveReply, messagesState.momReply, messagesState.view, session.deliveredTimelineEventIds, session.deviceEvents, session.phase]);
   useEffect(() => {
     if ((session.phase !== "sleeping" && session.phase !== "locked") || smsNotification.status !== "alert-visible") return;
     dispatchSMSNotification({ type: "SHOW_PREVIEW" });
@@ -635,6 +668,7 @@ export function App() {
           {appRuntime.activeAppId === "messages" && <MobileSMSContainer
             state={messagesState}
             dispatch={dispatchMessages}
+            currentElapsedMs={elapsed}
             cameraPickerActive={cameraRuntime.cameraPicker.phase !== "none"}
             onOpenCameraPicker={() => dispatchCameraRuntime({ type: "LAUNCH", owner: "cameraPicker" })}
             onScheduleMomReply={() => setSession(current => ({
@@ -643,6 +677,26 @@ export function App() {
                 id: "mom-reply-good-sleep-early",
                 type: "momReply",
                 dueElapsedMs: elapsedMs(current, Date.now()) + MOM_REPLY_DELAY_MS,
+              }),
+            }))}
+            onScheduleMomLoveReply={() => setSession(current => ({
+              ...current,
+              deviceEvents: scheduleDeviceEvent(current.deviceEvents, {
+                id: "mom-love-reply",
+                type: "momLoveReply",
+                dueElapsedMs: elapsedMs(current, Date.now()) + deterministicMomLoveReplyDelayMs(current.sessionIdentity.name),
+                sourceApp: "messages",
+                deliveryPolicy: "notification",
+              }),
+            }))}
+            onScheduleDadLoveReply={() => setSession(current => ({
+              ...current,
+              deviceEvents: scheduleDeviceEvent(current.deviceEvents, {
+                id: "dad-love-terminal-reply",
+                type: "dadLoveReply",
+                dueElapsedMs: DAD_LOVE_REPLY_DUE_ELAPSED_MS,
+                sourceApp: "messages",
+                deliveryPolicy: "notification",
               }),
             }))}
           />}

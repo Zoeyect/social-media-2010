@@ -85,6 +85,63 @@ try {
   readDadState = messages.messagesStateTransition(readDadState, { type: "RECEIVE_MESSAGE", id: "mom-home-yet", conversationId: "mom", sender: "Mom", message: "Home yet?", timestamp: "12:03 AM" });
   readDadBadges = messagesBadge.messagesBadgeStateTransition(readDadBadges, { type: "ADD_UNREAD", messageId: "mom-home-yet" });
   assert.equal(readDadBadges.length, 1, "Mom must be the only badge after Dad was read");
+
+  const lovePhrases = ["love u", "love you", "i love u", "i love you", "luv u", "luv you", "Yes, love you!"];
+  lovePhrases.forEach(phrase => assert.equal(messages.isLoveYouIntent(phrase), true, `${phrase} must classify as explicit love intent`));
+  ["love", "love home", "not love you", "I like you"].forEach(phrase => assert.equal(messages.isLoveYouIntent(phrase), false, `${phrase} must not classify as explicit love intent`));
+  assert.equal(messages.classifyMomReply("yes love you"), "love", "love intent must take priority over the affirmative branch");
+
+  let momLoveState = messages.createInitialMessagesState();
+  momLoveState = messages.messagesStateTransition(momLoveState, { type: "OPEN_CONVERSATION", conversationId: "mom" });
+  momLoveState = messages.messagesStateTransition(momLoveState, { type: "EDIT_DRAFT", value: "I love you" });
+  momLoveState = messages.messagesStateTransition(momLoveState, { type: "SEND", elapsedMs: 120_000 });
+  assert.equal(momLoveState.momLoveReply, "pending");
+  assert.equal(momLoveState.momReply, "none", "love must not also schedule Good. Sleep early.");
+  const momLoveDelay = messages.deterministicMomLoveReplyDelayMs("Zoey");
+  assert.ok(momLoveDelay >= 20_000 && momLoveDelay <= 60_000, "Mom love delay must stay within the curated 20–60 second window");
+  assert.equal(messages.deterministicMomLoveReplyDelayMs("Zoey"), momLoveDelay, "Mom love delay must be deterministic per session identity");
+  let loveEvents = scheduler.scheduleDeviceEvent([], { id: "mom-love-reply", type: "momLoveReply", dueElapsedMs: 120_000 + momLoveDelay });
+  loveEvents = scheduler.scheduleDeviceEvent(loveEvents, { id: "mom-love-reply", type: "momLoveReply", dueElapsedMs: 120_000 + momLoveDelay });
+  assert.equal(loveEvents.length, 1, "Mom love event ID must be exactly-once");
+  momLoveState = messages.messagesStateTransition(momLoveState, { type: "DELIVER_MOM_LOVE_REPLY" });
+  momLoveState = messages.messagesStateTransition(momLoveState, { type: "DELIVER_MOM_LOVE_REPLY" });
+  assert.equal(momLoveState.messages.filter(message => message.id === "mom-love-you-too").length, 1, "Mom love reply must deliver at most once");
+
+  let affirmativeMomState = messages.createInitialMessagesState();
+  affirmativeMomState = messages.messagesStateTransition(affirmativeMomState, { type: "OPEN_CONVERSATION", conversationId: "mom" });
+  affirmativeMomState = messages.messagesStateTransition(affirmativeMomState, { type: "EDIT_DRAFT", value: "yes" });
+  affirmativeMomState = messages.messagesStateTransition(affirmativeMomState, { type: "SEND", elapsedMs: 120_000 });
+  assert.equal(affirmativeMomState.momReply, "pending", "existing affirmative Mom behavior must remain available");
+  assert.equal(affirmativeMomState.momLoveReply, "none");
+
+  let dadLoveState = messages.createInitialMessagesState();
+  dadLoveState = messages.messagesStateTransition(dadLoveState, { type: "OPEN_CONVERSATION", conversationId: "dad" });
+  dadLoveState = messages.messagesStateTransition(dadLoveState, { type: "EDIT_DRAFT", value: "luv u" });
+  dadLoveState = messages.messagesStateTransition(dadLoveState, { type: "SEND", elapsedMs: 300_000 });
+  assert.equal(dadLoveState.dadLoveReplyEligible, true);
+  assert.equal(dadLoveState.dadLoveReply, "pending");
+  const dadEvents = scheduler.scheduleDeviceEvent([], { id: "dad-love-terminal-reply", type: "dadLoveReply", dueElapsedMs: messages.DAD_LOVE_REPLY_DUE_ELAPSED_MS });
+  assert.equal(dadEvents[0].dueElapsedMs, 890_000, "Dad love reply must remain fixed at T+890s");
+  dadLoveState = messages.messagesStateTransition(dadLoveState, { type: "DELIVER_DAD_LOVE_REPLY" });
+  dadLoveState = messages.messagesStateTransition(dadLoveState, { type: "DELIVER_DAD_LOVE_REPLY" });
+  assert.equal(dadLoveState.messages.filter(message => message.id === "dad-sleep-early").length, 1, "Dad terminal reply must deliver at most once");
+
+  let dadWithoutLoveState = messages.createInitialMessagesState();
+  dadWithoutLoveState = messages.messagesStateTransition(dadWithoutLoveState, { type: "OPEN_CONVERSATION", conversationId: "dad" });
+  dadWithoutLoveState = messages.messagesStateTransition(dadWithoutLoveState, { type: "EDIT_DRAFT", value: "Maybe later" });
+  dadWithoutLoveState = messages.messagesStateTransition(dadWithoutLoveState, { type: "SEND", elapsedMs: 300_000 });
+  assert.equal(dadWithoutLoveState.dadLoveReply, "none", "Dad must remain silent without explicit love intent");
+
+  let lateDadLoveState = messages.createInitialMessagesState();
+  lateDadLoveState = messages.messagesStateTransition(lateDadLoveState, { type: "OPEN_CONVERSATION", conversationId: "dad" });
+  lateDadLoveState = messages.messagesStateTransition(lateDadLoveState, { type: "EDIT_DRAFT", value: "love you" });
+  lateDadLoveState = messages.messagesStateTransition(lateDadLoveState, { type: "SEND", elapsedMs: 890_000 });
+  assert.equal(lateDadLoveState.dadLoveReply, "none", "Dad love sent at or after the terminal-event cutoff must not schedule a reply");
+  const resetLoveState = messages.messagesStateTransition(dadLoveState, { type: "RESET_RUNTIME" });
+  assert.equal(resetLoveState.momLoveReply, "none");
+  assert.equal(resetLoveState.dadLoveReplyEligible, false);
+  assert.equal(resetLoveState.dadLoveReply, "none");
+
   messagesA = messages.messagesStateTransition(messagesA, { type: "RESET_RUNTIME" });
   unreadDadBadges = messagesBadge.messagesBadgeStateTransition(unreadDadBadges, { type: "RESET" });
   assert.deepEqual(messagesA.messages.map(message => [message.sender, message.status]), [["Dad", "unread"]], "Messages reset must restore the unread seed baseline");

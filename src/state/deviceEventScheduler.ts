@@ -3,6 +3,8 @@ export type DeviceEventSource = "messages" | "facebook" | "twitter" | "foursquar
 export type DeviceEventType =
   | "initialSMS"
   | "momReply"
+  | "momLoveReply"
+  | "dadLoveReply"
   | "facebookJackRequest"
   | "facebookJuneMessage"
   | "twitterBackgroundTweet"

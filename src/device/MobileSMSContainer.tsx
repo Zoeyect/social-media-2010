@@ -1,18 +1,21 @@
 import { Dispatch, useEffect, useRef, useState } from "react";
 import { DeviceAudio } from "../audio/deviceAudio";
-import { MessagesEvent, MessagesState, MobileSMSMessage, shouldScheduleMomReply } from "../state/messagesState";
+import { MessagesEvent, MessagesState, MobileSMSMessage, shouldScheduleDadLoveReply, shouldScheduleMomLoveReply, shouldScheduleMomReply } from "../state/messagesState";
 
 type KeyboardState = "idle" | "input-focused" | "keyboard-visible";
 
 type MobileSMSContainerProps = {
   state: MessagesState;
   dispatch: Dispatch<MessagesEvent>;
+  currentElapsedMs: number;
   onScheduleMomReply: () => void;
+  onScheduleMomLoveReply: () => void;
+  onScheduleDadLoveReply: () => void;
   onOpenCameraPicker: () => void;
   cameraPickerActive: boolean;
 };
 
-export function MobileSMSContainer({ state, dispatch, onScheduleMomReply, onOpenCameraPicker, cameraPickerActive }: MobileSMSContainerProps) {
+export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onScheduleMomReply, onScheduleMomLoveReply, onScheduleDadLoveReply, onOpenCameraPicker, cameraPickerActive }: MobileSMSContainerProps) {
   const [keyboardState, setKeyboardState] = useState<KeyboardState>("idle");
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerWasActive = useRef(false);
@@ -106,9 +109,13 @@ export function MobileSMSContainer({ state, dispatch, onScheduleMomReply, onOpen
             onClick={() => {
               if (!canSend) return;
               const schedulesMomReply = shouldScheduleMomReply(state, state.draft);
+              const schedulesMomLoveReply = shouldScheduleMomLoveReply(state, state.draft);
+              const schedulesDadLoveReply = shouldScheduleDadLoveReply(state, state.draft, currentElapsedMs);
               DeviceAudio.messageSent();
-              dispatch({ type: "SEND" });
+              dispatch({ type: "SEND", elapsedMs: currentElapsedMs });
               if (schedulesMomReply) onScheduleMomReply();
+              if (schedulesMomLoveReply) onScheduleMomLoveReply();
+              if (schedulesDadLoveReply) onScheduleDadLoveReply();
             }}
           >Send</button>
         </div>

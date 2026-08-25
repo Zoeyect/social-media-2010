@@ -10,6 +10,7 @@ import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent } from "../s
 import { batteryPercent, BOOT_DURATION_MS, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
 import { createInitialFacebookState, facebookStateTransition } from "../state/facebookState";
+import { foursquareStateTransition, initialFoursquareState } from "../state/foursquareState";
 import { initialInstagramState, instagramStateTransition } from "../state/instagramState";
 import { multitaskingBarStateTransition } from "../state/multitaskingBarState";
 import { initialMessagesState, messagesStateTransition } from "../state/messagesState";
@@ -25,6 +26,7 @@ import { createSMSLockNotification, smsMessageReceived } from "../system/smsNoti
 import { LockScreen } from "./LockScreen";
 import { CameraContainer } from "./CameraContainer";
 import { FacebookContainer } from "./FacebookContainer";
+import { FoursquareContainer } from "./FoursquareContainer";
 import { InstagramContainer } from "./InstagramContainer";
 import { LockScreenStatusPresentation } from "./LockScreenStatusPresentation";
 import { AppLaunchContainer } from "./AppLaunchContainer";
@@ -60,7 +62,7 @@ function loadRuntimeSession(): Session {
 export function App() {
   const [session, setSession] = useState<Session>(loadRuntimeSession);
   const requestedDevApp = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("devApp") : null;
-  const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" ? requestedDevApp : null;
+  const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" || requestedDevApp === "foursquare" ? requestedDevApp : null;
   const devAutoOpen = devAppId !== null && new URLSearchParams(window.location.search).get("autoOpen") === "1";
   const [springBoardPage, setSpringBoardPage] = useState<0 | 1>(0);
   const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
@@ -77,6 +79,7 @@ export function App() {
     createInitialFacebookState,
   );
   const [instagramState, dispatchInstagram] = useReducer(instagramStateTransition, initialInstagramState);
+  const [foursquareState, dispatchFoursquare] = useReducer(foursquareStateTransition, initialFoursquareState);
   const [twitterState, dispatchTwitter] = useReducer(
     twitterStateTransition,
     session.sessionIdentity.name,
@@ -279,6 +282,7 @@ export function App() {
     dispatchLockNotification({ type: "RESET" });
     dispatchFacebook({ type: "RESET" });
     dispatchInstagram({ type: "RESET" });
+    dispatchFoursquare({ type: "RESET" });
     dispatchTwitter({ type: "RESET" });
     dispatchAppRuntime({ type: "RESET" });
     dispatchCameraRuntime({ type: "RESET", owner: "cameraApp" });
@@ -614,6 +618,10 @@ export function App() {
             state={instagramState}
             dispatch={dispatchInstagram}
           />}
+          {appRuntime.activeAppId === "foursquare" && <FoursquareContainer
+            state={foursquareState}
+            dispatch={dispatchFoursquare}
+          />}
         </AppLaunchContainer>}
         {session.phase === "app" && <MultitaskingBar
           state={multitaskingBar}
@@ -676,12 +684,12 @@ export function App() {
 }
 
 function AppDevAccess({ appId, disabled, onOpen }: {
-  appId: "twitter" | "facebook" | "instagram" | null;
+  appId: "twitter" | "facebook" | "instagram" | "foursquare" | null;
   disabled: boolean;
   onOpen: () => void;
 }) {
   if (!appId) return null;
-  const appName = appId === "twitter" ? "Twitter" : appId === "facebook" ? "Facebook" : "Instagram";
+  const appName = appId === "twitter" ? "Twitter" : appId === "facebook" ? "Facebook" : appId === "instagram" ? "Instagram" : "Foursquare";
   return <aside className="app-dev-access" aria-label={`${appName} development access`}>
     <strong>DEV</strong>
     <button type="button" disabled={disabled} onClick={onOpen}>DEV · Open {appName}</button>

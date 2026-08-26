@@ -17,10 +17,12 @@ try {
   const tumblr = await vite.ssrLoadModule("/src/state/tumblrState.ts");
   const flickr = await vite.ssrLoadModule("/src/state/flickrState.ts");
   const instagram = await vite.ssrLoadModule("/src/state/instagramState.ts");
+  const instagramPopular = await vite.ssrLoadModule("/src/data/instagramPopularContent.ts");
   const seedContent = await vite.ssrLoadModule("/src/data/sessionSeedContent.ts");
   const coreSocialFriends = await vite.ssrLoadModule("/src/data/coreSocialFriends.ts");
   const facebookActors = await vite.ssrLoadModule("/src/data/facebookActors.ts");
   const facebookMedia = await vite.ssrLoadModule("/src/data/facebookMedia.ts");
+  const sharedCharacterMedia = await vite.ssrLoadModule("/src/data/sharedCharacterMedia.ts");
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
@@ -50,7 +52,7 @@ try {
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.katie, coreSocialFriends.CORE_SOCIAL_CHARACTERS.katie, "compatibility views must reuse canonical identity objects");
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.jay, coreSocialFriends.CORE_SOCIAL_CHARACTERS.jay, "compatibility views must not duplicate character records");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => relationship.characterIds), [["katie", "ben"], ["chris", "luca"]]);
-  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "junephoto", "June's Instagram username must remain canonical and session-independent");
+  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "junepark", "June's Instagram username must remain canonical and session-independent");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_FRIEND_IDS, ["katie", "matt", "alex", "chris", "jay"]);
   assert.deepEqual(
     Object.values(coreSocialFriends.CORE_SOCIAL_FRIENDS).map(friend => [friend.id, friend.displayName, friend.fictional]),
@@ -60,8 +62,14 @@ try {
   const timelineDefinitions = sessionTimeline.SESSION_TIMELINE_EVENTS;
   const expectedTimeline = [
     ["initial-sms-mom-home-yet", 60, "initialSMS"],
+    ["facebook-june-instagram-announcement", 60, "facebookJuneInstagramAnnouncement"],
     ["twitter-slang-epic-fail", 75, "twitterBackgroundTweet"],
+    ["facebook-june-jack-gossip-katie", 120, "facebookJuneJackGossip"],
+    ["facebook-june-jack-gossip-chris", 145, "facebookJuneJackGossip"],
     ["facebook-jack-request", 150, "facebookJackRequest"],
+    ["facebook-katie-jack-gossip-message", 155, "facebookKatieGossipMessage"],
+    ["instagram-june-jack-accidental-delete", 200, "instagramJuneDelete"],
+    ["instagram-june-replacement-photo", 210, "instagramJunePost"],
     ["facebook-june-message", 270, "facebookJuneMessage"],
     ["twitter-eva-school-tomorrow", 300, "twitterBackgroundTweet"],
     ["twitter-late-night-update", 390, "twitterBackgroundTweet"],
@@ -197,15 +205,8 @@ try {
   assert.equal(facebook.selectFacebookJuneMessageState(facebookA), "none");
   assert.ok(facebookA.inboxThreads.every(thread => thread.origin === "seed" && thread.status === "read"));
   assert.deepEqual(facebookA.inboxThreads.map(thread => [thread.friendId, thread.sender]), [["katie", "Katie"], ["jay", "Jay"]]);
-  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["ben", "Ben"], ["alex", "Alex"], ["june", "June"], ["katie", "Katie"], ["jay", "Jay"], ["luca", "Luca"]]);
-  const juneInstagramPost = facebookA.feed.find(item => item.id === "june-instagram-early-adopter");
-  assert.deepEqual(
-    [juneInstagramPost?.friendId, juneInstagramPost?.text, juneInstagramPost?.createdAt],
-    ["june", "finally got instagram lol @junephoto", "2010-10-19T23:44:00-07:00"],
-    "June's Facebook post must bridge to her canonical Instagram username before the session begins",
-  );
-  assert.equal(juneInstagramPost?.text, `finally got instagram lol @${coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram}`, "Facebook must derive June's handle from canonical metadata");
-  assert.doesNotMatch(juneInstagramPost?.text ?? "", /\bIG\b|follow my IG|link in bio|DM me/i, "June's early-adopter copy must avoid modern Instagram language");
+  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["ben", "Ben"], ["alex", "Alex"], ["katie", "Katie"], ["jay", "Jay"], ["luca", "Luca"]]);
+  assert.equal(facebookA.feed.some(item => item.id === "facebook-june-instagram-announcement"), false, "June's Instagram announcement must not exist before T+60");
   const zTokyoPost = facebookA.feed.find(item => item.id === "z-tokyo-profile-picture-update");
   assert.deepEqual(
     [zTokyoPost?.actor, zTokyoPost?.author, zTokyoPost?.text, zTokyoPost?.mediaId, zTokyoPost?.createdAt],
@@ -679,8 +680,9 @@ try {
   const liveCountsBySocialApp = timelineDefinitions
     .filter(event => event.sourceApp !== "messages")
     .reduce((counts, event) => ({ ...counts, [event.sourceApp]: (counts[event.sourceApp] ?? 0) + 1 }), {});
-  assert.ok(liveCountsBySocialApp.twitter > liveCountsBySocialApp.facebook);
-  assert.ok(Object.entries(liveCountsBySocialApp).every(([app, count]) => app === "twitter" || count < liveCountsBySocialApp.twitter));
+  assert.equal(liveCountsBySocialApp.twitter, 6, "Twitter live volume must remain unchanged");
+  assert.equal(liveCountsBySocialApp.facebook, 6, "v0.6 adds four Facebook drama events without changing existing delivery timing");
+  assert.ok(Object.entries(liveCountsBySocialApp).every(([app, count]) => app === "twitter" || app === "facebook" || count < liveCountsBySocialApp.twitter), "Twitter and Facebook may tie at six live events while every other social app remains sparser");
   const evaEvent = timelineDefinitions.find(event => event.id === "twitter-eva-school-tomorrow");
   assert.equal(evaEvent?.atElapsedSeconds, 300);
   assert.deepEqual(evaEvent?.payload?.kind === "twitter-post" ? evaEvent.payload.post : null, {
@@ -994,17 +996,111 @@ try {
   assert.equal(flickrA.commentsState.filter(comment => comment.origin === "user").length, 1);
 
   let instagramState = instagram.createInitialInstagramState();
-  assert.deepEqual({ photos: instagramState.photos.length, followers: instagramState.followers, following: instagramState.following }, { photos: 0, followers: 0, following: 0 });
+  assert.deepEqual({ photos: instagramState.photos.length, followers: instagramState.followers, following: instagram.selectInstagramFollowingCount(instagramState) }, { photos: 0, followers: 0, following: 1 });
   assert.equal(instagramState.knownAccounts.length, 1, "Instagram must remain sparse with exactly one familiar early adopter");
   assert.deepEqual(instagramState.knownAccounts.map(account => account.canonicalCharacterId), ["june"], "Instagram must not auto-populate any other canonical character");
   assert.equal(new Set(instagramState.knownAccounts.map(account => account.canonicalCharacterId)).size, instagramState.knownAccounts.length, "Instagram must not duplicate canonical identities");
-  const juneInstagramAccount = instagram.selectInstagramKnownAccountByUsername(instagramState, "@junephoto");
+  assert.deepEqual(instagramState.followedCharacterIds, ["june"], "the Instagram relationship baseline must follow canonical June");
+  assert.deepEqual(instagram.selectInstagramFollowedAccounts(instagramState).map(account => [account.canonicalCharacterId, account.username]), [["june", "junepark"]], "Following must contain exactly canonical June");
+  const juneInstagramAccount = instagram.selectInstagramKnownAccountByUsername(instagramState, "@junepark");
   assert.deepEqual(
-    [juneInstagramAccount?.canonicalCharacterId, juneInstagramAccount?.username, juneInstagramAccount?.displayName, juneInstagramAccount?.photoCount],
-    ["june", "junephoto", "June", 0],
+    [juneInstagramAccount?.canonicalCharacterId, juneInstagramAccount?.username, juneInstagramAccount?.displayName, juneInstagramAccount?.followersBaseline, juneInstagramAccount?.followingBaseline],
+    ["june", "junepark", "June", 118, 236],
   );
   assert.equal(juneInstagramAccount?.username, coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "Facebook and Instagram must resolve the same canonical June handle");
-  assert.deepEqual([juneInstagramAccount?.discoveryUiStatus, juneInstagramAccount?.followUiStatus], ["HOLD", "HOLD"]);
+  assert.deepEqual([juneInstagramAccount?.discoveryUiStatus, juneInstagramAccount?.followUiStatus, juneInstagramAccount?.profileUiStatus], ["READY", "READY", "HOLD"]);
+  assert.deepEqual(sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar"]);
+  assert.deepEqual(
+    sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS.map(id => {
+      const media = sharedCharacterMedia.getSharedCharacterMedia(id);
+      return [media.id, media.originalFilename, media.canonicalCharacterId, media.platform, media.timestamp, media.role, media.initialVisibility];
+    }),
+    [
+      ["june-ig-01", "IG01.JPG", "june", "instagram", "2010-10-20T00:05:30-07:00", "replacement", "hidden"],
+      ["june-ig-02", "IG02.JPG", "june", "instagram", "2010-10-15", "nightclub-dancing", "visible"],
+      ["june-ig-03", "IG03.JPG", "june", "instagram", "2010-10-16", "party", "visible"],
+      ["june-ig-04", "IG04.JPG", "june", "instagram", "2010-10-20T00:00:00-07:00", "accidental-intimate", "visible"],
+      ["june-profile-avatar", "June01.PNG", "june", "instagram", "2010-10-20", "profile-avatar", "visible"],
+    ],
+  );
+  assert.deepEqual(
+    instagram.selectInstagramVisibleKnownPosts(instagramState, "june").map(post => [post.id, post.mediaId, post.timestamp, post.origin]),
+    [
+      ["june-ig-04", "june-ig-04", "2010-10-20T00:00:00-07:00", "seed"],
+      ["june-ig-03", "june-ig-03", "2010-10-16", "seed"],
+      ["june-ig-02", "june-ig-02", "2010-10-15", "seed"],
+    ],
+    "June profile must begin with the locked IG04 / IG03 / IG02 chronology",
+  );
+  const juneStatsAtSessionStart = instagram.selectInstagramKnownAccountStats(instagramState, "june");
+  assert.deepEqual(juneStatsAtSessionStart, { posts: 3, followers: 118, following: 236 }, "June stats must combine curated social baselines with the visible-media count");
+  assert.deepEqual(instagram.selectInstagramKnownAccountStats(instagramState, "june"), juneStatsAtSessionStart, "June social stats must be deterministic");
+  assert.equal(instagramState.knownAccountPosts.some(post => post.id === "june-ig-01"), false, "IG01 must not be visible or instantiated at session start");
+  let followingNavigationState = instagram.instagramStateTransition(instagramState, { type: "SHOW_PROFILE" });
+  followingNavigationState = instagram.instagramStateTransition(followingNavigationState, { type: "SHOW_FOLLOWING" });
+  assert.deepEqual([followingNavigationState.currentView, instagram.selectInstagramFollowingCount(followingNavigationState)], ["following", 1]);
+  followingNavigationState = instagram.instagramStateTransition(followingNavigationState, { type: "OPEN_KNOWN_PROFILE", characterId: "june" });
+  assert.deepEqual([followingNavigationState.currentView, followingNavigationState.selectedKnownCharacterId, followingNavigationState.knownProfileOrigin], ["knownProfile", "june", "following"]);
+  assert.deepEqual(instagram.selectInstagramVisibleKnownPosts(followingNavigationState, "june").map(post => post.id), ["june-ig-04", "june-ig-03", "june-ig-02"], "Following-opened June must use the canonical profile media selector");
+  followingNavigationState = instagram.instagramStateTransition(followingNavigationState, { type: "SHOW_KNOWN_CONNECTIONS", kind: "following" });
+  assert.deepEqual([followingNavigationState.currentView, followingNavigationState.selectedKnownCharacterId, followingNavigationState.knownConnectionsKind], ["knownConnections", "june", "following"]);
+  followingNavigationState = instagram.instagramStateTransition(followingNavigationState, { type: "BACK_FROM_DISCOVERY" });
+  assert.equal(followingNavigationState.currentView, "knownProfile");
+  followingNavigationState = instagram.instagramStateTransition(followingNavigationState, { type: "BACK_FROM_DISCOVERY" });
+  assert.equal(followingNavigationState.currentView, "following");
+  followingNavigationState = instagram.instagramStateTransition(followingNavigationState, { type: "BACK_FROM_DISCOVERY" });
+  assert.equal(followingNavigationState.currentView, "profile");
+  assert.equal(timelineDefinitions.some(event => event.id === "instagram-june-jack-accidental-photo" || event.atElapsedSeconds === 80 && event.type === "instagramJunePost"), false, "IG04 must be seed content with no T+80 creation event");
+  assert.equal(instagramPopular.INSTAGRAM_POPULAR_POSTS.length, 20, "Popular must register all twenty local photos in deterministic order");
+  assert.equal(new Set(instagramPopular.INSTAGRAM_POPULAR_POSTS.map(post => post.id)).size, 20);
+  assert.ok(instagramPopular.INSTAGRAM_POPULAR_POSTS.every(post => post.classification === "EPHEMERAL_INSTAGRAM_USER" && post.mediaStatus === "CURATED_LOCAL_ASSET" && typeof post.media === "string" && post.media.length > 0));
+  assert.ok(instagramPopular.INSTAGRAM_POPULAR_POSTS.every(post => post.username !== "junepark" && post.canonicalCharacterId === undefined), "June and the canonical nine must not be inserted into Popular");
+  const popularOrder = instagramPopular.INSTAGRAM_POPULAR_POSTS.map(post => post.id);
+  let popularState = instagram.instagramStateTransition(instagramState, { type: "SHOW_POPULAR" });
+  assert.equal(popularState.currentView, "popular");
+  popularState = instagram.instagramStateTransition(popularState, { type: "SET_POPULAR_SCROLL_POSITION", scrollPosition: 87 });
+  popularState = instagram.instagramStateTransition(popularState, { type: "REFRESH_POPULAR" });
+  assert.deepEqual([popularState.popularScrollPosition, popularState.popularRefreshCount, instagramPopular.INSTAGRAM_POPULAR_POSTS.map(post => post.id)], [87, 1, popularOrder], "Popular refresh must retain deterministic ordering and local scroll state");
+  popularState = instagram.instagramStateTransition(popularState, { type: "OPEN_POPULAR_PHOTO", postId: popularOrder[0] });
+  assert.deepEqual([popularState.currentView, popularState.selectedPopularPostId], ["popularPhotoDetail", popularOrder[0]]);
+  assert.equal(instagramPopular.getInstagramPopularPost(popularOrder[0]).media, instagramPopular.INSTAGRAM_POPULAR_POSTS[0].media, "Popular thumbnail and Photo Detail must resolve the same media record");
+  popularState = instagram.instagramStateTransition(popularState, { type: "BACK_FROM_POPULAR_PHOTO" });
+  assert.deepEqual([popularState.currentView, popularState.selectedPopularPostId, popularState.popularScrollPosition], ["popular", null, 87], "Popular Photo Detail Back must restore Popular and its scroll position");
+  let dramaFacebook = facebook.createInitialFacebookState("Zoey");
+  let dramaInstagram = instagram.createInitialInstagramState();
+  const partyStateBeforeDrama = [dramaFacebook.partyInviteState, dramaFacebook.partyInviteEligibleFromJune, dramaFacebook.partyInviteEligibleFromJack, dramaFacebook.partyRsvp, dramaFacebook.friendRequestState];
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: "12:03 AM" });
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: "12:03 AM" });
+  const juneInstagramPost = dramaFacebook.feed.find(item => item.id === "facebook-june-instagram-announcement");
+  assert.deepEqual([juneInstagramPost?.friendId, juneInstagramPost?.text, juneInstagramPost?.timestamp, juneInstagramPost?.origin], ["june", "finally got instagram lol @junepark", "12:03 AM", "live"]);
+  assert.equal(dramaFacebook.feed.filter(item => item.id === "facebook-june-instagram-announcement").length, 1, "June announcement must deliver exactly once");
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: "facebook-june-jack-gossip-katie", characterId: "katie", text: "june + jack???" });
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: "facebook-june-jack-gossip-chris", characterId: "chris", text: "lol no way" });
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: "12:04 AM" });
+  assert.deepEqual(dramaFacebook.comments.filter(comment => comment.itemId === "facebook-june-instagram-announcement").map(comment => [comment.id, comment.characterId, comment.text]), [["facebook-june-jack-gossip-katie", "katie", "june + jack???"], ["facebook-june-jack-gossip-chris", "chris", "lol no way"]]);
+  assert.equal(dramaFacebook.comments.some(comment => comment.itemId === "facebook-june-instagram-announcement" && comment.characterId === "jay"), false, "Jay must have no June/Jack gossip activity");
+  assert.deepEqual(dramaFacebook.inboxThreads.find(thread => thread.id === "facebook-katie-jack-gossip-message"), { id: "facebook-katie-jack-gossip-message", friendId: "katie", sender: "Katie", preview: "Do you know Jack????", timestamp: "12:04 AM", status: "unread", origin: "live" });
+  assert.equal(facebook.selectFacebookNotifications(dramaFacebook).filter(notification => notification.id === "facebook-notification-katie-gossip-message").length, 1, "Katie's unread message must drive one derived notification");
+  dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "DELETE_KNOWN_ACCOUNT_POST", postId: "june-ig-04" });
+  assert.deepEqual(instagram.selectInstagramVisibleKnownPosts(dramaInstagram, "june").map(post => post.id), ["june-ig-03", "june-ig-02"], "deleted IG04 must disappear while older seed posts remain");
+  assert.deepEqual(instagram.selectInstagramKnownAccountStats(dramaInstagram, "june"), { posts: 2, followers: 118, following: 236 }, "IG04 deletion must decrement only June's derived post count");
+  assert.equal(dramaFacebook.comments.filter(comment => comment.itemId === "facebook-june-instagram-announcement").length, 2, "Facebook gossip must persist after Instagram deletion");
+  dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "DELIVER_KNOWN_ACCOUNT_POST", post: { id: "june-ig-01", mediaId: "june-ig-01", timestamp: "2010-10-20T00:05:30-07:00" } });
+  assert.deepEqual(instagram.selectInstagramVisibleKnownPosts(dramaInstagram, "june").map(post => [post.id, post.mediaId]), [["june-ig-01", "june-ig-01"], ["june-ig-03", "june-ig-03"], ["june-ig-02", "june-ig-02"]]);
+  assert.deepEqual(instagram.selectInstagramKnownAccountStats(dramaInstagram, "june"), { posts: 3, followers: 118, following: 236 }, "IG01 replacement must restore June's derived post count");
+  assert.equal(dramaInstagram.knownAccountPosts.find(post => post.id === "june-ig-04")?.status, "deleted", "IG04 deletion must persist after IG01 appears");
+  assert.deepEqual([dramaFacebook.partyInviteState, dramaFacebook.partyInviteEligibleFromJune, dramaFacebook.partyInviteEligibleFromJack, dramaFacebook.partyRsvp, dramaFacebook.friendRequestState], partyStateBeforeDrama, "Instagram drama must not mutate party, RSVP, or Jack request state");
+  dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "SHOW_PROFILE" });
+  dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "SHOW_FACEBOOK_FRIENDS" });
+  dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "OPEN_KNOWN_PROFILE", characterId: "june" });
+  assert.deepEqual([dramaInstagram.currentView, dramaInstagram.selectedKnownCharacterId], ["knownProfile", "june"]);
+  assert.deepEqual([dramaInstagram.followedCharacterIds, instagram.selectInstagramFollowingCount(dramaInstagram)], [["june"], 1], "Following button and count must share the relationship graph");
+  dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "SET_KNOWN_ACCOUNT_FOLLOWING", characterId: "june", following: false });
+  assert.deepEqual([dramaInstagram.followedCharacterIds, instagram.selectInstagramFollowingCount(dramaInstagram)], [[], 0]);
+  assert.deepEqual(instagram.selectInstagramKnownAccountStats(dramaInstagram, "june"), { posts: 3, followers: 117, following: 236 }, "explicit Unfollow may change June's follower display without changing her own Following baseline");
+  dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "SET_KNOWN_ACCOUNT_FOLLOWING", characterId: "june", following: true });
+  assert.deepEqual([dramaInstagram.followedCharacterIds, instagram.selectInstagramFollowingCount(dramaInstagram)], [["june"], 1]);
+  assert.deepEqual(instagram.selectInstagramKnownAccountStats(dramaInstagram, "june"), { posts: 3, followers: 118, following: 236 });
   assert.equal(instagramState.currentView, "feed");
   assert.deepEqual(instagramState.draft, { source: null, filter: null });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
@@ -1029,7 +1125,7 @@ try {
     createdAt: 1_287_552_900_000,
     origin: "user",
   }]);
-  assert.deepEqual({ followers: instagramState.followers, following: instagramState.following }, { followers: 0, following: 0 });
+  assert.deepEqual({ followers: instagramState.followers, following: instagram.selectInstagramFollowingCount(instagramState) }, { followers: 0, following: 1 });
   const instagramAfterSecondAttempt = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
   assert.strictEqual(instagramAfterSecondAttempt, instagramState, "v0.2 must allow at most one user photo");
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SET_SCROLL_POSITION", scrollPosition: 37 });
@@ -1100,15 +1196,36 @@ try {
   assert.equal(instagramAlex.selectedPhotoId, null);
   assert.equal(instagramAlex.scrollPosition, 0);
   assert.deepEqual(instagramAlex.draft, { source: null, filter: null });
-  assert.deepEqual({ followers: instagramAlex.followers, following: instagramAlex.following }, { followers: 0, following: 0 });
-  assert.deepEqual(instagramAlex.knownAccounts.map(account => [account.canonicalCharacterId, account.username]), [["june", "junephoto"]], "new session must restore the sparse canonical June mapping");
+  assert.deepEqual({ followers: instagramAlex.followers, following: instagram.selectInstagramFollowingCount(instagramAlex) }, { followers: 0, following: 1 });
+  assert.deepEqual(instagramAlex.knownAccounts.map(account => [account.canonicalCharacterId, account.username]), [["june", "junepark"]], "new session must restore the sparse canonical June mapping");
+  assert.deepEqual(instagram.selectInstagramVisibleKnownPosts(instagramAlex, "june").map(post => post.id), ["june-ig-04", "june-ig-03", "june-ig-02"], "new session must restore the locked June seed chronology");
+  assert.deepEqual(instagram.selectInstagramKnownAccountStats(instagramAlex, "june"), { posts: 3, followers: 118, following: 236 }, "new session must restore June's curated display baseline");
+  assert.deepEqual([instagramAlex.followedCharacterIds, instagramAlex.selectedKnownCharacterId, instagramAlex.knownProfileOrigin], [["june"], null, null], "new session must restore June Follow baseline and clear profile navigation state");
+  assert.deepEqual([instagramAlex.popularScrollPosition, instagramAlex.selectedPopularPostId, instagramAlex.popularRefreshCount], [0, null, 0], "new session must reset Instagram Popular navigation state");
 
   const seedSource = await readFile(resolve(projectRoot, "src/data/sessionSeedContent.ts"), "utf8");
+  const coreSocialSource = await readFile(resolve(projectRoot, "src/data/coreSocialFriends.ts"), "utf8");
+  const instagramStateSource = await readFile(resolve(projectRoot, "src/state/instagramState.ts"), "utf8");
+  const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
   const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
   const deviceCssSource = await readFile(resolve(projectRoot, "src/styles/device.css"), "utf8");
   const timelineCellSource = twitterContainerSource.match(/function TimelineTweet[\s\S]*?function TweetDetail/)?.[0] ?? "";
   assert.doesNotMatch(seedSource, /DeviceAudio|deviceEventScheduler|smsNotification/, "seed definitions must not depend on delivery systems");
+  assert.doesNotMatch(`${seedSource}\n${coreSocialSource}\n${instagramStateSource}`, /juneph[o]to/, "runtime/data must contain no superseded June Instagram handle");
+  assert.doesNotMatch(instagramStateSource, /Math\.random|followerDrift|liveFollowerDrift/, "ordinary fictional June must not receive render-time randomization or celebrity follower drift");
+  assert.match(instagramContainerSource, /viewTitle\(state\.currentView, selectedKnownAccount\?\.username/, "June's username must supply the other-user profile navigation title");
+  assert.match(instagramContainerSource, /instagram-profile-photo-stream/, "Instagram 1.0 profiles must use a vertical photo stream");
+  assert.doesNotMatch(instagramContainerSource, /instagram-known-photo-grid|profile-bio|Story Highlights|Reels/, "June profile must not contain post-2010 grid, bio, Story, or Reels UI");
+  assert.match(instagramContainerSource, /getSharedCharacterMedia\("june-profile-avatar"\)/, "June's profile and stream avatar must resolve through shared media");
+  assert.match(instagramContainerSource, />Popular<\/button>/, "Popular must be a functional root tab");
+  assert.match(instagramContainerSource, />Share<\/button>/, "the center Instagram tab must use Share semantics");
+  assert.match(instagramContainerSource, /instagramAccountTabLabel\(identity\.name\)/, "the rightmost tab must derive current-account identity");
+  assert.match(deviceCssSource, /\.instagram-popular-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,1fr\)[^}]*overflow-y:\s*auto/, "Popular must use a vertically scrolling four-column grid");
+  assert.match(deviceCssSource, /\.instagram-popular-grid\s*>\s*button\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/, "Popular thumbnails must remain square");
+  assert.doesNotMatch(instagramContainerSource, /Explore|category chips|Suggested for You|Reels|instagram-popular-search/, "Popular must not introduce modern Explore UI");
+  assert.match(deviceCssSource, /\.instagram-square-photo\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/, "June Instagram media must use a square presentation surface");
+  assert.match(deviceCssSource, /\.instagram-square-photo img\s*\{[^}]*width:\s*100%[^}]*height:\s*100%[^}]*object-fit:\s*cover/, "square Instagram images must fill their 1:1 surface without stretching");
   assert.match(facebookContainerSource, /getFacebookMedia\(item\.mediaId\)/, "Facebook Feed must resolve portrait media through the centralized registry");
   assert.match(facebookContainerSource, /getFacebookMedia\(authorIdentity\.profileMediaId\)/, "Facebook Profile must resolve portrait media through the centralized registry");
   assert.doesNotMatch(facebookContainerSource, /HomeDestination[^\n]+label="Groups"/, "Groups must not appear as an October 20 launcher destination");

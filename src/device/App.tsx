@@ -229,6 +229,16 @@ export function App() {
       dispatchFacebook({ type: "DELIVER_JUNE_MESSAGE" });
     } else if (event.type === "facebookPartyInvite" && event.payload?.kind === "facebook-party-invite") {
       dispatchFacebook({ type: "DELIVER_PARTY_INVITE", timestamp: deviceStatusTime });
+    } else if (event.type === "facebookJuneInstagramAnnouncement" && event.payload?.kind === "facebook-june-instagram-announcement") {
+      dispatchFacebook({ type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: deviceStatusTime });
+    } else if (event.type === "facebookJuneJackGossip" && event.payload?.kind === "facebook-june-jack-gossip") {
+      dispatchFacebook({ type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: event.payload.reactionId, characterId: event.payload.characterId, text: event.payload.text });
+    } else if (event.type === "facebookKatieGossipMessage" && event.payload?.kind === "facebook-katie-jack-gossip-message") {
+      dispatchFacebook({ type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: deviceStatusTime });
+    } else if (event.type === "instagramJunePost" && event.payload?.kind === "instagram-june-post") {
+      dispatchInstagram({ type: "DELIVER_KNOWN_ACCOUNT_POST", post: { id: event.payload.postId, mediaId: event.payload.mediaId, timestamp: event.payload.timestamp } });
+    } else if (event.type === "instagramJuneDelete" && event.payload?.kind === "instagram-june-delete") {
+      dispatchInstagram({ type: "DELETE_KNOWN_ACCOUNT_POST", postId: event.payload.postId });
     } else if (event.type === "twitterBackgroundTweet" && event.payload?.kind === "twitter-post") {
       dispatchTwitter({ type: "DELIVER_TIMELINE_TWEET", tweet: event.payload.post });
     } else if (event.type === "foursquareActivity" && event.payload?.kind === "foursquare-activity") {

@@ -23,8 +23,14 @@ export const TWITTER_LIVE_ACTIVITY_POOL: readonly SessionTimelineEventDefinition
 
 export const SESSION_TIMELINE_EVENTS: readonly SessionTimelineEventDefinition[] = [
   { id: "initial-sms-mom-home-yet", atElapsedSeconds: 60, sourceApp: "messages", type: "initialSMS", payload: { kind: "initial-sms", id: "mom-home-yet", sender: "Mom", message: "Home yet?", timestamp: "12:03 AM" }, deliveryPolicy: "notification", provenanceStatus: "CURATED" },
+  { id: "facebook-june-instagram-announcement", atElapsedSeconds: 60, sourceApp: "facebook", type: "facebookJuneInstagramAnnouncement", payload: { kind: "facebook-june-instagram-announcement" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
   TWITTER_LIVE_ACTIVITY_POOL[0],
+  { id: "facebook-june-jack-gossip-katie", atElapsedSeconds: 120, sourceApp: "facebook", type: "facebookJuneJackGossip", payload: { kind: "facebook-june-jack-gossip", reactionId: "facebook-june-jack-gossip-katie", characterId: "katie", text: "june + jack???" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
+  { id: "facebook-june-jack-gossip-chris", atElapsedSeconds: 145, sourceApp: "facebook", type: "facebookJuneJackGossip", payload: { kind: "facebook-june-jack-gossip", reactionId: "facebook-june-jack-gossip-chris", characterId: "chris", text: "lol no way" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
   { id: "facebook-jack-request", atElapsedSeconds: 150, sourceApp: "facebook", type: "facebookJackRequest", payload: { kind: "jack-request" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
+  { id: "facebook-katie-jack-gossip-message", atElapsedSeconds: 155, sourceApp: "facebook", type: "facebookKatieGossipMessage", payload: { kind: "facebook-katie-jack-gossip-message", message: "Do you know Jack????" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
+  { id: "instagram-june-jack-accidental-delete", atElapsedSeconds: 200, sourceApp: "instagram", type: "instagramJuneDelete", payload: { kind: "instagram-june-delete", postId: "june-ig-04" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
+  { id: "instagram-june-replacement-photo", atElapsedSeconds: 210, sourceApp: "instagram", type: "instagramJunePost", payload: { kind: "instagram-june-post", postId: "june-ig-01", mediaId: "june-ig-01", timestamp: "2010-10-20T00:05:30-07:00" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
   { id: "facebook-june-message", atElapsedSeconds: 270, sourceApp: "facebook", type: "facebookJuneMessage", payload: { kind: "june-message", sender: "June", message: "Hey, are you online?" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
   TWITTER_LIVE_ACTIVITY_POOL[1],
   TWITTER_LIVE_ACTIVITY_POOL[2],

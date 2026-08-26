@@ -1,4 +1,4 @@
-export type DeviceEventSource = "messages" | "facebook" | "twitter" | "foursquare" | "tumblr";
+export type DeviceEventSource = "messages" | "facebook" | "instagram" | "twitter" | "foursquare" | "tumblr";
 
 export type DeviceEventType =
   | "initialSMS"
@@ -8,6 +8,11 @@ export type DeviceEventType =
   | "facebookJackRequest"
   | "facebookJuneMessage"
   | "facebookPartyInvite"
+  | "facebookJuneInstagramAnnouncement"
+  | "facebookJuneJackGossip"
+  | "facebookKatieGossipMessage"
+  | "instagramJunePost"
+  | "instagramJuneDelete"
   | "twitterBackgroundTweet"
   | "foursquareActivity"
   | "tumblrBackgroundPost";
@@ -17,6 +22,11 @@ export type DeviceEventPayload =
   | { kind: "jack-request" }
   | { kind: "june-message"; sender: string; message: string }
   | { kind: "facebook-party-invite" }
+  | { kind: "facebook-june-instagram-announcement" }
+  | { kind: "facebook-june-jack-gossip"; reactionId: "facebook-june-jack-gossip-katie" | "facebook-june-jack-gossip-chris"; characterId: "katie" | "chris"; text: string }
+  | { kind: "facebook-katie-jack-gossip-message"; message: "Do you know Jack????" }
+  | { kind: "instagram-june-post"; postId: "june-ig-01"; mediaId: "june-ig-01"; timestamp: "2010-10-20T00:05:30-07:00" }
+  | { kind: "instagram-june-delete"; postId: "june-ig-04" }
   | { kind: "twitter-post"; post: { id: string; displayName: string; text: string; timestamp: string } }
   | { kind: "foursquare-activity"; activityId: string; message: string }
   | { kind: "tumblr-post"; post: { id: string; type: "text" | "photo" | "quote"; blog: string; title: string; content: string; timestamp: string } };

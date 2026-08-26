@@ -10,15 +10,15 @@ The simulation begins on October 20, 2010, fourteen days after Instagram launche
 
 ## Facebook bridge
 
-June has one pre-session Facebook seed post dated October 19, 2010 at 11:44 PM:
+June's bridge was superseded by the v0.6 live Facebook post at T+60 / 12:03 AM:
 
-> finally got instagram lol @junephoto
+> finally got instagram lol @junepark
 
 The post uses canonical character ID `june` and contains only a plain-text handle. It does not use `IG`, `follow my IG`, `link in bio`, `DM me`, a rich preview, an Instagram card or influencer language. Exact October 2010 Facebook-to-Instagram unfurl behavior remains `HOLD`.
 
 ## Canonical Instagram handle
 
-`junephoto` is stored once in June's `CORE_SOCIAL_CHARACTERS` metadata under `socialHandles.instagram`. It is lowercase, deterministic, session-independent and does not imply an exact age or branded persona.
+`junepark` is stored once in June's `CORE_SOCIAL_CHARACTERS` metadata under `socialHandles.instagram`. It is lowercase, deterministic, session-independent and does not imply an exact age or branded persona.
 
 The Facebook post derives its handle from that field. Instagram's known-account seed also derives its username and `june` character reference from the same canonical object, preventing a second June identity.
 
@@ -29,16 +29,16 @@ Instagram begins with one familiar known-account record:
 | Field | Value |
 | --- | --- |
 | Canonical character | `june` |
-| Username | `junephoto` |
+| Username | `junepark` |
 | Display name | June |
 | Existing photos | 0 |
 | Classification | `CURATED` |
-| Discovery UI | `HOLD` |
-| Follow UI | `HOLD` |
+| Discovery semantics | `READY` through Facebook friends |
+| Follow semantics | `READY`; exact chrome HOLD |
 
 `selectInstagramKnownAccountByUsername` provides a deterministic data lookup that accepts a plain username or leading `@`. This is a model-level discovery boundary, not a claim about exact Instagram 1.0 search chrome.
 
-The cross-app relationship is an `ACTIVE DATA LINK`: both Facebook and Instagram resolve `CORE_SOCIAL_CHARACTERS.june`, and both derive `junephoto` from its central `socialHandles.instagram` field. There is no `instagram-june`, `june2` or parallel identity record.
+The cross-app relationship is an `ACTIVE DATA LINK`: both Facebook and Instagram resolve `CORE_SOCIAL_CHARACTERS.june`, and both derive `junepark` from its central `socialHandles.instagram` field. There is no `instagram-june`, `june2` or parallel identity record.
 
 ## Discovery boundary
 
@@ -48,7 +48,7 @@ The narrative path currently stops at evidence-safe data readiness:
 
 ```text
 June Facebook post
-  -> plain @junephoto clue
+  -> plain @junepark clue
   -> Instagram canonical account mapping
   -> exact lookup UI HOLD pending Instagram 1.0 IA audit
 ```
@@ -82,7 +82,7 @@ June's Instagram post is independent of `Hey, are you online?`, the June reply t
 | Element | Classification |
 | --- | --- |
 | Instagram launch on October 6, 2010 | `PERIOD-EVIDENCE` |
-| June, `junephoto`, account metadata and Facebook copy | `CURATED FICTIONAL` |
+| June, `junepark`, account metadata and Facebook copy | `CURATED FICTIONAL` |
 | Cross-app discovery pattern | `PERIOD-EVIDENCE-informed` |
 | Exact Facebook handle-link presentation | `HOLD` |
 | Exact Instagram 1.0 lookup/Profile/Follow IA | `HOLD pending native IA audit` |

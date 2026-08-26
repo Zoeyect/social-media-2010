@@ -315,6 +315,26 @@ button, input { font: inherit; }
 .instagram-empty-profile dt { color: #6e665e; font-size: 10px; text-transform: uppercase; }
 .instagram-empty-profile dd { margin: 0; color: #292520; font-size: 18px; font-weight: bold; }
 .instagram-empty-profile > p { padding-top: 72px; text-align: center; }
+.instagram-find-facebook-friends { display: block; min-width: 190px; height: 32px; margin: 20px auto 0; color: #fff; border: 1px solid #3f3933; border-radius: 4px; background: #685c50; font-size: 11px; font-weight: bold; }
+.instagram-photo-record > header button { padding: 0; color: #554a3e; border: 0; background: transparent; font-size: 12px; font-weight: bold; }
+.instagram-character-photo { width: 100%; max-height: 320px; display: block; object-fit: cover; background: #191919; }
+.instagram-facebook-friends,.instagram-known-profile { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #f4f1ec; }
+.instagram-facebook-friends > p { margin: 0; padding: 7px 11px; color: #6e665e; border-bottom: 1px solid #b8b0a7; background: #e2ddd6; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+.instagram-facebook-friends article { min-height: 62px; padding: 7px 9px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; border-bottom: 1px solid #b8b0a7; background: #f4f1ec; }
+.instagram-known-profile-link { padding: 0; display: grid; gap: 2px; color: #292520; border: 0; background: transparent; text-align: left; }
+.instagram-known-profile-link strong { font-size: 14px; }
+.instagram-known-profile-link span { color: #70675f; font-size: 11px; }
+.instagram-follow-control,.instagram-known-profile > header button { min-width: 68px; height: 28px; color: #fff; border: 1px solid #3f3933; border-radius: 4px; background: #685c50; font-size: 10px; font-weight: bold; }
+.instagram-follow-control[aria-pressed="true"],.instagram-known-profile > header button[aria-pressed="true"] { color: #514b45; border-color: #aaa39b; background: #ddd8d1; }
+.instagram-known-profile > header { min-height: 68px; padding: 10px 11px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #b8b0a7; background: #e2ddd6; }
+.instagram-known-profile > header div { display: grid; gap: 3px; }
+.instagram-known-profile > header strong { font-size: 17px; }
+.instagram-known-profile > header span { color: #70675f; font-size: 11px; }
+.instagram-known-photo-grid { padding: 6px; display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; }
+.instagram-known-photo-grid > p { grid-column: 1 / -1; margin: 60px 0; color: #70675f; text-align: center; }
+.instagram-known-photo-grid article { position: relative; min-height: 130px; background: #d2cec8; }
+.instagram-known-photo-grid img { width: 100%; height: 146px; display: block; object-fit: cover; }
+.instagram-known-photo-grid span { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px; color: #fff; background: rgba(0,0,0,.55); font-size: 9px; }
 .instagram-first-photo-step { flex: 1 1 auto; min-height: 0; padding: 18px 16px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 12px; overflow-y: auto; background: #f4f1ec; text-align: center; }
 .instagram-first-photo-step h2,.instagram-first-photo-step p { margin: 0; }
 .instagram-first-photo-step h2 { font-size: 18px; }
@@ -479,6 +499,47 @@ button, input { font: inherit; }
 .app-dev-access > span { color: #718791; font-size: 9px; }
 @media (max-height: 820px) { .device { transform: scale(.82); margin-block: -67px; } }
 @media (max-width: 430px) { .device { transform: scale(.86); margin-inline: -28px; } }
+
+.instagram-square-photo { width: 100%; aspect-ratio: 1 / 1; overflow: hidden; background: #111; }
+.instagram-square-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.instagram-known-profile-stats { margin: 0; padding: 8px 10px; display: grid; grid-template-columns: repeat(3,1fr); border-bottom: 1px solid #bbb; background: #f3f3f3; text-align: center; }
+.instagram-known-profile-stats div { display: grid; gap: 2px; }
+.instagram-known-profile-stats dt { color: #666; font-size: 10px; text-transform: uppercase; }
+.instagram-known-profile-stats dd { margin: 0; color: #222; font-size: 15px; font-weight: bold; }
+.instagram-period-profile { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
+.instagram-profile-summary { min-height: 104px; padding: 10px; display: grid; grid-template-columns: 74px 1fr; gap: 9px; color: #fff; background: linear-gradient(#454545,#242424); border-bottom: 1px solid #111; }
+.instagram-profile-avatar,.instagram-profile-avatar-placeholder { width: 74px; height: 74px; display: grid; place-items: center; overflow: hidden; color: #ddd; border: 2px solid #777; background: #333; font-size: 28px; font-weight: bold; }
+.instagram-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.instagram-profile-summary-content { min-width: 0; display: grid; align-content: start; gap: 8px; }
+.instagram-profile-summary-content > strong { overflow: hidden; font-size: 16px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.instagram-profile-stats { margin: 0; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 2px; }
+.instagram-profile-stats > div { min-width: 0; height: 46px; display: grid; place-items: center; align-content: center; color: #fff; border: 1px solid #244869; background: linear-gradient(#5f8db3,#38658c); text-align: center; text-shadow: 0 -1px rgba(0,0,0,.5); }
+.instagram-profile-stats dt,.instagram-profile-stats button strong { font-size: 16px; line-height: 18px; }
+.instagram-profile-stats dd,.instagram-profile-stats button span { margin: 0; font-size: 8px; line-height: 10px; text-transform: lowercase; }
+.instagram-profile-stats button { width: 100%; height: 100%; padding: 0; display: grid; place-items: center; align-content: center; color: inherit; border: 0; background: transparent; text-shadow: inherit; }
+.instagram-profile-photo-stream { background: #e8e8e8; }
+.instagram-profile-photo-stream article { margin: 0 0 8px; background: #fff; border-bottom: 1px solid #aaa; }
+.instagram-profile-photo-stream article > header { height: 38px; padding: 5px 8px; display: grid; grid-template-columns: 27px 1fr auto; align-items: center; gap: 7px; color: #333; }
+.instagram-profile-photo-stream article > header img,.instagram-stream-avatar-placeholder { width: 27px; height: 27px; display: block; object-fit: cover; border: 1px solid #aaa; background: #555; }
+.instagram-profile-photo-stream article > header strong { color: #2f5f88; font-size: 12px; }
+.instagram-profile-photo-stream article > header time { color: #777; font-size: 10px; }
+.instagram-period-empty-stream { margin: 0; padding: 32px 12px; color: #666; background: #fff; text-align: center; }
+.instagram-owner-profile > .instagram-find-facebook-friends { width: 100%; min-height: 35px; border-radius: 0; }
+.instagram-profile-relationship-control { max-width: 68px; overflow: hidden; text-overflow: ellipsis; }
+.instagram-known-connections article { min-height: 50px; padding: 8px 12px; display: grid; gap: 3px; color: #555; border-bottom: 1px solid #bbb; background: #fff; }
+.instagram-known-connections article strong { color: #2f5f88; font-size: 13px; }
+.instagram-known-connections article span { font-size: 10px; }
+.instagram-popular-grid { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(4,1fr); grid-auto-rows: max-content; align-content: start; gap: 1px; overflow-y: auto; background: #d5d5d5; }
+.instagram-popular-grid > button { width: 100%; padding: 0; aspect-ratio: 1 / 1; overflow: hidden; border: 0; background: #777; }
+.instagram-popular-image { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.instagram-popular-photo-detail { flex: 1 1 auto; min-height: 0; overflow-y: auto; color: #333; background: #fff; }
+.instagram-popular-photo-detail > header { height: 40px; padding: 6px 9px; display: grid; grid-template-columns: 27px 1fr auto; align-items: center; gap: 7px; }
+.instagram-popular-photo-detail > header strong { color: #2f5f88; font-size: 12px; }
+.instagram-popular-photo-detail > header time { color: #777; font-size: 10px; }
+.instagram-popular-photo-detail > footer { min-height: 32px; padding: 7px 10px; display: flex; gap: 14px; color: #2f5f88; border-top: 1px solid #bbb; font-size: 11px; font-weight: bold; }
+.instagram-period-empty-root { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; color: #777; background: #eee; font-size: 12px; }
+.instagram-development-navigation { flex: 0 0 49px; min-height: 49px; }
+.instagram-share-tab { position: relative; z-index: 1; margin-top: -5px; height: 54px; }
 
 /* Facebook for iPhone 3.2-era structural pass. Exact raster icons, gloss and pixel metrics remain HOLD. */
 .facebook-navigation-bar > strong { max-width: 160px; overflow: hidden; color: #fff; font-size: 19px; line-height: 44px; text-overflow: ellipsis; white-space: nowrap; }

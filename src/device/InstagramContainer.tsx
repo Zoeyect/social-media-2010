@@ -1,6 +1,8 @@
 import { Dispatch, useLayoutEffect, useRef } from "react";
-import { InstagramEvent, InstagramState } from "../state/instagramState";
+import { InstagramEvent, InstagramState, selectInstagramFollowedAccounts, selectInstagramFollowingCount, selectInstagramKnownAccountStats, selectInstagramVisibleFollowedPosts, selectInstagramVisibleKnownPosts } from "../state/instagramState";
 import { useSessionIdentity } from "../state/sessionIdentity";
+import { getSharedCharacterMedia } from "../data/sharedCharacterMedia";
+import { getInstagramPopularPost, INSTAGRAM_POPULAR_POSTS } from "../data/instagramPopularContent";
 
 type InstagramContainerProps = {
   state: InstagramState;
@@ -10,18 +12,37 @@ type InstagramContainerProps = {
 export function InstagramContainer({ state, dispatch }: InstagramContainerProps) {
   const identity = useSessionIdentity();
   const feedRef = useRef<HTMLDivElement>(null);
+  const popularRef = useRef<HTMLDivElement>(null);
   const isWorkflow = state.currentView === "source" || state.currentView === "filter" || state.currentView === "share";
+  const followedKnownPosts = selectInstagramVisibleFollowedPosts(state);
+  const followedAccounts = selectInstagramFollowedAccounts(state);
+  const followingCount = selectInstagramFollowingCount(state);
+  const selectedKnownAccount = state.knownAccounts.find(account => account.canonicalCharacterId === state.selectedKnownCharacterId) ?? null;
+  const selectedKnownPosts = selectedKnownAccount ? selectInstagramVisibleKnownPosts(state, selectedKnownAccount.canonicalCharacterId) : [];
+  const selectedKnownStats = selectedKnownAccount ? selectInstagramKnownAccountStats(state, selectedKnownAccount.canonicalCharacterId) : null;
+  const selectedKnownAvatar = selectedKnownAccount?.canonicalCharacterId === "june" ? getSharedCharacterMedia("june-profile-avatar") : null;
+  const selectedPopularPost = state.selectedPopularPostId ? getInstagramPopularPost(state.selectedPopularPostId) : null;
+  const accountTabLabel = instagramAccountTabLabel(identity.name);
 
   useLayoutEffect(() => {
     if (state.currentView !== "feed" || !feedRef.current) return;
     feedRef.current.scrollTop = state.scrollPosition;
   }, [state.currentView, state.scrollPosition]);
 
+  useLayoutEffect(() => {
+    if (state.currentView !== "popular" || !popularRef.current) return;
+    popularRef.current.scrollTop = state.popularScrollPosition;
+  }, [state.currentView, state.popularScrollPosition]);
+
   return <section className="instagram-container" aria-label="Instagram" data-chrome-status="HOLD">
     <header className="instagram-navigation-bar">
+      {state.currentView === "popularPhotoDetail" && <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_FROM_POPULAR_PHOTO" })}>Back</button>}
+      {(state.currentView === "following" || state.currentView === "facebookFriends" || state.currentView === "knownProfile" || state.currentView === "knownConnections") && <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_FROM_DISCOVERY" })}>Back</button>}
       {isWorkflow && <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "CANCEL_FIRST_PHOTO" })}>Cancel</button>}
-      <strong>{viewTitle(state.currentView)}</strong>
+      <strong>{viewTitle(state.currentView, selectedKnownAccount?.username, state.knownConnectionsKind)}</strong>
       {state.currentView === "filter" && <button className="instagram-navigation-next" type="button" onClick={() => dispatch({ type: "CONTINUE_TO_SHARE" })}>Next</button>}
+      {state.currentView === "popular" && <button className="instagram-navigation-next instagram-popular-refresh" type="button" data-icon-status="HOLD-HISTORICAL-ASSET" onClick={() => dispatch({ type: "REFRESH_POPULAR" })}>Refresh</button>}
+      {state.currentView === "knownProfile" && selectedKnownAccount && <button className="instagram-navigation-next instagram-profile-relationship-control" type="button" data-chrome-status="HOLD" aria-pressed={state.followedCharacterIds.includes(selectedKnownAccount.canonicalCharacterId)} onClick={() => dispatch({ type: "SET_KNOWN_ACCOUNT_FOLLOWING", characterId: selectedKnownAccount.canonicalCharacterId, following: !state.followedCharacterIds.includes(selectedKnownAccount.canonicalCharacterId) })}>{state.followedCharacterIds.includes(selectedKnownAccount.canonicalCharacterId) ? "Following" : "Follow"}</button>}
     </header>
 
     {state.currentView === "feed" && <div
@@ -29,30 +50,86 @@ export function InstagramContainer({ state, dispatch }: InstagramContainerProps)
       className="instagram-feed"
       onScroll={event => dispatch({ type: "SET_SCROLL_POSITION", scrollPosition: event.currentTarget.scrollTop })}
     >
-      {state.photos.length === 0
+      {state.photos.length === 0 && followedKnownPosts.length === 0
         ? <div className="instagram-empty-feed">
             <p>No photos yet.</p>
-            <span>This account is intentionally empty.</span>
+            <span>Find friends from Facebook or share your first photo.</span>
           </div>
-        : state.photos.map(photo => <article className="instagram-photo-record" key={photo.id} data-origin={photo.origin}>
+        : <>{followedKnownPosts.map(post => {
+          const media = getSharedCharacterMedia(post.mediaId);
+          return <article className="instagram-photo-record is-known-account" key={post.id} data-origin={post.origin}>
+            <header><button type="button" onClick={() => dispatch({ type: "OPEN_KNOWN_PROFILE", characterId: post.canonicalCharacterId })}>@{post.username}</button><span>{post.timestamp}</span></header>
+            <div className="instagram-square-photo"><img className="instagram-character-photo" src={media.src} alt="" /></div>
+          </article>;
+        })}{state.photos.map(photo => <article className="instagram-photo-record" key={photo.id} data-origin={photo.origin}>
             <header><strong>{photo.owner}</strong><span>{photo.filter}</span></header>
             <div className="instagram-dev-photo-surface" role="img" aria-label="Development-only non-photographic fixture">
               <strong>DEV fixture</strong>
               <span>No photographic asset</span>
             </div>
-          </article>)}
+          </article>)}</>}
     </div>}
 
-    {state.currentView === "profile" && <section className="instagram-empty-profile">
-      <header>
-        <strong>{identity.name || "Owner"}</strong>
-        <dl>
-          <div><dt>Photos</dt><dd>{state.photos.length}</dd></div>
-          <div><dt>Followers</dt><dd>{state.followers}</dd></div>
-          <div><dt>Following</dt><dd>{state.following}</dd></div>
-        </dl>
-      </header>
-      <p>{state.photos.length === 0 ? "No photos yet." : "1 photo"}</p>
+    {state.currentView === "popular" && <div ref={popularRef} className="instagram-popular-grid" aria-label="Popular photos" data-refresh-count={state.popularRefreshCount} onScroll={event => dispatch({ type: "SET_POPULAR_SCROLL_POSITION", scrollPosition: event.currentTarget.scrollTop })}>
+      {INSTAGRAM_POPULAR_POSTS.map(post => <button key={post.id} type="button" aria-label={`Open ${post.category} photo by ${post.username}`} onClick={() => dispatch({ type: "OPEN_POPULAR_PHOTO", postId: post.id })}><InstagramPopularFixture media={post.media} username={post.username} /></button>)}
+    </div>}
+
+    {state.currentView === "popularPhotoDetail" && selectedPopularPost && <article className="instagram-popular-photo-detail" data-content-classification={selectedPopularPost.classification}>
+      <header><span className="instagram-stream-avatar-placeholder" aria-hidden="true" /><strong>{selectedPopularPost.username}</strong><time>{selectedPopularPost.relativeTimestamp}</time></header>
+      <div className="instagram-square-photo"><InstagramPopularFixture media={selectedPopularPost.media} username={selectedPopularPost.username} /></div>
+      <footer data-action-chrome-status="HOLD"><span>Like</span><span>Comment</span></footer>
+    </article>}
+
+    {state.currentView === "news" && <section className="instagram-period-empty-root" data-content-status="HOLD"><p>No new activity.</p></section>}
+
+    {state.currentView === "profile" && <section className="instagram-period-profile instagram-owner-profile">
+      <div className="instagram-profile-summary">
+        <span className="instagram-profile-avatar-placeholder" aria-hidden="true">{(identity.name || "O").slice(0, 1).toUpperCase()}</span>
+        <div className="instagram-profile-summary-content"><strong>{identity.name || "Owner"}</strong>
+          <InstagramProfileStats photos={state.photos.length} followers={state.followers} following={followingCount} onFollowing={() => dispatch({ type: "SHOW_FOLLOWING" })} />
+        </div>
+      </div>
+      <button className="instagram-find-facebook-friends" type="button" onClick={() => dispatch({ type: "SHOW_FACEBOOK_FRIENDS" })}>Find Friends from Facebook</button>
+      <div className="instagram-profile-photo-stream">{state.photos.length === 0
+        ? <p className="instagram-period-empty-stream">No photos yet.</p>
+        : state.photos.map(photo => <article key={photo.id}><header><span className="instagram-stream-avatar-placeholder" aria-hidden="true" /><strong>{identity.name || "Owner"}</strong><time>{photo.filter}</time></header><div className="instagram-dev-photo-surface" role="img" aria-label="Development-only non-photographic fixture"><strong>DEV fixture</strong><span>No photographic asset</span></div></article>)}</div>
+    </section>}
+
+    {state.currentView === "following" && <section className="instagram-facebook-friends instagram-following-list" aria-label="Following">
+      <p>Following</p>
+      {followedAccounts.length === 0 && <p>No followed accounts.</p>}
+      {followedAccounts.map(account => <article key={account.canonicalCharacterId}>
+        <button type="button" className="instagram-known-profile-link" onClick={() => dispatch({ type: "OPEN_KNOWN_PROFILE", characterId: account.canonicalCharacterId })}><strong>{account.displayName}</strong><span>@{account.username}</span></button>
+      </article>)}
+    </section>}
+
+    {state.currentView === "facebookFriends" && <section className="instagram-facebook-friends" aria-label="Facebook Friends">
+      <p>Friends on Instagram</p>
+      {state.knownAccounts.map(account => <article key={account.canonicalCharacterId}>
+        <button type="button" className="instagram-known-profile-link" onClick={() => dispatch({ type: "OPEN_KNOWN_PROFILE", characterId: account.canonicalCharacterId })}><strong>{account.displayName}</strong><span>@{account.username}</span></button>
+        <button type="button" className="instagram-follow-control" aria-pressed={state.followedCharacterIds.includes(account.canonicalCharacterId)} onClick={() => dispatch({ type: "SET_KNOWN_ACCOUNT_FOLLOWING", characterId: account.canonicalCharacterId, following: !state.followedCharacterIds.includes(account.canonicalCharacterId) })}>{state.followedCharacterIds.includes(account.canonicalCharacterId) ? "Following" : "Follow"}</button>
+      </article>)}
+    </section>}
+
+    {state.currentView === "knownProfile" && selectedKnownAccount && <section className="instagram-period-profile instagram-known-profile" aria-label={`${selectedKnownAccount.displayName} Instagram Profile`} data-profile-chrome-status={selectedKnownAccount.profileUiStatus}>
+      <div className="instagram-profile-summary">
+        {selectedKnownAvatar ? <div className="instagram-profile-avatar"><img src={selectedKnownAvatar.src} alt="" /></div> : <span className="instagram-profile-avatar-placeholder" aria-hidden="true" />}
+        <div className="instagram-profile-summary-content"><strong>{selectedKnownAccount.displayName}</strong>
+          {selectedKnownStats && <InstagramProfileStats photos={selectedKnownStats.posts} followers={selectedKnownStats.followers} following={selectedKnownStats.following} onFollowers={() => dispatch({ type: "SHOW_KNOWN_CONNECTIONS", kind: "followers" })} onFollowing={() => dispatch({ type: "SHOW_KNOWN_CONNECTIONS", kind: "following" })} />}
+        </div>
+      </div>
+      <div className="instagram-profile-photo-stream">
+        {selectedKnownPosts.length === 0 && <p className="instagram-period-empty-stream">No photos.</p>}
+        {selectedKnownPosts.map(post => {
+          const media = getSharedCharacterMedia(post.mediaId);
+          return <article key={post.id}><header>{selectedKnownAvatar ? <img src={selectedKnownAvatar.src} alt="" /> : <span className="instagram-stream-avatar-placeholder" aria-hidden="true" />}<strong>{post.username}</strong><time>{formatInstagramProfileTimestamp(post.timestamp)}</time></header><div className="instagram-square-photo"><img src={media.src} alt="" /></div></article>;
+        })}
+      </div>
+    </section>}
+
+    {state.currentView === "knownConnections" && selectedKnownAccount && selectedKnownStats && state.knownConnectionsKind && <section className="instagram-facebook-friends instagram-known-connections" aria-label={`${selectedKnownAccount.displayName} ${state.knownConnectionsKind}`}>
+      <p>{selectedKnownAccount.displayName} · {state.knownConnectionsKind === "followers" ? selectedKnownStats.followers : selectedKnownStats.following} {state.knownConnectionsKind}</p>
+      <article data-content-status="HOLD"><strong>Account list</strong><span>Individual rows remain HOLD pending approved social-graph identities.</span></article>
     </section>}
 
     {state.currentView === "source" && <section className="instagram-first-photo-step">
@@ -83,18 +160,50 @@ export function InstagramContainer({ state, dispatch }: InstagramContainerProps)
 
     {!isWorkflow && <nav className="instagram-development-navigation" aria-label="Instagram sections">
       <button type="button" aria-current={state.currentView === "feed" ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_FEED" })}>Feed</button>
-      <button type="button" disabled>Popular</button>
-      <button type="button" disabled={state.photos.length > 0} onClick={() => dispatch({ type: "BEGIN_FIRST_PHOTO" })}>Camera</button>
-      <button type="button" disabled>News</button>
-      <button type="button" aria-current={state.currentView === "profile" ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_PROFILE" })}>Profile</button>
+      <button type="button" aria-current={state.currentView === "popular" || state.currentView === "popularPhotoDetail" ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_POPULAR" })}>Popular</button>
+      <button type="button" className="instagram-share-tab" disabled={state.photos.length > 0} onClick={() => dispatch({ type: "BEGIN_FIRST_PHOTO" })}>Share</button>
+      <button type="button" aria-current={state.currentView === "news" ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_NEWS" })}>News</button>
+      <button type="button" aria-current={state.currentView === "profile" ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_PROFILE" })}>{accountTabLabel}</button>
     </nav>}
   </section>;
 }
 
-function viewTitle(view: InstagramState["currentView"]): string {
+function InstagramProfileStats({ photos, followers, following, onFollowers, onFollowing }: { photos: number; followers: number; following: number; onFollowers?: () => void; onFollowing?: () => void }) {
+  return <dl className="instagram-profile-stats" data-classification="CURATED-DISPLAY">
+    <div><dt>{photos}</dt><dd>photos</dd></div>
+    <div>{onFollowers ? <button type="button" onClick={onFollowers}><strong>{followers}</strong><span>followers</span></button> : <><dt>{followers}</dt><dd>followers</dd></>}</div>
+    <div>{onFollowing ? <button type="button" onClick={onFollowing}><strong>{following}</strong><span>following</span></button> : <><dt>{following}</dt><dd>following</dd></>}</div>
+  </dl>;
+}
+
+function formatInstagramProfileTimestamp(timestamp: string): string {
+  if (timestamp === "2010-10-20T00:05:30-07:00") return "moments ago";
+  if (timestamp.startsWith("2010-10-20")) return "Oct 20";
+  if (timestamp === "2010-10-16") return "Oct 16";
+  if (timestamp === "2010-10-15") return "Oct 15";
+  return timestamp;
+}
+
+function InstagramPopularFixture({ media, username }: { media: string; username: string }) {
+  return <img className="instagram-popular-image" src={media} alt={`Photo by ${username}`} />;
+}
+
+function instagramAccountTabLabel(name: string): string {
+  const normalized = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 12);
+  return `@${normalized || "account"}`;
+}
+
+function viewTitle(view: InstagramState["currentView"], knownUsername?: string, connectionsKind?: "followers" | "following" | null): string {
   switch (view) {
     case "feed": return "Instagram";
+    case "popular": return "Popular";
+    case "popularPhotoDetail": return "Photo";
+    case "news": return "News";
     case "profile": return "Profile";
+    case "following": return "Following";
+    case "facebookFriends": return "Facebook Friends";
+    case "knownProfile": return knownUsername ?? "Profile";
+    case "knownConnections": return connectionsKind === "followers" ? "Followers" : "Following";
     case "source": return "Photo";
     case "filter": return "Filter";
     case "share": return "Share";

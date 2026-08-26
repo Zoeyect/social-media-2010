@@ -23,7 +23,8 @@ Specificity belongs primarily to the nine canonical social characters and other 
 | Flickr | Seed/user comments and two ID-based Sets with origin-aware Back routing | Implemented and code-tested | None found | Exact 2010 comments/Sets chrome, seed commenter identity, and imagery remain C/HOLD | `Add Flickr v0.2 comments and Sets playability` |
 | Tumblr | Confirmed Reblog relation with optional text; seed/user Notes | Implemented and code-tested | None found | Exact 2010 Reblog/Notes chrome, wording, timing, and seed blog identities remain C/HOLD | `Add Tumblr v0.2 Reblog and Notes playability` |
 | Instagram | One-photo source, Original filter, confirmation, and post flow using a non-photographic DEV fixture | Implemented and code-tested | None found | Exact launch-era picker/filter/share chrome, complete filter names, and approved photography remain C/HOLD | `Add Instagram v0.2 first-photo playability` |
-| Facebook / Instagram | June's pre-session plain-text `@junephoto` post and one sparse Instagram known-account record reuse canonical `june` metadata | v0.5 active data link and code-tested | None | Exact Instagram 1.0 discovery, other-user Profile, avatar and Follow IA remain HOLD pending audit | `June Facebook to Instagram Cross-App Discovery v0.5` |
+| Instagram | Instagram 1.0 Popular root tab with deterministic 4-column placeholder grid, Refresh, Photo Detail/Back scroll restoration, and corrected Feed / Popular / Share / News / account tabs | v0.7 implemented and code-tested | None found | Original Popular imagery, tab/refresh rasters, ranking, action chrome and pixel-level geometry remain HOLD; manual browser confirmation pending | `Instagram 1.0 Popular Page IA Reconstruction v0.7` |
+| Facebook / Instagram | Canonical `junepark`; Facebook-friend discovery; explicit Follow; live accidental June/Jack post, Katie/Chris gossip, Katie Message, deletion and ordinary replacement | v0.6 active, optional/missable and code-tested | None | Exact Instagram Search/Profile/Follow/Delete chrome and stale-photo detail behavior remain HOLD; Suggested Users and Copy Sharing Link rejected | `June Accidental Instagram Post Narrative v0.6` |
 | Messages | No expansion in this phase unless explicitly requested | Unchanged | None | Additional scripted replies remain out of scope | Existing freeze retained |
 
 ## Twitter v0.2 result
@@ -213,5 +214,7 @@ Specificity belongs primarily to the nine canonical social characters and other 
 - No scheduler, System Foundation, Cross-App Timeline, sibling app, battery, or lock-routing change was introduced.
 
 ## Phase status
+
+Instagram Popular v0.7.1 is `FUNCTIONALLY COMPLETE / MANUAL VISUAL CONFIRMATION PENDING`. Its twenty local photos are centrally registered and Instagram work is paused after this closeout.
 
 **IN PROGRESS.** Instagram now has its v0.2 app-local functional slice. Remaining phase work must continue app by app and must not be declared complete before all selected app checkpoints are finished.

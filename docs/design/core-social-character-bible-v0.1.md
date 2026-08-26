@@ -115,9 +115,19 @@ Jay's migrated Facebook Feed and Inbox presence remains canonical. Jay does not 
 - Topics: photos, group outings, social events, short updates and late-night messaging
 - Strong surfaces: Facebook Inbox/photos/activity; early, sparse Instagram presence; Flickr; selective Twitter, Foursquare or Tumblr appearances
 - Platform behavior: highly active on Facebook and an early Instagram adopter who casually tells Facebook friends about the new account
-- Canonical Instagram handle: `junephoto`
+- Canonical Instagram handle: `junepark`
+- Instagram social baseline: socially popular early adopter with `118` Followers and `236` Following as deterministic `CURATED DISPLAY` values
+- The follower/following balance reflects active migration of an established offline/Facebook friend circle, never influencer or celebrity status
 
-June is socially prominent without being cruel, shallow, or a stereotypical mean girl. The scheduled Facebook message `Hey, are you online?` is locked and must remain associated with June. Her early Instagram use reflects social curiosity, not influencer behavior. Her pre-session Facebook post announces `@junephoto` as a plain-text clue to the same canonical `june` identity on Instagram; the data link is active while exact discovery and Follow IA remain HOLD.
+June is socially prominent without being cruel, shallow, or a stereotypical mean girl. The scheduled Facebook message `Hey, are you online?` is locked and must remain associated with June. Her early Instagram use reflects social curiosity, not influencer behavior. Her live Facebook post announces `@junepark` as a plain-text clue to the same canonical `june` identity on Instagram; Facebook-friend discovery and Follow semantics are active while exact Profile/Follow chrome remains HOLD.
+
+### v0.6 social-drama behavior
+
+- June may accidentally post an ambiguous image with Jack, remove it shortly afterward and continue with an ordinary replacement without explanation.
+- Katie is gossip-curious rather than cruel; she may react publicly and ask the user an open private question.
+- Chris may participate with restrained amusement because his social/sports world overlaps with Jack.
+- Jay is intentionally uninterested in June/Jack gossip and must not receive a reaction, post or message in this thread.
+- Jack's recognition comes from broad social position and football-captain visibility, not explicit popularity exposition or confirmed romance.
 
 ## 10. Jack
 

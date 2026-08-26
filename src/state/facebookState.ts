@@ -15,6 +15,8 @@ export type FacebookPartyInviteState = "none" | "eligible" | "delivered" | "open
 export type FacebookPartyRsvp = "yes" | "maybe" | "no" | null;
 
 export const FACEBOOK_PARTY_INVITE_EVENT_ID = "facebook-party-invite";
+export const FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID = "facebook-june-instagram-announcement";
+export const FACEBOOK_KATIE_GOSSIP_MESSAGE_ID = "facebook-katie-jack-gossip-message";
 
 export const FACEBOOK_BASELINE_FRIEND_IDS = Object.freeze(["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"] as const);
 
@@ -86,7 +88,7 @@ export type FacebookComment = {
   itemId: string;
   author: string;
   text: string;
-  origin: "seed" | "user";
+  origin: "seed" | "live" | "user";
   characterId?: CoreSocialCharacterId;
   classification?: "CURATED";
   ephemeralAuthor?: FacebookEphemeralIdentity;
@@ -101,7 +103,7 @@ export type FacebookUserCheckIn = {
 };
 
 export type FacebookNotification = {
-  id: "facebook-notification-jack-request" | "facebook-notification-june-message" | "facebook-notification-party-event";
+  id: "facebook-notification-jack-request" | "facebook-notification-june-message" | "facebook-notification-katie-gossip-message" | "facebook-notification-party-event";
   text: string;
   target: "requests" | "message" | "event";
   unread: boolean;
@@ -190,6 +192,9 @@ export type FacebookEvent =
   | { type: "SUBMIT_COMMENT"; displayName: string }
   | { type: "DELIVER_JACK_REQUEST" }
   | { type: "DELIVER_JUNE_MESSAGE" }
+  | { type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT"; timestamp: string }
+  | { type: "DELIVER_JUNE_JACK_GOSSIP"; reactionId: "facebook-june-jack-gossip-katie" | "facebook-june-jack-gossip-chris"; characterId: "katie" | "chris"; text: string }
+  | { type: "DELIVER_KATIE_GOSSIP_MESSAGE"; timestamp: string }
   | { type: "DELIVER_PARTY_INVITE"; timestamp: string }
   | { type: "RESET"; displayName?: string };
 
@@ -345,6 +350,9 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       if (event.notificationId === "facebook-notification-june-message") {
         return facebookStateTransition({ ...state, readNotificationIds }, { type: "OPEN_MESSAGE", messageId: "june-live-message" });
       }
+      if (event.notificationId === "facebook-notification-katie-gossip-message") {
+        return facebookStateTransition({ ...state, readNotificationIds }, { type: "OPEN_MESSAGE", messageId: FACEBOOK_KATIE_GOSSIP_MESSAGE_ID });
+      }
       return facebookStateTransition({ ...state, readNotificationIds }, { type: "OPEN_PARTY_EVENT" });
     }
     case "SHOW_ACCOUNT":
@@ -487,6 +495,47 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         ...state,
         inboxThreads: [{ id: "june-live-message", sender: "June", preview: "Hey, are you online?", timestamp: "12:06 AM", status: "unread", origin: "live" }, ...state.inboxThreads],
       } : state;
+    case "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT":
+      return state.feed.some(item => item.id === FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID) ? state : {
+        ...state,
+        feed: [{
+          id: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID,
+          friendId: CORE_SOCIAL_CHARACTERS.june.id,
+          author: CORE_SOCIAL_CHARACTERS.june.displayName,
+          text: `finally got instagram lol @${CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram}`,
+          timestamp: event.timestamp,
+          kind: "status",
+          contentStatus: "HOLD-fictional",
+          origin: "live",
+        }, ...state.feed],
+      };
+    case "DELIVER_JUNE_JACK_GOSSIP":
+      if (!state.feed.some(item => item.id === FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID) || state.comments.some(comment => comment.id === event.reactionId)) return state;
+      return {
+        ...state,
+        comments: [...state.comments, {
+          id: event.reactionId,
+          itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID,
+          author: CORE_SOCIAL_CHARACTERS[event.characterId].displayName,
+          text: event.text,
+          origin: "live",
+          characterId: event.characterId,
+          classification: "CURATED",
+        }],
+      };
+    case "DELIVER_KATIE_GOSSIP_MESSAGE":
+      return state.inboxThreads.some(thread => thread.id === FACEBOOK_KATIE_GOSSIP_MESSAGE_ID) ? state : {
+        ...state,
+        inboxThreads: [{
+          id: FACEBOOK_KATIE_GOSSIP_MESSAGE_ID,
+          friendId: CORE_SOCIAL_CHARACTERS.katie.id,
+          sender: CORE_SOCIAL_CHARACTERS.katie.displayName,
+          preview: "Do you know Jack????",
+          timestamp: event.timestamp,
+          status: "unread",
+          origin: "live",
+        }, ...state.inboxThreads],
+      };
     case "DELIVER_PARTY_INVITE":
       if (state.partyInviteState !== "eligible") return state;
       return {
@@ -546,6 +595,15 @@ export function selectFacebookNotifications(state: FacebookState): FacebookNotif
       text: "June sent you a message.",
       target: "message",
       unread: juneMessage.status === "unread" && !state.readNotificationIds.includes("facebook-notification-june-message"),
+    });
+  }
+  const katieMessage = state.inboxThreads.find(thread => thread.id === FACEBOOK_KATIE_GOSSIP_MESSAGE_ID);
+  if (katieMessage) {
+    notifications.push({
+      id: "facebook-notification-katie-gossip-message",
+      text: "Katie sent you a message.",
+      target: "message",
+      unread: katieMessage.status === "unread" && !state.readNotificationIds.includes("facebook-notification-katie-gossip-message"),
     });
   }
   const partyMessage = state.inboxThreads.find(thread => thread.id === FACEBOOK_PARTY_INVITE_EVENT_ID);

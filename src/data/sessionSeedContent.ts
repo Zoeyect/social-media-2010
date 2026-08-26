@@ -21,7 +21,6 @@ export const SESSION_SEED_CONTENT = Object.freeze({
       Object.freeze({ id: "ben-long-day", friendId: CORE_SOCIAL_CHARACTERS.ben.id, author: CORE_SOCIAL_CHARACTERS.ben.displayName, text: "Long day.", timestamp: "11:58 PM", kind: "status" as const, origin: "seed" as const }),
       Object.freeze({ id: "jack-movie", author: "Jack", text: "That movie was better than I expected.", timestamp: "11:52 PM", kind: "status" as const, origin: "seed" as const }),
       Object.freeze({ id: "alex-jacks-party-friday", friendId: CORE_SOCIAL_CHARACTERS.alex.id, author: CORE_SOCIAL_CHARACTERS.alex.displayName, text: "anyone going to jack's party friday?", timestamp: "11:47 PM", kind: "status" as const, visibility: "friends-of-friends" as const, origin: "seed" as const }),
-      Object.freeze({ id: "june-instagram-early-adopter", friendId: CORE_SOCIAL_CHARACTERS.june.id, author: CORE_SOCIAL_CHARACTERS.june.displayName, text: `finally got instagram lol @${CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram}`, timestamp: "11:44 PM", kind: "status" as const, createdAt: "2010-10-19T23:44:00-07:00", origin: "seed" as const }),
       Object.freeze({ id: "katie-coffee", friendId: CORE_SOCIAL_FRIENDS.katie.id, author: CORE_SOCIAL_FRIENDS.katie.displayName, text: "likes a coffee shop downtown.", timestamp: "11:41 PM", kind: "socialActivity" as const, origin: "seed" as const }),
       Object.freeze({ id: "jay-reading", friendId: CORE_SOCIAL_FRIENDS.jay.id, author: CORE_SOCIAL_FRIENDS.jay.displayName, text: "One more chapter before bed.", timestamp: "11:33 PM", kind: "status" as const, origin: "seed" as const }),
       Object.freeze({ id: "luca-pickup-basketball-photos", friendId: CORE_SOCIAL_CHARACTERS.luca.id, author: CORE_SOCIAL_CHARACTERS.luca.displayName, text: "added 4 new photos from pickup basketball.", timestamp: "10:58 PM", kind: "photoActivity" as const, photoCount: 4, relatedCharacterIds: Object.freeze([CORE_SOCIAL_CHARACTERS.chris.id]), tagUiStatus: "HOLD" as const, origin: "seed" as const }),
@@ -139,18 +138,25 @@ export const SESSION_SEED_CONTENT = Object.freeze({
   instagram: Object.freeze({
     photos: Object.freeze([]),
     followers: 0,
-    following: 0,
+    followedCharacterIds: Object.freeze([CORE_SOCIAL_CHARACTERS.june.id]),
     knownAccounts: Object.freeze([
       Object.freeze({
         canonicalCharacterId: CORE_SOCIAL_CHARACTERS.june.id,
         username: CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram,
         displayName: CORE_SOCIAL_CHARACTERS.june.displayName,
-        photoCount: 0,
+        followersBaseline: 118,
+        followingBaseline: 236,
         classification: "CURATED" as const,
-        discoveryUiStatus: "HOLD" as const,
-        followUiStatus: "HOLD" as const,
+        discoveryUiStatus: "READY" as const,
+        followUiStatus: "READY" as const,
+        profileUiStatus: "HOLD" as const,
         origin: "seed" as const,
       }),
+    ]),
+    knownAccountPosts: Object.freeze([
+      Object.freeze({ id: "june-ig-04" as const, canonicalCharacterId: CORE_SOCIAL_CHARACTERS.june.id, username: CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, mediaId: "june-ig-04" as const, caption: null, timestamp: "2010-10-20T00:00:00-07:00", status: "visible" as const, classification: "CURATED" as const, origin: "seed" as const }),
+      Object.freeze({ id: "june-ig-03" as const, canonicalCharacterId: CORE_SOCIAL_CHARACTERS.june.id, username: CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, mediaId: "june-ig-03" as const, caption: null, timestamp: "2010-10-16", status: "visible" as const, classification: "CURATED" as const, origin: "seed" as const }),
+      Object.freeze({ id: "june-ig-02" as const, canonicalCharacterId: CORE_SOCIAL_CHARACTERS.june.id, username: CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, mediaId: "june-ig-02" as const, caption: null, timestamp: "2010-10-15", status: "visible" as const, classification: "CURATED" as const, origin: "seed" as const }),
     ]),
   }),
 });

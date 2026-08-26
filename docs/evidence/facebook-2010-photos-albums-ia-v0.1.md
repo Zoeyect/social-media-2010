@@ -17,9 +17,11 @@ Implemented albums:
 - Z.tokyo: Profile Pictures
 - Luca: Pickup Basketball
 - Katie: Photos
-- Jay: Music
+- Jay: Music, with the Oct 19 performance, Oct 17 Jay guitar photo, and May guitar still life ordered by in-world timestamp
 
-Album and photo counts derive from registered media IDs. Each album currently contains one approved image. No placeholders are fabricated to match narrative copy.
+Album and photo counts derive from registered media IDs. No placeholders are fabricated to match narrative copy.
+
+Jay's `Music` chronology reuses `10-18.JPG`, `Jay01.PNG`, and `Jay02.PNG` without changing the files. `10-18.JPG` is an asset filename and the source image contains an October 18 event sign; the curated Facebook record is intentionally timestamped October 19 at 10:00 PM PDT per the narrative continuity specification. This source/in-world date distinction is documented rather than hidden or corrected through image alteration. Structured inline entities make `@Matt` and `@Z.tokyo` navigable through their existing Facebook actors. `@Anil` remains plain caption text because Anil is offline-only and has no SNS identity. Composer tagging UX remains HOLD.
 
 ## Shared story state
 

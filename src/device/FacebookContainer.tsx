@@ -1,4 +1,4 @@
-import { Dispatch, useLayoutEffect, useRef } from "react";
+import { Dispatch, useLayoutEffect, useRef, type ReactNode } from "react";
 import {
   FACEBOOK_CHAT_ROSTER,
   FACEBOOK_FRIEND_CHECK_INS,
@@ -23,7 +23,7 @@ import { useSessionIdentity } from "../state/sessionIdentity";
 import { getFacebookAuthorEasterEggByDisplayName } from "../data/facebookActors";
 import { getFacebookMedia } from "../data/facebookMedia";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
-import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumsForActor } from "../data/facebookAlbums";
+import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumPhoto, getFacebookAlbumsForActor } from "../data/facebookAlbums";
 import type { FacebookAlbum, FacebookAlbumActor } from "../data/facebookAlbums";
 import { getFacebookStoryMedia } from "../data/facebookStoryMedia";
 
@@ -89,7 +89,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
 
     {state.currentView === "feedDetail" && selectedItem && <article className="facebook-feed-detail" data-content-status={selectedItem.contentStatus}>
       <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: selectedItem.author })}>{selectedItem.author}</button>
-      <p>{selectedItem.text}</p>
+      <p><FacebookInlineEntityText text={selectedItem.text} mentions={selectedItem.mentions} dispatch={dispatch} /></p>
       <FacebookStoryMedia item={selectedItem} dispatch={dispatch} />
       <time>October 20, 2010 · {selectedItem.timestamp}</time>
       <FacebookStoryCounts commentCount={selectFacebookComments(state, selectedItem.id).length} likeCount={selectFacebookLikes(state, selectedItem.id, elapsedSeconds).length} />
@@ -269,7 +269,7 @@ function FacebookAlbumList({ actor, dispatch }: { actor: FacebookAlbumActor | nu
     <h2>Albums</h2>
     {albums.length === 0 && <p className="facebook-empty-list">No photos.</p>}
     {albums.map(album => {
-      const cover = getFacebookStoryMedia(album.mediaIds[0]);
+      const cover = getFacebookStoryMedia(album.photos[0].mediaId);
       return <button key={album.id} type="button" onClick={() => dispatch({ type: "OPEN_ALBUM", albumId: album.id })}>{cover && <img src={cover.src} alt="" />}<span><strong>{album.title}</strong><small>{album.mediaIds.length} photo{album.mediaIds.length === 1 ? "" : "s"}</small></span></button>;
     })}
   </section>;
@@ -277,30 +277,32 @@ function FacebookAlbumList({ actor, dispatch }: { actor: FacebookAlbumActor | nu
 
 function FacebookAlbumGallery({ album, dispatch }: { album: FacebookAlbum; dispatch: Dispatch<FacebookEvent> }) {
   return <section className="facebook-album-gallery" aria-label={`${album.title} album`}>
-    <header><strong>{album.title}</strong><span>{album.ownerActor.displayName} · {album.mediaIds.length} photo{album.mediaIds.length === 1 ? "" : "s"}</span></header>
-    <div>{album.mediaIds.map(mediaId => {
-      const media = getFacebookStoryMedia(mediaId);
-      return media ? <button key={mediaId} type="button" onClick={() => dispatch({ type: "OPEN_ALBUM_PHOTO", albumId: album.id, mediaId })}><img src={media.src} alt={`${album.ownerActor.displayName} photo`} /></button> : null;
+    <header><strong>{album.title}</strong><span>{album.ownerActor.displayName} · {album.photos.length} photo{album.photos.length === 1 ? "" : "s"}</span></header>
+    <div>{album.photos.map(photo => {
+      const media = getFacebookStoryMedia(photo.mediaId);
+      return media ? <button key={photo.mediaId} type="button" onClick={() => dispatch({ type: "OPEN_ALBUM_PHOTO", albumId: album.id, mediaId: photo.mediaId })}><img src={media.src} alt={`${album.ownerActor.displayName} photo`} /></button> : null;
     })}</div>
   </section>;
 }
 
 function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeconds, dispatch }: { album: FacebookAlbum; media: NonNullable<ReturnType<typeof getFacebookStoryMedia>>; state: FacebookState; currentUserName: string; elapsedSeconds: number; dispatch: Dispatch<FacebookEvent> }) {
-  const story = state.feed.find(item => item.id === album.storyId);
-  const comments = selectFacebookComments(state, album.storyId);
-  const likes = selectFacebookLikes(state, album.storyId, elapsedSeconds);
+  const photo = getFacebookAlbumPhoto(album, media.id);
+  if (!photo) return null;
+  const story = state.feed.find(item => item.id === photo.storyId);
+  const comments = selectFacebookComments(state, photo.storyId);
+  const likes = selectFacebookLikes(state, photo.storyId, elapsedSeconds);
   return <article className="facebook-photo-viewer">
     <img src={media.src} alt={`${album.ownerActor.displayName} photo`} />
     <strong>{album.ownerActor.displayName}</strong>
-    <span>{album.title} · {album.timestamp}</span>
-    {story && <p>{story.text}</p>}
+    <span>{album.title} · {new Date(photo.timestamp).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}</span>
+    {photo.caption && <p><FacebookInlineEntityText text={photo.caption} mentions={story?.mentions} dispatch={dispatch} /></p>}
     <FacebookStoryCounts commentCount={comments.length} likeCount={likes.length} />
     <div className="facebook-detail-actions">
-      <button type="button" aria-pressed={state.likedItemIds.includes(album.storyId)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: album.storyId, displayName: currentUserName })}>{state.likedItemIds.includes(album.storyId) ? "Unlike" : "Like"}</button>
-      <button type="button" aria-expanded={state.commentComposerItemId === album.storyId} onClick={() => dispatch({ type: "BEGIN_COMMENT", itemId: album.storyId })}>Comment</button>
+      <button type="button" aria-pressed={state.likedItemIds.includes(photo.storyId)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: photo.storyId, displayName: currentUserName })}>{state.likedItemIds.includes(photo.storyId) ? "Unlike" : "Like"}</button>
+      <button type="button" aria-expanded={state.commentComposerItemId === photo.storyId} onClick={() => dispatch({ type: "BEGIN_COMMENT", itemId: photo.storyId })}>Comment</button>
     </div>
     {comments.map(comment => <FacebookCommentRow key={comment.id} comment={comment} sessionUserName={currentUserName} dispatch={dispatch} />)}
-    {state.commentComposerItemId === album.storyId && <form className="facebook-comment-composer" onSubmit={event => { event.preventDefault(); dispatch({ type: "SUBMIT_COMMENT", displayName: currentUserName }); }}>
+    {state.commentComposerItemId === photo.storyId && <form className="facebook-comment-composer" onSubmit={event => { event.preventDefault(); dispatch({ type: "SUBMIT_COMMENT", displayName: currentUserName }); }}>
       <textarea aria-label="Comment" value={state.commentDraft} onChange={event => dispatch({ type: "EDIT_COMMENT", value: event.currentTarget.value })} />
       <div><button type="button" onClick={() => dispatch({ type: "CANCEL_COMMENT" })}>Cancel</button><button type="submit" disabled={!state.commentDraft.trim()}>Post</button></div>
     </form>}
@@ -358,7 +360,7 @@ function FeedRow({ item, liked, commentCount, likeCount, onOpenProfile, onOpen, 
       : <span className="facebook-avatar-hold" aria-hidden="true" />}</button>
     <span className="facebook-feed-copy">
       <button type="button" className="facebook-author-link" onClick={onOpenProfile}>{item.author}</button>
-      <button type="button" className="facebook-story-link" onClick={onOpen}>{item.text}</button>
+      <span className="facebook-story-link" role="button" tabIndex={0} onClick={onOpen} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen(); }}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} /></span>
       <FacebookStoryMedia item={item} dispatch={dispatch} />
       <time>{item.timestamp}</time>
       <FacebookStoryCounts commentCount={commentCount} likeCount={likeCount} />
@@ -379,6 +381,21 @@ function FacebookStoryMedia({ item, dispatch }: { item: FacebookFeedItem; dispat
     {media.map(record => <img key={record.id} src={record.src} alt="" />)}
     {item.kind === "album" && item.albumTitle && <span>{item.albumTitle}{item.photoCount ? ` · ${item.photoCount} photos` : ""}</span>}
   </button>;
+}
+
+function FacebookInlineEntityText({ text, mentions, dispatch }: { text: string; mentions?: FacebookFeedItem["mentions"]; dispatch: Dispatch<FacebookEvent> }) {
+  if (!mentions?.length) return <>{text}</>;
+  const pieces: ReactNode[] = [];
+  let cursor = 0;
+  mentions.forEach((mention, mentionIndex) => {
+    const tokenIndex = text.indexOf(mention.token, cursor);
+    if (tokenIndex < 0) return;
+    if (tokenIndex > cursor) pieces.push(text.slice(cursor, tokenIndex));
+    pieces.push(<button key={`${mention.token}-${mentionIndex}`} type="button" className="facebook-inline-mention" onClick={event => { event.stopPropagation(); dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: mention.actor }); }}>{mention.token}</button>);
+    cursor = tokenIndex + mention.token.length;
+  });
+  if (cursor < text.length) pieces.push(text.slice(cursor));
+  return <>{pieces}</>;
 }
 
 function FacebookStoryCounts({ commentCount, likeCount }: { commentCount: number; likeCount: number }) {

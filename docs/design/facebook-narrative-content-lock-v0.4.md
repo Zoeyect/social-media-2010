@@ -72,11 +72,11 @@ Ryan is one Facebook-local `EPHEMERAL_FRIEND_OF_FRIEND`, not a canonical charact
 
 - `chris-luca-basketball` uses the existing `Chris-Luca.PNG` as Luca's album thumbnail and implies the basketball relationship without explanatory copy.
 - `katie-ben-family` uses `Katie-Ben.JPG` as Katie's ordinary photo activity and leaves the sibling relationship implicit in UI.
-- `jay-guitar` uses `Jay01.PNG` as a sparse music-context photo.
+- Jay's single `Music` album uses `jay-band-performance`, `jay-guitar`, and `jay-guitar-may` for an Oct 19 performance post, the existing Oct 17 guitar photo, and a May guitar still life. Album order derives from in-world timestamps rather than filenames.
 - Z.tokyo continues to use the Facebook-local author media registry.
 - June's accidental `june-ig-04` is excluded from Facebook stories.
 
-The current approved Jay media shows only Jay and a guitar. It does not prove that Matt, Z.tokyo, or Anil appears in the image. The story model permits `offlineSubjectIds: ["anil"]` for a future approved group photograph without creating an Anil SNS identity, but actual Anil group media remains HOLD.
+The approved `10-18.JPG` performance media depicts the established Jay/Matt/Z.tokyo/Anil band context. Its Oct 19 Facebook timestamp is curated independently from its source filename and embedded Oct 18 event sign. Structured caption entities route `@Matt` and `@Z.tokyo` through existing Facebook profiles; `@Anil` remains plain text, and `offlineSubjectIds: ["anil"]` does not create an Anil SNS identity.
 
 ## Relationship and user-projection boundaries
 
@@ -86,7 +86,7 @@ Only Katie/Ben siblings and Chris/Luca basketball friends are hard canonical rel
 
 - Pixel-level Photos/Albums visual fidelity
 - Exact 2010 photo-tag chrome
-- Additional approved band/group media containing Anil, Matt, and Z.tokyo
+- Exact 2010 Facebook composer tagging UX; arbitrary user-entered @text remains plain text
 - Pixel-level Feed, comment, Like, and album-thumbnail fidelity
 - Exact historical privacy-control editor chrome
 

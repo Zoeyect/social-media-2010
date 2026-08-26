@@ -54,16 +54,23 @@ try {
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.jay, coreSocialFriends.CORE_SOCIAL_CHARACTERS.jay, "compatibility views must not duplicate character records");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => relationship.characterIds), [["katie", "ben"], ["chris", "luca"]]);
   assert.deepEqual(
-    facebookAlbums.FACEBOOK_ALBUMS.map(album => [album.id, album.ownerActor.displayName, album.title, album.mediaIds, album.storyId, album.classification]),
+    facebookAlbums.FACEBOOK_ALBUMS.map(album => [album.id, album.ownerActor.displayName, album.title, album.mediaIds, album.photos.map(photo => photo.storyId), album.classification]),
     [
-      ["z-tokyo-profile-pictures", "Z.tokyo", "Profile Pictures", ["z-tokyo-profile-picture"], "z-tokyo-profile-picture-update", "CURATED"],
-      ["luca-pickup-basketball", "Luca", "Pickup Basketball", ["chris-luca-basketball"], "luca-pickup-basketball-photos", "CURATED"],
-      ["katie-photos", "Katie", "Photos", ["katie-ben-family"], "katie-photo-with-ben", "CURATED"],
-      ["jay-music", "Jay", "Music", ["jay-guitar"], "jay-guitar-photo", "CURATED"],
+      ["z-tokyo-profile-pictures", "Z.tokyo", "Profile Pictures", ["z-tokyo-profile-picture"], ["z-tokyo-profile-picture-update"], "CURATED"],
+      ["luca-pickup-basketball", "Luca", "Pickup Basketball", ["chris-luca-basketball"], ["luca-pickup-basketball-photos"], "CURATED"],
+      ["katie-photos", "Katie", "Photos", ["katie-ben-family"], ["katie-photo-with-ben"], "CURATED"],
+      ["jay-music", "Jay", "Music", ["jay-band-performance", "jay-guitar", "jay-guitar-may"], ["jay-band-performance-photo", "jay-guitar-photo", "jay-may-guitar-photo"], "CURATED"],
     ],
     "Facebook albums must preserve the exact approved owner/media/story bindings",
   );
-  assert.deepEqual(facebookAlbums.FACEBOOK_ALBUMS.map(album => album.mediaIds.length), [1, 1, 1, 1], "album counts must derive from approved media membership");
+  assert.deepEqual(facebookAlbums.FACEBOOK_ALBUMS.map(album => album.mediaIds.length), [1, 1, 1, 3], "album counts must derive from approved media membership");
+  const jayMusicAlbum = facebookAlbums.getFacebookAlbum("jay-music");
+  assert.deepEqual(jayMusicAlbum.photos.map(photo => [photo.mediaId, photo.timestamp, photo.caption]), [
+    ["jay-band-performance", "2010-10-19T22:00:00-07:00", "last night was awesome. thx @Matt @Z.tokyo @Anil"],
+    ["jay-guitar", "2010-10-17T21:12:00-07:00", undefined],
+    ["jay-guitar-may", "2010-05-15T18:00:00-07:00", "hey baby"],
+  ], "Jay Music must sort photo records newest-first by in-world timestamp");
+  assert.equal(facebookAlbums.FACEBOOK_ALBUMS.filter(album => album.ownerActor.kind === "canonical" && album.ownerActor.characterId === "jay").length, 1, "Jay must retain exactly one Music album");
   assert.equal(facebookAlbums.getFacebookAlbumsForActor({ kind: "session-user", displayName: "Visitor" }).length, 0, "root Photos must remain the current user's empty baseline");
   assert.equal(facebookAlbums.getFacebookAlbumsForActor({ kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-ryan", displayName: "Ryan", classification: "EPHEMERAL_FRIEND_OF_FRIEND" }).length, 0, "Ryan must retain an empty Photos surface");
   assert.equal(facebookAlbums.FACEBOOK_ALBUMS.some(album => album.ownerActor.displayName === "Anil"), false, "offline-only Anil must not receive a Facebook album");
@@ -1045,7 +1052,7 @@ try {
   );
   assert.equal(juneInstagramAccount?.username, coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "Facebook and Instagram must resolve the same canonical June handle");
   assert.deepEqual([juneInstagramAccount?.discoveryUiStatus, juneInstagramAccount?.followUiStatus, juneInstagramAccount?.profileUiStatus], ["READY", "READY", "HOLD"]);
-  assert.deepEqual(sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "chris-luca-basketball", "katie-ben-family", "jay-guitar"]);
+  assert.deepEqual(sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "chris-luca-basketball", "katie-ben-family", "jay-guitar", "jay-guitar-may", "jay-band-performance"]);
   assert.deepEqual(
     sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS.map(id => {
       const media = sharedCharacterMedia.getSharedCharacterMedia(id);
@@ -1060,6 +1067,8 @@ try {
       ["chris-luca-basketball", "Chris-Luca.PNG", "luca", "facebook", "2010-10-19T22:58:00-07:00", "basketball-friends", "visible"],
       ["katie-ben-family", "Katie-Ben.JPG", "katie", "facebook", "2010-10-18T19:24:00-07:00", "family-context", "visible"],
       ["jay-guitar", "Jay01.PNG", "jay", "facebook", "2010-10-17T21:12:00-07:00", "music-context", "visible"],
+      ["jay-guitar-may", "Jay02.PNG", "jay", "facebook", "2010-05-15T18:00:00-07:00", "music-guitar-still-life", "visible"],
+      ["jay-band-performance", "10-18.JPG", "jay", "facebook", "2010-10-19T22:00:00-07:00", "band-performance", "visible"],
     ],
   );
   assert.deepEqual(
@@ -1194,6 +1203,30 @@ try {
   assert.deepEqual([katiePhoto?.kind, katiePhoto?.mediaId, katiePhoto?.relatedCharacterIds], ["photo", "katie-ben-family", ["ben"]]);
   assert.equal(interactionFacebook.feed.some(item => item.mediaId === "june-ig-04" || item.mediaIds?.includes("june-ig-04")), false, "IG04 must remain Instagram-only");
   assert.deepEqual(facebook.FACEBOOK_OFFLINE_PERSON_IDS, ["anil"], "Facebook story metadata must support Anil only as an offline subject");
+  const jayBandPost = interactionFacebook.feed.find(item => item.id === "jay-band-performance-photo");
+  const jayMayPost = interactionFacebook.feed.find(item => item.id === "jay-may-guitar-photo");
+  assert.deepEqual([jayBandPost?.mediaId, jayBandPost?.createdAt, jayBandPost?.text, jayBandPost?.relatedCharacterIds, jayBandPost?.offlineSubjectIds], ["jay-band-performance", "2010-10-19T22:00:00-07:00", "last night was awesome. thx @Matt @Z.tokyo @Anil", ["matt"], ["anil"]]);
+  assert.deepEqual(jayBandPost?.mentions, [
+    { token: "@Matt", actor: { kind: "canonical", characterId: "matt", displayName: "Matt" } },
+    { token: "@Z.tokyo", actor: { kind: "author-easter-egg", authorId: "author-z-tokyo", displayName: "Z.tokyo" } },
+  ], "only Facebook-backed Jay caption identities may receive structured mention mappings");
+  assert.equal(jayBandPost?.mentions?.some(mention => mention.token === "@Anil"), false, "offline-only @Anil must remain plain text");
+  assert.deepEqual([jayMayPost?.mediaId, jayMayPost?.createdAt, jayMayPost?.text, jayMayPost?.visibility, jayMayPost?.customAudienceIncludesUser], ["jay-guitar-may", "2010-05-15T18:00:00-07:00", "hey baby", "custom", false]);
+  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "jay-may-guitar-photo"), false, "May history must not enter the current News Feed");
+  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.anil, undefined, "plain-text @Anil must not create a canonical SNS identity");
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "TOGGLE_LIKE", itemId: "jay-band-performance-photo", displayName: "Zoey" });
+  assert.equal(interactionFacebook.likedItemIds.includes("jay-band-performance-photo"), true, "Feed and album performance photo must share one story interaction ID");
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "SHOW_FEED" });
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "OPEN_FEED_ITEM", itemId: "jay-band-performance-photo", scrollPosition: 73 });
+  const jayMentionState = [interactionFacebook.selectedFeedItemId, interactionFacebook.scrollPosition, interactionFacebook.likedItemIds, interactionFacebook.comments.length, interactionFacebook.partyInviteState];
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "OPEN_COMMENT_AUTHOR", actor: jayBandPost.mentions[0].actor });
+  assert.deepEqual([interactionFacebook.currentView, interactionFacebook.selectedProfileName, interactionFacebook.selectedProfileActor], ["profile", "Matt", { kind: "canonical", characterId: "matt", displayName: "Matt" }]);
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "GO_BACK" });
+  assert.deepEqual([interactionFacebook.currentView, interactionFacebook.selectedFeedItemId, interactionFacebook.scrollPosition, interactionFacebook.likedItemIds, interactionFacebook.comments.length, interactionFacebook.partyInviteState], ["feedDetail", ...jayMentionState], "Matt mention Back must restore the exact Jay Post state");
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "OPEN_COMMENT_AUTHOR", actor: jayBandPost.mentions[1].actor });
+  assert.deepEqual([interactionFacebook.currentView, interactionFacebook.selectedProfileName, interactionFacebook.selectedProfileActor], ["profile", "Z.tokyo", { kind: "author-easter-egg", authorId: "author-z-tokyo", displayName: "Z.tokyo" }]);
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "GO_BACK" });
+  assert.deepEqual([interactionFacebook.currentView, interactionFacebook.selectedFeedItemId, interactionFacebook.scrollPosition, interactionFacebook.likedItemIds, interactionFacebook.comments.length, interactionFacebook.partyInviteState], ["feedDetail", ...jayMentionState], "Z.tokyo mention Back must restore the exact Jay Post state");
   interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "DELIVER_JACK_REQUEST" });
   interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "ACCEPT_JACK" });
   assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "jack-movie"), true, "Jack friends-only content may become visible only after acceptance");
@@ -1341,6 +1374,10 @@ try {
   assert.match(facebookContainerSource, /SUBMIT_MESSAGE_REPLY/, "Facebook Messages must use the shared thread reply mechanism");
   assert.match(facebookContainerSource, /OPEN_COMMENT_AUTHOR/, "Facebook comment author names must route through the shared actor-profile event");
   assert.match(facebookContainerSource, /facebook-comment-author/, "Facebook comment author names must expose a usable tap target");
+  assert.match(facebookContainerSource, /FacebookInlineEntityText/, "curated Facebook story text must use the reusable inline-entity renderer");
+  assert.match(facebookContainerSource, /facebook-inline-mention/, "structured Facebook mention tokens must expose a dedicated tap target");
+  assert.match(facebookContainerSource, /OPEN_COMMENT_AUTHOR/, "inline mentions must reuse the existing Facebook actor/profile router");
+  assert.doesNotMatch(facebookContainerSource, /match\([^)]*@|split\([^)]*@|@\[A-Za-z/, "Facebook mentions must not auto-link arbitrary @name text through naive parsing");
   assert.doesNotMatch(facebookContainerSource, /HomeDestination[^\n]+label="Groups"/, "Groups must not appear as an October 20 launcher destination");
   assert.match(facebookContainerSource, /facebook-home-empty-slot[^\n]+REJECTED-FOR-TARGET-DATE/, "the post-November Groups position must remain intentionally empty");
   assert.ok(["Timeline", "Mentions", "Messages", "Search", "More"].every(label => twitterContainerSource.includes(`"${label}"`)), "Twitter must expose the five period tab destinations");

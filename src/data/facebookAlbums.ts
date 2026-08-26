@@ -22,16 +22,38 @@ export type FacebookAlbum = {
   ownerActor: FacebookAlbumActor;
   title: string;
   mediaIds: readonly FacebookStoryMediaId[];
-  storyId: string;
-  timestamp: string;
+  photos: readonly FacebookAlbumPhoto[];
   classification: "CURATED";
 };
 
+export type FacebookAlbumPhoto = {
+  mediaId: FacebookStoryMediaId;
+  storyId: string;
+  timestamp: string;
+  caption?: string;
+  classification: "CURATED";
+};
+
+function defineFacebookAlbum(definition: Omit<FacebookAlbum, "mediaIds">): FacebookAlbum {
+  const photos = Object.freeze([...definition.photos].sort((left, right) => right.timestamp.localeCompare(left.timestamp)));
+  return Object.freeze({ ...definition, photos, mediaIds: Object.freeze(photos.map(photo => photo.mediaId)) });
+}
+
 export const FACEBOOK_ALBUMS: readonly FacebookAlbum[] = Object.freeze([
-  Object.freeze({ id: "z-tokyo-profile-pictures", ownerActor: Object.freeze({ kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const, displayName: "Z.tokyo" }), title: "Profile Pictures", mediaIds: Object.freeze(["z-tokyo-profile-picture" as const]), storyId: "z-tokyo-profile-picture-update", timestamp: "October 18, 2010", classification: "CURATED" as const }),
-  Object.freeze({ id: "luca-pickup-basketball", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Pickup Basketball", mediaIds: Object.freeze(["chris-luca-basketball" as const]), storyId: "luca-pickup-basketball-photos", timestamp: "October 19, 2010", classification: "CURATED" as const }),
-  Object.freeze({ id: "katie-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "katie" as const, displayName: "Katie" }), title: "Photos", mediaIds: Object.freeze(["katie-ben-family" as const]), storyId: "katie-photo-with-ben", timestamp: "October 18, 2010", classification: "CURATED" as const }),
-  Object.freeze({ id: "jay-music", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jay" as const, displayName: "Jay" }), title: "Music", mediaIds: Object.freeze(["jay-guitar" as const]), storyId: "jay-guitar-photo", timestamp: "October 17, 2010", classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "z-tokyo-profile-pictures", ownerActor: Object.freeze({ kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const, displayName: "Z.tokyo" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "z-tokyo-profile-picture" as const, storyId: "z-tokyo-profile-picture-update", timestamp: "2010-10-18T20:52:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "luca-pickup-basketball", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Pickup Basketball", photos: Object.freeze([{ mediaId: "chris-luca-basketball" as const, storyId: "luca-pickup-basketball-photos", timestamp: "2010-10-19T22:58:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "katie-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "katie" as const, displayName: "Katie" }), title: "Photos", photos: Object.freeze([{ mediaId: "katie-ben-family" as const, storyId: "katie-photo-with-ben", timestamp: "2010-10-18T19:24:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({
+    id: "jay-music",
+    ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jay" as const, displayName: "Jay" }),
+    title: "Music",
+    photos: Object.freeze([
+      { mediaId: "jay-guitar-may" as const, storyId: "jay-may-guitar-photo", timestamp: "2010-05-15T18:00:00-07:00", caption: "hey baby", classification: "CURATED" as const },
+      { mediaId: "jay-guitar" as const, storyId: "jay-guitar-photo", timestamp: "2010-10-17T21:12:00-07:00", classification: "CURATED" as const },
+      { mediaId: "jay-band-performance" as const, storyId: "jay-band-performance-photo", timestamp: "2010-10-19T22:00:00-07:00", caption: "last night was awesome. thx @Matt @Z.tokyo @Anil", classification: "CURATED" as const },
+    ]),
+    classification: "CURATED" as const,
+  }),
 ]);
 
 function actorsMatch(left: FacebookAlbumActor, right: FacebookAlbumActor) {
@@ -56,5 +78,9 @@ export function getFacebookAlbumForMediaId(mediaId: FacebookStoryMediaId) {
 }
 
 export function getFacebookAlbumByStoryId(storyId: string) {
-  return FACEBOOK_ALBUMS.find(album => album.storyId === storyId);
+  return FACEBOOK_ALBUMS.find(album => album.photos.some(photo => photo.storyId === storyId));
+}
+
+export function getFacebookAlbumPhoto(album: FacebookAlbum, mediaId: FacebookStoryMediaId) {
+  return album.photos.find(photo => photo.mediaId === mediaId);
 }

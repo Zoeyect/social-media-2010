@@ -6,9 +6,11 @@ import juneProfileAvatarSrc from "../assets/characters/June/June01.PNG";
 import chrisLucaBasketballSrc from "../assets/characters/Chris/Chris-Luca.PNG";
 import katieBenFamilySrc from "../assets/characters/Ben/Katie-Ben.JPG";
 import jayGuitarSrc from "../assets/characters/Jay/Jay01.PNG";
+import jayGuitarMaySrc from "../assets/characters/Jay/Jay02.PNG";
+import jayBandPerformanceSrc from "../assets/characters/Jay/10-18.JPG";
 import type { CoreSocialCharacterId } from "./coreSocialFriends";
 
-export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "chris-luca-basketball", "katie-ben-family", "jay-guitar"] as const;
+export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "chris-luca-basketball", "katie-ben-family", "jay-guitar", "jay-guitar-may", "jay-band-performance"] as const;
 export type SharedCharacterMediaId = typeof SHARED_CHARACTER_MEDIA_IDS[number];
 
 export type SharedCharacterMedia = Readonly<{
@@ -19,7 +21,7 @@ export type SharedCharacterMedia = Readonly<{
   characterIds: readonly CoreSocialCharacterId[];
   platform: "instagram" | "facebook";
   timestamp: string;
-  role: "replacement" | "nightclub-dancing" | "party" | "accidental-intimate" | "profile-avatar" | "basketball-friends" | "family-context" | "music-context";
+  role: "replacement" | "nightclub-dancing" | "party" | "accidental-intimate" | "profile-avatar" | "basketball-friends" | "family-context" | "music-context" | "music-guitar-still-life" | "band-performance";
   initialVisibility: "visible" | "hidden";
   classification: "CURATED";
   approvedUses: readonly ("instagram-post" | "character-photo" | "facebook-story" | "facebook-album")[];
@@ -126,6 +128,32 @@ export const SHARED_CHARACTER_MEDIA: Readonly<Record<SharedCharacterMediaId, Sha
     platform: "facebook",
     timestamp: "2010-10-17T21:12:00-07:00",
     role: "music-context",
+    initialVisibility: "visible",
+    classification: "CURATED",
+    approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const),
+  }),
+  "jay-guitar-may": Object.freeze({
+    id: "jay-guitar-may",
+    src: jayGuitarMaySrc,
+    originalFilename: "Jay02.PNG",
+    canonicalCharacterId: "jay",
+    characterIds: Object.freeze(["jay"] as const),
+    platform: "facebook",
+    timestamp: "2010-05-15T18:00:00-07:00",
+    role: "music-guitar-still-life",
+    initialVisibility: "visible",
+    classification: "CURATED",
+    approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const),
+  }),
+  "jay-band-performance": Object.freeze({
+    id: "jay-band-performance",
+    src: jayBandPerformanceSrc,
+    originalFilename: "10-18.JPG",
+    canonicalCharacterId: "jay",
+    characterIds: Object.freeze(["jay", "matt"] as const),
+    platform: "facebook",
+    timestamp: "2010-10-19T22:00:00-07:00",
+    role: "band-performance",
     initialVisibility: "visible",
     classification: "CURATED",
     approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const),

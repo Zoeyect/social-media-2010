@@ -628,6 +628,7 @@ button, input { font: inherit; }
 .facebook-photo-viewer strong { font-size: 15px; }
 .facebook-photo-viewer span { color: #bbb; font-size: 11px; }
 .facebook-photo-viewer p { margin: 5px 0; font-size: 12px; }
+.facebook-inline-mention { display: inline; margin: 0; padding: 0; color: #3b5998; border: 0; background: transparent; font: inherit; font-weight: bold; text-decoration: none; }
 .facebook-photo-viewer .facebook-story-counts { color: #ccc; }
 .facebook-photo-viewer .facebook-comment { color: #222; background: #eee; }
 .facebook-album-gallery { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }

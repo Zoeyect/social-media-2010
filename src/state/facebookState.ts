@@ -68,6 +68,7 @@ export type FacebookFeedItem = {
   friendId?: CoreSocialCharacterId;
   author: string;
   text: string;
+  mentions?: readonly FacebookInlineMention[];
   timestamp: string;
   createdAt?: string;
   mediaId?: FacebookStoryMediaId;
@@ -82,6 +83,11 @@ export type FacebookFeedItem = {
   tagUiStatus?: "HOLD";
   contentStatus: "HOLD-fictional" | "USER-GENERATED";
   origin: ContentOrigin | "user";
+};
+
+export type FacebookInlineMention = {
+  token: string;
+  actor: FacebookNavigableActor;
 };
 
 export type FacebookLike = {

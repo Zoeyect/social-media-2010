@@ -125,7 +125,7 @@ export type FacebookComment = {
   text: string;
   origin: "seed" | "live" | "user";
   characterId?: CoreSocialCharacterId;
-  classification?: "CURATED";
+  classification?: "CURATED" | "CURATED / SIBLING BANTER";
   ephemeralAuthor?: FacebookEphemeralIdentity;
   authorEasterEggId?: FacebookAuthorEasterEggId;
 };
@@ -294,7 +294,10 @@ export function createInitialFacebookState(displayName: string): FacebookState {
       text: comment.text,
       origin: comment.origin,
       ...(comment.author.type === "canonical"
-        ? { characterId: comment.author.characterId, classification: comment.author.classification }
+        ? {
+            characterId: comment.author.characterId,
+            classification: "classification" in comment ? comment.classification : comment.author.classification,
+          }
         : { ephemeralAuthor: { id: comment.author.id, displayName: comment.author.displayName, classification: comment.author.classification } }),
     })),
     commentComposerItemId: null,

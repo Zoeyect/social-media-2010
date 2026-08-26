@@ -8,9 +8,14 @@ import katieBenFamilySrc from "../assets/characters/Ben/Katie-Ben.JPG";
 import jayGuitarSrc from "../assets/characters/Jay/Jay01.PNG";
 import jayGuitarMaySrc from "../assets/characters/Jay/Jay02.PNG";
 import jayBandPerformanceSrc from "../assets/characters/Jay/10-18.JPG";
+import katieJuly2009Src from "../assets/characters/Katie/Katie01.jpg";
+import katieAugust2009Src from "../assets/characters/Katie/Katie02.jpg";
+import katieProfilePictureSrc from "../assets/characters/Katie/Katie03.PNG";
+import katieJuly2010Src from "../assets/characters/Katie/Katie04.jpg";
+import katieSeptember2010Src from "../assets/characters/Katie/Katie05.jpg";
 import type { CoreSocialCharacterId } from "./coreSocialFriends";
 
-export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "chris-luca-basketball", "katie-ben-family", "jay-guitar", "jay-guitar-may", "jay-band-performance"] as const;
+export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "chris-luca-basketball", "katie-ben-family", "jay-guitar", "jay-guitar-may", "jay-band-performance", "katie-selfie-july-2009", "katie-selfie-august-2009", "katie-profile-picture", "katie-selfie-july-2010", "katie-selfie-september-2010"] as const;
 export type SharedCharacterMediaId = typeof SHARED_CHARACTER_MEDIA_IDS[number];
 
 export type SharedCharacterMedia = Readonly<{
@@ -21,7 +26,7 @@ export type SharedCharacterMedia = Readonly<{
   characterIds: readonly CoreSocialCharacterId[];
   platform: "instagram" | "facebook";
   timestamp: string;
-  role: "replacement" | "nightclub-dancing" | "party" | "accidental-intimate" | "profile-avatar" | "basketball-friends" | "family-context" | "music-context" | "music-guitar-still-life" | "band-performance";
+  role: "replacement" | "nightclub-dancing" | "party" | "accidental-intimate" | "profile-avatar" | "basketball-friends" | "family-context" | "music-context" | "music-guitar-still-life" | "band-performance" | "facebook-profile-picture" | "facebook-selfie";
   initialVisibility: "visible" | "hidden";
   classification: "CURATED";
   approvedUses: readonly ("instagram-post" | "character-photo" | "facebook-story" | "facebook-album")[];
@@ -158,6 +163,11 @@ export const SHARED_CHARACTER_MEDIA: Readonly<Record<SharedCharacterMediaId, Sha
     classification: "CURATED",
     approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const),
   }),
+  "katie-selfie-july-2009": Object.freeze({ id: "katie-selfie-july-2009", src: katieJuly2009Src, originalFilename: "Katie01.jpg", canonicalCharacterId: "katie", characterIds: Object.freeze(["katie"] as const), platform: "facebook", timestamp: "2009-07-18T17:00:00-07:00", role: "facebook-selfie", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
+  "katie-selfie-august-2009": Object.freeze({ id: "katie-selfie-august-2009", src: katieAugust2009Src, originalFilename: "Katie02.jpg", canonicalCharacterId: "katie", characterIds: Object.freeze(["katie"] as const), platform: "facebook", timestamp: "2009-08-22T16:00:00-07:00", role: "facebook-selfie", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
+  "katie-profile-picture": Object.freeze({ id: "katie-profile-picture", src: katieProfilePictureSrc, originalFilename: "Katie03.PNG", canonicalCharacterId: "katie", characterIds: Object.freeze(["katie"] as const), platform: "facebook", timestamp: "2010-10-10T16:00:00-07:00", role: "facebook-profile-picture", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
+  "katie-selfie-july-2010": Object.freeze({ id: "katie-selfie-july-2010", src: katieJuly2010Src, originalFilename: "Katie04.jpg", canonicalCharacterId: "katie", characterIds: Object.freeze(["katie"] as const), platform: "facebook", timestamp: "2010-07-17T15:00:00-07:00", role: "facebook-selfie", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
+  "katie-selfie-september-2010": Object.freeze({ id: "katie-selfie-september-2010", src: katieSeptember2010Src, originalFilename: "Katie05.jpg", canonicalCharacterId: "katie", characterIds: Object.freeze(["katie"] as const), platform: "facebook", timestamp: "2010-09-11T14:00:00-07:00", role: "facebook-selfie", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
 });
 
 export function getSharedCharacterMedia(mediaId: SharedCharacterMediaId) {

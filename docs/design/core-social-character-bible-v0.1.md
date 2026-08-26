@@ -217,7 +217,7 @@ Accepting, replying, following, liking, or dismissing establishes only the actio
 
 Visual cues describe future art direction only. This Bible does not approve or provide avatar assets.
 
-- Fictional character avatars remain HOLD until separately designed and approved.
+- Fictional character avatars remain HOLD until separately designed and approved. Katie's separately approved `Katie03.PNG` is the current Facebook exception.
 - DEV initials may remain temporary.
 - Historical public-account imagery requires evidence-backed assets.
 - Do not generate portraits, select celebrity stand-ins, or infer permanent dog names from the cues in this document.
@@ -227,3 +227,5 @@ Visual cues describe future art direction only. This Bible does not approve or p
 All nine identities are classified **CURATED FICTIONAL**. Their authored content is **CURATED**, although behavior and platform language may be informed by **PERIOD-EVIDENCE**.
 
 The canonical metadata lives in `src/data/coreSocialFriends.ts` under `CORE_SOCIAL_CHARACTERS`. `CORE_SOCIAL_FRIENDS` remains a backward-compatible five-person view that references the same immutable objects. App-specific session state remains separate and mutable only within its owning state model.
+
+Katie's Facebook continuity uses `Katie03.PNG` as her current profile image and a sparse photo history spanning July/August 2009 and July/September 2010. Ben may leave occasional teasing comments on Katie's photos; `do you own any other shirts?` is classified `CURATED / SIBLING BANTER` and implies the locked sibling relationship without exposition.

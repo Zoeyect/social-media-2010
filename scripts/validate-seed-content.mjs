@@ -23,6 +23,7 @@ try {
   const facebookActors = await vite.ssrLoadModule("/src/data/facebookActors.ts");
   const facebookMedia = await vite.ssrLoadModule("/src/data/facebookMedia.ts");
   const facebookAlbums = await vite.ssrLoadModule("/src/data/facebookAlbums.ts");
+  const facebookStoryTime = await vite.ssrLoadModule("/src/data/facebookStoryTime.ts");
   const sharedCharacterMedia = await vite.ssrLoadModule("/src/data/sharedCharacterMedia.ts");
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
@@ -53,6 +54,52 @@ try {
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.katie, coreSocialFriends.CORE_SOCIAL_CHARACTERS.katie, "compatibility views must reuse canonical identity objects");
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.jay, coreSocialFriends.CORE_SOCIAL_CHARACTERS.jay, "compatibility views must not duplicate character records");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => relationship.characterIds), [["katie", "ben"], ["chris", "luca"]]);
+  const facebookSessionStartMs = Date.parse("2010-10-20T00:02:00-07:00");
+  const formatFacebookTime = (storyTimestamp, elapsedSeconds, extras = {}) => facebookStoryTime.formatFacebookStoryTime({ storyTimestamp, simulatedNowMs: facebookSessionStartMs + elapsedSeconds * 1_000, storyType: "status", ...extras });
+  assert.equal(formatFacebookTime("2010-10-20T00:03:00-07:00", 60), "just now");
+  assert.equal(formatFacebookTime("2010-10-20T00:03:00-07:00", 120), "1 minute ago");
+  assert.equal(formatFacebookTime("2010-10-20T00:03:00-07:00", 180), "2 minutes ago");
+  assert.equal(formatFacebookTime("2010-10-19T20:02:00-07:00", 0), "Tue 8:02 PM");
+  assert.equal(formatFacebookTime("2010-10-18T20:51:00-07:00", 0), "Mon 8:51 PM");
+  assert.equal(formatFacebookTime("2010-05-15T18:00:00-07:00", 0), "May 15");
+  assert.equal(formatFacebookTime("2010-10-18T20:51:00-07:00", 0, { sourceApp: "iPhoto Uploader" }), "Mon 8:51 PM via iPhoto Uploader");
+  assert.equal(formatFacebookTime("2010-10-19T22:44:00-07:00", 0, { storyType: "checkin" }), "Tue 10:44 PM", "previous-day Places stories must expose the cross-midnight calendar boundary");
+  const futureStoryDisplay = formatFacebookTime("2010-10-20T00:10:00-07:00", 0, { storyId: "invalid-future-seed" });
+  assert.equal(futureStoryDisplay, "Wed 12:10 AM", "future timestamps must use deterministic absolute fallback rather than just now");
+  assert.notEqual(futureStoryDisplay, "just now");
+  const facebookSeedTimestampAudit = Object.fromEntries(seed.facebook.feed.filter(item => item.origin === "seed").map(item => [item.id, item.createdAt]));
+  assert.deepEqual(
+    Object.fromEntries(["ben-long-day", "jack-movie", "alex-jacks-party-friday", "katie-coffee"].map(id => [id, facebookSeedTimestampAudit[id]])),
+    {
+      "ben-long-day": "2010-10-19T23:58:00-07:00",
+      "jack-movie": "2010-10-19T23:52:00-07:00",
+      "alex-jacks-party-friday": "2010-10-19T23:47:00-07:00",
+      "katie-coffee": "2010-10-19T23:41:00-07:00",
+    },
+    "all late-night pre-session stories must belong to October 19",
+  );
+  assert.ok(seed.facebook.feed.filter(item => item.origin === "seed").every(item => item.createdAt && facebookStoryTime.isFacebookSeedStoryTimestampValid(item.createdAt, facebookSessionStartMs)), "every Facebook seed story must carry an explicit timestamp before session start");
+  assert.equal(facebookStoryTime.isFacebookSeedStoryTimestampValid("2010-10-20T00:03:00-07:00", facebookSessionStartMs), false, "future seed content must fail the strict boundary guard");
+  const atThirteenMinutes = facebookSessionStartMs + 11 * 60_000;
+  const atThirteen = storyTimestamp => facebookStoryTime.formatFacebookStoryTime({ storyTimestamp, simulatedNowMs: atThirteenMinutes, storyType: "status" });
+  assert.deepEqual(
+    [atThirteen("2010-10-19T23:58:00-07:00"), atThirteen("2010-10-19T23:52:00-07:00"), atThirteen("2010-10-19T23:47:00-07:00"), atThirteen("2010-10-19T23:41:00-07:00"), atThirteen("2010-10-20T00:03:00-07:00"), atThirteen("2010-10-20T00:04:15-07:00"), atThirteen("2010-10-19T22:00:00-07:00")],
+    ["Tue 11:58 PM", "Tue 11:52 PM", "Tue 11:47 PM", "Tue 11:41 PM", "10 minutes ago", "8 minutes ago", "Tue 10:00 PM"],
+    "previous-day seed stories must use weekday/time while current-day live stories remain relative",
+  );
+  const crossMidnightFeedCases = [
+    ["luca-main-street-diner-checkin", "2010-10-19T22:44:00-07:00", "checkin", "Tue 10:44 PM"],
+    ["luca-pickup-basketball-photos", "2010-10-19T22:58:00-07:00", "album", "Tue 10:58 PM"],
+    ["jay-reading", "2010-10-19T23:33:00-07:00", "status", "Tue 11:33 PM"],
+    ["katie-coffee", "2010-10-19T23:41:00-07:00", "activity", "Tue 11:41 PM"],
+    ["alex-jacks-party-friday", "2010-10-19T23:47:00-07:00", "status", "Tue 11:47 PM"],
+    ["jack-movie", "2010-10-19T23:52:00-07:00", "status", "Tue 11:52 PM"],
+    ["ben-long-day", "2010-10-19T23:58:00-07:00", "status", "Tue 11:58 PM"],
+    ["jay-band-performance-photo", "2010-10-19T22:00:00-07:00", "photo", "Tue 10:00 PM"],
+  ];
+  assert.deepEqual(crossMidnightFeedCases.map(([storyId, storyTimestamp, storyType]) => [storyId, facebookStoryTime.formatFacebookStoryTime({ storyId, storyTimestamp, simulatedNowMs: atThirteenMinutes, storyType })]), crossMidnightFeedCases.map(([storyId, , , display]) => [storyId, display]), "all Oct 19 Feed metadata must retain Tuesday across midnight");
+  assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "ben-long-day", storyTimestamp: "2010-10-19T23:58:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "status", surface: "detail" }), "October 19, 2010 at 11:58 PM", "Ben Feed and Detail must share the corrected October 19 source timestamp");
+  assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "jay-band-performance-photo", storyTimestamp: "2010-10-19T22:00:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "photo", surface: "detail" }), "October 19, 2010 at 10:00 PM", "Jay Detail must preserve the intentional October 19 upload timestamp");
   assert.deepEqual(
     facebookAlbums.FACEBOOK_ALBUMS.map(album => [album.id, album.ownerActor.displayName, album.title, album.mediaIds, album.photos.map(photo => photo.storyId), album.classification]),
     [
@@ -1214,6 +1261,9 @@ try {
   assert.deepEqual([jayMayPost?.mediaId, jayMayPost?.createdAt, jayMayPost?.text, jayMayPost?.visibility, jayMayPost?.customAudienceIncludesUser], ["jay-guitar-may", "2010-05-15T18:00:00-07:00", "hey baby", "custom", false]);
   assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "jay-may-guitar-photo"), false, "May history must not enter the current News Feed");
   assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.anil, undefined, "plain-text @Anil must not create a canonical SNS identity");
+  assert.deepEqual([formatFacebookTime("12:03 AM", 60), formatFacebookTime("12:03 AM", 480)], ["just now", "7 minutes ago"], "June live metadata must advance from the simulated clock");
+  assert.deepEqual([formatFacebookTime("12:04 AM", 180), formatFacebookTime("12:04 AM", 480)], ["1 minute ago", "6 minutes ago"], "Ryan live metadata must advance from the simulated clock");
+  assert.deepEqual([interactionFacebook.feed.find(item => item.id === "jay-band-performance-photo")?.createdAt, interactionFacebook.feed.find(item => item.id === "luca-pickup-basketball-photos")?.createdAt], ["2010-10-19T22:00:00-07:00", "2010-10-19T22:58:00-07:00"], "formatter integration must not rewrite static story timestamps");
   interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "TOGGLE_LIKE", itemId: "jay-band-performance-photo", displayName: "Zoey" });
   assert.equal(interactionFacebook.likedItemIds.includes("jay-band-performance-photo"), true, "Feed and album performance photo must share one story interaction ID");
   interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "SHOW_FEED" });
@@ -1348,6 +1398,7 @@ try {
   const instagramStateSource = await readFile(resolve(projectRoot, "src/state/instagramState.ts"), "utf8");
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
   const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
+  const facebookStoryTimeSource = await readFile(resolve(projectRoot, "src/data/facebookStoryTime.ts"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
   const deviceCssSource = await readFile(resolve(projectRoot, "src/styles/device.css"), "utf8");
   const timelineCellSource = twitterContainerSource.match(/function TimelineTweet[\s\S]*?function TweetDetail/)?.[0] ?? "";
@@ -1375,6 +1426,11 @@ try {
   assert.match(facebookContainerSource, /OPEN_COMMENT_AUTHOR/, "Facebook comment author names must route through the shared actor-profile event");
   assert.match(facebookContainerSource, /facebook-comment-author/, "Facebook comment author names must expose a usable tap target");
   assert.match(facebookContainerSource, /FacebookInlineEntityText/, "curated Facebook story text must use the reusable inline-entity renderer");
+  assert.match(facebookContainerSource, /SESSION_START_ISO[^\n]+elapsedMs/, "Facebook story metadata must derive simulated now from the existing global clock");
+  assert.doesNotMatch(facebookStoryTimeSource, /Date\.now\(|new Date\(\s*\)/, "Facebook story metadata must never read real system time");
+  assert.doesNotMatch(facebookStoryTimeSource, /Math\.max\(0,\s*simulatedNowMs\s*-\s*storyTimeMs\)/, "future timestamps must not be silently clamped to just now");
+  assert.match(facebookStoryTimeSource, /Future story[^`]+story=/, "DEV future-time warning must identify the story and timestamps");
+  assert.doesNotMatch(`${facebookStoryTimeSource}\n${facebookContainerSource}`, /setInterval|setTimeout/, "Facebook story metadata must not create a second timer");
   assert.match(facebookContainerSource, /facebook-inline-mention/, "structured Facebook mention tokens must expose a dedicated tap target");
   assert.match(facebookContainerSource, /OPEN_COMMENT_AUTHOR/, "inline mentions must reuse the existing Facebook actor/profile router");
   assert.doesNotMatch(facebookContainerSource, /match\([^)]*@|split\([^)]*@|@\[A-Za-z/, "Facebook mentions must not auto-link arbitrary @name text through naive parsing");

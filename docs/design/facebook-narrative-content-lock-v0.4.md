@@ -95,3 +95,11 @@ Only Katie/Ben siblings and Chris/Luca basketball friends are hard canonical rel
 Facebook character media now participates in the navigable `Profile -> Photos -> Albums -> Photo Detail` graph. Album membership is registry-driven, and Photo Detail reuses the associated Feed story ID for Like and Comment state. Root Photos remains the current user's own empty baseline rather than a Friends' Photos aggregation surface.
 
 The approved album set is intentionally limited to Z.tokyo Profile Pictures, Luca Pickup Basketball, Katie Photos, and Jay Music. Other profiles remain empty until approved media exists. See `docs/evidence/facebook-2010-photos-albums-ia-v0.1.md`.
+
+## Feed timestamp metadata
+
+Feed and Profile Wall timestamp metadata is deterministically derived from each story timestamp plus the existing simulated clock. Recent stories use period-style relative wording, older stories fall back to concise weekday/date forms, and modeled source applications may append `via <source>`. Post and Photo Detail retain a more explicit Los Angeles date/time. No independent Facebook timer exists.
+
+All late-night seed stories visible before the 12:02 AM session boundary are locked to October 19 PDT with explicit ISO timestamps. Future-dated seed records fail validation; the formatter warns in DEV and uses absolute metadata rather than disguising negative age as `just now`.
+
+Feed relative time is additionally calendar-day scoped in `America/Los_Angeles`. Oct 20 live stories may use relative minutes, while every Oct 19 story renders `Tue h:mm PM` after midnight regardless of elapsed-hour distance. Detail views continue to show the full October 19 date and time.

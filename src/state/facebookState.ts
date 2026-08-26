@@ -71,6 +71,7 @@ export type FacebookFeedItem = {
   mentions?: readonly FacebookInlineMention[];
   timestamp: string;
   createdAt?: string;
+  sourceApp?: string;
   mediaId?: FacebookStoryMediaId;
   mediaIds?: readonly FacebookStoryMediaId[];
   kind: FacebookStoryKind;

@@ -26,6 +26,8 @@ import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumPhoto, getFacebookAlbumsForActor } from "../data/facebookAlbums";
 import type { FacebookAlbum, FacebookAlbumActor } from "../data/facebookAlbums";
 import { getFacebookStoryMedia } from "../data/facebookStoryMedia";
+import { formatFacebookStoryTime } from "../data/facebookStoryTime";
+import { SESSION_START_ISO } from "../state/deviceMachine";
 
 type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number };
 
@@ -44,6 +46,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   const selectedPhoto = state.selectedPhotoMediaId ? getFacebookStoryMedia(state.selectedPhotoMediaId) : null;
   const visibleFeed = selectFacebookVisibleFeed(state);
   const elapsedSeconds = Math.floor(elapsedMs / 1_000);
+  const simulatedNowMs = Date.parse(SESSION_START_ISO) + elapsedMs;
 
   useLayoutEffect(() => {
     if (state.currentView !== "feed" || !feedRef.current) return;
@@ -77,6 +80,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
           onOpen={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition })}
           commentCount={selectFacebookComments(state, item.id).length}
           likeCount={selectFacebookLikes(state, item.id, elapsedSeconds).length}
+          storyTime={formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp })}
           onToggleLike={() => dispatch({ type: "TOGGLE_LIKE", itemId: item.id, displayName: sessionIdentity.name })}
           onComment={() => {
             dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition });
@@ -91,7 +95,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
       <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: selectedItem.author })}>{selectedItem.author}</button>
       <p><FacebookInlineEntityText text={selectedItem.text} mentions={selectedItem.mentions} dispatch={dispatch} /></p>
       <FacebookStoryMedia item={selectedItem} dispatch={dispatch} />
-      <time>October 20, 2010 · {selectedItem.timestamp}</time>
+      <time>{formatFacebookStoryTime({ storyId: selectedItem.id, storyTimestamp: selectedItem.createdAt ?? selectedItem.timestamp, simulatedNowMs, storyType: selectedItem.kind, sourceApp: selectedItem.sourceApp, surface: "detail" })}</time>
       <FacebookStoryCounts commentCount={selectFacebookComments(state, selectedItem.id).length} likeCount={selectFacebookLikes(state, selectedItem.id, elapsedSeconds).length} />
       <div className="facebook-detail-actions">
         <button type="button" aria-pressed={state.likedItemIds.includes(selectedItem.id)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: selectedItem.id, displayName: sessionIdentity.name })}>{state.likedItemIds.includes(selectedItem.id) ? "Unlike" : "Like"}</button>
@@ -107,7 +111,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
       </form>}
     </article>}
 
-    {state.currentView === "profile" && <FacebookProfile profileName={selectedProfileName} currentUserName={sessionIdentity.name} state={state} dispatch={dispatch} />}
+    {state.currentView === "profile" && <FacebookProfile profileName={selectedProfileName} currentUserName={sessionIdentity.name} state={state} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
 
     {state.currentView === "friends" && <FacebookFriends state={state} requestCount={requestCount} dispatch={dispatch} />}
 
@@ -135,7 +139,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     {state.currentView === "places" && <FacebookPlaces state={state} displayName={sessionIdentity.name} currentDeviceTime={currentDeviceTime} dispatch={dispatch} />}
     {state.currentView === "photos" && <FacebookPhotos currentUserName={sessionIdentity.name} dispatch={dispatch} />}
     {state.currentView === "album" && selectedAlbum && <FacebookAlbumGallery album={selectedAlbum} dispatch={dispatch} />}
-    {state.currentView === "photoDetail" && selectedAlbum && selectedPhoto && <FacebookPhotoDetail album={selectedAlbum} media={selectedPhoto} state={state} currentUserName={sessionIdentity.name} elapsedSeconds={elapsedSeconds} dispatch={dispatch} />}
+    {state.currentView === "photoDetail" && selectedAlbum && selectedPhoto && <FacebookPhotoDetail album={selectedAlbum} media={selectedPhoto} state={state} currentUserName={sessionIdentity.name} elapsedSeconds={elapsedSeconds} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
     {state.currentView === "chat" && <div className="facebook-chat-roster" aria-label="Facebook Chat">
       {FACEBOOK_CHAT_ROSTER.map(person => <button key={person.characterId} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: person.displayName })}>
         <span className={`facebook-presence is-${person.presence}`} aria-label={person.presence} /><strong>{person.displayName}</strong><small>{person.presence}</small>
@@ -285,7 +289,7 @@ function FacebookAlbumGallery({ album, dispatch }: { album: FacebookAlbum; dispa
   </section>;
 }
 
-function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeconds, dispatch }: { album: FacebookAlbum; media: NonNullable<ReturnType<typeof getFacebookStoryMedia>>; state: FacebookState; currentUserName: string; elapsedSeconds: number; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeconds, simulatedNowMs, dispatch }: { album: FacebookAlbum; media: NonNullable<ReturnType<typeof getFacebookStoryMedia>>; state: FacebookState; currentUserName: string; elapsedSeconds: number; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
   const photo = getFacebookAlbumPhoto(album, media.id);
   if (!photo) return null;
   const story = state.feed.find(item => item.id === photo.storyId);
@@ -294,7 +298,7 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
   return <article className="facebook-photo-viewer">
     <img src={media.src} alt={`${album.ownerActor.displayName} photo`} />
     <strong>{album.ownerActor.displayName}</strong>
-    <span>{album.title} · {new Date(photo.timestamp).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}</span>
+    <span>{album.title} · {formatFacebookStoryTime({ storyId: photo.storyId, storyTimestamp: photo.timestamp, simulatedNowMs, storyType: "photo", sourceApp: story?.sourceApp, surface: "detail" })}</span>
     {photo.caption && <p><FacebookInlineEntityText text={photo.caption} mentions={story?.mentions} dispatch={dispatch} /></p>}
     <FacebookStoryCounts commentCount={comments.length} likeCount={likes.length} />
     <div className="facebook-detail-actions">
@@ -309,7 +313,7 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
   </article>;
 }
 
-function FacebookProfile({ profileName, currentUserName, state, dispatch }: { profileName: string; currentUserName: string; state: FacebookState; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookProfile({ profileName, currentUserName, state, simulatedNowMs, dispatch }: { profileName: string; currentUserName: string; state: FacebookState; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
   const isCurrentUser = profileName === currentUserName;
   const isFriend = state.friends.some(friend => friend.name === profileName);
   const wallItems = selectFacebookVisibleFeed(state).filter(item => item.author === profileName);
@@ -332,7 +336,7 @@ function FacebookProfile({ profileName, currentUserName, state, dispatch }: { pr
       {(["wall", "info", "photos", "friends"] as const).map(section => <button key={section} type="button" aria-current={state.profileSection === section ? "page" : undefined} onClick={() => dispatch({ type: "SET_PROFILE_SECTION", section })}>{section[0].toUpperCase() + section.slice(1)}</button>)}
     </nav>
     {state.profileSection === "wall" && <div className="facebook-profile-wall">
-      {wallItems.map(item => <button key={item.id} type="button" onClick={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: state.scrollPosition })}><span>{item.text}</span><time>{item.timestamp}</time></button>)}
+      {wallItems.map(item => <button key={item.id} type="button" onClick={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: state.scrollPosition })}><span>{item.text}</span><time>{formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp })}</time></button>)}
     </div>}
     {state.profileSection === "info" && <div className="facebook-profile-empty" data-provenance-status="HOLD" aria-label="Profile Info unavailable" />}
     {state.profileSection === "photos" && <FacebookAlbumList actor={albumActor} dispatch={dispatch} />}
@@ -352,7 +356,7 @@ function FacebookCommentRow({ comment, sessionUserName, dispatch }: { comment: F
   </article>;
 }
 
-function FeedRow({ item, liked, commentCount, likeCount, onOpenProfile, onOpen, onToggleLike, onComment, dispatch }: { item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; onOpenProfile: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
+function FeedRow({ item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpen, onToggleLike, onComment, dispatch }: { item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
   const avatarMedia = item.actor?.kind === "author-easter-egg" && item.mediaId ? getFacebookStoryMedia(item.mediaId) : null;
   return <article className="facebook-feed-row" data-content-status={item.contentStatus}>
     <button type="button" className="facebook-avatar-link" aria-label={`${item.author} Profile`} onClick={onOpenProfile}>{avatarMedia
@@ -362,7 +366,7 @@ function FeedRow({ item, liked, commentCount, likeCount, onOpenProfile, onOpen, 
       <button type="button" className="facebook-author-link" onClick={onOpenProfile}>{item.author}</button>
       <span className="facebook-story-link" role="button" tabIndex={0} onClick={onOpen} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen(); }}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} /></span>
       <FacebookStoryMedia item={item} dispatch={dispatch} />
-      <time>{item.timestamp}</time>
+      <time>{storyTime}</time>
       <FacebookStoryCounts commentCount={commentCount} likeCount={likeCount} />
       <span className="facebook-feed-actions"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
     </span>

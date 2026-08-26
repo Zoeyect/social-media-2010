@@ -17,8 +17,8 @@ export const FACEBOOK_MEDIA = Object.freeze({
     surfaceStatus: Object.freeze({
       profilePicture: "READY" as const,
       wallActivity: "READY" as const,
-      photos: "HOLD" as const,
-      profilePicturesAlbum: "HOLD" as const,
+      photos: "READY" as const,
+      profilePicturesAlbum: "READY" as const,
     }),
   }),
 });

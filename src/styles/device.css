@@ -479,3 +479,93 @@ button, input { font: inherit; }
 .app-dev-access > span { color: #718791; font-size: 9px; }
 @media (max-height: 820px) { .device { transform: scale(.82); margin-block: -67px; } }
 @media (max-width: 430px) { .device { transform: scale(.86); margin-inline: -28px; } }
+
+/* Facebook for iPhone 3.2-era structural pass. Exact raster icons, gloss and pixel metrics remain HOLD. */
+.facebook-navigation-bar > strong { max-width: 160px; overflow: hidden; color: #fff; font-size: 19px; line-height: 44px; text-overflow: ellipsis; white-space: nowrap; }
+.facebook-account-control,.facebook-shortcut-control,.facebook-navigation-context { position: absolute; top: 7px; height: 30px; padding: 0 8px; color: #fff; border: 1px solid #203969; border-radius: 4px; background: linear-gradient(#7386aa,#3d5c98); font-size: 12px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.6); }
+.facebook-account-control { left: 7px; }
+.facebook-shortcut-control,.facebook-navigation-context { right: 7px; }
+.facebook-shortcut-control { width: 32px; padding: 0; font-size: 22px; }
+.facebook-shortcut-control:disabled,.facebook-navigation-context:disabled { opacity: .72; }
+.facebook-navigation-context:not(button) { top: 0; height: 44px; padding: 0; border: 0; background: none; font-size: 11px; line-height: 44px; }
+.facebook-home { grid-template-rows: 36px minmax(0,1fr) 17px 38px; background: linear-gradient(#eef1f5,#d9dee7); }
+.facebook-home-search,.facebook-friends-search { margin: 6px 8px 4px; display: flex; align-items: center; border: 1px solid #a2a8b0; border-radius: 10px; background: #fff; box-shadow: inset 0 1px 2px rgba(0,0,0,.2); }
+.facebook-home-search input,.facebook-friends-search input { box-sizing: border-box; width: 100%; height: 24px; padding: 1px 8px; border: 0; outline: 0; border-radius: 10px; background: transparent; font: 13px/22px "Helvetica Neue",Helvetica,Arial,sans-serif; text-align: center; }
+.facebook-search-glyph { width: 11px; height: 11px; margin-left: 9px; border: 2px solid #89919d; border-radius: 50%; }
+.facebook-home-grid { padding: 7px 12px 1px; grid-auto-rows: minmax(73px,1fr); gap: 0 5px; }
+.facebook-home-destination { padding: 3px 2px; gap: 3px; }
+.facebook-home-destination strong { font-size: 11px; line-height: 13px; }
+.facebook-home-icon-hold { width: 43px; height: 43px; display: grid; place-items: center; color: #fff; border: 1px solid #52698f; border-radius: 7px; background: linear-gradient(#91a2bd,#526d99 52%,#395786); box-shadow: inset 0 1px rgba(255,255,255,.55),0 1px 1px rgba(0,0,0,.18); font-size: 11px; font-weight: bold; letter-spacing: .04em; text-shadow: 0 -1px rgba(0,0,0,.65); }
+.facebook-home-empty-slot { min-height: 64px; }
+.facebook-home-secondary-page,.facebook-people-search-results { min-height: 0; overflow-y: auto; background: rgba(255,255,255,.65); }
+.facebook-home-secondary-page { display: grid; place-items: center; color: #7d8490; font-size: 12px; }
+.facebook-people-search-results button { width: 100%; min-height: 45px; padding: 0 13px; color: #28477f; border: 0; border-bottom: 1px solid #b7bdc6; background: #fff; font-size: 14px; font-weight: bold; text-align: left; }
+.facebook-people-search-results p { margin: 24px 0; color: #777; font-size: 12px; text-align: center; }
+.facebook-home-page-dots { display: flex; align-items: center; justify-content: center; gap: 7px; }
+.facebook-home-page-dots button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; background: #a5acb7; }
+.facebook-home-page-dots button[aria-current="page"] { background: #3b5998; }
+.facebook-home-notifications { height: 38px; padding: 0 12px; display: flex; align-items: center; justify-content: center; gap: 7px; color: #29477c; border: 0; border-top: 1px solid #9da6b3; background: linear-gradient(#f7f8fa,#d6dae1); font-size: 12px; font-weight: bold; }
+.facebook-home-notifications b { min-width: 17px; height: 17px; padding: 0 4px; color: #fff; border-radius: 9px; background: #b42b2b; font: bold 11px/17px "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.facebook-internal-count { top: 1px; right: 8px; }
+.facebook-feed-composer-strip { flex: 0 0 38px; display: grid; grid-template-columns: repeat(3,1fr); border-bottom: 1px solid #a7a7a7; background: #f0f1f3; }
+.facebook-feed-composer-strip button { color: #314f82; border: 0; border-right: 1px solid #b8b8b8; background: linear-gradient(#fff,#e0e0e0); font-size: 11px; font-weight: bold; }
+.facebook-feed-composer-strip button:last-child { border-right: 0; }
+.facebook-feed-composer-strip button:disabled { color: #8d939d; }
+.facebook-status-composer { flex: 0 0 102px; padding: 7px; display: grid; grid-template-rows: 1fr 28px; gap: 5px; border-bottom: 1px solid #aaa; background: #e5e7eb; }
+.facebook-status-composer textarea { box-sizing: border-box; width: 100%; min-height: 54px; padding: 6px; resize: none; border: 1px solid #9ba1aa; border-radius: 3px; font: 14px/18px "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.facebook-status-composer > div { display: flex; justify-content: flex-end; gap: 6px; }
+.facebook-status-composer button { min-width: 58px; color: #fff; border: 1px solid #294576; border-radius: 4px; background: linear-gradient(#7186ad,#3b5998); font-size: 11px; font-weight: bold; }
+.facebook-status-composer button[type="button"] { color: #444; border-color: #aaa; background: linear-gradient(#fff,#ddd); }
+.facebook-status-composer button:disabled { color: #999; border-color: #bbb; background: #ddd; }
+.facebook-friends-screen { flex: 1 1 auto; min-height: 0; display: grid; grid-template-rows: 36px minmax(0,1fr) 38px; background: #fff; }
+.facebook-friends-search { margin-top: 5px; }
+.facebook-friends-content { position: relative; min-height: 0; overflow: hidden; }
+.facebook-friends-content > * { height: 100%; }
+.facebook-alphabet-index { position: fixed; right: calc(50% - 153px); top: 180px; width: 10px; color: #526b96; font-size: 8px; line-height: 17px; text-align: center; writing-mode: vertical-rl; }
+.facebook-friends-segments { display: grid; grid-template-columns: repeat(3,1fr); border-top: 1px solid #888; background: #d8d8d8; }
+.facebook-friends-segments button { color: #3b5998; border: 0; border-right: 1px solid #aaa; background: linear-gradient(#fff,#d7d7d7); font-size: 11px; font-weight: bold; }
+.facebook-friends-segments button[aria-current="page"] { color: #222; background: #bbb; box-shadow: inset 0 1px 2px rgba(0,0,0,.2); }
+.facebook-empty-list { min-height: 180px; display: grid; place-items: center; color: #777; font-size: 12px; }
+.facebook-event-list,.facebook-places,.facebook-photo-albums,.facebook-chat-roster,.facebook-notification-list,.facebook-account-shell { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
+.facebook-event-list > p,.facebook-notification-list > p { margin: 0; padding: 28px 12px; color: #777; text-align: center; }
+.facebook-event-list > button { width: 100%; min-height: 64px; padding: 9px 13px; display: grid; gap: 3px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
+.facebook-event-list strong,.facebook-places strong,.facebook-photo-albums strong { color: #3b5998; font-size: 15px; }
+.facebook-event-list span,.facebook-event-list small { color: #666; font-size: 11px; }
+.facebook-event-detail { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
+.facebook-event-detail > header { padding: 14px 13px; display: grid; gap: 4px; border-bottom: 1px solid #aaa; background: #eef1f6; }
+.facebook-event-detail > header strong { color: #29477c; font-size: 20px; }
+.facebook-event-detail > header span { font-size: 14px; }
+.facebook-event-detail > header small { color: #777; font-size: 11px; }
+.facebook-event-detail fieldset { margin: 0; padding: 10px 12px 12px; display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; border: 0; border-bottom: 1px solid #bbb; }
+.facebook-event-detail legend { padding-top: 8px; color: #666; font-size: 11px; }
+.facebook-event-detail fieldset button { height: 30px; color: #3b5998; border: 1px solid #9ba1aa; border-radius: 4px; background: linear-gradient(#fff,#ddd); font-size: 11px; font-weight: bold; }
+.facebook-event-detail fieldset button[aria-pressed="true"] { color: #fff; border-color: #294576; background: #3b5998; }
+.facebook-event-wall h2,.facebook-places h2,.facebook-photo-albums h2 { margin: 0; padding: 7px 12px; color: #666; border-bottom: 1px solid #bbb; background: #eee; font-size: 11px; text-transform: uppercase; }
+.facebook-event-wall button { width: 100%; padding: 10px 12px; display: grid; gap: 3px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
+.facebook-event-wall strong { color: #3b5998; }
+.facebook-places article,.facebook-places > button { min-height: 49px; padding: 7px 12px; display: grid; align-content: center; gap: 2px; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
+.facebook-places article span,.facebook-places > button span { color: #555; font-size: 12px; }
+.facebook-places > button { width: 100%; grid-template-columns: 1fr auto; align-items: center; }
+.facebook-places > button strong { font-size: 11px; }
+.facebook-checkin-confirmation { margin: 10px; padding: 9px; display: grid; gap: 3px; border: 1px solid #8da081; background: #edf4e9; font-size: 12px; }
+.facebook-photo-albums > button { width: 100%; min-height: 78px; padding: 8px 12px; display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
+.facebook-photo-albums img,.facebook-profile-photo-entry img { width: 64px; height: 58px; object-fit: cover; }
+.facebook-photo-albums button > span { display: grid; gap: 4px; }
+.facebook-photo-albums small { color: #777; font-size: 11px; }
+.facebook-photo-viewer { flex: 1 1 auto; min-height: 0; padding: 12px; display: grid; align-content: start; gap: 5px; overflow-y: auto; background: #111; color: #fff; }
+.facebook-photo-viewer img { width: 100%; max-height: 330px; object-fit: contain; background: #000; }
+.facebook-photo-viewer strong { font-size: 15px; }
+.facebook-photo-viewer span { color: #bbb; font-size: 11px; }
+.facebook-profile-photo-entry { flex: 1 1 auto; min-height: 0; padding: 12px; display: flex; align-items: flex-start; gap: 9px; color: #3b5998; border: 0; background: #fff; font-weight: bold; }
+.facebook-chat-roster > button { width: 100%; min-height: 54px; padding: 7px 12px; display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
+.facebook-chat-roster strong { color: #3b5998; font-size: 14px; }
+.facebook-chat-roster small { color: #777; font-size: 10px; }
+.facebook-presence { width: 8px; height: 8px; border-radius: 50%; background: #999; }
+.facebook-presence.is-online { background: #54a23c; }
+.facebook-notification-list > button { position: relative; width: 100%; min-height: 56px; padding: 9px 28px 9px 12px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; font-size: 13px; text-align: left; }
+.facebook-notification-list > button.is-unread { background: #edf2fa; }
+.facebook-notification-list i { position: absolute; right: 12px; top: 24px; width: 8px; height: 8px; border-radius: 50%; background: #3b5998; }
+.facebook-account-shell { padding: 18px 14px; }
+.facebook-account-shell strong { color: #29477c; font-size: 20px; }
+.facebook-account-shell p { color: #666; font-size: 12px; }
+.facebook-account-shell button { height: 31px; color: #fff; border: 1px solid #294576; border-radius: 4px; background: #3b5998; font-weight: bold; }

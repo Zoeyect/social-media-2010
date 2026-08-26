@@ -62,7 +62,7 @@ These are the currently locked relationships. Do not infer additional romance, f
 | App | Primary Characters | Secondary Characters | Sparse/Optional | Avoid / No Account |
 | --- | --- | --- | --- | --- |
 | Twitter | Matt, Jay, Ben, Alex | Chris, Katie, Luca, June | Jack; Z.tokyo only after separate justification | Anil; default no active Z.tokyo identity |
-| Facebook | Katie, Alex, Chris, June, Jack, Ben, Luca, Jay | Matt | Z.tokyo as author easter egg; Anil in offline evidence | Anil as account owner |
+| Facebook | Katie, Alex, Chris, June, Jack, Ben, Luca, Jay | Matt | Z.tokyo as author easter egg; Anil in offline photo evidence only; launcher surfaces include Feed, Profile, Friends/Requests, Messages, Places, Events, Photos, conservative Chat and derived Notifications | Anil as account owner; Groups is `REJECTED FOR TARGET DATE` and its launcher position remains empty |
 | Instagram | June | Jay and Alex only as possible future additions | Do not automatically populate the canonical nine; Z.tokyo only through a separately designed easter egg | Anil; default no active Z.tokyo account |
 | Flickr | Alex, Jay, June, Chris/Luca shared contexts | Katie | Band or event media containing Z.tokyo or Anil | Anil as account owner |
 | Foursquare | Ben, Luca, Chris, Alex | Jack, June | Matt and Jay low usage | Anil; Z.tokyo by default |
@@ -95,8 +95,8 @@ Asset availability does not authorize new biography, relationships, or event att
 
 | Thread | Characters | Apps | Trigger | Required User Action | Optional/Missable | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Jack Party | June, Jack, Alex, Jay, Matt; Chris/Luca only as broader context if useful | Facebook, Twitter | Reply to June or accept Jack; both converge on one shared invite | None for world context; either trigger for invitation delivery | Optional and missable; user stance remains undefined | `ACTIVE / CURATED` |
-| June -> Instagram | June | Facebook -> Instagram | June's Facebook discovery post/handle | Optional exploration | Optional and missable | `ACTIVE / PARTIALLY HOLD` pending Instagram IA |
+| Jack Party | June, Jack, Alex, Jay, Matt; Chris/Luca only as broader context if useful | Facebook Events/Notifications/Messages/Feed, Twitter | Reply to June or accept Jack; both converge on one shared invite | None for world context; either trigger for invitation delivery; RSVP only by explicit choice | Optional and missable; user stance remains undefined | `ACTIVE / CURATED`; one shared Events projection, no duplicate invite |
+| June -> Instagram | June | Facebook -> Instagram | June's Facebook discovery post/handle | Optional exploration | Optional and missable | `ACTIVE DATA LINK`; exact Instagram discovery/Follow IA `HOLD pending audit` |
 | Matt/Jay/Z.tokyo/Anil Band | Jay, Matt, Z.tokyo, Anil | Twitter, Facebook, Flickr, Tumblr as context permits | No direct trigger required | None | Optional and missable | `BACKGROUND WORLD THREAD` |
 | Chris <-> Luca Basketball | Chris, Luca | Facebook, Flickr, possible Foursquare | Seed or contextual appearance | None | Optional and missable | `BACKGROUND RELATIONSHIP` |
 | Katie <-> Ben Siblings | Katie, Ben | Facebook, shared photos, casual references | Seed/contextual appearance | None | Optional and missable | `BACKGROUND RELATIONSHIP` |

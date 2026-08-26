@@ -5,6 +5,7 @@ import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
 import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS } from "../data/facebookActors";
 import type { FacebookFeedActor } from "../data/facebookActors";
 import type { FacebookAuthorEasterEggId } from "../data/facebookActors";
+import { MAIN_STREET_DINER_VENUE } from "../data/canonicalVenues";
 import { getFacebookAlbum, getFacebookAlbumForMediaId } from "../data/facebookAlbums";
 import type { FacebookAlbumId } from "../data/facebookAlbums";
 import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
@@ -31,13 +32,13 @@ export const FACEBOOK_BASELINE_FRIEND_IDS = Object.freeze(["katie", "matt", "ale
 export const FACEBOOK_PLACE_OPTIONS = Object.freeze([
   Object.freeze({ id: "downtown-coffee", name: "Downtown Coffee", classification: "CURATED/HOLD" as const }),
   Object.freeze({ id: "community-courts", name: "Community Courts", classification: "CURATED/HOLD" as const }),
-  Object.freeze({ id: "main-street-diner", name: "Main Street Diner", classification: "CURATED/HOLD" as const }),
+  Object.freeze({ ...MAIN_STREET_DINER_VENUE, classification: "CURATED/HOLD" as const }),
 ]);
 
 export const FACEBOOK_FRIEND_CHECK_INS = Object.freeze([
   Object.freeze({ id: "ben-coffee-checkin", characterId: "ben" as const, displayName: "Ben", venueName: "Downtown Coffee", classification: "CURATED" as const }),
   Object.freeze({ id: "chris-courts-checkin", characterId: "chris" as const, displayName: "Chris", venueName: "Community Courts", classification: "CURATED" as const }),
-  Object.freeze({ id: "luca-diner-checkin", characterId: "luca" as const, displayName: "Luca", venueName: "Main Street Diner", classification: "CURATED" as const }),
+  Object.freeze({ id: "luca-diner-checkin", characterId: "luca" as const, displayName: "Luca", venueId: MAIN_STREET_DINER_VENUE.id, venueName: MAIN_STREET_DINER_VENUE.name, classification: "CURATED" as const }),
 ]);
 
 export const FACEBOOK_CHAT_ROSTER = Object.freeze([
@@ -263,7 +264,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     profileSection: "wall",
     scrollPosition: 0,
     likedItemIds: [],
-    likes: [],
+    likes: SESSION_SEED_CONTENT.facebook.likes.map(like => ({ ...like })),
     friendRequestState: "none",
     friends: FACEBOOK_BASELINE_FRIEND_IDS.map(id => ({ id, name: CORE_SOCIAL_CHARACTERS[id].displayName })),
     friendsSection: "friends",

@@ -85,7 +85,7 @@ All approved character photos are `SHARED CHARACTER MEDIA`, not Facebook-only as
 | June | Existing canonical references; no new filename locked here | Facebook, Instagram, Flickr | Historically appropriate early-Instagram imagery remains dependent on IA and asset approval | High |
 | Jack | Existing canonical references; no new filename locked here | Facebook profile/activity, sparse event context | Football or group-event media optional, not required for narrative | Low/Medium |
 | Ben | `Ben-car.JPG`, `Ben-coffee.PNG`, `Ben-coffee02.JPG`, `Ben01.JPG`, `Katie-Ben.JPG` | Twitter links, Facebook, Foursquare, sibling context | None required | Medium |
-| Luca | `Chris-Luca.PNG` | Facebook, Flickr, Foursquare context | Restaurant-work evidence may strengthen his primary hook | Medium |
+| Luca | `Chris-Luca.PNG`, `Luca.png`, `guys.png`, `guys02.PNG`, `guys03.png`, `Luca-work.png` | Facebook profile/photos, Flickr, Foursquare context | None required for the current profile/work/basketball baseline | Medium |
 | Z.tokyo | Supplied author portrait at `src/assets/facebook/characters/z-tokyo/profile/IMG_1423.JPG`; existing author/photo references where approved | Facebook profile picture, Wall activity, Photos/Profile Pictures album later; discreet band media | Full Photos UI and additional album content remain HOLD | High for existing cameo, low for expansion |
 | Anil | No standalone social-profile asset approved; band evidence only | Facebook/Flickr/Tumblr photos owned or posted by others | Band/group depiction only if separately approved | Low until a background thread needs it |
 
@@ -105,6 +105,12 @@ Asset availability does not authorize new biography, relationships, or event att
 | Mom / Dad Messages | Mom, Dad | Messages | Existing family-message flow | Optional reply | Optional; separate from the canonical nine | `FAMILY / UNIVERSAL RELATIONSHIP THREAD` |
 
 No listed thread is required for understanding or completing the 15-minute experience. A thread's runtime status does not make user participation mandatory.
+
+### Shared venue continuity
+
+Luca's Facebook check-in, March 2010 workplace photo, and Foursquare venue all reference canonical venue ID `main-street-diner` with display name `Main Street Diner`. This is identity continuity only; cross-app deep linking remains HOLD.
+
+Frank is a Facebook-local `EPHEMERAL_FRIEND_OF_FRIEND` and basketball-social peripheral. His only approved role is one closing joke in Luca's Pickup Basketball comment thread; he is not a canonical character or recurring storyline.
 
 ## 9. User projection risk matrix
 

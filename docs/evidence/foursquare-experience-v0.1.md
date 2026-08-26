@@ -114,3 +114,7 @@ None remaining in deterministic reducer/build validation. First check-in, duplic
 - No historical assets added or modified
 
 Manual browser interaction has not been claimed and remains required before a Foursquare functional freeze.
+
+## Shared venue identity
+
+The diner venue uses canonical ID `main-street-diner` and display name `Main Street Diner`. Luca's Facebook check-in and March 2010 workplace photo reference that same record; no Facebook-only duplicate venue or cross-app deep link is introduced. Venue coordinates and exact historical place chrome remain HOLD.

@@ -167,6 +167,10 @@ Ben is an ordinary small-company office worker, never a Wall Street or finance-b
 - Topics: customers, tips, coworkers, kitchen, closing shifts, late food and post-work basketball
 - Language: conversational, short, low-context and often late-night; frustration stays grounded
 - Strong surfaces: Twitter, Facebook and Foursquare
+- Current Facebook profile image: `Luca.png`, resolved through centralized actor media
+- Facebook photo history: `Pickup Basketball` contains the three approved `guys` images; a March 20, 2010 workplace photo uses `Luca-work.png`
+- Workplace: Main Street Diner, using the same canonical venue identity on Facebook and Foursquare
+- Public basketball-photo threads may include light, non-aggressive banter between Chris and Luca.
 
 Luca anchors service-work life without turning difficult customers or exhaustion into a one-note joke.
 

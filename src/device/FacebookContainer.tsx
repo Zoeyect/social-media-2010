@@ -28,6 +28,7 @@ import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumPhoto, get
 import type { FacebookAlbum, FacebookAlbumActor } from "../data/facebookAlbums";
 import { getFacebookStoryMedia } from "../data/facebookStoryMedia";
 import { formatFacebookStoryTime } from "../data/facebookStoryTime";
+import { getCanonicalVenue } from "../data/canonicalVenues";
 import { SESSION_START_ISO } from "../state/deviceMachine";
 
 type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number };
@@ -296,10 +297,12 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
   const story = state.feed.find(item => item.id === photo.storyId);
   const comments = selectFacebookComments(state, photo.storyId);
   const likes = selectFacebookLikes(state, photo.storyId, elapsedSeconds);
+  const venue = photo.venueId ? getCanonicalVenue(photo.venueId) : null;
   return <article className="facebook-photo-viewer">
     <img src={media.src} alt={`${album.ownerActor.displayName} photo`} />
     <strong>{album.ownerActor.displayName}</strong>
     <span>{album.title} · {formatFacebookStoryTime({ storyId: photo.storyId, storyTimestamp: photo.timestamp, simulatedNowMs, storyType: "photo", sourceApp: story?.sourceApp, surface: "detail" })}</span>
+    {venue && <span>{venue.name}</span>}
     {photo.caption && <p><FacebookInlineEntityText text={photo.caption} mentions={story?.mentions} dispatch={dispatch} /></p>}
     <FacebookStoryCounts commentCount={comments.length} likeCount={likes.length} />
     <div className="facebook-detail-actions">

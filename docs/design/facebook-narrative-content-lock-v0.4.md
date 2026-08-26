@@ -70,7 +70,7 @@ Ryan is one Facebook-local `EPHEMERAL_FRIEND_OF_FRIEND`, not a canonical charact
 
 ## Shared media placement
 
-- `chris-luca-basketball` uses the existing `Chris-Luca.PNG` as Luca's album thumbnail and implies the basketball relationship without explanatory copy.
+- Luca's Pickup Basketball story and album share `luca-basketball-01`, `luca-basketball-02`, and `luca-basketball-03`; the three-photo preview implies the Chris/Luca basketball relationship without explanatory copy.
 - `katie-ben-family` uses `Katie-Ben.JPG` as Katie's ordinary photo activity and leaves the sibling relationship implicit in UI.
 - Jay's single `Music` album uses `jay-band-performance`, `jay-guitar`, and `jay-guitar-may` for an Oct 19 performance post, the existing Oct 17 guitar photo, and a May guitar still life. Album order derives from in-world timestamps rather than filenames.
 - Z.tokyo continues to use the Facebook-local author media registry.

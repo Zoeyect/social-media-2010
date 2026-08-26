@@ -54,7 +54,7 @@ Ryan replies `yeah everyone's going lol`. He is separately typed, has no `CoreSo
 
 ## 9. Luca and Chris basketball evidence
 
-Luca's Facebook seed includes one `photoActivity` record stating that he added four photos from pickup basketball. Its underlying `relatedCharacterIds` contains canonical `chris`, reinforcing their existing basketball friendship without explanatory copy.
+Luca's Facebook seed includes one album story whose copy and count derive from the three registered Pickup Basketball media IDs. Its underlying `relatedCharacterIds` contains canonical `chris`, reinforcing their existing basketball friendship without explanatory copy.
 
 No image is generated. Exact people-tag chrome is not rendered and remains `HOLD`. Luca's restaurant-server identity remains canonical and is not replaced by the basketball fragment.
 

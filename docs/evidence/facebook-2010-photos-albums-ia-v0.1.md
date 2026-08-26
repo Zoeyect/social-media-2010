@@ -15,11 +15,15 @@ Albums and media membership are declared in the centralized Facebook album regis
 Implemented albums:
 
 - Z.tokyo: Profile Pictures
-- Luca: Pickup Basketball
+- Luca: Pickup Basketball; Photos
 - Katie: Photos
 - Jay: Music, with the Oct 19 performance, Oct 17 Jay guitar photo, and May guitar still life ordered by in-world timestamp
 
 Album and photo counts derive from registered media IDs. No placeholders are fabricated to match narrative copy.
+
+Luca's current profile image is the centralized `luca-profile-picture` record backed by unchanged `Luca.png`. `Pickup Basketball` contains exactly `guys.png`, `guys02.PNG`, and `guys03.png`; the Feed's “added 3 new photos” copy and album count derive from that same media-ID array. A separate generic `Photos` album contains unchanged `Luca-work.png`, dated March 20, 2010, with canonical venue ID `main-street-diner`. The historical work photo is excluded from the current Feed through the existing custom-audience visibility boundary.
+
+The Pickup Basketball story owns one real Chris Like and four chronological seed comments from Chris, Luca, Chris, and ephemeral friend-of-friend Frank. Feed, Post Detail, album photos, and Photo Detail all select counts and interaction records by the shared `luca-pickup-basketball-photos` story ID; no nested modern comment chrome is introduced.
 
 Katie's implementation uses `Katie03.PNG` as one shared current avatar/Profile Pictures media record. `Katie01.jpg`, `Katie02.jpg`, `Katie04.jpg`, and `Katie05.jpg` form a separate `Photos` album ordered September 2010, July 2010, August 2009, July 2009. Only the August 2009 image has the caption `summer :)`. The existing Katie/Ben media remains a separate `Family Photos` album. Ben's `do you own any other shirts?` response is a canonical seed comment on the September photo, so counts and Profile navigation use shared comment/actor state.
 

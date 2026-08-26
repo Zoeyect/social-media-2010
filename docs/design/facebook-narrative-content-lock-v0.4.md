@@ -32,6 +32,10 @@ Every open Facebook Messages thread uses one shared `threadMessages` model and o
 
 Only a user reply in the canonical June `Hey, are you online?` thread activates the existing party-eligibility path. Katie and all other thread replies are expression-only and cannot mutate Jack, party, RSVP, Instagram, scheduler, or global timeline state. Exact 2010 message-thread chrome remains visual HOLD.
 
+## Navigable comment authors
+
+Comment authors participate in the navigable Facebook social graph through one typed actor resolver. Canonical identities route to their canonical Profile/Wall, Facebook-local `EPHEMERAL_FRIEND_OF_FRIEND` identities such as Ryan route to sparse local Profiles, session-user comments route to the current user's Profile, and author-easter-egg comments can reuse the existing Z.tokyo route. Back returns to the same canonical Post and preserves scroll, comment, Like, gossip, and party state. Exact profile and comment-row visual chrome remains subject to the existing historical-fidelity HOLD rules.
+
 June's live Instagram announcement uses deterministic liker records visible at these elapsed times:
 
 | Elapsed | Visible Likes |

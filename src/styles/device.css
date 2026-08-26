@@ -262,6 +262,7 @@ button, input { font: inherit; }
 .facebook-detail-actions button:disabled { color: #999; }
 .facebook-comment { padding: 8px 6px; display: grid; gap: 2px; border-bottom: 1px solid #ccc; background: #f2f5f9; font-size: 12px; }
 .facebook-comment strong,.facebook-message-reply strong { color: #3b5998; }
+.facebook-comment-author { width: max-content; min-height: 24px; margin: -5px 0 -2px -6px; padding: 4px 6px; color: #3b5998; border: 0; background: transparent; font-size: 12px; font-weight: bold; text-align: left; }
 .facebook-comment-composer,.facebook-message-composer { padding: 9px 0; display: grid; gap: 6px; }
 .facebook-comment-composer textarea,.facebook-message-composer textarea { box-sizing: border-box; width: 100%; min-height: 54px; padding: 6px; resize: none; border: 1px solid #aaa; border-radius: 3px; background: #fff; font: 13px/17px "Helvetica Neue",Helvetica,Arial,sans-serif; }
 .facebook-comment-composer > div { display: flex; justify-content: flex-end; gap: 6px; }

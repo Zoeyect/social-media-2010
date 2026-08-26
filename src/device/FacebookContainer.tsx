@@ -14,6 +14,7 @@ import {
   selectFacebookPeopleSearchResults,
   selectFacebookRequestCount,
   selectFacebookThreadMessages,
+  resolveFacebookCommentActor,
   selectFacebookVisibleFeed,
   formatFacebookCommentCount,
   formatFacebookLikeCount,
@@ -92,7 +93,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
         <button type="button" aria-pressed={state.likedItemIds.includes(selectedItem.id)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: selectedItem.id, displayName: sessionIdentity.name })}>{state.likedItemIds.includes(selectedItem.id) ? "Unlike" : "Like"}</button>
         <button type="button" aria-expanded={state.commentComposerItemId === selectedItem.id} onClick={() => dispatch({ type: "BEGIN_COMMENT", itemId: selectedItem.id })}>Comment</button>
       </div>
-      {state.comments.filter(comment => comment.itemId === selectedItem.id).map(comment => <article className="facebook-comment" key={comment.id}><strong>{comment.author}</strong><span>{comment.text}</span></article>)}
+      {state.comments.filter(comment => comment.itemId === selectedItem.id).map(comment => <FacebookCommentRow key={comment.id} comment={comment} sessionUserName={sessionIdentity.name} dispatch={dispatch} />)}
       {state.commentComposerItemId === selectedItem.id && <form className="facebook-comment-composer" onSubmit={event => {
         event.preventDefault();
         dispatch({ type: "SUBMIT_COMMENT", displayName: sessionIdentity.name });
@@ -274,7 +275,7 @@ function FacebookProfile({ profileName, currentUserName, state, dispatch }: { pr
   const wallItems = selectFacebookVisibleFeed(state).filter(item => item.author === profileName);
   const authorIdentity = getFacebookAuthorEasterEggByDisplayName(profileName);
   const profileMedia = authorIdentity ? getFacebookMedia(authorIdentity.profileMediaId) : null;
-  return <section className="facebook-profile" aria-label={`${profileName} Profile`}>
+  return <section className="facebook-profile" aria-label={`${profileName} Profile`} data-identity-kind={state.selectedProfileActor?.kind ?? "name-route"}>
     <header className="facebook-profile-header">{profileMedia
       ? <img className="facebook-profile-photo" src={profileMedia.src} alt={`${profileName} profile`} />
       : <span className="facebook-profile-photo-hold" aria-hidden="true" />}<div><strong>{profileName}</strong>{!isCurrentUser && isFriend && <span>Friend</span>}</div></header>
@@ -292,6 +293,16 @@ function FacebookProfile({ profileName, currentUserName, state, dispatch }: { pr
       {isCurrentUser && state.friends.map(friend => <button key={friend.id} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: friend.name })}><strong>{friend.name}</strong></button>)}
     </div>}
   </section>;
+}
+
+function FacebookCommentRow({ comment, sessionUserName, dispatch }: { comment: FacebookState["comments"][number]; sessionUserName: string; dispatch: Dispatch<FacebookEvent> }) {
+  const actor = resolveFacebookCommentActor(comment, sessionUserName);
+  return <article className="facebook-comment">
+    {actor
+      ? <button type="button" className="facebook-comment-author" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor })}>{actor.displayName}</button>
+      : <strong>{comment.author}</strong>}
+    <span>{comment.text}</span>
+  </article>;
 }
 
 function FeedRow({ item, liked, commentCount, likeCount, onOpenProfile, onOpen, onToggleLike, onComment }: { item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; onOpenProfile: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void }) {

@@ -4,6 +4,7 @@ import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
 import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS } from "../data/facebookActors";
 import type { FacebookFeedActor } from "../data/facebookActors";
+import type { FacebookAuthorEasterEggId } from "../data/facebookActors";
 import type { FacebookMediaId } from "../data/facebookMedia";
 import type { SharedCharacterMediaId } from "../data/sharedCharacterMedia";
 
@@ -119,7 +120,14 @@ export type FacebookComment = {
   characterId?: CoreSocialCharacterId;
   classification?: "CURATED";
   ephemeralAuthor?: FacebookEphemeralIdentity;
+  authorEasterEggId?: FacebookAuthorEasterEggId;
 };
+
+export type FacebookNavigableActor =
+  | { kind: "canonical"; characterId: CoreSocialCharacterId; displayName: string }
+  | { kind: "ephemeral-friend-of-friend"; ephemeralId: string; displayName: string; classification: "EPHEMERAL_FRIEND_OF_FRIEND" }
+  | { kind: "session-user"; displayName: string }
+  | { kind: "author-easter-egg"; authorId: FacebookAuthorEasterEggId; displayName: string };
 
 export type FacebookUserCheckIn = {
   venueId: typeof FACEBOOK_PLACE_OPTIONS[number]["id"];
@@ -148,6 +156,7 @@ export type FacebookState = {
   feed: FacebookFeedItem[];
   selectedFeedItemId: string | null;
   selectedProfileName: string | null;
+  selectedProfileActor: FacebookNavigableActor | null;
   profileSection: FacebookProfileSection;
   scrollPosition: number;
   likedItemIds: string[];
@@ -181,6 +190,7 @@ export type FacebookEvent =
   | { type: "SHOW_FEED" }
   | { type: "SHOW_PROFILE"; profileName: string }
   | { type: "OPEN_PROFILE"; profileName: string }
+  | { type: "OPEN_COMMENT_AUTHOR"; actor: FacebookNavigableActor }
   | { type: "SET_PROFILE_SECTION"; section: FacebookProfileSection }
   | { type: "SHOW_FRIENDS" }
   | { type: "SET_FRIENDS_SECTION"; section: FacebookFriendsSection }
@@ -239,6 +249,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     })),
     selectedFeedItemId: null,
     selectedProfileName: null,
+    selectedProfileActor: null,
     profileSection: "wall",
     scrollPosition: 0,
     likedItemIds: [],
@@ -308,6 +319,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         currentView: "profile",
         navigationStack: ["home", "profile"],
         selectedProfileName: event.profileName,
+        selectedProfileActor: { kind: "session-user", displayName: event.profileName },
         profileSection: "wall",
       };
     case "OPEN_PROFILE":
@@ -316,6 +328,16 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         currentView: "profile",
         navigationStack: [...state.navigationStack, "profile"],
         selectedProfileName: event.profileName,
+        selectedProfileActor: null,
+        profileSection: "wall",
+      };
+    case "OPEN_COMMENT_AUTHOR":
+      return {
+        ...state,
+        currentView: "profile",
+        navigationStack: [...state.navigationStack, "profile"],
+        selectedProfileName: event.actor.displayName,
+        selectedProfileActor: event.actor,
         profileSection: "wall",
       };
     case "SET_PROFILE_SECTION":
@@ -727,6 +749,30 @@ export function selectFacebookJuneMessageState(state: FacebookState): FacebookMe
 
 export function selectFacebookThreadMessages(state: FacebookState, threadId: string): FacebookThreadMessage[] {
   return state.threadMessages.filter(message => message.threadId === threadId);
+}
+
+export function resolveFacebookCommentActor(comment: FacebookComment, sessionUserName: string): FacebookNavigableActor | null {
+  if (comment.characterId) return {
+    kind: "canonical",
+    characterId: comment.characterId,
+    displayName: CORE_SOCIAL_CHARACTERS[comment.characterId].displayName,
+  };
+  if (comment.ephemeralAuthor) return {
+    kind: "ephemeral-friend-of-friend",
+    ephemeralId: comment.ephemeralAuthor.id,
+    displayName: comment.ephemeralAuthor.displayName,
+    classification: comment.ephemeralAuthor.classification,
+  };
+  if (comment.authorEasterEggId) return {
+    kind: "author-easter-egg",
+    authorId: comment.authorEasterEggId,
+    displayName: FACEBOOK_AUTHOR_EASTER_EGGS[comment.authorEasterEggId].displayName,
+  };
+  if (comment.origin === "user" && comment.author === sessionUserName) return {
+    kind: "session-user",
+    displayName: sessionUserName,
+  };
+  return null;
 }
 
 export const FACEBOOK_JUNE_LIKE_GROWTH: readonly FacebookLike[] = Object.freeze([

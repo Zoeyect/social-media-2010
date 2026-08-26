@@ -114,8 +114,10 @@ Jay's migrated Facebook Feed and Inbox presence remains canonical. Jay does not 
 - Personality: socially confident, active, friendly and well-connected
 - Topics: photos, group outings, social events, short updates and late-night messaging
 - Strong surfaces: Facebook Inbox/photos/activity; Flickr; selective Twitter, Foursquare or Tumblr appearances
+- Platform behavior: highly active on Facebook and an early Instagram adopter who casually tells Facebook friends about the new account
+- Canonical Instagram handle: `junephoto`
 
-June is socially prominent without being cruel, shallow, or a stereotypical mean girl. The scheduled Facebook message `Hey, are you online?` is locked and must remain associated with June.
+June is socially prominent without being cruel, shallow, or a stereotypical mean girl. The scheduled Facebook message `Hey, are you online?` is locked and must remain associated with June. Her early Instagram use reflects social curiosity, not influencer behavior.
 
 ## 10. Jack
 

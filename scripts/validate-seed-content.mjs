@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -18,12 +19,19 @@ try {
   const instagram = await vite.ssrLoadModule("/src/state/instagramState.ts");
   const seedContent = await vite.ssrLoadModule("/src/data/sessionSeedContent.ts");
   const coreSocialFriends = await vite.ssrLoadModule("/src/data/coreSocialFriends.ts");
+  const facebookActors = await vite.ssrLoadModule("/src/data/facebookActors.ts");
+  const facebookMedia = await vite.ssrLoadModule("/src/data/facebookMedia.ts");
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
 
   const seed = seedContent.SESSION_SEED_CONTENT;
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_CHARACTER_IDS, ["katie", "matt", "alex", "chris", "jay", "june", "jack", "ben", "luca"]);
+  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS["author-z-tokyo"], undefined, "author easter egg must not enter the canonical character registry");
+  assert.deepEqual(
+    facebookActors.FACEBOOK_AUTHOR_EASTER_EGGS[facebookActors.FACEBOOK_AUTHOR_EASTER_EGG_ID],
+    { id: "author-z-tokyo", displayName: "Z.tokyo", classification: "AUTHOR_EASTER_EGG", profileMediaId: "z-tokyo-profile-picture" },
+  );
   assert.deepEqual(
     Object.values(coreSocialFriends.CORE_SOCIAL_CHARACTERS).map(character => [character.id, character.category, character.lifeStage, character.classification]),
     [
@@ -42,6 +50,7 @@ try {
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.katie, coreSocialFriends.CORE_SOCIAL_CHARACTERS.katie, "compatibility views must reuse canonical identity objects");
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.jay, coreSocialFriends.CORE_SOCIAL_CHARACTERS.jay, "compatibility views must not duplicate character records");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => relationship.characterIds), [["katie", "ben"], ["chris", "luca"]]);
+  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "junephoto", "June's Instagram username must remain canonical and session-independent");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_FRIEND_IDS, ["katie", "matt", "alex", "chris", "jay"]);
   assert.deepEqual(
     Object.values(coreSocialFriends.CORE_SOCIAL_FRIENDS).map(friend => [friend.id, friend.displayName, friend.fictional]),
@@ -184,7 +193,27 @@ try {
   assert.equal(facebook.selectFacebookJuneMessageState(facebookA), "none");
   assert.ok(facebookA.inboxThreads.every(thread => thread.origin === "seed" && thread.status === "read"));
   assert.deepEqual(facebookA.inboxThreads.map(thread => [thread.friendId, thread.sender]), [["katie", "Katie"], ["jay", "Jay"]]);
-  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["alex", "Alex"], ["katie", "Katie"], ["jay", "Jay"], ["luca", "Luca"]]);
+  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["alex", "Alex"], ["june", "June"], ["katie", "Katie"], ["jay", "Jay"], ["luca", "Luca"]]);
+  const juneInstagramPost = facebookA.feed.find(item => item.id === "june-instagram-early-adopter");
+  assert.deepEqual(
+    [juneInstagramPost?.friendId, juneInstagramPost?.text, juneInstagramPost?.createdAt],
+    ["june", "finally got instagram lol @junephoto", "2010-10-19T23:44:00-07:00"],
+    "June's Facebook post must bridge to her canonical Instagram username before the session begins",
+  );
+  assert.doesNotMatch(juneInstagramPost?.text ?? "", /\bIG\b|follow my IG|link in bio|DM me/i, "June's early-adopter copy must avoid modern Instagram language");
+  const zTokyoPost = facebookA.feed.find(item => item.id === "z-tokyo-profile-picture-update");
+  assert.deepEqual(
+    [zTokyoPost?.actor, zTokyoPost?.author, zTokyoPost?.text, zTokyoPost?.mediaId, zTokyoPost?.createdAt],
+    [{ kind: "author-easter-egg", authorId: "author-z-tokyo" }, "Z.tokyo", "updated her profile picture.", "z-tokyo-profile-picture", "2010-10-18T20:52:00-07:00"],
+  );
+  const zTokyoMedia = facebookMedia.getFacebookMedia(zTokyoPost?.mediaId);
+  assert.deepEqual(zTokyoMedia?.intendedUses, ["profile-picture", "wall-activity", "photos", "profile-pictures-album"]);
+  assert.deepEqual(zTokyoMedia?.surfaceStatus, { profilePicture: "READY", wallActivity: "READY", photos: "HOLD", profilePicturesAlbum: "HOLD" });
+  const zTokyoPortrait = await readFile(resolve(projectRoot, "src/assets/facebook/characters/z-tokyo/profile/IMG_1423.JPG"));
+  assert.equal(createHash("sha256").update(zTokyoPortrait).digest("hex"), "46c233ae6b8425ba90008df67e64a3bbe8066457c4d12c524d7576efc5419021", "Z.tokyo portrait bytes must remain unchanged");
+  let zTokyoProfile = facebook.facebookStateTransition(facebookA, { type: "OPEN_PROFILE", profileName: "Z.tokyo" });
+  assert.deepEqual([zTokyoProfile.currentView, zTokyoProfile.selectedProfileName, zTokyoProfile.profileSection], ["profile", "Z.tokyo", "wall"]);
+  assert.deepEqual(zTokyoProfile.feed.filter(item => item.author === "Z.tokyo").map(item => item.id), ["z-tokyo-profile-picture-update"], "Z.tokyo Wall must remain sparse and reuse the seed story");
   const alexPartyPost = facebookA.feed.find(item => item.id === "alex-jacks-party-friday");
   assert.ok(alexPartyPost, "Alex's Friday party post must exist as one canonical Facebook record");
   assert.deepEqual([alexPartyPost.friendId, alexPartyPost.visibility], ["alex", "friends-of-friends"]);
@@ -934,6 +963,14 @@ try {
 
   let instagramState = instagram.createInitialInstagramState();
   assert.deepEqual({ photos: instagramState.photos.length, followers: instagramState.followers, following: instagramState.following }, { photos: 0, followers: 0, following: 0 });
+  assert.equal(instagramState.knownAccounts.length, 1, "Instagram must remain sparse with exactly one familiar early adopter");
+  const juneInstagramAccount = instagram.selectInstagramKnownAccountByUsername(instagramState, "@junephoto");
+  assert.deepEqual(
+    [juneInstagramAccount?.canonicalCharacterId, juneInstagramAccount?.username, juneInstagramAccount?.displayName, juneInstagramAccount?.photoCount],
+    ["june", "junephoto", "June", 0],
+  );
+  assert.equal(juneInstagramAccount?.username, coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "Facebook and Instagram must resolve the same canonical June handle");
+  assert.deepEqual([juneInstagramAccount?.discoveryUiStatus, juneInstagramAccount?.followUiStatus], ["HOLD", "HOLD"]);
   assert.equal(instagramState.currentView, "feed");
   assert.deepEqual(instagramState.draft, { source: null, filter: null });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
@@ -1024,12 +1061,16 @@ try {
   assert.equal(instagramAlex.scrollPosition, 0);
   assert.deepEqual(instagramAlex.draft, { source: null, filter: null });
   assert.deepEqual({ followers: instagramAlex.followers, following: instagramAlex.following }, { followers: 0, following: 0 });
+  assert.deepEqual(instagramAlex.knownAccounts.map(account => [account.canonicalCharacterId, account.username]), [["june", "junephoto"]], "new session must restore the sparse canonical June mapping");
 
   const seedSource = await readFile(resolve(projectRoot, "src/data/sessionSeedContent.ts"), "utf8");
+  const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
   const deviceCssSource = await readFile(resolve(projectRoot, "src/styles/device.css"), "utf8");
   const timelineCellSource = twitterContainerSource.match(/function TimelineTweet[\s\S]*?function TweetDetail/)?.[0] ?? "";
   assert.doesNotMatch(seedSource, /DeviceAudio|deviceEventScheduler|smsNotification/, "seed definitions must not depend on delivery systems");
+  assert.match(facebookContainerSource, /getFacebookMedia\(item\.mediaId\)/, "Facebook Feed must resolve portrait media through the centralized registry");
+  assert.match(facebookContainerSource, /getFacebookMedia\(authorIdentity\.profileMediaId\)/, "Facebook Profile must resolve portrait media through the centralized registry");
   assert.ok(["Timeline", "Mentions", "Messages", "Search", "More"].every(label => twitterContainerSource.includes(`"${label}"`)), "Twitter must expose the five period tab destinations");
   assert.match(twitterContainerSource, /twitter-tweet-action-row/, "Twitter must render the swipe-revealed action row");
   assert.match(twitterContainerSource, /twitter-avatar-fixture/, "Twitter cells must not leave the avatar column visually empty");

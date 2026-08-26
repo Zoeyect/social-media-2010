@@ -1,4 +1,5 @@
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
 
 export type InstagramView = "feed" | "profile" | "source" | "filter" | "share";
 export type InstagramPhotoSource = "dev-fixture";
@@ -18,11 +19,23 @@ export type InstagramDraft = {
   filter: InstagramFilter | null;
 };
 
+export type InstagramKnownAccount = {
+  canonicalCharacterId: CoreSocialCharacterId;
+  username: string;
+  displayName: string;
+  photoCount: number;
+  classification: "CURATED";
+  discoveryUiStatus: "HOLD";
+  followUiStatus: "HOLD";
+  origin: "seed";
+};
+
 export type InstagramState = {
   currentView: InstagramView;
   photos: InstagramPhoto[];
   followers: number;
   following: number;
+  knownAccounts: InstagramKnownAccount[];
   selectedPhotoId: string | null;
   scrollPosition: number;
   draft: InstagramDraft;
@@ -48,10 +61,16 @@ export function createInitialInstagramState(): InstagramState {
     photos: [...SESSION_SEED_CONTENT.instagram.photos],
     followers: SESSION_SEED_CONTENT.instagram.followers,
     following: SESSION_SEED_CONTENT.instagram.following,
+    knownAccounts: SESSION_SEED_CONTENT.instagram.knownAccounts.map(account => ({ ...account })),
     selectedPhotoId: null,
     scrollPosition: 0,
     draft: emptyDraft(),
   };
+}
+
+export function selectInstagramKnownAccountByUsername(state: InstagramState, username: string): InstagramKnownAccount | null {
+  const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase();
+  return state.knownAccounts.find(account => account.username.toLowerCase() === normalizedUsername) ?? null;
 }
 
 export const initialInstagramState: InstagramState = createInitialInstagramState();

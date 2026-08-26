@@ -1,6 +1,8 @@
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
 import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
+import type { FacebookFeedActor } from "../data/facebookActors";
+import type { FacebookMediaId } from "../data/facebookMedia";
 
 export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "requests" | "inbox" | "messageDetail";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
@@ -23,10 +25,13 @@ export type FacebookUserText = {
 
 export type FacebookFeedItem = {
   id: string;
+  actor?: FacebookFeedActor;
   friendId?: CoreSocialCharacterId;
   author: string;
   text: string;
   timestamp: string;
+  createdAt?: string;
+  mediaId?: FacebookMediaId;
   kind: "status" | "photoActivity" | "socialActivity";
   visibility?: "friends" | "friends-of-friends" | "everyone" | "custom";
   photoCount?: number;

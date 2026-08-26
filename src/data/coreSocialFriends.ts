@@ -12,6 +12,9 @@ export type CoreSocialCharacter = Readonly<{
   lifeStage: CoreSocialCharacterLifeStage;
   fictional: true;
   classification: "CURATED FICTIONAL";
+  socialHandles?: Readonly<{
+    instagram?: string;
+  }>;
 }>;
 
 export const CORE_SOCIAL_CHARACTERS = Object.freeze({
@@ -20,7 +23,7 @@ export const CORE_SOCIAL_CHARACTERS = Object.freeze({
   alex: Object.freeze({ id: "alex", displayName: "Alex", initials: "A", category: "core-friend", lifeStage: "young-social-circle", fictional: true, classification: "CURATED FICTIONAL" }),
   chris: Object.freeze({ id: "chris", displayName: "Chris", initials: "C", category: "core-friend", lifeStage: "young-social-circle", fictional: true, classification: "CURATED FICTIONAL" }),
   jay: Object.freeze({ id: "jay", displayName: "Jay", initials: "J", category: "core-friend", lifeStage: "young-social-circle", fictional: true, classification: "CURATED FICTIONAL" }),
-  june: Object.freeze({ id: "june", displayName: "June", initials: "J", category: "narrative-contact", lifeStage: "young-social-circle", fictional: true, classification: "CURATED FICTIONAL" }),
+  june: Object.freeze({ id: "june", displayName: "June", initials: "J", category: "narrative-contact", lifeStage: "young-social-circle", fictional: true, classification: "CURATED FICTIONAL", socialHandles: Object.freeze({ instagram: "junephoto" }) }),
   jack: Object.freeze({ id: "jack", displayName: "Jack", initials: "J", category: "narrative-contact", lifeStage: "young-social-circle", fictional: true, classification: "CURATED FICTIONAL" }),
   ben: Object.freeze({ id: "ben", displayName: "Ben", initials: "B", category: "extended-friend", lifeStage: "working-adult", fictional: true, classification: "CURATED FICTIONAL" }),
   luca: Object.freeze({ id: "luca", displayName: "Luca", initials: "L", category: "extended-friend", lifeStage: "working-adult", fictional: true, classification: "CURATED FICTIONAL" }),

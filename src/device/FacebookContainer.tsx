@@ -1,6 +1,8 @@
 import { Dispatch, useLayoutEffect, useRef } from "react";
 import { FacebookEvent, FacebookFeedItem, FacebookState, selectFacebookInboxUnreadCount, selectFacebookRequestCount } from "../state/facebookState";
 import { useSessionIdentity } from "../state/sessionIdentity";
+import { getFacebookAuthorEasterEggByDisplayName } from "../data/facebookActors";
+import { getFacebookMedia } from "../data/facebookMedia";
 
 type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent> };
 
@@ -115,8 +117,12 @@ function FacebookProfile({ profileName, currentUserName, state, dispatch }: { pr
   const isCurrentUser = profileName === currentUserName;
   const isFriend = state.friends.some(friend => friend.name === profileName);
   const wallItems = state.feed.filter(item => item.author === profileName);
+  const authorIdentity = getFacebookAuthorEasterEggByDisplayName(profileName);
+  const profileMedia = authorIdentity ? getFacebookMedia(authorIdentity.profileMediaId) : null;
   return <section className="facebook-profile" aria-label={`${profileName} Profile`}>
-    <header className="facebook-profile-header"><span className="facebook-profile-photo-hold" aria-hidden="true" /><div><strong>{profileName}</strong>{!isCurrentUser && isFriend && <span>Friend</span>}</div></header>
+    <header className="facebook-profile-header">{profileMedia
+      ? <img className="facebook-profile-photo" src={profileMedia.src} alt={`${profileName} profile`} />
+      : <span className="facebook-profile-photo-hold" aria-hidden="true" />}<div><strong>{profileName}</strong>{!isCurrentUser && isFriend && <span>Friend</span>}</div></header>
     <nav className="facebook-profile-sections" aria-label="Profile sections">
       {(["wall", "info", "photos", "friends"] as const).map(section => <button key={section} type="button" aria-current={state.profileSection === section ? "page" : undefined} onClick={() => dispatch({ type: "SET_PROFILE_SECTION", section })}>{section[0].toUpperCase() + section.slice(1)}</button>)}
     </nav>
@@ -132,8 +138,11 @@ function FacebookProfile({ profileName, currentUserName, state, dispatch }: { pr
 }
 
 function FeedRow({ item, liked, onOpenProfile, onOpen, onToggleLike, onComment }: { item: FacebookFeedItem; liked: boolean; onOpenProfile: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void }) {
+  const media = getFacebookMedia(item.mediaId);
   return <article className="facebook-feed-row" data-content-status={item.contentStatus}>
-    <button type="button" className="facebook-avatar-link" aria-label={`${item.author} Profile`} onClick={onOpenProfile}><span className="facebook-avatar-hold" aria-hidden="true" /></button>
+    <button type="button" className="facebook-avatar-link" aria-label={`${item.author} Profile`} onClick={onOpenProfile}>{media
+      ? <img className="facebook-avatar-image" src={media.src} alt="" aria-hidden="true" />
+      : <span className="facebook-avatar-hold" aria-hidden="true" />}</button>
     <span className="facebook-feed-copy">
       <button type="button" className="facebook-author-link" onClick={onOpenProfile}>{item.author}</button>
       <button type="button" className="facebook-story-link" onClick={onOpen}>{item.text}</button>

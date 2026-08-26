@@ -6,6 +6,12 @@ This phase adds session-local interaction inside existing applications. The shar
 
 Curated live events and user-generated session actions remain separate. All mutations reset with a new simulation session.
 
+## Global user-projection constraint
+
+All app expansions must preserve the session owner as an under-specified projection surface. Do not add seed content, profile metadata, dialogue, or narrative consequences that canonically assign the user a hobby, school, occupation, fixed personality, romantic interest, party preference, or unchosen personal history.
+
+Specificity belongs primarily to the nine canonical social characters and other clearly separated peripheral identities. User-authored actions may become session-local facts, but a trigger must not infer more than the explicit action establishes. Apply the writing checklist and audit rules in `docs/design/user-projection-social-circle-principle-v0.1.md` during every content pass.
+
 ## App sequence
 
 | App | Planned interaction | Status | A/B findings | C backlog / HOLD | Checkpoint |

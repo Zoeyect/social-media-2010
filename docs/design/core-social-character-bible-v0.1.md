@@ -195,6 +195,14 @@ Every proposed fictional item must pass five checks:
 
 Tone examples in this Bible are guidance only. They should not be copied into runtime merely to demonstrate a trait. Repetition, occasional cross-character context and mundane details should do the characterization work.
 
+## User Projection Boundary
+
+The canonical characters may be specific; the session owner must remain deliberately under-specified. The internal design principle is: "This is your 2010 phone. These are the kinds of friends you might have."
+
+Do not canonically assign the user a hobby, occupation, student status, fixed personality, romantic interest, party preference, or personal history. Friends may express their own interests and circumstances, while prompts to the user should remain open and user responses should be explicitly chosen.
+
+Accepting, replying, following, liking, or dismissing establishes only the action the player took. It must not silently establish deeper friendship, enthusiasm, attendance, identity, or preference. See `docs/design/user-projection-social-circle-principle-v0.1.md` for the project-level rules and content audit.
+
 ## 15. Visual HOLD policy
 
 Visual cues describe future art direction only. This Bible does not approve or provide avatar assets.

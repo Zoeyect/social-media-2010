@@ -193,7 +193,7 @@ try {
   assert.equal(facebook.selectFacebookJuneMessageState(facebookA), "none");
   assert.ok(facebookA.inboxThreads.every(thread => thread.origin === "seed" && thread.status === "read"));
   assert.deepEqual(facebookA.inboxThreads.map(thread => [thread.friendId, thread.sender]), [["katie", "Katie"], ["jay", "Jay"]]);
-  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["alex", "Alex"], ["june", "June"], ["katie", "Katie"], ["jay", "Jay"], ["luca", "Luca"]]);
+  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["ben", "Ben"], ["alex", "Alex"], ["june", "June"], ["katie", "Katie"], ["jay", "Jay"], ["luca", "Luca"]]);
   const juneInstagramPost = facebookA.feed.find(item => item.id === "june-instagram-early-adopter");
   assert.deepEqual(
     [juneInstagramPost?.friendId, juneInstagramPost?.text, juneInstagramPost?.createdAt],
@@ -639,7 +639,8 @@ try {
   assert.strictEqual(selfRetweetState, userTweetState, "self-Retweet remains disabled/HOLD");
   const userTweetReset = twitter.twitterStateTransition(userTweetState, { type: "RESET", displayName: "Alex" });
   assert.equal(userTweetReset.timeline.some(tweet => tweet.origin === "user"), false, "new session must remove user-authored Tweets");
-  assert.equal(userTweetReset.timeline.find(tweet => tweet.id === "late-night-user")?.displayName, "Alex");
+  assert.equal(userTweetReset.timeline.find(tweet => tweet.id === "late-night-matt")?.displayName, "Matt", "session reset must preserve canonical ownership of Matt's seed Tweet");
+  assert.equal(userTweetReset.timeline.some(tweet => tweet.id === "late-night-user" || tweet.displayName === "session-owner"), false, "Twitter seed must not contain pre-authored session-owner content");
   const scheduledTwitterPosts = timelineDefinitions
     .filter(event => event.payload?.kind === "twitter-post")
     .map(event => event.payload.post);
@@ -798,7 +799,7 @@ try {
   assert.equal(twitterReset.revealedTweetId, null);
   assert.equal(twitterReset.timeline.length, 14);
   assert.ok(scheduledTwitterPosts.every(post => !twitterReset.timeline.some(tweet => tweet.id === post.id)), "session reset must remove every live Twitter addition");
-  assert.equal(twitterReset.timeline.find(tweet => tweet.id === "late-night-user").displayName, "Alex");
+  assert.equal(twitterReset.timeline.find(tweet => tweet.id === "late-night-matt").displayName, "Matt");
 
   let foursquareState = foursquare.createInitialFoursquareState();
   assert.equal(foursquareState.points, 0);
@@ -1032,7 +1033,12 @@ try {
   assert.equal(facebookAlex.commentComposerItemId, null);
   assert.equal(facebookAlex.commentDraft, "");
   assert.equal(facebookAlex.inboxThreads.some(thread => thread.id === "june-live-message"), false);
-  assert.equal(facebookAlex.feed.find(item => item.id === "owner-late").author, "Alex");
+  assert.deepEqual(
+    [facebookAlex.feed.find(item => item.id === "ben-long-day")?.friendId, facebookAlex.feed.find(item => item.id === "ben-long-day")?.author],
+    ["ben", "Ben"],
+    "new session must preserve canonical ownership of Ben's seed Feed item",
+  );
+  assert.equal(facebookAlex.feed.some(item => item.id === "owner-late" || item.author === "session-owner"), false, "Facebook seed must not contain pre-authored session-owner content");
   assert.deepEqual(flickrAlex.favoritePhotoIds, []);
   assert.equal(flickrAlex.currentView, "photostream");
   assert.equal(flickrAlex.selectedPhotoId, null);

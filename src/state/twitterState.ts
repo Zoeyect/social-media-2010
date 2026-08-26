@@ -343,7 +343,6 @@ export function createInitialTwitterState(sessionDisplayName: string): TwitterSt
     currentView: "timeline",
     timeline: SESSION_SEED_CONTENT.twitter.map(tweet => ({
       ...tweet,
-      displayName: tweet.displayName === "session-owner" ? sessionDisplayName : tweet.displayName,
       contentStatus: "HOLD-fictional",
     })),
     selectedTweetId: null,

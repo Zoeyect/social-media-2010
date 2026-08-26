@@ -18,7 +18,7 @@ export const SESSION_SEED_CONTENT = Object.freeze({
   ]),
   facebook: Object.freeze({
     feed: Object.freeze([
-      Object.freeze({ id: "owner-late", author: "session-owner", text: "Long day.", timestamp: "11:58 PM", kind: "status" as const, origin: "seed" as const }),
+      Object.freeze({ id: "ben-long-day", friendId: CORE_SOCIAL_CHARACTERS.ben.id, author: CORE_SOCIAL_CHARACTERS.ben.displayName, text: "Long day.", timestamp: "11:58 PM", kind: "status" as const, origin: "seed" as const }),
       Object.freeze({ id: "jack-movie", author: "Jack", text: "That movie was better than I expected.", timestamp: "11:52 PM", kind: "status" as const, origin: "seed" as const }),
       Object.freeze({ id: "alex-jacks-party-friday", friendId: CORE_SOCIAL_CHARACTERS.alex.id, author: CORE_SOCIAL_CHARACTERS.alex.displayName, text: "anyone going to jack's party friday?", timestamp: "11:47 PM", kind: "status" as const, visibility: "friends-of-friends" as const, origin: "seed" as const }),
       Object.freeze({ id: "june-instagram-early-adopter", friendId: CORE_SOCIAL_CHARACTERS.june.id, author: CORE_SOCIAL_CHARACTERS.june.displayName, text: `finally got instagram lol @${CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram}`, timestamp: "11:44 PM", kind: "status" as const, createdAt: "2010-10-19T23:44:00-07:00", origin: "seed" as const }),
@@ -60,7 +60,7 @@ export const SESSION_SEED_CONTENT = Object.freeze({
       origin: "seed" as const,
     }),
     Object.freeze({ id: "dana-office-deck", displayName: "Dana", text: "still at the office. this deck is never going to end", timestamp: "11:49 PM", timestampProvenance: "CURATED" as const, contentType: "work-life" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
-    Object.freeze({ id: "late-night-user", displayName: "session-owner", text: "can't sleep", timestamp: "11:41 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
+    Object.freeze({ id: "late-night-matt", friendId: CORE_SOCIAL_CHARACTERS.matt.id, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName, text: "can't sleep", timestamp: "11:41 PM", timestampProvenance: "CURATED" as const, contentType: "ordinary" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
     Object.freeze({ id: "kanye-discussion", displayName: "Mia", text: "why is everyone talking about Kanye tonight", timestamp: "11:26 PM", timestampProvenance: "CURATED" as const, contentType: "celebrity-discussion" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
     Object.freeze({ id: "marcus-client-approved", displayName: "Marcus", text: "client approved the first version. honestly kind of suspicious", timestamp: "11:09 PM", timestampProvenance: "CURATED" as const, contentType: "work-life" as const, contentProvenance: "CURATED" as const, origin: "seed" as const }),
     Object.freeze({

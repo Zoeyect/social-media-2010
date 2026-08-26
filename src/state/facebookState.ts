@@ -127,7 +127,6 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     navigationStack: ["home"],
     feed: SESSION_SEED_CONTENT.facebook.feed.map(item => ({
       ...item,
-      author: item.author === "session-owner" ? displayName : item.author,
       contentStatus: "HOLD-fictional",
     })),
     selectedFeedItemId: null,

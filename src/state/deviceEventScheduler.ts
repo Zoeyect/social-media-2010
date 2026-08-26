@@ -10,6 +10,7 @@ export type DeviceEventType =
   | "facebookPartyInvite"
   | "facebookJuneInstagramAnnouncement"
   | "facebookJuneJackGossip"
+  | "facebookEphemeralGossip"
   | "facebookKatieGossipMessage"
   | "instagramJunePost"
   | "instagramJuneDelete"
@@ -24,6 +25,7 @@ export type DeviceEventPayload =
   | { kind: "facebook-party-invite" }
   | { kind: "facebook-june-instagram-announcement" }
   | { kind: "facebook-june-jack-gossip"; reactionId: "facebook-june-jack-gossip-katie" | "facebook-june-jack-gossip-chris"; characterId: "katie" | "chris"; text: string }
+  | { kind: "facebook-ephemeral-gossip"; postId: "facebook-june-jack-gossip-ryan-standalone"; ephemeralId: "fof-ryan-001"; text: "june + jack??? lol" }
   | { kind: "facebook-katie-jack-gossip-message"; message: "Do you know Jack????" }
   | { kind: "instagram-june-post"; postId: "june-ig-01"; mediaId: "june-ig-01"; timestamp: "2010-10-20T00:05:30-07:00" }
   | { kind: "instagram-june-delete"; postId: "june-ig-04" }

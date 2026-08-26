@@ -215,6 +215,8 @@ Specificity belongs primarily to the nine canonical social characters and other 
 
 ## Phase status
 
+Facebook Narrative Content v0.4 is `LOCKED`. Future Facebook work is limited to bug fixes, historical IA correction, locked Photos/Albums placement, interaction refinement, visual fidelity, and small copy correction unless Content Lock is explicitly reopened.
+
 Instagram Popular v0.7.1 is `FUNCTIONALLY COMPLETE / MANUAL VISUAL CONFIRMATION PENDING`. Its twenty local photos are centrally registered and Instagram work is paused after this closeout.
 
 **IN PROGRESS.** Instagram now has its v0.2 app-local functional slice. Remaining phase work must continue app by app and must not be declared complete before all selected app checkpoints are finished.

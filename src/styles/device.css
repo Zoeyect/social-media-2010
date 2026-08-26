@@ -245,6 +245,13 @@ button, input { font: inherit; }
 .facebook-feed-copy time { padding-top: 5px; color: #888; font-size: 11px; line-height: 14px; }
 .facebook-feed-actions { padding-top: 3px; display: flex; gap: 12px; }
 .facebook-feed-actions button { padding: 0; color: #3b5998; border: 0; background: transparent; font-size: 11px; }
+.facebook-story-photo-media,.facebook-story-album-media { width: 100%; margin-top: 5px; padding: 0; display: grid; gap: 2px; overflow: hidden; color: #3b5998; border: 1px solid #c5c5c5; background: #eee; text-align: left; }
+.facebook-story-photo-media img { width: 100%; max-height: 190px; display: block; object-fit: cover; }
+.facebook-story-album-media { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.facebook-story-album-media img { width: 100%; aspect-ratio: 1 / 1; display: block; object-fit: cover; }
+.facebook-story-album-media > span { padding: 4px 6px; grid-column: 1 / -1; font-size: 11px; font-weight: bold; }
+.facebook-story-counts { padding-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; color: #666; font-size: 11px; }
+.facebook-feed-detail > .facebook-story-photo-media,.facebook-feed-detail > .facebook-story-album-media { margin: 0 0 10px; }
 .facebook-feed-detail { flex: 1 1 auto; min-height: 0; padding: 14px 12px; overflow-y: auto; background: #fff; }
 .facebook-feed-detail > .facebook-author-link { font-size: 16px; }
 .facebook-feed-detail > p { margin: 11px 0; font-size: 18px; line-height: 24px; }
@@ -275,10 +282,11 @@ button, input { font: inherit; }
 .facebook-message-list i { position: absolute; right: 12px; top: 25px; width: 8px; height: 8px; border-radius: 50%; background: #3b5998; }
 .facebook-message-detail { flex: 1 1 auto; min-height: 0; padding: 14px 12px; overflow-y: auto; background: #fff; }
 .facebook-message-detail > strong { color: #3b5998; font-size: 16px; }
-.facebook-message-detail > p { margin: 14px 0; font-size: 16px; }
-.facebook-message-detail > span { color: #888; font-size: 11px; }
+.facebook-message-history { margin-top: 10px; }
 .facebook-message-reply { margin: 8px 0; padding: 8px; border-top: 1px solid #ccd3df; border-bottom: 1px solid #ccd3df; background: #f2f5f9; }
+.facebook-message-reply.is-session-user { margin-left: 24px; background: #fff; }
 .facebook-message-reply p { margin: 4px 0 0; font-size: 14px; }
+.facebook-message-reply time { display: block; padding-top: 4px; color: #888; font-size: 10px; }
 .facebook-message-composer { grid-template-columns: 1fr auto; align-items: end; border-top: 1px solid #bbb; }
 .facebook-friend-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
 .facebook-friend-list > button { width: 100%; min-height: 58px; padding: 5px 12px; display: flex; align-items: center; gap: 10px; color: #3b5998; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }

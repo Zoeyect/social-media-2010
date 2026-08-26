@@ -123,8 +123,9 @@ export function App() {
 
   const update = (change: Partial<Session>) => setSession(s => ({ ...s, ...change }));
   const dispatchFacebookEvent = (event: FacebookEvent) => {
-    const validJuneTrigger = event.type === "SUBMIT_JUNE_REPLY"
-      && Boolean(facebookState.juneReplyDraft.trim())
+    const validJuneTrigger = event.type === "SUBMIT_MESSAGE_REPLY"
+      && facebookState.selectedMessageId === "june-live-message"
+      && Boolean(facebookState.messageReplyDraft.trim())
       && facebookState.inboxThreads.some(thread => thread.id === "june-live-message");
     const validJackTrigger = event.type === "ACCEPT_JACK" && facebookState.friendRequestState === "pending";
     const shouldSchedulePartyInvite = facebookState.partyInviteState === "none" && (validJuneTrigger || validJackTrigger);
@@ -233,6 +234,8 @@ export function App() {
       dispatchFacebook({ type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: deviceStatusTime });
     } else if (event.type === "facebookJuneJackGossip" && event.payload?.kind === "facebook-june-jack-gossip") {
       dispatchFacebook({ type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: event.payload.reactionId, characterId: event.payload.characterId, text: event.payload.text });
+    } else if (event.type === "facebookEphemeralGossip" && event.payload?.kind === "facebook-ephemeral-gossip") {
+      dispatchFacebook({ type: "DELIVER_EPHEMERAL_GOSSIP", postId: event.payload.postId, ephemeralId: event.payload.ephemeralId, text: event.payload.text, timestamp: deviceStatusTime });
     } else if (event.type === "facebookKatieGossipMessage" && event.payload?.kind === "facebook-katie-jack-gossip-message") {
       dispatchFacebook({ type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: deviceStatusTime });
     } else if (event.type === "instagramJunePost" && event.payload?.kind === "instagram-june-post") {
@@ -752,6 +755,7 @@ export function App() {
             state={facebookState}
             dispatch={dispatchFacebookEvent}
             currentDeviceTime={deviceStatusTime}
+            elapsedMs={elapsed}
           />}
           {appRuntime.activeAppId === "instagram" && <InstagramContainer
             state={instagramState}

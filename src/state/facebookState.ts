@@ -2,9 +2,10 @@ import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
-import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS } from "../data/facebookActors";
+import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS } from "../data/facebookActors";
 import type { FacebookFeedActor } from "../data/facebookActors";
 import type { FacebookMediaId } from "../data/facebookMedia";
+import type { SharedCharacterMediaId } from "../data/sharedCharacterMedia";
 
 export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "photoDetail" | "chat" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
@@ -13,10 +14,16 @@ export type FacebookFriendRequestState = "none" | "pending" | "accepted" | "igno
 export type FacebookMessageState = "none" | "unread" | "read" | "replied";
 export type FacebookPartyInviteState = "none" | "eligible" | "delivered" | "opened" | "dismissed";
 export type FacebookPartyRsvp = "yes" | "maybe" | "no" | null;
+export type FacebookVisibility = "friends" | "friends-of-friends" | "everyone" | "custom";
+export type FacebookStoryKind = "status" | "photo" | "album" | "checkin" | "activity";
+export const FACEBOOK_OFFLINE_PERSON_IDS = Object.freeze(["anil"] as const);
+export type FacebookOfflinePersonId = typeof FACEBOOK_OFFLINE_PERSON_IDS[number];
+export type FacebookStoryMediaId = FacebookMediaId | SharedCharacterMediaId;
 
 export const FACEBOOK_PARTY_INVITE_EVENT_ID = "facebook-party-invite";
 export const FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID = "facebook-june-instagram-announcement";
 export const FACEBOOK_KATIE_GOSSIP_MESSAGE_ID = "facebook-katie-jack-gossip-message";
+export const FACEBOOK_EPHEMERAL_GOSSIP_POST_ID = "facebook-june-jack-gossip-ryan-standalone";
 
 export const FACEBOOK_BASELINE_FRIEND_IDS = Object.freeze(["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"] as const);
 
@@ -43,10 +50,15 @@ export type FacebookFriend = {
   name: string;
 };
 
-export type FacebookUserText = {
+export type FacebookThreadMessage = {
   id: string;
+  threadId: string;
+  authorType: "character" | "session-user";
+  characterId?: CoreSocialCharacterId;
   author: string;
-  text: string;
+  body: string;
+  timestamp: string;
+  origin: "seed" | "live" | "user";
 };
 
 export type FacebookFeedItem = {
@@ -57,14 +69,29 @@ export type FacebookFeedItem = {
   text: string;
   timestamp: string;
   createdAt?: string;
-  mediaId?: FacebookMediaId;
-  kind: "status" | "photoActivity" | "socialActivity";
-  visibility?: "friends" | "friends-of-friends" | "everyone" | "custom";
+  mediaId?: FacebookStoryMediaId;
+  mediaIds?: readonly FacebookStoryMediaId[];
+  kind: FacebookStoryKind;
+  visibility: FacebookVisibility;
+  customAudienceIncludesUser?: boolean;
+  albumTitle?: string;
   photoCount?: number;
   relatedCharacterIds?: readonly CoreSocialCharacterId[];
+  offlineSubjectIds?: readonly FacebookOfflinePersonId[];
   tagUiStatus?: "HOLD";
   contentStatus: "HOLD-fictional" | "USER-GENERATED";
   origin: ContentOrigin | "user";
+};
+
+export type FacebookLike = {
+  id: string;
+  itemId: string;
+  displayName: string;
+  origin: "seed" | "live" | "user";
+  characterId?: CoreSocialCharacterId;
+  ephemeralId?: string;
+  classification?: "CURATED" | "EPHEMERAL_FACEBOOK_CONTACT";
+  availableAtElapsedSeconds?: number;
 };
 
 export type FacebookMessageThread = {
@@ -124,6 +151,7 @@ export type FacebookState = {
   profileSection: FacebookProfileSection;
   scrollPosition: number;
   likedItemIds: string[];
+  likes: FacebookLike[];
   friendRequestState: FacebookFriendRequestState;
   friends: FacebookFriend[];
   friendsSection: FacebookFriendsSection;
@@ -136,8 +164,8 @@ export type FacebookState = {
   partyInviteEligibleFromJack: boolean;
   inboxThreads: FacebookMessageThread[];
   selectedMessageId: string | null;
-  juneReplies: FacebookUserText[];
-  juneReplyDraft: string;
+  threadMessages: FacebookThreadMessage[];
+  messageReplyDraft: string;
   comments: FacebookComment[];
   commentComposerItemId: string | null;
   commentDraft: string;
@@ -177,15 +205,15 @@ export type FacebookEvent =
   | { type: "GO_BACK" }
   | { type: "OPEN_FEED_ITEM"; itemId: string; scrollPosition: number }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
-  | { type: "TOGGLE_LIKE"; itemId: string }
+  | { type: "TOGGLE_LIKE"; itemId: string; displayName?: string }
   | { type: "SHOW_FRIEND_REQUESTS" }
   | { type: "ACCEPT_JACK" }
   | { type: "IGNORE_JACK" }
   | { type: "SHOW_MESSAGES" }
   | { type: "OPEN_MESSAGE"; messageId: string }
   | { type: "OPEN_JUNE_MESSAGE" }
-  | { type: "EDIT_JUNE_REPLY"; value: string }
-  | { type: "SUBMIT_JUNE_REPLY"; displayName: string }
+  | { type: "EDIT_MESSAGE_REPLY"; value: string }
+  | { type: "SUBMIT_MESSAGE_REPLY"; displayName: string; timestamp: string }
   | { type: "BEGIN_COMMENT"; itemId: string }
   | { type: "EDIT_COMMENT"; value: string }
   | { type: "CANCEL_COMMENT" }
@@ -194,6 +222,7 @@ export type FacebookEvent =
   | { type: "DELIVER_JUNE_MESSAGE" }
   | { type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT"; timestamp: string }
   | { type: "DELIVER_JUNE_JACK_GOSSIP"; reactionId: "facebook-june-jack-gossip-katie" | "facebook-june-jack-gossip-chris"; characterId: "katie" | "chris"; text: string }
+  | { type: "DELIVER_EPHEMERAL_GOSSIP"; postId: typeof FACEBOOK_EPHEMERAL_GOSSIP_POST_ID; ephemeralId: typeof FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID; text: "june + jack??? lol"; timestamp: string }
   | { type: "DELIVER_KATIE_GOSSIP_MESSAGE"; timestamp: string }
   | { type: "DELIVER_PARTY_INVITE"; timestamp: string }
   | { type: "RESET"; displayName?: string };
@@ -213,6 +242,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     profileSection: "wall",
     scrollPosition: 0,
     likedItemIds: [],
+    likes: [],
     friendRequestState: "none",
     friends: FACEBOOK_BASELINE_FRIEND_IDS.map(id => ({ id, name: CORE_SOCIAL_CHARACTERS[id].displayName })),
     friendsSection: "friends",
@@ -225,8 +255,17 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     partyInviteEligibleFromJack: false,
     inboxThreads: SESSION_SEED_CONTENT.facebook.inbox.map(message => ({ ...message })),
     selectedMessageId: null,
-    juneReplies: [],
-    juneReplyDraft: "",
+    threadMessages: SESSION_SEED_CONTENT.facebook.inbox.map(message => ({
+      id: `${message.id}-incoming`,
+      threadId: message.id,
+      authorType: "character",
+      ...(message.friendId ? { characterId: message.friendId } : {}),
+      author: message.sender,
+      body: message.preview,
+      timestamp: message.timestamp,
+      origin: message.origin,
+    })),
+    messageReplyDraft: "",
     comments: SESSION_SEED_CONTENT.facebook.comments.map(comment => ({
       id: comment.id,
       itemId: comment.itemId,
@@ -330,7 +369,21 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "CHECK_IN": {
       const venue = FACEBOOK_PLACE_OPTIONS.find(option => option.id === event.venueId);
       if (!venue) return state;
-      return { ...state, userCheckIn: { venueId: venue.id, venueName: venue.name, author: event.displayName, timestamp: event.timestamp, origin: "user" } };
+      const userCheckIn = { venueId: venue.id, venueName: venue.name, author: event.displayName, timestamp: event.timestamp, origin: "user" as const };
+      return {
+        ...state,
+        userCheckIn,
+        feed: [{
+          id: "facebook-user-checkin",
+          author: event.displayName,
+          text: `is at ${venue.name}.`,
+          timestamp: event.timestamp,
+          kind: "checkin",
+          visibility: "friends",
+          contentStatus: "USER-GENERATED",
+          origin: "user",
+        }, ...state.feed.filter(item => item.id !== "facebook-user-checkin")],
+      };
     }
     case "SHOW_PHOTOS":
       return { ...state, currentView: "photos", navigationStack: ["home", "photos"], selectedPhotoMediaId: null };
@@ -401,9 +454,21 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       return { ...state, scrollPosition: Math.max(0, event.scrollPosition) };
     case "TOGGLE_LIKE":
       if (!state.feed.some(item => item.id === event.itemId)) return state;
-      return state.likedItemIds.includes(event.itemId)
-        ? { ...state, likedItemIds: state.likedItemIds.filter(id => id !== event.itemId) }
-        : { ...state, likedItemIds: [...state.likedItemIds, event.itemId] };
+      if (state.likedItemIds.includes(event.itemId)) return {
+        ...state,
+        likedItemIds: state.likedItemIds.filter(id => id !== event.itemId),
+        likes: state.likes.filter(like => !(like.itemId === event.itemId && like.origin === "user")),
+      };
+      return {
+        ...state,
+        likedItemIds: [...state.likedItemIds, event.itemId],
+        likes: [...state.likes, {
+          id: `facebook-user-like-${event.itemId}`,
+          itemId: event.itemId,
+          displayName: event.displayName?.trim() || "You",
+          origin: "user",
+        }],
+      };
     case "ACCEPT_JACK":
       return state.friendRequestState === "pending" ? {
         ...state,
@@ -436,6 +501,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         currentView: "messageDetail",
         navigationStack: [...state.navigationStack, "messageDetail"],
         selectedMessageId: message.id,
+        messageReplyDraft: state.selectedMessageId === message.id ? state.messageReplyDraft : "",
         inboxThreads: state.inboxThreads.map(thread => thread.id === message.id ? { ...thread, status: "read" } : thread),
         selectedFeedItemId: null,
       };
@@ -443,21 +509,27 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "OPEN_JUNE_MESSAGE":
       if (selectFacebookJuneMessageState(state) === "none") return state;
       return facebookStateTransition(state, { type: "OPEN_MESSAGE", messageId: "june-live-message" });
-    case "EDIT_JUNE_REPLY":
-      return selectFacebookJuneMessageState(state) === "none" ? state : { ...state, juneReplyDraft: event.value };
-    case "SUBMIT_JUNE_REPLY": {
-      const text = state.juneReplyDraft.trim();
-      if (!text || selectFacebookJuneMessageState(state) === "none") return state;
+    case "EDIT_MESSAGE_REPLY":
+      return state.selectedMessageId === null ? state : { ...state, messageReplyDraft: event.value };
+    case "SUBMIT_MESSAGE_REPLY": {
+      const body = state.messageReplyDraft;
+      const threadId = state.selectedMessageId;
+      if (!body.trim() || threadId === null || !state.inboxThreads.some(thread => thread.id === threadId)) return state;
+      const isJuneTrigger = threadId === "june-live-message";
       return {
         ...state,
-        partyInviteEligibleFromJune: true,
-        partyInviteState: state.partyInviteState === "none" ? "eligible" : state.partyInviteState,
-        juneReplies: [...state.juneReplies, {
-          id: `facebook-june-reply-${state.juneReplies.length + 1}`,
+        partyInviteEligibleFromJune: isJuneTrigger ? true : state.partyInviteEligibleFromJune,
+        partyInviteState: isJuneTrigger && state.partyInviteState === "none" ? "eligible" : state.partyInviteState,
+        threadMessages: [...state.threadMessages, {
+          id: `facebook-user-message-${state.threadMessages.filter(message => message.origin === "user").length + 1}`,
+          threadId,
+          authorType: "session-user",
           author: event.displayName,
-          text,
+          body,
+          timestamp: event.timestamp,
+          origin: "user",
         }],
-        juneReplyDraft: "",
+        messageReplyDraft: "",
       };
     }
     case "BEGIN_COMMENT":
@@ -494,6 +566,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       return selectFacebookJuneMessageState(state) === "none" ? {
         ...state,
         inboxThreads: [{ id: "june-live-message", sender: "June", preview: "Hey, are you online?", timestamp: "12:06 AM", status: "unread", origin: "live" }, ...state.inboxThreads],
+        threadMessages: [...state.threadMessages, { id: "june-live-message-incoming", threadId: "june-live-message", authorType: "character", characterId: "june", author: "June", body: "Hey, are you online?", timestamp: "12:06 AM", origin: "live" }],
       } : state;
     case "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT":
       return state.feed.some(item => item.id === FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID) ? state : {
@@ -505,6 +578,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
           text: `finally got instagram lol @${CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram}`,
           timestamp: event.timestamp,
           kind: "status",
+          visibility: "friends",
           contentStatus: "HOLD-fictional",
           origin: "live",
         }, ...state.feed],
@@ -523,6 +597,24 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
           classification: "CURATED",
         }],
       };
+    case "DELIVER_EPHEMERAL_GOSSIP": {
+      if (event.postId !== FACEBOOK_EPHEMERAL_GOSSIP_POST_ID || event.ephemeralId !== FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID || state.feed.some(item => item.id === event.postId)) return state;
+      const author = FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[event.ephemeralId];
+      return {
+        ...state,
+        feed: [{
+          id: event.postId,
+          actor: { kind: "ephemeral-friend-of-friend", ephemeralId: author.id },
+          author: author.displayName,
+          text: event.text,
+          timestamp: event.timestamp,
+          kind: "status",
+          visibility: "friends-of-friends",
+          contentStatus: "HOLD-fictional",
+          origin: "live",
+        }, ...state.feed],
+      };
+    }
     case "DELIVER_KATIE_GOSSIP_MESSAGE":
       return state.inboxThreads.some(thread => thread.id === FACEBOOK_KATIE_GOSSIP_MESSAGE_ID) ? state : {
         ...state,
@@ -535,6 +627,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
           status: "unread",
           origin: "live",
         }, ...state.inboxThreads],
+        threadMessages: [...state.threadMessages, { id: `${FACEBOOK_KATIE_GOSSIP_MESSAGE_ID}-incoming`, threadId: FACEBOOK_KATIE_GOSSIP_MESSAGE_ID, authorType: "character", characterId: "katie", author: "Katie", body: "Do you know Jack????", timestamp: event.timestamp, origin: "live" }],
       };
     case "DELIVER_PARTY_INVITE":
       if (state.partyInviteState !== "eligible") return state;
@@ -552,6 +645,9 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
               status: "unread",
               origin: "live",
             }, ...state.inboxThreads],
+        threadMessages: state.threadMessages.some(message => message.id === `${FACEBOOK_PARTY_INVITE_EVENT_ID}-incoming`)
+          ? state.threadMessages
+          : [...state.threadMessages, { id: `${FACEBOOK_PARTY_INVITE_EVENT_ID}-incoming`, threadId: FACEBOOK_PARTY_INVITE_EVENT_ID, authorType: "character", characterId: "june", author: "June", body: "Party at Jack's Friday. You coming?", timestamp: event.timestamp, origin: "live" }],
       };
     case "RESET":
       return createInitialFacebookState(event.displayName ?? "");
@@ -625,8 +721,55 @@ export function selectFacebookNotificationUnreadCount(state: FacebookState): num
 export function selectFacebookJuneMessageState(state: FacebookState): FacebookMessageState {
   const juneThread = state.inboxThreads.find(thread => thread.id === "june-live-message");
   if (!juneThread) return "none";
-  if (state.juneReplies.length > 0) return "replied";
+  if (state.threadMessages.some(message => message.threadId === "june-live-message" && message.origin === "user")) return "replied";
   return juneThread.status;
+}
+
+export function selectFacebookThreadMessages(state: FacebookState, threadId: string): FacebookThreadMessage[] {
+  return state.threadMessages.filter(message => message.threadId === threadId);
+}
+
+export const FACEBOOK_JUNE_LIKE_GROWTH: readonly FacebookLike[] = Object.freeze([
+  Object.freeze({ id: "june-instagram-like-jay", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Jay", characterId: "jay", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 60 }),
+  Object.freeze({ id: "june-instagram-like-alex", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Alex", characterId: "alex", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 90 }),
+  Object.freeze({ id: "june-instagram-like-nina", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Nina", ephemeralId: "facebook-contact-nina", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 90 }),
+  Object.freeze({ id: "june-instagram-like-katie", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Katie", characterId: "katie", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 120 }),
+  Object.freeze({ id: "june-instagram-like-chris", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Chris", characterId: "chris", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 120 }),
+  Object.freeze({ id: "june-instagram-like-ben", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Ben", characterId: "ben", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 150 }),
+  Object.freeze({ id: "june-instagram-like-mia", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Mia", ephemeralId: "facebook-contact-mia", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 150 }),
+  Object.freeze({ id: "june-instagram-like-luca", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Luca", characterId: "luca", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 210 }),
+  Object.freeze({ id: "june-instagram-like-erin", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Erin", ephemeralId: "facebook-contact-erin", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 210 }),
+  Object.freeze({ id: "june-instagram-like-zoe", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Zoe", ephemeralId: "facebook-contact-zoe", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 300 }),
+  Object.freeze({ id: "june-instagram-like-noah", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Noah", ephemeralId: "facebook-contact-noah", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 300 }),
+]);
+
+export function selectFacebookVisibleFeed(state: FacebookState): FacebookFeedItem[] {
+  return state.feed.filter(item => {
+    if (item.origin === "user" || item.visibility === "everyone" || item.visibility === "friends-of-friends") return true;
+    if (item.visibility === "custom") return item.customAudienceIncludesUser === true;
+    return item.friendId !== undefined && state.friends.some(friend => friend.id === item.friendId);
+  });
+}
+
+export function selectFacebookComments(state: FacebookState, itemId: string): FacebookComment[] {
+  return state.comments.filter(comment => comment.itemId === itemId);
+}
+
+export function formatFacebookCommentCount(count: number): string {
+  if (count <= 0) return "";
+  return count === 1 ? "1 comment" : `${count} comments`;
+}
+
+export function selectFacebookLikes(state: FacebookState, itemId: string, elapsedSeconds: number): FacebookLike[] {
+  const timedLikes = state.feed.some(item => item.id === itemId)
+    ? FACEBOOK_JUNE_LIKE_GROWTH.filter(like => like.itemId === itemId && (like.availableAtElapsedSeconds ?? 0) <= elapsedSeconds)
+    : [];
+  return [...timedLikes, ...state.likes.filter(like => like.itemId === itemId)];
+}
+
+export function formatFacebookLikeCount(count: number): string {
+  if (count <= 0) return "";
+  return count === 1 ? "1 person likes this" : `${count} people like this`;
 }
 
 export function deterministicFacebookPartyInviteDelayMs(sessionIdentity: string): number {

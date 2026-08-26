@@ -214,3 +214,9 @@ Before adding any fictional post, message, photo, comment, profile field, or liv
 10. Does it introduce a new named character unnecessarily?
 
 Also confirm that canonical references use `CoreSocialCharacterId`, Z.tokyo remains a separate `AUTHOR_EASTER_EGG`, Anil remains an offline non-SNS character, and no content path infers more than the user's explicit action establishes.
+
+## 16. Facebook narrative content lock v0.4
+
+Facebook narrative content is now `LOCKED`. The final map is June's Instagram announcement and Katie/Chris aftermath, Katie's private message, Jack's request and one shared party Event, Alex/Jay/Ryan party context, Ben's office-life anchor, Chris/Luca basketball media, Katie/Ben family media, and restrained Jay/Z.tokyo/offline-band context. Major new Facebook drama requires explicitly reopening the lock.
+
+Facebook Feed now uses visibility-aware shared records across `status`, `photo`, `album`, `checkin`, and `activity`. Comments and Likes derive from actor records; June's deterministic Like growth is notification-free. IG04 remains Instagram-only, Jack friends-only content is hidden before acceptance, and Anil remains an offline-only identity pending approved group media.

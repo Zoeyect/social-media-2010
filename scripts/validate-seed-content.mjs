@@ -65,6 +65,7 @@ try {
     ["facebook-june-instagram-announcement", 60, "facebookJuneInstagramAnnouncement"],
     ["twitter-slang-epic-fail", 75, "twitterBackgroundTweet"],
     ["facebook-june-jack-gossip-katie", 120, "facebookJuneJackGossip"],
+    ["facebook-june-jack-gossip-ryan-standalone", 135, "facebookEphemeralGossip"],
     ["facebook-june-jack-gossip-chris", 145, "facebookJuneJackGossip"],
     ["facebook-jack-request", 150, "facebookJackRequest"],
     ["facebook-katie-jack-gossip-message", 155, "facebookKatieGossipMessage"],
@@ -205,7 +206,10 @@ try {
   assert.equal(facebook.selectFacebookJuneMessageState(facebookA), "none");
   assert.ok(facebookA.inboxThreads.every(thread => thread.origin === "seed" && thread.status === "read"));
   assert.deepEqual(facebookA.inboxThreads.map(thread => [thread.friendId, thread.sender]), [["katie", "Katie"], ["jay", "Jay"]]);
-  assert.deepEqual(facebookA.feed.filter(item => item.friendId).map(item => [item.friendId, item.author]), [["ben", "Ben"], ["alex", "Alex"], ["katie", "Katie"], ["jay", "Jay"], ["luca", "Luca"]]);
+  assert.deepEqual([...new Set(facebookA.feed.filter(item => item.friendId).map(item => item.friendId))].sort(), ["alex", "ben", "jack", "jay", "katie", "luca"]);
+  assert.deepEqual([...new Set(facebookA.feed.map(item => item.kind))].sort(), ["activity", "album", "checkin", "photo", "status"], "Facebook seed must exercise every locked story structure");
+  assert.ok(facebookA.feed.every(item => ["friends", "friends-of-friends", "everyone", "custom"].includes(item.visibility)), "every Facebook story must carry a visibility scope");
+  assert.equal(facebook.selectFacebookVisibleFeed(facebookA).some(item => item.id === "jack-movie"), false, "Jack friends-only content must remain hidden before acceptance");
   assert.equal(facebookA.feed.some(item => item.id === "facebook-june-instagram-announcement"), false, "June's Instagram announcement must not exist before T+60");
   const zTokyoPost = facebookA.feed.find(item => item.id === "z-tokyo-profile-picture-update");
   assert.deepEqual(
@@ -257,8 +261,8 @@ try {
   assert.equal(facebookA.inboxThreads.some(thread => thread.id === facebook.FACEBOOK_PARTY_INVITE_EVENT_ID), false);
 
   let junePartyState = facebook.facebookStateTransition(facebookA, { type: "OPEN_JUNE_MESSAGE" });
-  junePartyState = facebook.facebookStateTransition(junePartyState, { type: "EDIT_JUNE_REPLY", value: "Still awake." });
-  junePartyState = facebook.facebookStateTransition(junePartyState, { type: "SUBMIT_JUNE_REPLY", displayName: "Zoey" });
+  junePartyState = facebook.facebookStateTransition(junePartyState, { type: "EDIT_MESSAGE_REPLY", value: "Still awake." });
+  junePartyState = facebook.facebookStateTransition(junePartyState, { type: "SUBMIT_MESSAGE_REPLY", displayName: "Zoey", timestamp: "12:06 AM" });
   assert.equal(junePartyState.partyInviteEligibleFromJune, true, "any non-empty June reply must establish June eligibility");
   assert.equal(junePartyState.partyInviteState, "eligible");
 
@@ -372,10 +376,10 @@ try {
 
   let facebookPlayability = facebook.facebookStateTransition(facebookA, { type: "OPEN_JUNE_MESSAGE" });
   assert.equal(facebook.selectFacebookJuneMessageState(facebookPlayability), "read", "opening June must mark only the live June message read");
-  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "EDIT_JUNE_REPLY", value: "Still awake." });
-  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "SUBMIT_JUNE_REPLY", displayName: "Zoey" });
+  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "EDIT_MESSAGE_REPLY", value: "Still awake." });
+  facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "SUBMIT_MESSAGE_REPLY", displayName: "Zoey", timestamp: "12:06 AM" });
   assert.equal(facebook.selectFacebookJuneMessageState(facebookPlayability), "replied");
-  assert.deepEqual(facebookPlayability.juneReplies, [{ id: "facebook-june-reply-1", author: "Zoey", text: "Still awake." }]);
+  assert.deepEqual(facebook.selectFacebookThreadMessages(facebookPlayability, "june-live-message").filter(message => message.origin === "user").map(message => [message.author, message.body, message.timestamp]), [["Zoey", "Still awake.", "12:06 AM"]]);
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "OPEN_FEED_ITEM", itemId: "jack-movie", scrollPosition: 96 });
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "BEGIN_COMMENT", itemId: "jack-movie" });
   facebookPlayability = facebook.facebookStateTransition(facebookPlayability, { type: "EDIT_COMMENT", value: "I thought so too." });
@@ -681,8 +685,8 @@ try {
     .filter(event => event.sourceApp !== "messages")
     .reduce((counts, event) => ({ ...counts, [event.sourceApp]: (counts[event.sourceApp] ?? 0) + 1 }), {});
   assert.equal(liveCountsBySocialApp.twitter, 6, "Twitter live volume must remain unchanged");
-  assert.equal(liveCountsBySocialApp.facebook, 6, "v0.6 adds four Facebook drama events without changing existing delivery timing");
-  assert.ok(Object.entries(liveCountsBySocialApp).every(([app, count]) => app === "twitter" || app === "facebook" || count < liveCountsBySocialApp.twitter), "Twitter and Facebook may tie at six live events while every other social app remains sparser");
+  assert.equal(liveCountsBySocialApp.facebook, 7, "Facebook includes the intentional T+135 standalone friend-of-friend gossip event");
+  assert.ok(Object.entries(liveCountsBySocialApp).every(([app, count]) => app === "twitter" || app === "facebook" || count < liveCountsBySocialApp.twitter), "Facebook has seven and Twitter six live events while every other social app remains sparser");
   const evaEvent = timelineDefinitions.find(event => event.id === "twitter-eva-school-tomorrow");
   assert.equal(evaEvent?.atElapsedSeconds, 300);
   assert.deepEqual(evaEvent?.payload?.kind === "twitter-post" ? evaEvent.payload.post : null, {
@@ -1009,7 +1013,7 @@ try {
   );
   assert.equal(juneInstagramAccount?.username, coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "Facebook and Instagram must resolve the same canonical June handle");
   assert.deepEqual([juneInstagramAccount?.discoveryUiStatus, juneInstagramAccount?.followUiStatus, juneInstagramAccount?.profileUiStatus], ["READY", "READY", "HOLD"]);
-  assert.deepEqual(sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar"]);
+  assert.deepEqual(sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "chris-luca-basketball", "katie-ben-family", "jay-guitar"]);
   assert.deepEqual(
     sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS.map(id => {
       const media = sharedCharacterMedia.getSharedCharacterMedia(id);
@@ -1021,6 +1025,9 @@ try {
       ["june-ig-03", "IG03.JPG", "june", "instagram", "2010-10-16", "party", "visible"],
       ["june-ig-04", "IG04.JPG", "june", "instagram", "2010-10-20T00:00:00-07:00", "accidental-intimate", "visible"],
       ["june-profile-avatar", "June01.PNG", "june", "instagram", "2010-10-20", "profile-avatar", "visible"],
+      ["chris-luca-basketball", "Chris-Luca.PNG", "luca", "facebook", "2010-10-19T22:58:00-07:00", "basketball-friends", "visible"],
+      ["katie-ben-family", "Katie-Ben.JPG", "katie", "facebook", "2010-10-18T19:24:00-07:00", "family-context", "visible"],
+      ["jay-guitar", "Jay01.PNG", "jay", "facebook", "2010-10-17T21:12:00-07:00", "music-context", "visible"],
     ],
   );
   assert.deepEqual(
@@ -1073,23 +1080,69 @@ try {
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: "12:03 AM" });
   const juneInstagramPost = dramaFacebook.feed.find(item => item.id === "facebook-june-instagram-announcement");
   assert.deepEqual([juneInstagramPost?.friendId, juneInstagramPost?.text, juneInstagramPost?.timestamp, juneInstagramPost?.origin], ["june", "finally got instagram lol @junepark", "12:03 AM", "live"]);
+  assert.deepEqual([60, 90, 120, 150, 210, 300].map(second => facebook.selectFacebookLikes(dramaFacebook, "facebook-june-instagram-announcement", second).length), [1, 3, 5, 7, 9, 11], "June like growth must be deterministic and record-derived");
+  assert.equal(facebook.selectFacebookNotifications(dramaFacebook).length, 0, "June like growth must not create notification spam");
   assert.equal(dramaFacebook.feed.filter(item => item.id === "facebook-june-instagram-announcement").length, 1, "June announcement must deliver exactly once");
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: "facebook-june-jack-gossip-katie", characterId: "katie", text: "june + jack???" });
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_EPHEMERAL_GOSSIP", postId: "facebook-june-jack-gossip-ryan-standalone", ephemeralId: "fof-ryan-001", text: "june + jack??? lol", timestamp: "12:04 AM" });
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_EPHEMERAL_GOSSIP", postId: "facebook-june-jack-gossip-ryan-standalone", ephemeralId: "fof-ryan-001", text: "june + jack??? lol", timestamp: "12:04 AM" });
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: "facebook-june-jack-gossip-chris", characterId: "chris", text: "lol no way" });
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: "12:04 AM" });
   assert.deepEqual(dramaFacebook.comments.filter(comment => comment.itemId === "facebook-june-instagram-announcement").map(comment => [comment.id, comment.characterId, comment.text]), [["facebook-june-jack-gossip-katie", "katie", "june + jack???"], ["facebook-june-jack-gossip-chris", "chris", "lol no way"]]);
   assert.equal(dramaFacebook.comments.some(comment => comment.itemId === "facebook-june-instagram-announcement" && comment.characterId === "jay"), false, "Jay must have no June/Jack gossip activity");
+  const standaloneGossip = dramaFacebook.feed.filter(item => item.id === "facebook-june-jack-gossip-ryan-standalone");
+  assert.equal(standaloneGossip.length, 1, "exactly one ephemeral standalone June/Jack gossip post may exist");
+  assert.deepEqual([standaloneGossip[0].actor, standaloneGossip[0].friendId, standaloneGossip[0].author, standaloneGossip[0].text, standaloneGossip[0].visibility, standaloneGossip[0].origin], [{ kind: "ephemeral-friend-of-friend", ephemeralId: "fof-ryan-001" }, undefined, "Ryan", "june + jack??? lol", "friends-of-friends", "live"]);
+  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS[standaloneGossip[0].actor.ephemeralId], undefined, "standalone gossip author must not be canonical");
+  assert.deepEqual(timelineDefinitions.find(event => event.id === "facebook-june-jack-gossip-ryan-standalone")?.atElapsedSeconds, 135);
+  assert.deepEqual(dramaFacebook.comments.filter(comment => comment.itemId === "facebook-june-instagram-announcement").map(comment => comment.text), ["june + jack???", "lol no way"]);
   assert.deepEqual(dramaFacebook.inboxThreads.find(thread => thread.id === "facebook-katie-jack-gossip-message"), { id: "facebook-katie-jack-gossip-message", friendId: "katie", sender: "Katie", preview: "Do you know Jack????", timestamp: "12:04 AM", status: "unread", origin: "live" });
   assert.equal(facebook.selectFacebookNotifications(dramaFacebook).filter(notification => notification.id === "facebook-notification-katie-gossip-message").length, 1, "Katie's unread message must drive one derived notification");
+  const partyBeforeKatieReply = [dramaFacebook.partyInviteState, dramaFacebook.partyInviteEligibleFromJune, dramaFacebook.partyInviteEligibleFromJack, dramaFacebook.partyRsvp, dramaFacebook.friendRequestState];
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "OPEN_MESSAGE", messageId: "facebook-katie-jack-gossip-message" });
+  assert.equal(dramaFacebook.inboxThreads.find(thread => thread.id === "facebook-katie-jack-gossip-message")?.status, "read", "opening Katie must clear the thread-derived unread state");
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "EDIT_MESSAGE_REPLY", value: "   " });
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "SUBMIT_MESSAGE_REPLY", displayName: "Zoey", timestamp: "12:05 AM" });
+  assert.equal(facebook.selectFacebookThreadMessages(dramaFacebook, "facebook-katie-jack-gossip-message").length, 1, "whitespace-only Facebook replies must not send");
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "EDIT_MESSAGE_REPLY", value: "  who?  " });
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "SUBMIT_MESSAGE_REPLY", displayName: "Zoey", timestamp: "12:05 AM" });
+  assert.deepEqual(facebook.selectFacebookThreadMessages(dramaFacebook, "facebook-katie-jack-gossip-message").map(message => [message.authorType, message.author, message.body, message.timestamp, message.origin]), [["character", "Katie", "Do you know Jack????", "12:04 AM", "live"], ["session-user", "Zoey", "  who?  ", "12:05 AM", "user"]]);
+  assert.deepEqual([dramaFacebook.partyInviteState, dramaFacebook.partyInviteEligibleFromJune, dramaFacebook.partyInviteEligibleFromJack, dramaFacebook.partyRsvp, dramaFacebook.friendRequestState], partyBeforeKatieReply, "Katie reply must remain independent from Jack and party state");
+  assert.equal(facebook.selectFacebookNotifications(dramaFacebook).find(notification => notification.id === "facebook-notification-katie-gossip-message")?.unread, false, "sending a reply must not create self-unread state");
+  const persistedKatieMessages = facebook.selectFacebookThreadMessages(facebook.facebookStateTransition(facebook.facebookStateTransition(dramaFacebook, { type: "SHOW_HOME" }), { type: "OPEN_MESSAGE", messageId: "facebook-katie-jack-gossip-message" }), "facebook-katie-jack-gossip-message");
+  assert.equal(persistedKatieMessages.filter(message => message.origin === "user").length, 1, "Facebook reply must persist across navigation without duplication");
   dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "DELETE_KNOWN_ACCOUNT_POST", postId: "june-ig-04" });
   assert.deepEqual(instagram.selectInstagramVisibleKnownPosts(dramaInstagram, "june").map(post => post.id), ["june-ig-03", "june-ig-02"], "deleted IG04 must disappear while older seed posts remain");
   assert.deepEqual(instagram.selectInstagramKnownAccountStats(dramaInstagram, "june"), { posts: 2, followers: 118, following: 236 }, "IG04 deletion must decrement only June's derived post count");
   assert.equal(dramaFacebook.comments.filter(comment => comment.itemId === "facebook-june-instagram-announcement").length, 2, "Facebook gossip must persist after Instagram deletion");
+  assert.equal(dramaFacebook.feed.filter(item => item.id === "facebook-june-jack-gossip-ryan-standalone").length, 1, "standalone gossip must remain after IG04 deletion");
+  assert.equal(dramaFacebook.feed.some(item => item.friendId === "jay" && /june|jack/.test(item.text) && item.id !== "alex-jacks-party-friday"), false, "Jay must have no standalone June/Jack gossip post");
+  assert.equal(dramaFacebook.feed.some(item => item.friendId === "matt" && /june|jack/.test(item.text)), false, "Matt must have no June/Jack gossip post");
   dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "DELIVER_KNOWN_ACCOUNT_POST", post: { id: "june-ig-01", mediaId: "june-ig-01", timestamp: "2010-10-20T00:05:30-07:00" } });
   assert.deepEqual(instagram.selectInstagramVisibleKnownPosts(dramaInstagram, "june").map(post => [post.id, post.mediaId]), [["june-ig-01", "june-ig-01"], ["june-ig-03", "june-ig-03"], ["june-ig-02", "june-ig-02"]]);
   assert.deepEqual(instagram.selectInstagramKnownAccountStats(dramaInstagram, "june"), { posts: 3, followers: 118, following: 236 }, "IG01 replacement must restore June's derived post count");
   assert.equal(dramaInstagram.knownAccountPosts.find(post => post.id === "june-ig-04")?.status, "deleted", "IG04 deletion must persist after IG01 appears");
   assert.deepEqual([dramaFacebook.partyInviteState, dramaFacebook.partyInviteEligibleFromJune, dramaFacebook.partyInviteEligibleFromJack, dramaFacebook.partyRsvp, dramaFacebook.friendRequestState], partyStateBeforeDrama, "Instagram drama must not mutate party, RSVP, or Jack request state");
+  let interactionFacebook = facebook.createInitialFacebookState("Zoey");
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "BEGIN_COMMENT", itemId: "ben-long-day" });
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "EDIT_COMMENT", value: "same" });
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "SUBMIT_COMMENT", displayName: "Zoey" });
+  assert.equal(facebook.formatFacebookCommentCount(facebook.selectFacebookComments(interactionFacebook, "ben-long-day").length), "1 comment");
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "BEGIN_COMMENT", itemId: "ben-long-day" });
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "EDIT_COMMENT", value: "really" });
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "SUBMIT_COMMENT", displayName: "Zoey" });
+  assert.equal(facebook.formatFacebookCommentCount(facebook.selectFacebookComments(interactionFacebook, "ben-long-day").length), "2 comments");
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "TOGGLE_LIKE", itemId: "ben-long-day", displayName: "Zoey" });
+  assert.deepEqual(facebook.selectFacebookLikes(interactionFacebook, "ben-long-day", 0).map(like => [like.displayName, like.origin]), [["Zoey", "user"]]);
+  const lucaAlbum = interactionFacebook.feed.find(item => item.id === "luca-pickup-basketball-photos");
+  const katiePhoto = interactionFacebook.feed.find(item => item.id === "katie-photo-with-ben");
+  assert.deepEqual([lucaAlbum?.kind, lucaAlbum?.mediaId, lucaAlbum?.relatedCharacterIds], ["album", "chris-luca-basketball", ["chris"]]);
+  assert.deepEqual([katiePhoto?.kind, katiePhoto?.mediaId, katiePhoto?.relatedCharacterIds], ["photo", "katie-ben-family", ["ben"]]);
+  assert.equal(interactionFacebook.feed.some(item => item.mediaId === "june-ig-04" || item.mediaIds?.includes("june-ig-04")), false, "IG04 must remain Instagram-only");
+  assert.deepEqual(facebook.FACEBOOK_OFFLINE_PERSON_IDS, ["anil"], "Facebook story metadata must support Anil only as an offline subject");
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "DELIVER_JACK_REQUEST" });
+  interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "ACCEPT_JACK" });
+  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "jack-movie"), true, "Jack friends-only content may become visible only after acceptance");
   dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "SHOW_PROFILE" });
   dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "SHOW_FACEBOOK_FRIENDS" });
   dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "OPEN_KNOWN_PROFILE", characterId: "june" });
@@ -1142,8 +1195,8 @@ try {
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "ACCEPT_JACK" });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "DELIVER_JUNE_MESSAGE" });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "OPEN_JUNE_MESSAGE" });
-  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "EDIT_JUNE_REPLY", value: "yes" });
-  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "SUBMIT_JUNE_REPLY", displayName: "Zoey" });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "EDIT_MESSAGE_REPLY", value: "yes" });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "SUBMIT_MESSAGE_REPLY", displayName: "Zoey", timestamp: "12:06 AM" });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "BEGIN_COMMENT", itemId: facebookZoey.feed[0].id });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "EDIT_COMMENT", value: "Zoey session comment" });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "SUBMIT_COMMENT", displayName: "Zoey" });
@@ -1157,8 +1210,8 @@ try {
   assert.deepEqual(facebookAlex.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"]);
   assert.deepEqual([facebookAlex.statusDraft, facebookAlex.statusComposerOpen, facebookAlex.partyRsvp, facebookAlex.userCheckIn, facebookAlex.readNotificationIds], ["", false, null, null, []], "new session must clear Facebook v0.3 user actions and notification reads");
   assert.equal(facebook.selectFacebookJuneMessageState(facebookAlex), "none");
-  assert.deepEqual(facebookAlex.juneReplies, []);
-  assert.equal(facebookAlex.juneReplyDraft, "");
+  assert.equal(facebookAlex.threadMessages.some(message => message.origin === "user"), false);
+  assert.equal(facebookAlex.messageReplyDraft, "");
   assert.deepEqual(facebookAlex.comments.map(comment => comment.id), ["alex-party-comment-jay", "alex-party-comment-ryan"]);
   assert.equal(facebookAlex.commentComposerItemId, null);
   assert.equal(facebookAlex.commentDraft, "");
@@ -1226,8 +1279,10 @@ try {
   assert.doesNotMatch(instagramContainerSource, /Explore|category chips|Suggested for You|Reels|instagram-popular-search/, "Popular must not introduce modern Explore UI");
   assert.match(deviceCssSource, /\.instagram-square-photo\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/, "June Instagram media must use a square presentation surface");
   assert.match(deviceCssSource, /\.instagram-square-photo img\s*\{[^}]*width:\s*100%[^}]*height:\s*100%[^}]*object-fit:\s*cover/, "square Instagram images must fill their 1:1 surface without stretching");
-  assert.match(facebookContainerSource, /getFacebookMedia\(item\.mediaId\)/, "Facebook Feed must resolve portrait media through the centralized registry");
+  assert.match(facebookContainerSource, /getFacebookStoryMedia\(mediaId\)/, "Facebook Feed must resolve local and shared story media through the centralized registry resolver");
   assert.match(facebookContainerSource, /getFacebookMedia\(authorIdentity\.profileMediaId\)/, "Facebook Profile must resolve portrait media through the centralized registry");
+  assert.doesNotMatch(facebookContainerSource, /Reply unavailable in v0\.2/, "all open Facebook message threads must expose the shared reply composer");
+  assert.match(facebookContainerSource, /SUBMIT_MESSAGE_REPLY/, "Facebook Messages must use the shared thread reply mechanism");
   assert.doesNotMatch(facebookContainerSource, /HomeDestination[^\n]+label="Groups"/, "Groups must not appear as an October 20 launcher destination");
   assert.match(facebookContainerSource, /facebook-home-empty-slot[^\n]+REJECTED-FOR-TARGET-DATE/, "the post-November Groups position must remain intentionally empty");
   assert.ok(["Timeline", "Mentions", "Messages", "Search", "More"].every(label => twitterContainerSource.includes(`"${label}"`)), "Twitter must expose the five period tab destinations");

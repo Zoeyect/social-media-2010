@@ -3,23 +3,26 @@ import juneIg02Src from "../assets/characters/June/IG02.JPG";
 import juneIg03Src from "../assets/characters/June/IG03.JPG";
 import juneIg04Src from "../assets/characters/June/IG04.JPG";
 import juneProfileAvatarSrc from "../assets/characters/June/June01.PNG";
+import chrisLucaBasketballSrc from "../assets/characters/Chris/Chris-Luca.PNG";
+import katieBenFamilySrc from "../assets/characters/Ben/Katie-Ben.JPG";
+import jayGuitarSrc from "../assets/characters/Jay/Jay01.PNG";
 import type { CoreSocialCharacterId } from "./coreSocialFriends";
 
-export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar"] as const;
+export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "chris-luca-basketball", "katie-ben-family", "jay-guitar"] as const;
 export type SharedCharacterMediaId = typeof SHARED_CHARACTER_MEDIA_IDS[number];
 
 export type SharedCharacterMedia = Readonly<{
   id: SharedCharacterMediaId;
   src: string;
   originalFilename: string;
-  canonicalCharacterId: "june";
+  canonicalCharacterId: CoreSocialCharacterId;
   characterIds: readonly CoreSocialCharacterId[];
-  platform: "instagram";
+  platform: "instagram" | "facebook";
   timestamp: string;
-  role: "replacement" | "nightclub-dancing" | "party" | "accidental-intimate" | "profile-avatar";
+  role: "replacement" | "nightclub-dancing" | "party" | "accidental-intimate" | "profile-avatar" | "basketball-friends" | "family-context" | "music-context";
   initialVisibility: "visible" | "hidden";
   classification: "CURATED";
-  approvedUses: readonly ("instagram-post" | "character-photo")[];
+  approvedUses: readonly ("instagram-post" | "character-photo" | "facebook-story" | "facebook-album")[];
 }>;
 
 export const SHARED_CHARACTER_MEDIA: Readonly<Record<SharedCharacterMediaId, SharedCharacterMedia>> = Object.freeze({
@@ -87,6 +90,45 @@ export const SHARED_CHARACTER_MEDIA: Readonly<Record<SharedCharacterMediaId, Sha
     initialVisibility: "visible",
     classification: "CURATED",
     approvedUses: Object.freeze(["character-photo"] as const),
+  }),
+  "chris-luca-basketball": Object.freeze({
+    id: "chris-luca-basketball",
+    src: chrisLucaBasketballSrc,
+    originalFilename: "Chris-Luca.PNG",
+    canonicalCharacterId: "luca",
+    characterIds: Object.freeze(["luca", "chris"] as const),
+    platform: "facebook",
+    timestamp: "2010-10-19T22:58:00-07:00",
+    role: "basketball-friends",
+    initialVisibility: "visible",
+    classification: "CURATED",
+    approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const),
+  }),
+  "katie-ben-family": Object.freeze({
+    id: "katie-ben-family",
+    src: katieBenFamilySrc,
+    originalFilename: "Katie-Ben.JPG",
+    canonicalCharacterId: "katie",
+    characterIds: Object.freeze(["katie", "ben"] as const),
+    platform: "facebook",
+    timestamp: "2010-10-18T19:24:00-07:00",
+    role: "family-context",
+    initialVisibility: "visible",
+    classification: "CURATED",
+    approvedUses: Object.freeze(["character-photo", "facebook-story"] as const),
+  }),
+  "jay-guitar": Object.freeze({
+    id: "jay-guitar",
+    src: jayGuitarSrc,
+    originalFilename: "Jay01.PNG",
+    canonicalCharacterId: "jay",
+    characterIds: Object.freeze(["jay"] as const),
+    platform: "facebook",
+    timestamp: "2010-10-17T21:12:00-07:00",
+    role: "music-context",
+    initialVisibility: "visible",
+    classification: "CURATED",
+    approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const),
   }),
 });
 

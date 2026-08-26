@@ -631,6 +631,7 @@ button, input { font: inherit; }
 .facebook-inline-mention { display: inline; margin: 0; padding: 0; color: #3b5998; border: 0; background: transparent; font: inherit; font-weight: bold; text-decoration: none; }
 .facebook-photo-viewer .facebook-story-counts { color: #ccc; }
 .facebook-photo-viewer .facebook-comment { color: #222; background: #eee; }
+.facebook-comment-avatar { width: 28px; height: 28px; flex: 0 0 28px; object-fit: cover; }
 .facebook-album-gallery { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
 .facebook-album-gallery > header { padding: 9px 12px; display: grid; gap: 2px; border-bottom: 1px solid #aaa; background: #eee; }
 .facebook-album-gallery > header strong { color: #3b5998; font-size: 15px; }

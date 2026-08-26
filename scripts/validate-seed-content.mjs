@@ -118,6 +118,9 @@ try {
   assert.deepEqual(facebookAlbums.FACEBOOK_ALBUMS.map(album => album.mediaIds.length), [1, 3, 1, 1, 4, 1, 3], "album counts must derive from approved media membership");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("katie"), "katie-profile-picture", "Katie03 must be the centralized current Facebook profile picture");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("luca"), "luca-profile-picture", "Luca.png must be the centralized current Facebook profile picture");
+  assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("jay"), "facebook-default-avatar", "Jay must use the centralized Facebook default avatar");
+  assert.equal(facebookActorMedia.getFacebookEphemeralProfileMediaId("fof-ryan-001"), "facebook-default-avatar", "Ryan must use the centralized Facebook default avatar");
+  assert.equal(facebookActorMedia.getFacebookEphemeralProfileMediaId("facebook-ephemeral-frank"), "facebook-default-avatar", "Frank must use the centralized Facebook default avatar");
   const lucaAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "canonical", characterId: "luca", displayName: "Luca" });
   assert.deepEqual(lucaAlbums.map(album => [album.id, album.title, album.mediaIds]), [["luca-pickup-basketball", "Pickup Basketball", ["luca-basketball-01", "luca-basketball-02", "luca-basketball-03"]], ["luca-photos", "Photos", ["luca-work-main-street-diner"]]], "Luca albums must use the approved basketball set and one historical work photo");
   assert.deepEqual(lucaAlbums.find(album => album.id === "luca-photos")?.photos.map(photo => [photo.mediaId, photo.timestamp, photo.venueId]), [["luca-work-main-street-diner", "2010-03-20T22:30:00-07:00", "main-street-diner"]], "Luca work history must retain its deterministic March date and canonical venue ID");
@@ -158,6 +161,46 @@ try {
   lucaThreadState = facebook.facebookStateTransition(lucaThreadState, { type: "EDIT_COMMENT", value: "good game" });
   lucaThreadState = facebook.facebookStateTransition(lucaThreadState, { type: "SUBMIT_COMMENT", displayName: "Visitor" });
   assert.equal(facebook.selectFacebookComments(lucaThreadState, lucaThreadId).length, 5, "user comment must increment Luca's shared thread from four to five");
+  let jayBandThreadState = facebook.createInitialFacebookState("Visitor");
+  const jayBandThreadId = "jay-band-performance-photo";
+  const jayBandSeedLikes = facebook.selectFacebookLikes(jayBandThreadState, jayBandThreadId, 0);
+  assert.deepEqual(jayBandSeedLikes.map(like => like.id), Array.from({ length: 48 }, (_, index) => `jay-band-performance-like-${String(index + 1).padStart(2, "0")}`), "Jay band post must retain exactly 48 deterministic seed Like records");
+  const jayBandSeedComments = facebook.selectFacebookComments(jayBandThreadState, jayBandThreadId);
+  assert.deepEqual(jayBandSeedComments.map(comment => [comment.id, comment.author, comment.characterId, comment.ephemeralAuthor?.id, comment.text]), [
+    ["jay-band-comment-katie", "Katie", "katie", undefined, "wait you guys are actually really good lol"],
+    ["jay-band-comment-alex", "Alex", "alex", undefined, "wish i made it lol"],
+    ["jay-band-comment-jack", "Jack", "jack", undefined, "nice. you guys killed it"],
+    ["jay-band-comment-mike", "Mike", undefined, "facebook-ephemeral-mike", "@Matt bass sounded sick"],
+    ["jay-band-comment-sarah", "Sarah", undefined, "facebook-ephemeral-sarah", "who's the drummer?"],
+    ["jay-band-comment-kevin", "Kevin", undefined, "facebook-ephemeral-kevin", "that was a good set"],
+    ["jay-band-comment-emily", "Emily", undefined, "facebook-ephemeral-emily", "i knew that song!!"],
+    ["jay-band-comment-nick", "Nick", undefined, "facebook-ephemeral-nick", "next show when"],
+    ["jay-band-comment-rachel", "Rachel", undefined, "facebook-ephemeral-rachel", "so good"],
+    ["jay-band-comment-frank", "Frank", undefined, "facebook-ephemeral-frank", "nice set lol"],
+    ["jay-band-comment-ryan", "Ryan", undefined, "fof-ryan-001", "looks awesome"],
+  ], "Jay band post must retain the exact 11-comment music-circle chronology");
+  const mikeBandComment = jayBandSeedComments.find(comment => comment.id === "jay-band-comment-mike");
+  assert.deepEqual(mikeBandComment?.mentions, [{ token: "@Matt", actor: { kind: "canonical", characterId: "matt", displayName: "Matt" } }], "Mike's @Matt must use structured canonical mention metadata");
+  assert.equal(jayBandSeedComments.filter(comment => comment.characterId === "matt").length, 0, "Matt must not comment on Jay's band post");
+  assert.equal(jayBandSeedComments.some(comment => comment.text === "who's the drummer?"), true, "one external commenter must ask about the offline drummer");
+  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.anil, undefined, "drummer discussion must not create an Anil SNS identity");
+  for (const comment of jayBandSeedComments.filter(comment => comment.ephemeralAuthor)) {
+    assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS[comment.ephemeralAuthor.id], undefined, `${comment.author} must remain outside the canonical registry`);
+  }
+  jayBandThreadState = facebook.facebookStateTransition(jayBandThreadState, { type: "SHOW_FEED" });
+  jayBandThreadState = facebook.facebookStateTransition(jayBandThreadState, { type: "OPEN_FEED_ITEM", itemId: jayBandThreadId, scrollPosition: 52 });
+  jayBandThreadState = facebook.facebookStateTransition(jayBandThreadState, { type: "OPEN_COMMENT_AUTHOR", actor: mikeBandComment.mentions[0].actor });
+  assert.deepEqual([jayBandThreadState.currentView, jayBandThreadState.selectedProfileName], ["profile", "Matt"], "Mike's structured @Matt must open canonical Matt Profile");
+  jayBandThreadState = facebook.facebookStateTransition(jayBandThreadState, { type: "GO_BACK" });
+  assert.deepEqual([jayBandThreadState.currentView, jayBandThreadState.selectedFeedItemId, jayBandThreadState.scrollPosition], ["feedDetail", jayBandThreadId, 52], "Matt mention Back must restore Jay's band thread");
+  jayBandThreadState = facebook.facebookStateTransition(jayBandThreadState, { type: "TOGGLE_LIKE", itemId: jayBandThreadId, displayName: "Visitor" });
+  assert.equal(facebook.selectFacebookLikes(jayBandThreadState, jayBandThreadId, 0).length, 49, "user Like must increment Jay's band post from 48 to 49");
+  jayBandThreadState = facebook.facebookStateTransition(jayBandThreadState, { type: "TOGGLE_LIKE", itemId: jayBandThreadId, displayName: "Visitor" });
+  assert.equal(facebook.selectFacebookLikes(jayBandThreadState, jayBandThreadId, 0).length, 48, "Unlike must restore Jay's deterministic 48-Like baseline");
+  jayBandThreadState = facebook.facebookStateTransition(jayBandThreadState, { type: "BEGIN_COMMENT", itemId: jayBandThreadId });
+  jayBandThreadState = facebook.facebookStateTransition(jayBandThreadState, { type: "EDIT_COMMENT", value: "great show" });
+  jayBandThreadState = facebook.facebookStateTransition(jayBandThreadState, { type: "SUBMIT_COMMENT", displayName: "Visitor" });
+  assert.equal(facebook.selectFacebookComments(jayBandThreadState, jayBandThreadId).length, 12, "user comment must increment Jay's band post from 11 to 12");
   const lucaBasketballMediaIds = ["luca-basketball-01", "luca-basketball-02", "luca-basketball-03"];
   assert.equal(lucaBasketballMediaIds.every(mediaId => facebookStoryMedia.getFacebookStoryMedia(mediaId)?.src), true, "all three Luca Feed preview records must resolve through the centralized story-media path");
   for (const mediaId of lucaBasketballMediaIds) {
@@ -509,7 +552,8 @@ try {
   assert.deepEqual(facebookPlaces.userCheckIn, { venueId: "downtown-coffee", venueName: "Downtown Coffee", author: "Zoey", timestamp: "12:10 AM", origin: "user" });
   assert.deepEqual(facebook.FACEBOOK_FRIEND_CHECK_INS.map(checkIn => checkIn.characterId), ["ben", "chris", "luca"]);
   assert.equal(facebook.FACEBOOK_CHAT_ROSTER.some(person => person.characterId === "anil"), false);
-  assert.deepEqual(facebookMedia.FACEBOOK_MEDIA_IDS, ["z-tokyo-profile-picture"], "Photos must reuse the centralized Facebook media registry without duplication");
+  assert.deepEqual(facebookMedia.FACEBOOK_MEDIA_IDS, ["z-tokyo-profile-picture", "facebook-default-avatar"], "Facebook-local media must centralize the author portrait and shared default actor avatar");
+  assert.deepEqual([facebookMedia.getFacebookMedia("facebook-default-avatar")?.originalFilename, facebookMedia.getFacebookMedia("facebook-default-avatar")?.classification], ["01.png", "CURATED / FACEBOOK_DEFAULT"]);
 
   let facebookInbox = facebook.facebookStateTransition(facebookA, { type: "SHOW_INBOX" });
   assert.equal(facebook.selectFacebookInboxUnreadCount(facebookInbox), 1, "opening Inbox alone must not clear June unread");
@@ -1457,8 +1501,8 @@ try {
   assert.equal(facebook.selectFacebookJuneMessageState(facebookAlex), "none");
   assert.equal(facebookAlex.threadMessages.some(message => message.origin === "user"), false);
   assert.equal(facebookAlex.messageReplyDraft, "");
-  assert.deepEqual(facebookAlex.comments.map(comment => comment.id), ["alex-party-comment-jay", "alex-party-comment-ryan", "katie-september-comment-ben", "luca-basketball-comment-chris-shot", "luca-basketball-comment-luca-misses", "luca-basketball-comment-chris-details", "luca-basketball-comment-frank-count"]);
-  assert.deepEqual(facebookAlex.likes.map(like => like.id), ["luca-pickup-basketball-like-chris"], "new session must restore the one canonical Luca basketball seed Like");
+  assert.deepEqual(facebookAlex.comments.map(comment => comment.id), ["alex-party-comment-jay", "alex-party-comment-ryan", "katie-september-comment-ben", "luca-basketball-comment-chris-shot", "luca-basketball-comment-luca-misses", "luca-basketball-comment-chris-details", "luca-basketball-comment-frank-count", "jay-band-comment-katie", "jay-band-comment-alex", "jay-band-comment-jack", "jay-band-comment-mike", "jay-band-comment-sarah", "jay-band-comment-kevin", "jay-band-comment-emily", "jay-band-comment-nick", "jay-band-comment-rachel", "jay-band-comment-frank", "jay-band-comment-ryan"]);
+  assert.deepEqual(facebookAlex.likes.map(like => like.id), ["luca-pickup-basketball-like-chris", ...Array.from({ length: 48 }, (_, index) => `jay-band-performance-like-${String(index + 1).padStart(2, "0")}`)], "new session must restore the complete deterministic Facebook seed Like baseline");
   assert.equal(facebookAlex.commentComposerItemId, null);
   assert.equal(facebookAlex.commentDraft, "");
   assert.equal(facebookAlex.inboxThreads.some(thread => thread.id === "june-live-message"), false);
@@ -1530,13 +1574,14 @@ try {
   assert.match(facebookContainerSource, /getFacebookStoryMedia\(mediaId\)/, "Facebook Feed must resolve local and shared story media through the centralized registry resolver");
   assert.match(facebookContainerSource, /getFacebookAlbumByStoryId\(item\.id\)/, "Feed media must route through the centralized album registry");
   assert.doesNotMatch(facebookContainerSource, /assets\/facebook\/characters|assets\/characters/, "Facebook UI components must not import character image files directly");
-  assert.match(facebookProfileSource, /const profileMediaId = authorIdentity\?\.profileMediaId \?\? \(canonicalCharacter \? getFacebookCanonicalProfileMediaId\(canonicalCharacter\.id\) : null\)/, "Facebook Profile media ID must derive from the existing author actor or canonical actor-media mapping");
+  assert.match(facebookProfileSource, /const profileMediaId = authorIdentity\?\.profileMediaId \?\? \(canonicalCharacter \? getFacebookCanonicalProfileMediaId\(canonicalCharacter\.id\) : null\) \?\? ephemeralProfileMediaId/, "Facebook Profile media ID must derive from author, canonical, or ephemeral actor-media mapping");
   assert.match(facebookProfileSource, /const profileMedia = profileMediaId \? getFacebookStoryMedia\(profileMediaId\) : null/, "Facebook Profile must resolve its actor-derived media ID through the shared story-media resolver");
   assert.doesNotMatch(facebookContainerSource, /Reply unavailable in v0\.2/, "all open Facebook message threads must expose the shared reply composer");
   assert.match(facebookContainerSource, /SUBMIT_MESSAGE_REPLY/, "Facebook Messages must use the shared thread reply mechanism");
   assert.match(facebookContainerSource, /OPEN_COMMENT_AUTHOR/, "Facebook comment author names must route through the shared actor-profile event");
   assert.match(facebookContainerSource, /facebook-comment-author/, "Facebook comment author names must expose a usable tap target");
   assert.match(facebookContainerSource, /FacebookInlineEntityText/, "curated Facebook story text must use the reusable inline-entity renderer");
+  assert.match(facebookContainerSource, /FacebookInlineEntityText text=\{comment\.text\} mentions=\{comment\.mentions\}/, "structured curated comment mentions must reuse the Facebook inline-entity renderer");
   assert.match(facebookContainerSource, /SESSION_START_ISO[^\n]+elapsedMs/, "Facebook story metadata must derive simulated now from the existing global clock");
   assert.doesNotMatch(facebookStoryTimeSource, /Date\.now\(|new Date\(\s*\)/, "Facebook story metadata must never read real system time");
   assert.doesNotMatch(facebookStoryTimeSource, /Math\.max\(0,\s*simulatedNowMs\s*-\s*storyTimeMs\)/, "future timestamps must not be silently clamped to just now");

@@ -23,7 +23,7 @@ import { useSessionIdentity } from "../state/sessionIdentity";
 import { getFacebookAuthorEasterEggByDisplayName } from "../data/facebookActors";
 import { getFacebookMedia } from "../data/facebookMedia";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
-import { getFacebookCanonicalProfileMediaId } from "../data/facebookActorMedia";
+import { getFacebookCanonicalProfileMediaId, getFacebookEphemeralProfileMediaId } from "../data/facebookActorMedia";
 import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumPhoto, getFacebookAlbumsForActor } from "../data/facebookAlbums";
 import type { FacebookAlbum, FacebookAlbumActor } from "../data/facebookAlbums";
 import { getFacebookStoryMedia } from "../data/facebookStoryMedia";
@@ -323,7 +323,8 @@ function FacebookProfile({ profileName, currentUserName, state, simulatedNowMs, 
   const wallItems = selectFacebookVisibleFeed(state).filter(item => item.author === profileName);
   const authorIdentity = getFacebookAuthorEasterEggByDisplayName(profileName);
   const canonicalCharacter = Object.values(CORE_SOCIAL_CHARACTERS).find(character => character.displayName === profileName);
-  const profileMediaId = authorIdentity?.profileMediaId ?? (canonicalCharacter ? getFacebookCanonicalProfileMediaId(canonicalCharacter.id) : null);
+  const ephemeralProfileMediaId = state.selectedProfileActor?.kind === "ephemeral-friend-of-friend" ? getFacebookEphemeralProfileMediaId(state.selectedProfileActor.ephemeralId) : null;
+  const profileMediaId = authorIdentity?.profileMediaId ?? (canonicalCharacter ? getFacebookCanonicalProfileMediaId(canonicalCharacter.id) : null) ?? ephemeralProfileMediaId;
   const profileMedia = profileMediaId ? getFacebookStoryMedia(profileMediaId) : null;
   const albumActor: FacebookAlbumActor | null = state.selectedProfileActor
     ?? (isCurrentUser
@@ -353,16 +354,29 @@ function FacebookProfile({ profileName, currentUserName, state, simulatedNowMs, 
 
 function FacebookCommentRow({ comment, sessionUserName, dispatch }: { comment: FacebookState["comments"][number]; sessionUserName: string; dispatch: Dispatch<FacebookEvent> }) {
   const actor = resolveFacebookCommentActor(comment, sessionUserName);
+  const avatarMediaId = actor?.kind === "canonical"
+    ? getFacebookCanonicalProfileMediaId(actor.characterId)
+    : actor?.kind === "ephemeral-friend-of-friend"
+      ? getFacebookEphemeralProfileMediaId(actor.ephemeralId)
+      : null;
+  const avatarMedia = avatarMediaId ? getFacebookStoryMedia(avatarMediaId) : null;
   return <article className="facebook-comment">
+    {avatarMedia && <img className="facebook-comment-avatar" src={avatarMedia.src} alt="" aria-hidden="true" />}
     {actor
       ? <button type="button" className="facebook-comment-author" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor })}>{actor.displayName}</button>
       : <strong>{comment.author}</strong>}
-    <span>{comment.text}</span>
+    <span><FacebookInlineEntityText text={comment.text} mentions={comment.mentions} dispatch={dispatch} /></span>
   </article>;
 }
 
 function FeedRow({ item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpen, onToggleLike, onComment, dispatch }: { item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
-  const actorProfileMediaId = item.actor?.kind === "author-easter-egg" ? item.mediaId : item.friendId ? getFacebookCanonicalProfileMediaId(item.friendId) : null;
+  const actorProfileMediaId = item.actor?.kind === "author-easter-egg"
+    ? item.mediaId
+    : item.actor?.kind === "ephemeral-friend-of-friend"
+      ? getFacebookEphemeralProfileMediaId(item.actor.ephemeralId)
+      : item.friendId
+        ? getFacebookCanonicalProfileMediaId(item.friendId)
+        : null;
   const avatarMedia = actorProfileMediaId ? getFacebookStoryMedia(actorProfileMediaId) : null;
   return <article className="facebook-feed-row" data-content-status={item.contentStatus}>
     <button type="button" className="facebook-avatar-link" aria-label={`${item.author} Profile`} onClick={onOpenProfile}>{avatarMedia

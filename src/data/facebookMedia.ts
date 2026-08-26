@@ -1,7 +1,8 @@
 import zTokyoProfilePictureSrc from "../assets/facebook/characters/z-tokyo/profile/IMG_1423.JPG";
 import { FACEBOOK_AUTHOR_EASTER_EGG_ID } from "./facebookActors";
+import facebookDefaultAvatarSrc from "../assets/facebook/characters/photos/01.png";
 
-export const FACEBOOK_MEDIA_IDS = ["z-tokyo-profile-picture"] as const;
+export const FACEBOOK_MEDIA_IDS = ["z-tokyo-profile-picture", "facebook-default-avatar"] as const;
 export type FacebookMediaId = typeof FACEBOOK_MEDIA_IDS[number];
 
 export const FACEBOOK_MEDIA = Object.freeze({
@@ -20,6 +21,15 @@ export const FACEBOOK_MEDIA = Object.freeze({
       photos: "READY" as const,
       profilePicturesAlbum: "READY" as const,
     }),
+  }),
+  "facebook-default-avatar": Object.freeze({
+    id: "facebook-default-avatar" as const,
+    kind: "photo" as const,
+    owner: Object.freeze({ kind: "facebook-default" as const }),
+    src: facebookDefaultAvatarSrc,
+    originalFilename: "01.png",
+    classification: "CURATED / FACEBOOK_DEFAULT" as const,
+    intendedUses: Object.freeze(["profile-picture", "actor-avatar"] as const),
   }),
 });
 

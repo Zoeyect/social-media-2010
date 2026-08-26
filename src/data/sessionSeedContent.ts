@@ -1,9 +1,25 @@
 import { CORE_SOCIAL_CHARACTERS, CORE_SOCIAL_FRIENDS } from "./coreSocialFriends";
-import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_FRANK_ID, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS } from "./facebookActors";
+import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_EMILY_ID, FACEBOOK_EPHEMERAL_FRANK_ID, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS, FACEBOOK_EPHEMERAL_KEVIN_ID, FACEBOOK_EPHEMERAL_MIKE_ID, FACEBOOK_EPHEMERAL_NICK_ID, FACEBOOK_EPHEMERAL_RACHEL_ID, FACEBOOK_EPHEMERAL_SARAH_ID } from "./facebookActors";
 import { LUCA_PICKUP_BASKETBALL_MEDIA_IDS } from "./facebookAlbums";
 import { MAIN_STREET_DINER_VENUE } from "./canonicalVenues";
 
 export type ContentOrigin = "seed" | "live";
+
+const JAY_BAND_LIKE_DISPLAY_NAMES = Object.freeze([
+  "Mike", "Sarah", "Kevin", "Emily", "Nick", "Rachel", "Brian", "Jessica", "David", "Lauren", "Andrew", "Megan",
+  "Jason", "Amanda", "Eric", "Nicole", "Daniel", "Ashley", "Josh", "Brittany", "Adam", "Stephanie", "Tyler", "Samantha",
+  "Brandon", "Melissa", "Justin", "Rebecca", "Ryan", "Frank", "Jonathan", "Michelle", "Zach", "Allison", "Sean", "Christina",
+  "Kyle", "Danielle", "Patrick", "Heather", "Trevor", "Lindsay", "Cody", "Chelsea", "Marcus", "Natalie", "Evan", "Jenna",
+] as const);
+
+const JAY_BAND_SEED_LIKES = Object.freeze(JAY_BAND_LIKE_DISPLAY_NAMES.map((displayName, index) => Object.freeze({
+  id: `jay-band-performance-like-${String(index + 1).padStart(2, "0")}`,
+  itemId: "jay-band-performance-photo" as const,
+  displayName,
+  ephemeralId: `jay-music-circle-${String(index + 1).padStart(2, "0")}`,
+  classification: "EPHEMERAL_FACEBOOK_CONTACT" as const,
+  origin: "seed" as const,
+})));
 
 export const SESSION_SEED_CONTENT = Object.freeze({
   messages: Object.freeze([
@@ -41,6 +57,7 @@ export const SESSION_SEED_CONTENT = Object.freeze({
     ]),
     likes: Object.freeze([
       Object.freeze({ id: "luca-pickup-basketball-like-chris", itemId: "luca-pickup-basketball-photos", displayName: CORE_SOCIAL_CHARACTERS.chris.displayName, characterId: CORE_SOCIAL_CHARACTERS.chris.id, classification: "CURATED" as const, origin: "seed" as const }),
+      ...JAY_BAND_SEED_LIKES,
     ]),
     comments: Object.freeze([
       Object.freeze({ id: "alex-party-comment-jay", itemId: "alex-jacks-party-friday", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jay.id, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, classification: "CURATED" as const }), text: "yeah probably", origin: "seed" as const }),
@@ -50,6 +67,17 @@ export const SESSION_SEED_CONTENT = Object.freeze({
       Object.freeze({ id: "luca-basketball-comment-luca-misses", itemId: "luca-pickup-basketball-photos", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.luca.id, displayName: CORE_SOCIAL_CHARACTERS.luca.displayName, classification: "CURATED" as const }), text: "you missed like 10 before that", origin: "seed" as const }),
       Object.freeze({ id: "luca-basketball-comment-chris-details", itemId: "luca-pickup-basketball-photos", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.chris.id, displayName: CORE_SOCIAL_CHARACTERS.chris.displayName, classification: "CURATED" as const }), text: "details details", origin: "seed" as const }),
       Object.freeze({ id: "luca-basketball-comment-frank-count", itemId: "luca-pickup-basketball-photos", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_FRANK_ID] }), text: "i counted 12 lol", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-katie", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.katie.id, displayName: CORE_SOCIAL_CHARACTERS.katie.displayName, classification: "CURATED" as const }), text: "wait you guys are actually really good lol", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-alex", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.alex.id, displayName: CORE_SOCIAL_CHARACTERS.alex.displayName, classification: "CURATED" as const }), text: "wish i made it lol", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-jack", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jack.id, displayName: CORE_SOCIAL_CHARACTERS.jack.displayName, classification: "CURATED" as const }), text: "nice. you guys killed it", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-mike", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_MIKE_ID] }), text: "@Matt bass sounded sick", mentions: Object.freeze([{ token: "@Matt", actor: Object.freeze({ kind: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.matt.id, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName }) }]), origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-sarah", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_SARAH_ID] }), text: "who's the drummer?", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-kevin", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_KEVIN_ID] }), text: "that was a good set", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-emily", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_EMILY_ID] }), text: "i knew that song!!", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-nick", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_NICK_ID] }), text: "next show when", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-rachel", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_RACHEL_ID] }), text: "so good", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-frank", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_FRANK_ID] }), text: "nice set lol", origin: "seed" as const }),
+      Object.freeze({ id: "jay-band-comment-ryan", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID] }), text: "looks awesome", origin: "seed" as const }),
     ]),
     inbox: Object.freeze([
       Object.freeze({ id: "katie-tomorrow", friendId: CORE_SOCIAL_FRIENDS.katie.id, sender: CORE_SOCIAL_FRIENDS.katie.displayName, preview: "see you tomorrow", timestamp: "10:14 PM", status: "read" as const, origin: "seed" as const }),

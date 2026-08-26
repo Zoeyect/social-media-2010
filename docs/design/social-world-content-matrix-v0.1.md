@@ -112,6 +112,8 @@ Luca's Facebook check-in, March 2010 workplace photo, and Foursquare venue all r
 
 Frank is a Facebook-local `EPHEMERAL_FRIEND_OF_FRIEND` and basketball-social peripheral. His only approved role is one closing joke in Luca's Pickup Basketball comment thread; he is not a canonical character or recurring storyline.
 
+Jay's October 19 band post is high-engagement social/music-circle content with a deterministic 48-Like and 11-comment baseline. Ryan and Frank remain Facebook-local ephemeral actors and use the shared default Facebook avatar; their participation does not make them canonical or recurring protagonists.
+
 ## 9. User projection risk matrix
 
 | Content Type | Risk | Rule |

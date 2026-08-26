@@ -5,10 +5,12 @@ import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
 import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS } from "../data/facebookActors";
 import type { FacebookFeedActor } from "../data/facebookActors";
 import type { FacebookAuthorEasterEggId } from "../data/facebookActors";
-import type { FacebookMediaId } from "../data/facebookMedia";
-import type { SharedCharacterMediaId } from "../data/sharedCharacterMedia";
+import { getFacebookAlbum, getFacebookAlbumForMediaId } from "../data/facebookAlbums";
+import type { FacebookAlbumId } from "../data/facebookAlbums";
+import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
+export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
-export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "photoDetail" | "chat" | "notifications" | "account";
+export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "photoDetail" | "chat" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
 export type FacebookFriendsSection = "friends" | "pages" | "requests";
 export type FacebookFriendRequestState = "none" | "pending" | "accepted" | "ignored";
@@ -19,8 +21,6 @@ export type FacebookVisibility = "friends" | "friends-of-friends" | "everyone" |
 export type FacebookStoryKind = "status" | "photo" | "album" | "checkin" | "activity";
 export const FACEBOOK_OFFLINE_PERSON_IDS = Object.freeze(["anil"] as const);
 export type FacebookOfflinePersonId = typeof FACEBOOK_OFFLINE_PERSON_IDS[number];
-export type FacebookStoryMediaId = FacebookMediaId | SharedCharacterMediaId;
-
 export const FACEBOOK_PARTY_INVITE_EVENT_ID = "facebook-party-invite";
 export const FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID = "facebook-june-instagram-announcement";
 export const FACEBOOK_KATIE_GOSSIP_MESSAGE_ID = "facebook-katie-jack-gossip-message";
@@ -178,7 +178,8 @@ export type FacebookState = {
   comments: FacebookComment[];
   commentComposerItemId: string | null;
   commentDraft: string;
-  selectedPhotoMediaId: FacebookMediaId | null;
+  selectedAlbumId: FacebookAlbumId | null;
+  selectedPhotoMediaId: FacebookStoryMediaId | null;
   userCheckIn: FacebookUserCheckIn | null;
   readNotificationIds: string[];
 };
@@ -203,7 +204,9 @@ export type FacebookEvent =
   | { type: "SHOW_PLACES" }
   | { type: "CHECK_IN"; venueId: FacebookUserCheckIn["venueId"]; displayName: string; timestamp: string }
   | { type: "SHOW_PHOTOS" }
-  | { type: "OPEN_PHOTO"; mediaId: FacebookMediaId }
+  | { type: "OPEN_ALBUM"; albumId: FacebookAlbumId }
+  | { type: "OPEN_ALBUM_PHOTO"; albumId: FacebookAlbumId; mediaId: FacebookStoryMediaId }
+  | { type: "OPEN_PHOTO"; mediaId: FacebookStoryMediaId }
   | { type: "SHOW_CHAT" }
   | { type: "SHOW_NOTIFICATIONS" }
   | { type: "OPEN_NOTIFICATION"; notificationId: FacebookNotification["id"] }
@@ -289,6 +292,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     })),
     commentComposerItemId: null,
     commentDraft: "",
+    selectedAlbumId: null,
     selectedPhotoMediaId: null,
     userCheckIn: null,
     readNotificationIds: [],
@@ -408,9 +412,20 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       };
     }
     case "SHOW_PHOTOS":
-      return { ...state, currentView: "photos", navigationStack: ["home", "photos"], selectedPhotoMediaId: null };
-    case "OPEN_PHOTO":
-      return { ...state, currentView: "photoDetail", navigationStack: [...state.navigationStack, "photoDetail"], selectedPhotoMediaId: event.mediaId };
+      return { ...state, currentView: "photos", navigationStack: ["home", "photos"], selectedAlbumId: null, selectedPhotoMediaId: null };
+    case "OPEN_ALBUM":
+      if (!getFacebookAlbum(event.albumId)) return state;
+      return { ...state, currentView: "album", navigationStack: [...state.navigationStack, "album"], selectedAlbumId: event.albumId, selectedPhotoMediaId: null };
+    case "OPEN_ALBUM_PHOTO": {
+      const album = getFacebookAlbum(event.albumId);
+      if (!album?.mediaIds.includes(event.mediaId)) return state;
+      return { ...state, currentView: "photoDetail", navigationStack: [...state.navigationStack, "photoDetail"], selectedAlbumId: album.id, selectedPhotoMediaId: event.mediaId };
+    }
+    case "OPEN_PHOTO": {
+      const album = getFacebookAlbumForMediaId(event.mediaId);
+      if (!album) return state;
+      return { ...state, currentView: "photoDetail", navigationStack: [...state.navigationStack, "photoDetail"], selectedAlbumId: album.id, selectedPhotoMediaId: event.mediaId };
+    }
     case "SHOW_CHAT":
       return { ...state, currentView: "chat", navigationStack: ["home", "chat"] };
     case "SHOW_NOTIFICATIONS":

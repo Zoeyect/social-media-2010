@@ -217,6 +217,8 @@ Specificity belongs primarily to the nine canonical social characters and other 
 
 Facebook Narrative Content v0.4 is `LOCKED`. Future Facebook work is limited to bug fixes, historical IA correction, locked Photos/Albums placement, interaction refinement, visual fidelity, and small copy correction unless Content Lock is explicitly reopened.
 
+Facebook Photos / Albums IA v0.5 is implemented: Profile Photos, album list, album gallery, Photo Detail, exact Back-stack restoration, and shared Feed Like/Comment state for approved media. Root Photos is intentionally scoped to the current user's empty baseline. Pixel-level historical visual refinement remains pending.
+
 Instagram Popular v0.7.1 is `FUNCTIONALLY COMPLETE / MANUAL VISUAL CONFIRMATION PENDING`. Its twenty local photos are centrally registered and Instagram work is paused after this closeout.
 
 **IN PROGRESS.** Instagram now has its v0.2 app-local functional slice. Remaining phase work must continue app by app and must not be declared complete before all selected app checkpoints are finished.

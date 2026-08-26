@@ -619,6 +619,7 @@ button, input { font: inherit; }
 .facebook-places > button strong { font-size: 11px; }
 .facebook-checkin-confirmation { margin: 10px; padding: 9px; display: grid; gap: 3px; border: 1px solid #8da081; background: #edf4e9; font-size: 12px; }
 .facebook-photo-albums > button { width: 100%; min-height: 78px; padding: 8px 12px; display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
+.facebook-photo-albums > .facebook-empty-list { margin: 0; }
 .facebook-photo-albums img,.facebook-profile-photo-entry img { width: 64px; height: 58px; object-fit: cover; }
 .facebook-photo-albums button > span { display: grid; gap: 4px; }
 .facebook-photo-albums small { color: #777; font-size: 11px; }
@@ -626,6 +627,16 @@ button, input { font: inherit; }
 .facebook-photo-viewer img { width: 100%; max-height: 330px; object-fit: contain; background: #000; }
 .facebook-photo-viewer strong { font-size: 15px; }
 .facebook-photo-viewer span { color: #bbb; font-size: 11px; }
+.facebook-photo-viewer p { margin: 5px 0; font-size: 12px; }
+.facebook-photo-viewer .facebook-story-counts { color: #ccc; }
+.facebook-photo-viewer .facebook-comment { color: #222; background: #eee; }
+.facebook-album-gallery { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
+.facebook-album-gallery > header { padding: 9px 12px; display: grid; gap: 2px; border-bottom: 1px solid #aaa; background: #eee; }
+.facebook-album-gallery > header strong { color: #3b5998; font-size: 15px; }
+.facebook-album-gallery > header span { color: #666; font-size: 11px; }
+.facebook-album-gallery > div { padding: 4px; display: grid; grid-template-columns: repeat(3,1fr); gap: 3px; }
+.facebook-album-gallery > div button { padding: 0; aspect-ratio: 1; overflow: hidden; border: 1px solid #aaa; background: #ddd; }
+.facebook-album-gallery > div img { width: 100%; height: 100%; object-fit: cover; }
 .facebook-profile-photo-entry { flex: 1 1 auto; min-height: 0; padding: 12px; display: flex; align-items: flex-start; gap: 9px; color: #3b5998; border: 0; background: #fff; font-weight: bold; }
 .facebook-chat-roster > button { width: 100%; min-height: 54px; padding: 7px 12px; display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
 .facebook-chat-roster strong { color: #3b5998; font-size: 14px; }

@@ -22,6 +22,7 @@ try {
   const coreSocialFriends = await vite.ssrLoadModule("/src/data/coreSocialFriends.ts");
   const facebookActors = await vite.ssrLoadModule("/src/data/facebookActors.ts");
   const facebookMedia = await vite.ssrLoadModule("/src/data/facebookMedia.ts");
+  const facebookAlbums = await vite.ssrLoadModule("/src/data/facebookAlbums.ts");
   const sharedCharacterMedia = await vite.ssrLoadModule("/src/data/sharedCharacterMedia.ts");
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
@@ -52,6 +53,37 @@ try {
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.katie, coreSocialFriends.CORE_SOCIAL_CHARACTERS.katie, "compatibility views must reuse canonical identity objects");
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.jay, coreSocialFriends.CORE_SOCIAL_CHARACTERS.jay, "compatibility views must not duplicate character records");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => relationship.characterIds), [["katie", "ben"], ["chris", "luca"]]);
+  assert.deepEqual(
+    facebookAlbums.FACEBOOK_ALBUMS.map(album => [album.id, album.ownerActor.displayName, album.title, album.mediaIds, album.storyId, album.classification]),
+    [
+      ["z-tokyo-profile-pictures", "Z.tokyo", "Profile Pictures", ["z-tokyo-profile-picture"], "z-tokyo-profile-picture-update", "CURATED"],
+      ["luca-pickup-basketball", "Luca", "Pickup Basketball", ["chris-luca-basketball"], "luca-pickup-basketball-photos", "CURATED"],
+      ["katie-photos", "Katie", "Photos", ["katie-ben-family"], "katie-photo-with-ben", "CURATED"],
+      ["jay-music", "Jay", "Music", ["jay-guitar"], "jay-guitar-photo", "CURATED"],
+    ],
+    "Facebook albums must preserve the exact approved owner/media/story bindings",
+  );
+  assert.deepEqual(facebookAlbums.FACEBOOK_ALBUMS.map(album => album.mediaIds.length), [1, 1, 1, 1], "album counts must derive from approved media membership");
+  assert.equal(facebookAlbums.getFacebookAlbumsForActor({ kind: "session-user", displayName: "Visitor" }).length, 0, "root Photos must remain the current user's empty baseline");
+  assert.equal(facebookAlbums.getFacebookAlbumsForActor({ kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-ryan", displayName: "Ryan", classification: "EPHEMERAL_FRIEND_OF_FRIEND" }).length, 0, "Ryan must retain an empty Photos surface");
+  assert.equal(facebookAlbums.FACEBOOK_ALBUMS.some(album => album.ownerActor.displayName === "Anil"), false, "offline-only Anil must not receive a Facebook album");
+
+  let facebookPhotoNavigation = facebook.createInitialFacebookState("Visitor");
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "OPEN_PROFILE", profileName: "Jay" });
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "SET_PROFILE_SECTION", section: "photos" });
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "OPEN_ALBUM", albumId: "jay-music" });
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "OPEN_ALBUM_PHOTO", albumId: "jay-music", mediaId: "jay-guitar" });
+  assert.deepEqual([facebookPhotoNavigation.currentView, facebookPhotoNavigation.selectedAlbumId, facebookPhotoNavigation.selectedPhotoMediaId], ["photoDetail", "jay-music", "jay-guitar"]);
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "TOGGLE_LIKE", itemId: "jay-guitar-photo", displayName: "Visitor" });
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "BEGIN_COMMENT", itemId: "jay-guitar-photo" });
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "EDIT_COMMENT", value: "nice" });
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "SUBMIT_COMMENT", displayName: "Visitor" });
+  assert.equal(facebookPhotoNavigation.likedItemIds.includes("jay-guitar-photo"), true, "Photo Detail must share the Feed story Like ID");
+  assert.equal(facebook.selectFacebookComments(facebookPhotoNavigation, "jay-guitar-photo").some(comment => comment.text === "nice"), true, "Photo Detail must share the Feed story comment thread");
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "GO_BACK" });
+  assert.equal(facebookPhotoNavigation.currentView, "album", "Photo Back must restore the originating album");
+  facebookPhotoNavigation = facebook.facebookStateTransition(facebookPhotoNavigation, { type: "GO_BACK" });
+  assert.deepEqual([facebookPhotoNavigation.currentView, facebookPhotoNavigation.profileSection], ["profile", "photos"], "Album Back must restore the same Profile Photos section");
   assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "junepark", "June's Instagram username must remain canonical and session-independent");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_FRIEND_IDS, ["katie", "matt", "alex", "chris", "jay"]);
   assert.deepEqual(
@@ -1302,6 +1334,8 @@ try {
   assert.match(deviceCssSource, /\.instagram-square-photo\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/, "June Instagram media must use a square presentation surface");
   assert.match(deviceCssSource, /\.instagram-square-photo img\s*\{[^}]*width:\s*100%[^}]*height:\s*100%[^}]*object-fit:\s*cover/, "square Instagram images must fill their 1:1 surface without stretching");
   assert.match(facebookContainerSource, /getFacebookStoryMedia\(mediaId\)/, "Facebook Feed must resolve local and shared story media through the centralized registry resolver");
+  assert.match(facebookContainerSource, /getFacebookAlbumByStoryId\(item\.id\)/, "Feed media must route through the centralized album registry");
+  assert.doesNotMatch(facebookContainerSource, /assets\/facebook\/characters|assets\/characters/, "Facebook UI components must not import character image files directly");
   assert.match(facebookContainerSource, /getFacebookMedia\(authorIdentity\.profileMediaId\)/, "Facebook Profile must resolve portrait media through the centralized registry");
   assert.doesNotMatch(facebookContainerSource, /Reply unavailable in v0\.2/, "all open Facebook message threads must expose the shared reply composer");
   assert.match(facebookContainerSource, /SUBMIT_MESSAGE_REPLY/, "Facebook Messages must use the shared thread reply mechanism");

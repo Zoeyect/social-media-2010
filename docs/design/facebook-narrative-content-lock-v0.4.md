@@ -84,8 +84,14 @@ Only Katie/Ben siblings and Chris/Luca basketball friends are hard canonical rel
 
 ## Remaining HOLD
 
-- Full Photos/Albums IA and placement
+- Pixel-level Photos/Albums visual fidelity
 - Exact 2010 photo-tag chrome
 - Additional approved band/group media containing Anil, Matt, and Z.tokyo
 - Pixel-level Feed, comment, Like, and album-thumbnail fidelity
 - Exact historical privacy-control editor chrome
+
+## Photos / Albums IA
+
+Facebook character media now participates in the navigable `Profile -> Photos -> Albums -> Photo Detail` graph. Album membership is registry-driven, and Photo Detail reuses the associated Feed story ID for Like and Comment state. Root Photos remains the current user's own empty baseline rather than a Friends' Photos aggregation surface.
+
+The approved album set is intentionally limited to Z.tokyo Profile Pictures, Luca Pickup Basketball, Katie Photos, and Jay Music. Other profiles remain empty until approved media exists. See `docs/evidence/facebook-2010-photos-albums-ia-v0.1.md`.

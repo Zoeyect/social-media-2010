@@ -174,6 +174,10 @@ Ben is an ordinary small-company office worker, never a Wall Street or finance-b
 
 Luca anchors service-work life without turning difficult customers or exhaustion into a one-note joke.
 
+### Alex Facebook photo continuity
+
+Alex's current Facebook profile image is `Alex.png`. His `Dogs` album establishes a long-running pet history through a golden retriever photo dated October 3, 2007 and a golden retriever/French bulldog photo dated May 8, 2009. The later photo preserves the exact caption `旺財&BB`; the chronology communicates continuity without explanatory acquisition text.
+
 ### Band social activity
 
 Jay has a wider external music-oriented circle, so a band-performance post may receive substantially stronger engagement than his ordinary posts. His Facebook avatar remains the period default placeholder even though his Music album retains guitar and performance media. Matt may be tagged or mentioned in music discussion without joining the comment thread. Anil may be discussed by SNS users, but remains an offline person with no account or navigable actor.

@@ -17,9 +17,12 @@ import lucaBasketball01Src from "../assets/characters/Luca/guys.png";
 import lucaBasketball02Src from "../assets/characters/Luca/guys02.PNG";
 import lucaBasketball03Src from "../assets/characters/Luca/guys03.png";
 import lucaWorkSrc from "../assets/characters/Luca/Luca-work.png";
+import alexProfilePictureSrc from "../assets/characters/Alex/Alex.png";
+import alexGoldenDog2007Src from "../assets/characters/Alex/Alex01.PNG";
+import alexDogs2009Src from "../assets/characters/Alex/Alex-dogs.PNG";
 import type { CoreSocialCharacterId } from "./coreSocialFriends";
 
-export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "katie-ben-family", "jay-guitar", "jay-guitar-may", "jay-band-performance", "katie-selfie-july-2009", "katie-selfie-august-2009", "katie-profile-picture", "katie-selfie-july-2010", "katie-selfie-september-2010", "luca-profile-picture", "luca-basketball-01", "luca-basketball-02", "luca-basketball-03", "luca-work-main-street-diner"] as const;
+export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "katie-ben-family", "jay-guitar", "jay-guitar-may", "jay-band-performance", "katie-selfie-july-2009", "katie-selfie-august-2009", "katie-profile-picture", "katie-selfie-july-2010", "katie-selfie-september-2010", "luca-profile-picture", "luca-basketball-01", "luca-basketball-02", "luca-basketball-03", "luca-work-main-street-diner", "alex-profile-picture", "alex-dog-golden-2007", "alex-dogs-wangcai-bb-2009"] as const;
 export type SharedCharacterMediaId = typeof SHARED_CHARACTER_MEDIA_IDS[number];
 
 export type SharedCharacterMedia = Readonly<{
@@ -30,7 +33,7 @@ export type SharedCharacterMedia = Readonly<{
   characterIds: readonly CoreSocialCharacterId[];
   platform: "instagram" | "facebook";
   timestamp: string;
-  role: "replacement" | "nightclub-dancing" | "party" | "accidental-intimate" | "profile-avatar" | "basketball-friends" | "family-context" | "music-context" | "music-guitar-still-life" | "band-performance" | "facebook-profile-picture" | "facebook-selfie" | "restaurant-work";
+  role: "replacement" | "nightclub-dancing" | "party" | "accidental-intimate" | "profile-avatar" | "basketball-friends" | "family-context" | "music-context" | "music-guitar-still-life" | "band-performance" | "facebook-profile-picture" | "facebook-selfie" | "restaurant-work" | "dog-history";
   initialVisibility: "visible" | "hidden";
   classification: "CURATED";
   approvedUses: readonly ("instagram-post" | "character-photo" | "facebook-story" | "facebook-album")[];
@@ -164,6 +167,9 @@ export const SHARED_CHARACTER_MEDIA: Readonly<Record<SharedCharacterMediaId, Sha
   "luca-basketball-02": Object.freeze({ id: "luca-basketball-02", src: lucaBasketball02Src, originalFilename: "guys02.PNG", canonicalCharacterId: "luca", characterIds: Object.freeze(["luca", "chris"] as const), platform: "facebook", timestamp: "2010-10-19T22:58:00-07:00", role: "basketball-friends", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
   "luca-basketball-03": Object.freeze({ id: "luca-basketball-03", src: lucaBasketball03Src, originalFilename: "guys03.png", canonicalCharacterId: "luca", characterIds: Object.freeze(["luca", "chris"] as const), platform: "facebook", timestamp: "2010-10-19T22:58:00-07:00", role: "basketball-friends", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
   "luca-work-main-street-diner": Object.freeze({ id: "luca-work-main-street-diner", src: lucaWorkSrc, originalFilename: "Luca-work.png", canonicalCharacterId: "luca", characterIds: Object.freeze(["luca"] as const), platform: "facebook", timestamp: "2010-03-20T22:30:00-07:00", role: "restaurant-work", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
+  "alex-profile-picture": Object.freeze({ id: "alex-profile-picture", src: alexProfilePictureSrc, originalFilename: "Alex.png", canonicalCharacterId: "alex", characterIds: Object.freeze(["alex"] as const), platform: "facebook", timestamp: "2010-10-01T16:00:00-07:00", role: "facebook-profile-picture", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
+  "alex-dog-golden-2007": Object.freeze({ id: "alex-dog-golden-2007", src: alexGoldenDog2007Src, originalFilename: "Alex01.PNG", canonicalCharacterId: "alex", characterIds: Object.freeze(["alex"] as const), platform: "facebook", timestamp: "2007-10-03T16:00:00-07:00", role: "dog-history", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
+  "alex-dogs-wangcai-bb-2009": Object.freeze({ id: "alex-dogs-wangcai-bb-2009", src: alexDogs2009Src, originalFilename: "Alex-dogs.PNG", canonicalCharacterId: "alex", characterIds: Object.freeze(["alex"] as const), platform: "facebook", timestamp: "2009-05-08T16:00:00-07:00", role: "dog-history", initialVisibility: "visible", classification: "CURATED", approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const) }),
 });
 
 export function getSharedCharacterMedia(mediaId: SharedCharacterMediaId) {

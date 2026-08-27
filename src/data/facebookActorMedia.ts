@@ -28,6 +28,11 @@ export const FACEBOOK_EPHEMERAL_ACTOR_MEDIA: Readonly<Partial<Record<FacebookEph
   "facebook-ephemeral-eric": Object.freeze({ profileMediaId: "facebook-default-avatar" as const }),
   "facebook-ephemeral-daniel": Object.freeze({ profileMediaId: "facebook-default-avatar" as const }),
   "facebook-ephemeral-sam": Object.freeze({ profileMediaId: "facebook-default-avatar" as const }),
+  "facebook-ephemeral-sophie": Object.freeze({ profileMediaId: "facebook-sophie-avatar" as const }),
+  "facebook-ephemeral-nicole": Object.freeze({ profileMediaId: "facebook-avatar-07" as const }),
+  "facebook-ephemeral-derek": Object.freeze({ profileMediaId: "facebook-avatar-05" as const }),
+  "facebook-ephemeral-megan": Object.freeze({ profileMediaId: "facebook-avatar-03" as const }),
+  "facebook-ephemeral-evan": Object.freeze({ profileMediaId: "facebook-avatar-00" as const }),
 });
 
 export function getFacebookCanonicalProfileMediaId(characterId: CoreSocialCharacterId) {

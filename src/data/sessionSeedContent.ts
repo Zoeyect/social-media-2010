@@ -1,5 +1,5 @@
 import { CORE_SOCIAL_CHARACTERS, CORE_SOCIAL_FRIENDS } from "./coreSocialFriends";
-import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_DANIEL_ID, FACEBOOK_EPHEMERAL_EMILY_ID, FACEBOOK_EPHEMERAL_ERIC_ID, FACEBOOK_EPHEMERAL_FRANK_ID, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS, FACEBOOK_EPHEMERAL_KEVIN_ID, FACEBOOK_EPHEMERAL_MIKE_ID, FACEBOOK_EPHEMERAL_NICK_ID, FACEBOOK_EPHEMERAL_RACHEL_ID, FACEBOOK_EPHEMERAL_SAM_ID, FACEBOOK_EPHEMERAL_SARAH_ID } from "./facebookActors";
+import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_DANIEL_ID, FACEBOOK_EPHEMERAL_DEREK_ID, FACEBOOK_EPHEMERAL_EMILY_ID, FACEBOOK_EPHEMERAL_ERIC_ID, FACEBOOK_EPHEMERAL_FRANK_ID, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS, FACEBOOK_EPHEMERAL_KEVIN_ID, FACEBOOK_EPHEMERAL_MEGAN_ID, FACEBOOK_EPHEMERAL_MIKE_ID, FACEBOOK_EPHEMERAL_NICOLE_ID, FACEBOOK_EPHEMERAL_NICK_ID, FACEBOOK_EPHEMERAL_RACHEL_ID, FACEBOOK_EPHEMERAL_SAM_ID, FACEBOOK_EPHEMERAL_SARAH_ID, FACEBOOK_EPHEMERAL_SOPHIE_ID } from "./facebookActors";
 import { LUCA_PICKUP_BASKETBALL_MEDIA_IDS } from "./facebookAlbums";
 import { MAIN_STREET_DINER_VENUE } from "./canonicalVenues";
 
@@ -21,6 +21,20 @@ const JAY_BAND_SEED_LIKES = Object.freeze(JAY_BAND_LIKE_DISPLAY_NAMES.map((displ
   origin: "seed" as const,
 })));
 
+const JUNE_SHOW_LIKES_DISPLAY_NAMES = Object.freeze(JAY_BAND_LIKE_DISPLAY_NAMES.slice(0, 40));
+
+const JUNE_SHOW_POST_LIKES = Object.freeze([
+  Object.freeze({ id: "june-show-like-jack", itemId: "june-show-photos-oct19", displayName: CORE_SOCIAL_CHARACTERS.jack.displayName, characterId: CORE_SOCIAL_CHARACTERS.jack.id, classification: "CURATED" as const, origin: "seed" as const }),
+  ...JUNE_SHOW_LIKES_DISPLAY_NAMES.map((displayName, index) => Object.freeze({
+    id: `june-show-like-${String(index + 1).padStart(2, "0")}`,
+    itemId: "june-show-photos-oct19" as const,
+    displayName,
+    ephemeralId: `june-show-contact-${String(index + 1).padStart(2, "0")}`,
+    classification: "EPHEMERAL_FACEBOOK_CONTACT" as const,
+    origin: "seed" as const,
+  })),
+]);
+
 export const SESSION_SEED_CONTENT = Object.freeze({
   messages: Object.freeze([
     Object.freeze({
@@ -37,6 +51,8 @@ export const SESSION_SEED_CONTENT = Object.freeze({
   facebook: Object.freeze({
     feed: Object.freeze([
       Object.freeze({ id: "ben-long-day", friendId: CORE_SOCIAL_CHARACTERS.ben.id, author: CORE_SOCIAL_CHARACTERS.ben.displayName, text: "Long day.", timestamp: "11:58 PM", createdAt: "2010-10-19T23:58:00-07:00", kind: "status" as const, visibility: "friends" as const, origin: "seed" as const }),
+      Object.freeze({ id: "mike-anil-question", actor: Object.freeze({ kind: "ephemeral-friend-of-friend" as const, ephemeralId: FACEBOOK_EPHEMERAL_MIKE_ID }), author: "Mike", text: "is Anil playing friday too?", timestamp: "11:54 PM", createdAt: "2010-10-19T23:54:00-07:00", kind: "status" as const, visibility: "friends-of-friends" as const, origin: "seed" as const }),
+      Object.freeze({ id: "june-show-photos-oct19", friendId: CORE_SOCIAL_CHARACTERS.june.id, author: CORE_SOCIAL_CHARACTERS.june.displayName, text: "added 3 new photos. proud of you guys ♥ that show was actually so good @Jay @Matt @Anil", mentions: Object.freeze([{ token: "@Jay", actor: Object.freeze({ kind: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jay.id, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName }) }, { token: "@Matt", actor: Object.freeze({ kind: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.matt.id, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName }) }]), timestamp: "11:51 PM", createdAt: "2010-10-19T23:51:00-07:00", kind: "album" as const, visibility: "friends" as const, mediaIds: ["june-fb-F", "june-fb-10-18-01", "june-fb-10-18-02"] as const, photoCount: 3, origin: "seed" as const }),
       Object.freeze({ id: "jack-movie", friendId: CORE_SOCIAL_CHARACTERS.jack.id, author: CORE_SOCIAL_CHARACTERS.jack.displayName, text: "That movie was better than I expected.", timestamp: "11:52 PM", createdAt: "2010-10-19T23:52:00-07:00", kind: "status" as const, visibility: "friends" as const, origin: "seed" as const }),
       Object.freeze({ id: "alex-jacks-party-friday", friendId: CORE_SOCIAL_CHARACTERS.alex.id, author: CORE_SOCIAL_CHARACTERS.alex.displayName, text: "anyone going to jack's party friday?", timestamp: "11:47 PM", createdAt: "2010-10-19T23:47:00-07:00", kind: "status" as const, visibility: "friends-of-friends" as const, origin: "seed" as const }),
       Object.freeze({ id: "katie-coffee", friendId: CORE_SOCIAL_FRIENDS.katie.id, author: CORE_SOCIAL_FRIENDS.katie.displayName, text: "likes a coffee shop downtown.", timestamp: "11:41 PM", createdAt: "2010-10-19T23:41:00-07:00", kind: "activity" as const, visibility: "friends" as const, origin: "seed" as const }),
@@ -100,11 +116,22 @@ export const SESSION_SEED_CONTENT = Object.freeze({
     ]),
     likes: Object.freeze([
       Object.freeze({ id: "luca-pickup-basketball-like-chris", itemId: "luca-pickup-basketball-photos", displayName: CORE_SOCIAL_CHARACTERS.chris.displayName, characterId: CORE_SOCIAL_CHARACTERS.chris.id, classification: "CURATED" as const, origin: "seed" as const }),
+      ...JUNE_SHOW_POST_LIKES,
       ...JAY_BAND_SEED_LIKES,
     ]),
     comments: Object.freeze([
       Object.freeze({ id: "alex-party-comment-jay", itemId: "alex-jacks-party-friday", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jay.id, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, classification: "CURATED" as const }), text: "yeah probably", origin: "seed" as const }),
       Object.freeze({ id: "alex-party-comment-ryan", itemId: "alex-jacks-party-friday", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID] }), text: "yeah everyone's going lol", origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-jack", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jack.id, displayName: CORE_SOCIAL_CHARACTERS.jack.displayName, classification: "CURATED" as const }), text: "My boy @Matt kiss kiss <3", mentions: Object.freeze([{ token: "@Matt", actor: Object.freeze({ kind: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.matt.id, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName }) }]), origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-emily", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_EMILY_ID] }), text: "who was the drummer??", origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-ryan-a", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID] }), text: "Anil lol how do you not know him", origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-sophie", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_SOPHIE_ID] }), text: "Girl you looked fancy <3", origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-nicole", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_NICOLE_ID] }), text: "wait THAT'S Anil?? damn", origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-chris", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.chris.id, displayName: CORE_SOCIAL_CHARACTERS.chris.displayName, classification: "CURATED" as const }), text: "who was on keys?", origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-ryan-b", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID] }), text: "pretty sure that was Evan", origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-derek", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_DEREK_ID] }), text: "Anil killed it as usual", origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-megan", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_MEGAN_ID] }), text: "he plays with The Static Lines sometimes i think", origin: "seed" as const }),
+      Object.freeze({ id: "june-show-comment-june", itemId: "june-show-photos-oct19", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.june.id, displayName: CORE_SOCIAL_CHARACTERS.june.displayName, classification: "CURATED" as const }), text: "haha apparently everyone knows everyone except me", origin: "seed" as const }),
       Object.freeze({ id: "katie-september-comment-ben", itemId: "katie-selfie-september-2010", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.ben.id, displayName: CORE_SOCIAL_CHARACTERS.ben.displayName, classification: "CURATED" as const }), classification: "CURATED / SIBLING BANTER" as const, text: "do you own any other shirts?", origin: "seed" as const }),
       Object.freeze({ id: "luca-basketball-comment-chris-shot", itemId: "luca-pickup-basketball-photos", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.chris.id, displayName: CORE_SOCIAL_CHARACTERS.chris.displayName, classification: "CURATED" as const }), text: "my shot was clean tho lol", origin: "seed" as const }),
       Object.freeze({ id: "luca-basketball-comment-luca-misses", itemId: "luca-pickup-basketball-photos", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.luca.id, displayName: CORE_SOCIAL_CHARACTERS.luca.displayName, classification: "CURATED" as const }), text: "you missed like 10 before that", origin: "seed" as const }),

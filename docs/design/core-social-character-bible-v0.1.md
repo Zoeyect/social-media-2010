@@ -247,3 +247,7 @@ All nine identities are classified **CURATED FICTIONAL**. Their authored content
 The canonical metadata lives in `src/data/coreSocialFriends.ts` under `CORE_SOCIAL_CHARACTERS`. `CORE_SOCIAL_FRIENDS` remains a backward-compatible five-person view that references the same immutable objects. App-specific session state remains separate and mutable only within its owning state model.
 
 Katie's Facebook continuity uses `Katie03.PNG` as her current profile image and a sparse photo history spanning July/August 2009 and July/September 2010. Ben may leave occasional teasing comments on Katie's photos; `do you own any other shirts?` is classified `CURATED / SIBLING BANTER` and implies the locked sibling relationship without exposition.
+
+## Peripheral Facebook identity: Sophie Miller
+
+Sophie may react unusually strongly to Jack-related gossip, but whether this reflects surprise, attraction, or prior social history is intentionally undefined. Her T+780/T+795 Facebook comments are classified `CURATED / RELATIONSHIP-AMBIGUITY`; they do not establish romance, jealousy, or a hard relationship edge. Sophie remains a Facebook-local `EPHEMERAL_FRIEND_OF_FRIEND`, outside the canonical nine.

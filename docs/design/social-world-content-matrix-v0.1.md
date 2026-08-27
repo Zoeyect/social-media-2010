@@ -240,3 +240,9 @@ Facebook Feed now uses visibility-aware shared records across `status`, `photo`,
 Approved shared media is reachable through each owning Facebook Profile and a registry-driven album. Z.tokyo, Luca, Katie, Jay, Alex, and Ben now have approved album/media bindings. June, Jack, Matt, Ryan, and the current user remain empty on this surface; Anil has no Facebook profile. This is a media-availability boundary, not a statement about fictional lifetime photo counts.
 
 Katie has two Facebook album bindings: `Profile Pictures` for `Katie03.PNG` and a four-photo `Photos` history spanning July 2009 through September 2010. The September selfie carries one real canonical Ben sibling-banter comment, which preserves visible sibling continuity without the intentionally deleted family photo; historical photos remain outside the current Feed.
+
+## Peripheral ambiguous social history
+
+`Sophie / Jack = AMBIGUOUS SOCIAL HISTORY — UNRESOLVED`
+
+Sophie's late Facebook reaction can suggest several interpretations but must not become a confirmed romance, jealousy route, or hard relationship fact. Sophie remains peripheral and outside the canonical nine.

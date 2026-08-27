@@ -39,6 +39,8 @@ export const SESSION_TIMELINE_EVENTS: readonly SessionTimelineEventDefinition[] 
   TWITTER_LIVE_ACTIVITY_POOL[3],
   { id: "tumblr-background-post", atElapsedSeconds: 630, sourceApp: "tumblr", type: "tumblrBackgroundPost", payload: { kind: "tumblr-post", post: { id: "late-note", type: "text", blog: "latewatch", title: "After midnight", content: "The city gets quieter after midnight.", timestamp: "2010-10-20 12:12 AM" } }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
   TWITTER_LIVE_ACTIVITY_POOL[4],
+  { id: "facebook-sophie-june-instagram-comment-1", atElapsedSeconds: 780, sourceApp: "facebook", type: "facebookSophieJuneComment", payload: { kind: "facebook-sophie-june-comment", commentId: "facebook-sophie-june-instagram-comment-1", text: "what are you doing???" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
+  { id: "facebook-sophie-june-instagram-comment-2", atElapsedSeconds: 795, sourceApp: "facebook", type: "facebookSophieJuneComment", payload: { kind: "facebook-sophie-june-comment", commentId: "facebook-sophie-june-instagram-comment-2", text: "Jack????" }, deliveryPolicy: "internal", provenanceStatus: "CURATED" },
   TWITTER_LIVE_ACTIVITY_POOL[5],
 ];
 

@@ -2,6 +2,9 @@ import juneIg01Src from "../assets/characters/June/IG01.JPG";
 import juneIg02Src from "../assets/characters/June/IG02.JPG";
 import juneIg03Src from "../assets/characters/June/IG03.JPG";
 import juneIg04Src from "../assets/characters/June/IG04.JPG";
+import juneFImgSrc from "../assets/characters/June/June-F.PNG";
+import juneBandPhoto1Src from "../assets/characters/June/10-18-June.JPG";
+import juneBandPhoto2Src from "../assets/characters/June/10-18-June0.JPG";
 import juneProfileAvatarSrc from "../assets/characters/June/June01.PNG";
 import jayGuitarSrc from "../assets/characters/Jay/Jay01.PNG";
 import jayGuitarMaySrc from "../assets/characters/Jay/Jay02.PNG";
@@ -31,7 +34,7 @@ import mattCurrentProfilePictureSrc from "../assets/characters/Matt/Matt03.JPG";
 import mattCodePhotoSrc from "../assets/characters/Matt/Matt-code-10-15.PNG";
 import type { CoreSocialCharacterId } from "./coreSocialFriends";
 
-export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "jay-guitar", "jay-guitar-may", "jay-band-performance", "katie-selfie-july-2009", "katie-selfie-august-2009", "katie-profile-picture", "katie-selfie-july-2010", "katie-selfie-september-2010", "luca-profile-picture", "luca-basketball-01", "luca-basketball-02", "luca-basketball-03", "luca-work-main-street-diner", "alex-profile-picture", "alex-dog-golden-2007", "alex-dogs-wangcai-bb-2009", "ben-profile-current", "ben-photo-friday-2010", "ben-profile-2005", "ben-coffee-2006", "ben-coffee-2009", "ben-car-2010", "chris-profile-picture", "matt-profile-current", "matt-profile-2007", "matt-photo-2007", "matt-code-2010"] as const;
+export const SHARED_CHARACTER_MEDIA_IDS = ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "june-fb-F", "june-fb-10-18-01", "june-fb-10-18-02", "jay-guitar", "jay-guitar-may", "jay-band-performance", "katie-selfie-july-2009", "katie-selfie-august-2009", "katie-profile-picture", "katie-selfie-july-2010", "katie-selfie-september-2010", "luca-profile-picture", "luca-basketball-01", "luca-basketball-02", "luca-basketball-03", "luca-work-main-street-diner", "alex-profile-picture", "alex-dog-golden-2007", "alex-dogs-wangcai-bb-2009", "ben-profile-current", "ben-photo-friday-2010", "ben-profile-2005", "ben-coffee-2006", "ben-coffee-2009", "ben-car-2010", "chris-profile-picture", "matt-profile-current", "matt-profile-2007", "matt-photo-2007", "matt-code-2010"] as const;
 export type SharedCharacterMediaId = typeof SHARED_CHARACTER_MEDIA_IDS[number];
 
 export type SharedCharacterMedia = Readonly<{
@@ -113,6 +116,45 @@ export const SHARED_CHARACTER_MEDIA: Readonly<Record<SharedCharacterMediaId, Sha
     initialVisibility: "visible",
     classification: "CURATED",
     approvedUses: Object.freeze(["character-photo"] as const),
+  }),
+  "june-fb-F": Object.freeze({
+    id: "june-fb-F",
+    src: juneFImgSrc,
+    originalFilename: "June-F.PNG",
+    canonicalCharacterId: "june",
+    characterIds: Object.freeze(["june"] as const),
+    platform: "facebook",
+    timestamp: "2010-10-19T23:51:00-07:00",
+    role: "facebook-photo",
+    initialVisibility: "visible",
+    classification: "CURATED",
+    approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const),
+  }),
+  "june-fb-10-18-01": Object.freeze({
+    id: "june-fb-10-18-01",
+    src: juneBandPhoto1Src,
+    originalFilename: "10-18-June.JPG",
+    canonicalCharacterId: "june",
+    characterIds: Object.freeze(["june"] as const),
+    platform: "facebook",
+    timestamp: "2010-10-19T23:51:00-07:00",
+    role: "facebook-photo",
+    initialVisibility: "visible",
+    classification: "CURATED",
+    approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const),
+  }),
+  "june-fb-10-18-02": Object.freeze({
+    id: "june-fb-10-18-02",
+    src: juneBandPhoto2Src,
+    originalFilename: "10-18-June0.JPG",
+    canonicalCharacterId: "june",
+    characterIds: Object.freeze(["june"] as const),
+    platform: "facebook",
+    timestamp: "2010-10-19T23:51:00-07:00",
+    role: "facebook-photo",
+    initialVisibility: "visible",
+    classification: "CURATED",
+    approvedUses: Object.freeze(["character-photo", "facebook-story", "facebook-album"] as const),
   }),
   "jay-guitar": Object.freeze({
     id: "jay-guitar",

@@ -238,6 +238,8 @@ export function App() {
       dispatchFacebook({ type: "DELIVER_EPHEMERAL_GOSSIP", postId: event.payload.postId, ephemeralId: event.payload.ephemeralId, text: event.payload.text, timestamp: deviceStatusTime });
     } else if (event.type === "facebookKatieGossipMessage" && event.payload?.kind === "facebook-katie-jack-gossip-message") {
       dispatchFacebook({ type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: deviceStatusTime });
+    } else if (event.type === "facebookSophieJuneComment" && event.payload?.kind === "facebook-sophie-june-comment") {
+      dispatchFacebook({ type: "DELIVER_SOPHIE_JUNE_COMMENT", commentId: event.payload.commentId, text: event.payload.text });
     } else if (event.type === "instagramJunePost" && event.payload?.kind === "instagram-june-post") {
       dispatchInstagram({ type: "DELIVER_KNOWN_ACCOUNT_POST", post: { id: event.payload.postId, mediaId: event.payload.mediaId, timestamp: event.payload.timestamp } });
     } else if (event.type === "instagramJuneDelete" && event.payload?.kind === "instagram-june-delete") {

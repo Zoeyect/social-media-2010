@@ -1,5 +1,5 @@
 import zTokyoProfilePictureSrc from "../assets/facebook/characters/z-tokyo/profile/IMG_1423.JPG";
-import { FACEBOOK_AUTHOR_EASTER_EGG_ID } from "./facebookActors";
+import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_EPHEMERAL_SOPHIE_ID } from "./facebookActors";
 import facebookDefaultAvatarSrc from "../assets/facebook/characters/photos/01.png";
 import facebookAvatar00Src from "../assets/facebook/characters/photos/00.png";
 import facebookAvatar02Src from "../assets/facebook/characters/photos/02.png";
@@ -7,8 +7,9 @@ import facebookAvatar03Src from "../assets/facebook/characters/photos/03.png";
 import facebookAvatar05Src from "../assets/facebook/characters/photos/05.png";
 import facebookAvatar06Src from "../assets/facebook/characters/photos/06.png";
 import facebookAvatar07Src from "../assets/facebook/characters/photos/07.png";
+import facebookSophieAvatarSrc from "../assets/facebook/characters/photos/S.png";
 
-export const FACEBOOK_MEDIA_IDS = ["z-tokyo-profile-picture", "facebook-default-avatar", "facebook-avatar-00", "facebook-avatar-02", "facebook-avatar-03", "facebook-avatar-05", "facebook-avatar-06", "facebook-avatar-07"] as const;
+export const FACEBOOK_MEDIA_IDS = ["z-tokyo-profile-picture", "facebook-default-avatar", "facebook-avatar-00", "facebook-avatar-02", "facebook-avatar-03", "facebook-avatar-05", "facebook-avatar-06", "facebook-avatar-07", "facebook-sophie-avatar"] as const;
 export type FacebookMediaId = typeof FACEBOOK_MEDIA_IDS[number];
 
 export const FACEBOOK_MEDIA = Object.freeze({
@@ -43,6 +44,16 @@ export const FACEBOOK_MEDIA = Object.freeze({
   "facebook-avatar-05": Object.freeze({ id: "facebook-avatar-05" as const, kind: "photo" as const, owner: Object.freeze({ kind: "facebook-ephemeral" as const }), src: facebookAvatar05Src, originalFilename: "05.png", classification: "CURATED / FACEBOOK_EPHEMERAL_AVATAR" as const, intendedUses: Object.freeze(["profile-picture", "actor-avatar"] as const) }),
   "facebook-avatar-06": Object.freeze({ id: "facebook-avatar-06" as const, kind: "photo" as const, owner: Object.freeze({ kind: "facebook-ephemeral" as const }), src: facebookAvatar06Src, originalFilename: "06.png", classification: "CURATED / FACEBOOK_EPHEMERAL_AVATAR" as const, intendedUses: Object.freeze(["profile-picture", "actor-avatar"] as const) }),
   "facebook-avatar-07": Object.freeze({ id: "facebook-avatar-07" as const, kind: "photo" as const, owner: Object.freeze({ kind: "facebook-ephemeral" as const }), src: facebookAvatar07Src, originalFilename: "07.png", classification: "CURATED / FACEBOOK_EPHEMERAL_AVATAR" as const, intendedUses: Object.freeze(["profile-picture", "actor-avatar"] as const) }),
+  "facebook-sophie-avatar": Object.freeze({
+    id: "facebook-sophie-avatar" as const,
+    kind: "photo" as const,
+    owner: Object.freeze({ kind: "facebook-ephemeral-dedicated" as const, ephemeralId: FACEBOOK_EPHEMERAL_SOPHIE_ID }),
+    src: facebookSophieAvatarSrc,
+    originalFilename: "S.png",
+    sha256: "a9a1f1ad1eb96422c5119a8a760e297575a4d790a988de94026949ae6130ac30",
+    classification: "CURATED / FACEBOOK_DEDICATED_EPHEMERAL_AVATAR" as const,
+    intendedUses: Object.freeze(["profile-picture", "actor-avatar"] as const),
+  }),
 });
 
 export function getFacebookMedia(mediaId: FacebookMediaId | undefined) {

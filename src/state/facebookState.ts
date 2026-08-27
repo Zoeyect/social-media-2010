@@ -128,7 +128,7 @@ export type FacebookComment = {
   mentions?: readonly FacebookInlineMention[];
   origin: "seed" | "live" | "user";
   characterId?: CoreSocialCharacterId;
-  classification?: "CURATED" | "CURATED / SIBLING BANTER" | "PERIOD-EVIDENCE-INFORMED / CURATED";
+  classification?: "CURATED" | "CURATED / SIBLING BANTER" | "PERIOD-EVIDENCE-INFORMED / CURATED" | "CURATED / RELATIONSHIP-AMBIGUITY";
   ephemeralAuthor?: FacebookEphemeralIdentity;
   authorEasterEggId?: FacebookAuthorEasterEggId;
 };
@@ -247,6 +247,7 @@ export type FacebookEvent =
   | { type: "DELIVER_JUNE_JACK_GOSSIP"; reactionId: "facebook-june-jack-gossip-katie" | "facebook-june-jack-gossip-chris"; characterId: "katie" | "chris"; text: string }
   | { type: "DELIVER_EPHEMERAL_GOSSIP"; postId: typeof FACEBOOK_EPHEMERAL_GOSSIP_POST_ID; ephemeralId: typeof FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID; text: "june + jack??? lol"; timestamp: string }
   | { type: "DELIVER_KATIE_GOSSIP_MESSAGE"; timestamp: string }
+  | { type: "DELIVER_SOPHIE_JUNE_COMMENT"; commentId: "facebook-sophie-june-instagram-comment-1" | "facebook-sophie-june-instagram-comment-2"; text: "what are you doing???" | "Jack????" }
   | { type: "DELIVER_PARTY_INVITE"; timestamp: string }
   | { type: "RESET"; displayName?: string };
 
@@ -683,6 +684,23 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         }, ...state.inboxThreads],
         threadMessages: [...state.threadMessages, { id: `${FACEBOOK_KATIE_GOSSIP_MESSAGE_ID}-incoming`, threadId: FACEBOOK_KATIE_GOSSIP_MESSAGE_ID, authorType: "character", characterId: "katie", author: "Katie", body: "Do you know Jack????", timestamp: event.timestamp, origin: "live" }],
       };
+    case "DELIVER_SOPHIE_JUNE_COMMENT": {
+      const expectedText = event.commentId === "facebook-sophie-june-instagram-comment-1" ? "what are you doing???" : "Jack????";
+      if (!state.feed.some(item => item.id === FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID) || event.text !== expectedText || state.comments.some(comment => comment.id === event.commentId)) return state;
+      const sophie = FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS["facebook-ephemeral-sophie"];
+      return {
+        ...state,
+        comments: [...state.comments, {
+          id: event.commentId,
+          itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID,
+          author: sophie.displayName,
+          text: event.text,
+          origin: "live",
+          ephemeralAuthor: sophie,
+          classification: "CURATED / RELATIONSHIP-AMBIGUITY",
+        }],
+      };
+    }
     case "DELIVER_PARTY_INVITE":
       if (state.partyInviteState !== "eligible") return state;
       return {
@@ -809,16 +827,38 @@ export function resolveFacebookCommentActor(comment: FacebookComment, sessionUse
 
 export const FACEBOOK_JUNE_LIKE_GROWTH: readonly FacebookLike[] = Object.freeze([
   Object.freeze({ id: "june-instagram-like-jay", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Jay", characterId: "jay", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 60 }),
-  Object.freeze({ id: "june-instagram-like-alex", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Alex", characterId: "alex", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 90 }),
-  Object.freeze({ id: "june-instagram-like-nina", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Nina", ephemeralId: "facebook-contact-nina", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 90 }),
-  Object.freeze({ id: "june-instagram-like-katie", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Katie", characterId: "katie", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 120 }),
-  Object.freeze({ id: "june-instagram-like-chris", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Chris", characterId: "chris", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 120 }),
-  Object.freeze({ id: "june-instagram-like-ben", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Ben", characterId: "ben", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 150 }),
-  Object.freeze({ id: "june-instagram-like-mia", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Mia", ephemeralId: "facebook-contact-mia", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 150 }),
-  Object.freeze({ id: "june-instagram-like-luca", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Luca", characterId: "luca", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 210 }),
-  Object.freeze({ id: "june-instagram-like-erin", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Erin", ephemeralId: "facebook-contact-erin", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 210 }),
-  Object.freeze({ id: "june-instagram-like-zoe", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Zoe", ephemeralId: "facebook-contact-zoe", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 300 }),
-  Object.freeze({ id: "june-instagram-like-noah", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Noah", ephemeralId: "facebook-contact-noah", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 300 }),
+  Object.freeze({ id: "june-instagram-like-alex", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Alex", characterId: "alex", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 82 }),
+  Object.freeze({ id: "june-instagram-like-nina", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Nina", ephemeralId: "facebook-contact-nina", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 94 }),
+  Object.freeze({ id: "june-instagram-like-katie", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Katie", characterId: "katie", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 94 }),
+  Object.freeze({ id: "june-instagram-like-chris", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Chris", characterId: "chris", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 113 }),
+  Object.freeze({ id: "june-instagram-like-ben", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Ben", characterId: "ben", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 136 }),
+  Object.freeze({ id: "june-instagram-like-mia", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Mia", ephemeralId: "facebook-contact-mia", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 136 }),
+  Object.freeze({ id: "june-instagram-like-luca", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Luca", characterId: "luca", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 164 }),
+  Object.freeze({ id: "june-instagram-like-erin", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Erin", ephemeralId: "facebook-contact-erin", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 190 }),
+  Object.freeze({ id: "june-instagram-like-zoe", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Zoe", ephemeralId: "facebook-contact-zoe", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 190 }),
+  Object.freeze({ id: "june-instagram-like-noah", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Noah", ephemeralId: "facebook-contact-noah", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 225 }),
+  Object.freeze({ id: "june-instagram-like-ava", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Ava", ephemeralId: "facebook-contact-ava", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 270 }),
+  Object.freeze({ id: "june-instagram-like-tyler", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Tyler", ephemeralId: "facebook-contact-tyler", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 270 }),
+  Object.freeze({ id: "june-instagram-like-grace", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Grace", ephemeralId: "facebook-contact-grace", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 326 }),
+  Object.freeze({ id: "june-instagram-like-dylan", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Dylan", ephemeralId: "facebook-contact-dylan", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 377 }),
+  Object.freeze({ id: "june-instagram-like-leah", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Leah", ephemeralId: "facebook-contact-leah", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 377 }),
+  Object.freeze({ id: "june-instagram-like-marcus", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Marcus", ephemeralId: "facebook-contact-marcus", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 438 }),
+  Object.freeze({ id: "june-instagram-like-jenna", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Jenna", ephemeralId: "facebook-contact-jenna", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 501 }),
+  Object.freeze({ id: "june-instagram-like-cody", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Cody", ephemeralId: "facebook-contact-cody", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 501 }),
+  Object.freeze({ id: "june-instagram-like-paige", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Paige", ephemeralId: "facebook-contact-paige", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 568 }),
+  Object.freeze({ id: "june-instagram-like-trevor", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Trevor", ephemeralId: "facebook-contact-trevor", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 645 }),
+  Object.freeze({ id: "june-instagram-like-hannah", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Hannah", ephemeralId: "facebook-contact-hannah", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 718 }),
+  Object.freeze({ id: "june-instagram-like-jordan", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Jordan", ephemeralId: "facebook-contact-jordan", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 790 }),
+  Object.freeze({ id: "june-show-live-like-01", itemId: "june-show-photos-oct19", displayName: "Olivia", ephemeralId: "june-show-live-contact-01", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 125 }),
+  Object.freeze({ id: "june-show-live-like-02", itemId: "june-show-photos-oct19", displayName: "Tyler", ephemeralId: "june-show-live-contact-02", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 198 }),
+  Object.freeze({ id: "june-show-live-like-03", itemId: "june-show-photos-oct19", displayName: "Grace", ephemeralId: "june-show-live-contact-03", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 198 }),
+  Object.freeze({ id: "june-show-live-like-04", itemId: "june-show-photos-oct19", displayName: "Dylan", ephemeralId: "june-show-live-contact-04", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 290 }),
+  Object.freeze({ id: "june-show-live-like-05", itemId: "june-show-photos-oct19", displayName: "Leah", ephemeralId: "june-show-live-contact-05", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 365 }),
+  Object.freeze({ id: "june-show-live-like-06", itemId: "june-show-photos-oct19", displayName: "Marcus", ephemeralId: "june-show-live-contact-06", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 470 }),
+  Object.freeze({ id: "june-show-live-like-07", itemId: "june-show-photos-oct19", displayName: "Jenna", ephemeralId: "june-show-live-contact-07", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 470 }),
+  Object.freeze({ id: "june-show-live-like-08", itemId: "june-show-photos-oct19", displayName: "Cody", ephemeralId: "june-show-live-contact-08", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 590 }),
+  Object.freeze({ id: "june-show-live-like-09", itemId: "june-show-photos-oct19", displayName: "Paige", ephemeralId: "june-show-live-contact-09", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 690 }),
+  Object.freeze({ id: "june-show-live-like-10", itemId: "june-show-photos-oct19", displayName: "Trevor", ephemeralId: "june-show-live-contact-10", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 805 }),
 ]);
 
 export function selectFacebookVisibleFeed(state: FacebookState): FacebookFeedItem[] {

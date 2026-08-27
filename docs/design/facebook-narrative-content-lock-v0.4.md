@@ -103,3 +103,9 @@ Feed and Profile Wall timestamp metadata is deterministically derived from each 
 All late-night seed stories visible before the 12:02 AM session boundary are locked to October 19 PDT with explicit ISO timestamps. Future-dated seed records fail validation; the formatter warns in DEV and uses absolute metadata rather than disguising negative age as `just now`.
 
 Feed relative time is additionally calendar-day scoped in `America/Los_Angeles`. Oct 20 live stories may use relative minutes, while every Oct 19 story renders `Tue h:mm PM` after midnight regardless of elapsed-hour distance. Detail views continue to show the full October 19 date and time.
+
+## June live engagement and Sophie ambiguity v0.5.22
+
+June's T+60 Facebook Instagram announcement grows through explicit irregular Like milestones from 1 to 23. Her older `june-show-photos-oct19` album story begins with 41 seed Likes and grows more slowly to 51. Both surfaces derive their visible total from seed records, elapsed live records, and the current user's reversible Like record; neither curve creates notifications or scheduler events.
+
+At T+780 and T+795, Sophie Miller adds `what are you doing???` and `Jack????` to the Facebook Instagram-announcement thread. These comments are `CURATED / RELATIONSHIP-AMBIGUITY`, remain visible after IG04 has been deleted, and reuse Sophie's Facebook-local actor and dedicated `S.png` Profile media. The reaction may imply surprise, attraction, or prior social history, but no Sophie/Jack relationship is canonically resolved.

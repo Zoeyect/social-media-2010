@@ -94,6 +94,8 @@ The two dogs are a recurring motif. Their names remain HOLD and must not become 
 
 Chris should not become an athlete caricature. His existing Twitter Mention remains canonical.
 
+Chris's Facebook Profile is intentionally sparse. `Chris01.PNG`, uploaded November 14, 2009, is his only approved Profile Picture and he has no generic Photos album. He is socially active primarily through browsing, Likes, comments, gossip, and participation on friends' posts rather than proactive self-posting or Profile curation. In the basketball friendship, Luca is the more active media poster while Chris appears, Likes, comments, and jokes without reposting the same event.
+
 ## 8. Jay
 
 - Canonical ID: `jay`

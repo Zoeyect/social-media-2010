@@ -18,6 +18,7 @@ Implemented albums:
 - Luca: Pickup Basketball; Photos
 - Alex: Profile Pictures; Dogs
 - Ben: Profile Pictures; Photos
+- Chris: Profile Pictures only; generic Photos intentionally empty/HOLD
 - Katie: Photos
 - Jay: Music, with the Oct 19 performance, Oct 17 Jay guitar photo, and May guitar still life ordered by in-world timestamp
 
@@ -32,6 +33,8 @@ Jay's existing band-performance photo/story owns 48 deterministic seed Like reco
 Alex has a centralized `Profile Pictures` album backed by unchanged `Alex.png` and a `Dogs` album backed by unchanged `Alex-dogs.PNG` and `Alex01.PNG`. The dog album sorts May 8, 2009 before October 3, 2007 and preserves caption `旺財&BB`. Both historical photos use the shared Photo Detail interaction path and are excluded from the current October 2010 Feed through custom-audience visibility.
 
 Ben has a two-photo `Profile Pictures` history and a four-photo `Photos` history. Current `Ben01.JPG` is timestamped October 15, 2010 at 10:12 PM; the older `Ben0.png` entry is dated September 18, 2005. The same unchanged `Ben01.JPG` source is also referenced by a distinct ordinary photo at 9:49 PM with caption `happy friday. finally.`. `Ben-car.JPG` retains `new truck :)`; `Ben-coffee02.JPG` and `Ben-coffee.PNG` remain uncaptioned. All six records open through shared Photo Detail and remain outside the current News Feed.
+
+Chris has one `Profile Pictures` album containing unchanged `Chris01.PNG`, timestamped November 14, 2009 at 8:30 PM PST. No generic `Photos` album is registered because no second approved asset exists. Deleted Chris-Luca media remains absent, and Luca retains sole ownership of the Pickup Basketball album while Chris participates through Likes and comments. The single profile picture opens through shared Photo Detail; empty space is an intentional low-maintenance Profile behavior rather than missing content.
 
 Katie's implementation uses `Katie03.PNG` as one shared current avatar/Profile Pictures media record. `Katie01.jpg`, `Katie02.jpg`, `Katie04.jpg`, and `Katie05.jpg` form a separate `Photos` album ordered September 2010, July 2010, August 2009, July 2009. Only the August 2009 image has the caption `summer :)`. The former Katie/Ben family-context asset and album were intentionally removed; Ben's `do you own any other shirts?` response remains a canonical seed comment on the September photo, so sibling continuity, counts, and Profile navigation use shared comment/actor state without replacement media.
 

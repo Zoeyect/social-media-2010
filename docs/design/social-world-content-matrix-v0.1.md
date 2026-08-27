@@ -80,12 +80,12 @@ All approved character photos are `SHARED CHARACTER MEDIA`, not Facebook-only as
 | Katie | `Katie01.jpg`, `Katie02.jpg`, `Katie03.PNG`, `Katie04.jpg`, `Katie05.jpg` | Facebook photos/profile, Flickr | None required until a specific story needs it | Medium |
 | Matt | `Matt-code-10....PNG`, `Matt01.JPG`, `Matt02.JPG`, `Matt03.JPG`, `Matt04.JPG` | Twitter links, Facebook, Tumblr, band context | Approved bass/band evidence if existing images do not establish it | Medium |
 | Alex | `Alex-dogs.PNG`, `Alex01.PNG` | Facebook, Flickr, Twitter image posts | Additional dog media only after dog identity details are locked | High |
-| Chris | `Chris-Luca.PNG`, `Chris01.PNG` | Facebook, Flickr, basketball context | Additional sports/group media optional | Medium |
+| Chris | `Chris01.PNG` | Facebook Profile Picture; social presence primarily through Likes/comments on friends' content | Generic Photos remain intentionally empty; deleted Chris-Luca media stays removed | Medium |
 | Jay | `10-18.JPG`, `Jay01.PNG`, `Jay02.PNG` | Flickr, Tumblr, Twitter links, Facebook, band context | Band/live coverage only if needed | High |
 | June | Existing canonical references; no new filename locked here | Facebook, Instagram, Flickr | Historically appropriate early-Instagram imagery remains dependent on IA and asset approval | High |
 | Jack | Existing canonical references; no new filename locked here | Facebook profile/activity, sparse event context | Football or group-event media optional, not required for narrative | Low/Medium |
 | Ben | `Ben0.png`, `Ben-car.JPG`, `Ben-coffee.PNG`, `Ben-coffee02.JPG`, `Ben01.JPG` | Twitter links, Facebook, Foursquare | None required | Medium |
-| Luca | `Chris-Luca.PNG`, `Luca.png`, `guys.png`, `guys02.PNG`, `guys03.png`, `Luca-work.png` | Facebook profile/photos, Flickr, Foursquare context | None required for the current profile/work/basketball baseline | Medium |
+| Luca | `Luca.png`, `guys.png`, `guys02.PNG`, `guys03.png`, `Luca-work.png` | Facebook profile/photos, Flickr, Foursquare context | None required for the current profile/work/basketball baseline | Medium |
 | Z.tokyo | Supplied author portrait at `src/assets/facebook/characters/z-tokyo/profile/IMG_1423.JPG`; existing author/photo references where approved | Facebook profile picture, Wall activity, Photos/Profile Pictures album later; discreet band media | Full Photos UI and additional album content remain HOLD | High for existing cameo, low for expansion |
 | Anil | No standalone social-profile asset approved; band evidence only | Facebook/Flickr/Tumblr photos owned or posted by others | Band/group depiction only if separately approved | Low until a background thread needs it |
 
@@ -160,6 +160,7 @@ The nine canonical characters do not require equal content volume. Density follo
 - Matt may have more Twitter text and fewer photos.
 - June may have more Facebook/photo presence and the earliest Instagram presence.
 - Alex may have more pet imagery.
+- Chris has LOW self-posting, HIGH Comment/Like activity, and LOW Profile density; sparse space is intentional.
 - Ben may have more office/coffee text and fewer photos.
 - Jack should have low content volume but high narrative significance.
 - Luca needs enough restaurant content to keep work more visible than basketball alone.

@@ -8,6 +8,7 @@ export const FACEBOOK_CANONICAL_ACTOR_MEDIA: Readonly<Partial<Record<CoreSocialC
   jay: Object.freeze({ profileMediaId: "facebook-default-avatar" as const }),
   alex: Object.freeze({ profileMediaId: "alex-profile-picture" as const }),
   ben: Object.freeze({ profileMediaId: "ben-profile-current" as const }),
+  chris: Object.freeze({ profileMediaId: "chris-profile-picture" as const }),
 });
 
 export const FACEBOOK_EPHEMERAL_ACTOR_MEDIA: Readonly<Partial<Record<FacebookEphemeralFriendOfFriendId, Readonly<{ profileMediaId: FacebookStoryMediaId }>>>> = Object.freeze({

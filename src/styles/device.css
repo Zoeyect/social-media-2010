@@ -300,7 +300,8 @@ button, input { font: inherit; }
 .facebook-profile-header div { display: grid; gap: 4px; }.facebook-profile-header strong { color: #243b6b; font-size: 18px; }.facebook-profile-header span { color: #777; font-size: 12px; }
 .facebook-profile-sections { flex: 0 0 34px; display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid #999; background: #e6e6e6; }
 .facebook-profile-sections button { padding: 0; color: #3b5998; border: 0; border-right: 1px solid #bbb; background: transparent; font-size: 11px; font-weight: bold; }.facebook-profile-sections button:last-child { border-right: 0; }.facebook-profile-sections button[aria-current="page"] { color: #222; background: #ccc; }
-.facebook-profile-wall,.facebook-profile-empty { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.facebook-profile-wall { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; touch-action: pan-y; }
+.facebook-profile-empty { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .facebook-profile-wall .facebook-story-view { width: 100%; }.facebook-profile-wall time { color: #888; font-size: 11px; }
 .instagram-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #26211d; background: #eeeae3; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
 .instagram-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-bottom: 1px solid #322a22; background: #554a3e; text-shadow: 0 -1px rgba(0,0,0,.75); }

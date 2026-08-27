@@ -186,6 +186,7 @@ export type FacebookState = {
   profileReturnStack: FacebookProfileReturnState[];
   profileSection: FacebookProfileSection;
   scrollPosition: number;
+  profileWallScrollPositions: Record<string, number>;
   likedItemIds: string[];
   likes: FacebookLike[];
   friendRequestState: FacebookFriendRequestState;
@@ -221,6 +222,7 @@ export type FacebookEvent =
   | { type: "OPEN_PROFILE"; profileName: string; scrollPosition?: number }
   | { type: "OPEN_COMMENT_AUTHOR"; actor: FacebookNavigableActor; scrollPosition?: number }
   | { type: "SET_PROFILE_SECTION"; section: FacebookProfileSection }
+  | { type: "SET_PROFILE_WALL_SCROLL_POSITION"; profileName: string; scrollPosition: number }
   | { type: "SHOW_FRIENDS" }
   | { type: "SET_FRIENDS_SECTION"; section: FacebookFriendsSection }
   | { type: "EDIT_FRIEND_SEARCH"; value: string }
@@ -246,7 +248,7 @@ export type FacebookEvent =
   | { type: "CANCEL_STATUS" }
   | { type: "SUBMIT_STATUS"; displayName: string; timestamp: string; createdAt: string }
   | { type: "GO_BACK" }
-  | { type: "OPEN_FEED_ITEM"; itemId: string; scrollPosition: number }
+  | { type: "OPEN_FEED_ITEM"; itemId: string; scrollPosition: number; origin?: "feed" | "profileWall"; profileName?: string }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
   | { type: "TOGGLE_LIKE"; itemId: string; displayName?: string }
   | { type: "SHOW_FRIEND_REQUESTS" }
@@ -287,6 +289,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     profileReturnStack: [],
     profileSection: "wall",
     scrollPosition: 0,
+    profileWallScrollPositions: {},
     likedItemIds: [],
     likes: SESSION_SEED_CONTENT.facebook.likes.map(like => ({ ...like })),
     friendRequestState: "none",
@@ -415,6 +418,16 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     }
     case "SET_PROFILE_SECTION":
       return state.currentView === "profile" ? { ...state, profileSection: event.section } : state;
+    case "SET_PROFILE_WALL_SCROLL_POSITION":
+      return state.currentView === "profile" && state.selectedProfileName === event.profileName
+        ? {
+          ...state,
+          profileWallScrollPositions: {
+            ...state.profileWallScrollPositions,
+            [event.profileName]: Math.max(0, event.scrollPosition),
+          },
+        }
+        : state;
     case "SHOW_FRIENDS":
       return { ...state, currentView: "friends", navigationStack: ["home", "friends"], friendsSection: "friends", friendSearchQuery: "" };
     case "SET_FRIENDS_SECTION":
@@ -584,7 +597,10 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         currentView: "feedDetail",
         navigationStack: [...state.navigationStack, "feedDetail"],
         selectedFeedItemId: event.itemId,
-        scrollPosition: Math.max(0, event.scrollPosition),
+        scrollPosition: event.origin === "profileWall" ? state.scrollPosition : Math.max(0, event.scrollPosition),
+        profileWallScrollPositions: event.origin === "profileWall" && event.profileName
+          ? { ...state.profileWallScrollPositions, [event.profileName]: Math.max(0, event.scrollPosition) }
+          : state.profileWallScrollPositions,
       };
     case "SET_SCROLL_POSITION":
       return { ...state, scrollPosition: Math.max(0, event.scrollPosition) };

@@ -405,8 +405,14 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
 
   useLayoutEffect(() => {
     if (state.currentView !== "profile" || state.profileSection !== "wall" || !wallRef.current) return;
-    wallRef.current.scrollTop = state.scrollPosition;
-  }, [profileName, state.currentView, state.profileSection, state.scrollPosition]);
+    wallRef.current.scrollTop = state.profileWallScrollPositions[profileName] ?? 0;
+  }, [profileName, state.currentView, state.profileSection]);
+
+  const captureWallScroll = () => dispatch({
+    type: "SET_PROFILE_WALL_SCROLL_POSITION",
+    profileName,
+    scrollPosition: wallRef.current?.scrollTop ?? state.profileWallScrollPositions[profileName] ?? 0,
+  });
 
   return <section className="facebook-profile" aria-label={`${profileName} Profile`} data-identity-kind={state.selectedProfileActor?.kind ?? "name-route"}>
     <header className="facebook-profile-header">{profileMedia
@@ -418,7 +424,7 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
     {state.profileSection === "wall" && <div
       ref={wallRef}
       className="facebook-profile-wall"
-      onScroll={event => dispatch({ type: "SET_SCROLL_POSITION", scrollPosition: event.currentTarget.scrollTop })}
+      onScroll={event => dispatch({ type: "SET_PROFILE_WALL_SCROLL_POSITION", profileName, scrollPosition: event.currentTarget.scrollTop })}
     >
       {wallItems.map(item => <FacebookStoryView
         key={item.id}
@@ -428,11 +434,19 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
         commentCount={selectFacebookComments(state, item.id).length}
         likeCount={selectFacebookLikes(state, item.id, elapsedSeconds).length}
         storyTime={formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp })}
-        onOpenProfile={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author })}
-        onOpen={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: wallRef.current?.scrollTop ?? state.scrollPosition })}
+        onOpenProfile={() => {
+          captureWallScroll();
+          dispatch({ type: "OPEN_PROFILE", profileName: item.author });
+        }}
+        onOpenActor={actor => {
+          captureWallScroll();
+          dispatch({ type: "OPEN_COMMENT_AUTHOR", actor });
+        }}
+        onBeforeMediaNavigate={captureWallScroll}
+        onOpen={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: wallRef.current?.scrollTop ?? state.profileWallScrollPositions[profileName] ?? 0, origin: "profileWall", profileName })}
         onToggleLike={() => dispatch({ type: "TOGGLE_LIKE", itemId: item.id, displayName: currentUserName })}
         onComment={() => {
-          dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: wallRef.current?.scrollTop ?? state.scrollPosition });
+          dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: wallRef.current?.scrollTop ?? state.profileWallScrollPositions[profileName] ?? 0, origin: "profileWall", profileName });
           dispatch({ type: "BEGIN_COMMENT", itemId: item.id });
         }}
         dispatch={dispatch}
@@ -467,7 +481,7 @@ function FacebookCommentRow({ comment, sessionUserName, dispatch }: { comment: F
   </article>;
 }
 
-function FacebookStoryView({ surface, item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpenActor, onOpen, onToggleLike, onComment, dispatch }: { surface: "feed" | "wall"; item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpenActor?: (actor: FacebookNavigableActor) => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookStoryView({ surface, item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpenActor, onBeforeMediaNavigate, onOpen, onToggleLike, onComment, dispatch }: { surface: "feed" | "wall"; item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpenActor?: (actor: FacebookNavigableActor) => void; onBeforeMediaNavigate?: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
   const actorProfileMediaId = item.actor?.kind === "author-easter-egg"
     ? item.mediaId
     : item.actor?.kind === "ephemeral-friend-of-friend"
@@ -483,7 +497,7 @@ function FacebookStoryView({ surface, item, liked, commentCount, likeCount, stor
     <span className="facebook-feed-copy">
       <button type="button" className="facebook-author-link" onClick={onOpenProfile}>{item.author}</button>
       <span className="facebook-story-link" role="button" tabIndex={0} onClick={onOpen} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen(); }}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} onOpenActor={onOpenActor} /></span>
-      <FacebookStoryMedia item={item} dispatch={dispatch} />
+      <FacebookStoryMedia item={item} dispatch={dispatch} onBeforeNavigate={onBeforeMediaNavigate} />
       <time>{storyTime}</time>
       <FacebookStoryCounts commentCount={commentCount} likeCount={likeCount} />
       <span className="facebook-feed-actions"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
@@ -491,7 +505,7 @@ function FacebookStoryView({ surface, item, liked, commentCount, likeCount, stor
   </article>;
 }
 
-function FacebookStoryMedia({ item, dispatch }: { item: FacebookFeedItem; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookStoryMedia({ item, dispatch, onBeforeNavigate }: { item: FacebookFeedItem; dispatch: Dispatch<FacebookEvent>; onBeforeNavigate?: () => void }) {
   const mediaIds = item.mediaIds ?? (item.mediaId ? [item.mediaId] : []);
   const media = mediaIds.flatMap(mediaId => {
     const record = getFacebookStoryMedia(mediaId);
@@ -499,7 +513,11 @@ function FacebookStoryMedia({ item, dispatch }: { item: FacebookFeedItem; dispat
   });
   if (media.length === 0) return null;
   const album = getFacebookAlbumByStoryId(item.id);
-  return <button type="button" disabled={!album} onClick={() => album && dispatch(item.kind === "album" ? { type: "OPEN_ALBUM", albumId: album.id } : { type: "OPEN_ALBUM_PHOTO", albumId: album.id, mediaId: mediaIds[0] })} className={item.kind === "album" ? "facebook-story-album-media" : "facebook-story-photo-media"} aria-label={item.albumTitle ?? `${item.author} photo`}>
+  return <button type="button" disabled={!album} onClick={() => {
+    if (!album) return;
+    onBeforeNavigate?.();
+    dispatch(item.kind === "album" ? { type: "OPEN_ALBUM", albumId: album.id } : { type: "OPEN_ALBUM_PHOTO", albumId: album.id, mediaId: mediaIds[0] });
+  }} className={item.kind === "album" ? "facebook-story-album-media" : "facebook-story-photo-media"} aria-label={item.albumTitle ?? `${item.author} photo`}>
     {media.map(record => <img key={record.id} src={record.src} alt="" />)}
     {item.kind === "album" && item.albumTitle && <span>{item.albumTitle}{media.length ? ` · ${media.length} photos` : ""}</span>}
   </button>;

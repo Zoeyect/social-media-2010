@@ -1074,7 +1074,7 @@ But the system never states whether the user liked her.
 ## Identity
 
 **Name:** Jack  
-**Age:** 17  
+**Age:** 18
 **Height:** approximately 190 cm  
 **Ethnicity / ancestry:** white American with Germanic ancestry  
 **Core archetype:** **Popular football captain**

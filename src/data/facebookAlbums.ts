@@ -19,6 +19,7 @@ export const FACEBOOK_ALBUM_IDS = Object.freeze([
   "june-photos",
   "jack-profile-pictures",
   "jack-summer",
+  "jack-18th-birthday",
   "jack-photos",
   "luca-profile-pictures",
   "luca-pickup-basketball",
@@ -92,6 +93,9 @@ export const JUNE_BIRTHDAY_MEDIA_IDS = Object.freeze([
   "june-birthday-main",
 ] as const satisfies readonly FacebookStoryMediaId[]);
 
+export const LUCA_JACK_BIRTHDAY_MEDIA_IDS = Object.freeze(["luca-jack-birthday-00", "luca-jack-birthday-01", "luca-jack-birthday-02", "luca-jack-birthday-03"] as const satisfies readonly FacebookStoryMediaId[]);
+export const JACK_18TH_BIRTHDAY_MEDIA_IDS = Object.freeze(["jack-birthday-02", "jack-birthday-03"] as const satisfies readonly FacebookStoryMediaId[]);
+
 const JUNE_BIRTHDAY_PHOTO_STORY_IDS = Object.freeze({
   "june-birthday-bag": "june-birthday-bag-photo",
   "june-birthday-gift": "june-birthday-gift-photo",
@@ -147,6 +151,7 @@ defineFacebookAlbum({ id: "jack-profile-pictures", ownerActor: Object.freeze({ k
 defineFacebookAlbum({ id: "jack-summer", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jack" as const, displayName: "Jack" }), title: "Summer", photos: Object.freeze([
   { mediaId: "jack-summer-party" as const, storyId: "jack-summer-party-photo", timestamp: "2010-08-22T17:30:00-07:00", caption: "summer", classification: "CURATED" as const },
 ]), classification: "CURATED" as const }),
+defineFacebookAlbum({ id: "jack-18th-birthday", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jack" as const, displayName: "Jack" }), title: "18th Birthday", photos: Object.freeze(JACK_18TH_BIRTHDAY_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "jack-birthday-thanks-photos", timestamp: "2010-08-03T13:08:00-07:00", caption: "Thx, guys!", classification: "CURATED" as const }))), classification: "CURATED" as const }),
 defineFacebookAlbum({ id: "jack-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jack" as const, displayName: "Jack" }), title: "Photos", photos: Object.freeze([
     { mediaId: "jack-owned-j-2009" as const, storyId: "jack-owned-j-2009-photo", timestamp: "2009-04-15T16:00:00-07:00", caption: "good day.", classification: "CURATED" as const },
     { mediaId: "jack-matt-01" as const, storyId: "jack-matt-2010-photo", timestamp: "2010-10-18T22:34:00-07:00", caption: "@Matt Ciao, bello", taggedCharacterIds: Object.freeze(["matt"] as const), classification: "CURATED" as const },
@@ -159,6 +164,7 @@ defineFacebookAlbum({ id: "jack-photos", ownerActor: Object.freeze({ kind: "cano
   defineFacebookAlbum({ id: "luca-pickup-basketball", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Pickup Basketball", photos: Object.freeze(LUCA_PICKUP_BASKETBALL_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "luca-pickup-basketball-photos", timestamp: "2010-10-19T22:58:00-07:00", classification: "CURATED" as const }))), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "luca-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Photos", photos: Object.freeze([
     { mediaId: "jack-tagged-luca-01" as const, storyId: "luca-jack-tagged-photo", timestamp: "2010-09-14T20:00:00-07:00", caption: "somehow this guy ends up in every picture lol", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
+    ...LUCA_JACK_BIRTHDAY_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "luca-jack-birthday-photos", timestamp: "2010-08-02T23:17:00-07:00", caption: "@Jack happy birthday bro", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const })),
     { mediaId: "luca-work-main-street-diner" as const, storyId: "luca-work-main-street-diner", timestamp: "2010-03-20T22:30:00-07:00", venueId: "main-street-diner" as const, classification: "CURATED" as const },
   ]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "alex-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "alex" as const, displayName: "Alex" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "alex-profile-picture" as const, storyId: "alex-profile-picture-update", timestamp: "2010-10-01T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
@@ -186,6 +192,7 @@ defineFacebookAlbum({ id: "jack-photos", ownerActor: Object.freeze({ kind: "cano
   defineFacebookAlbum({ id: "matt-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "matt" as const, displayName: "Matt" }), title: "Photos", photos: Object.freeze([
     { mediaId: "matt-code-2010" as const, storyId: "matt-code-photo-2010", timestamp: "2010-10-15T23:03:00-07:00", classification: "CURATED" as const },
     { mediaId: "jack-tagged-matt-02" as const, storyId: "matt-jack-tagged-photo", timestamp: "2010-10-03T20:00:00-07:00", caption: "apparently standing still isn't an option", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
+    { mediaId: "matt-jack-birthday" as const, storyId: "matt-jack-birthday-photo", timestamp: "2010-08-02T23:49:00-07:00", caption: "another year. happy birthday", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
     { mediaId: "matt-photo-2007" as const, storyId: "matt-photo-2007", timestamp: "2007-09-25T21:14:00-07:00", classification: "CURATED" as const },
   ]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "katie-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "katie" as const, displayName: "Katie" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "katie-profile-picture" as const, storyId: "katie-profile-picture-update", timestamp: "2010-10-10T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),

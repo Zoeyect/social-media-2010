@@ -4,6 +4,7 @@ import type { FacebookStoryMediaId } from "./facebookStoryMedia";
 
 export const FACEBOOK_CANONICAL_ACTOR_MEDIA: Readonly<Partial<Record<CoreSocialCharacterId, Readonly<{ profileMediaId: FacebookStoryMediaId }>>>> = Object.freeze({
   katie: Object.freeze({ profileMediaId: "katie-profile-picture" as const }),
+  june: Object.freeze({ profileMediaId: "june-facebook-profile-picture" as const }),
   luca: Object.freeze({ profileMediaId: "luca-profile-picture" as const }),
   jay: Object.freeze({ profileMediaId: "facebook-default-avatar" as const }),
   alex: Object.freeze({ profileMediaId: "alex-profile-picture" as const }),
@@ -12,7 +13,10 @@ export const FACEBOOK_CANONICAL_ACTOR_MEDIA: Readonly<Partial<Record<CoreSocialC
   matt: Object.freeze({ profileMediaId: "matt-profile-current" as const }),
 });
 
-export const FACEBOOK_CANONICAL_PROFILE_INFO: Readonly<Partial<Record<CoreSocialCharacterId, Readonly<{ fullName: string; classification: "CURATED" }>>>> = Object.freeze({
+export type FacebookCanonicalProfileInfo = Readonly<{ fullName: string; age?: number; birthday?: string; location?: string; lifeStage?: string; interests?: readonly string[]; classification: "CURATED" }>;
+
+export const FACEBOOK_CANONICAL_PROFILE_INFO: Readonly<Partial<Record<CoreSocialCharacterId, FacebookCanonicalProfileInfo>>> = Object.freeze({
+  june: Object.freeze({ fullName: "June Park", age: 18, birthday: "June 6", location: "Los Angeles", lifeStage: "Recent high-school graduate", interests: Object.freeze(["Starbucks", "The Hills", "Gossip Girl", "beach", "shopping", "photography", "music"]), classification: "CURATED" as const }),
   matt: Object.freeze({ fullName: "Matteo Lee Ricci", classification: "CURATED" as const }),
 });
 

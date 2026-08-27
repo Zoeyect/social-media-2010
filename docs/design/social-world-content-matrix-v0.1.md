@@ -246,3 +246,7 @@ Katie has two Facebook album bindings: `Profile Pictures` for `Katie03.PNG` and 
 `Sophie / Jack = AMBIGUOUS SOCIAL HISTORY — UNRESOLVED`
 
 Sophie's late Facebook reaction can suggest several interpretations but must not become a confirmed romance, jealousy route, or hard relationship fact. Sophie remains peripheral and outside the canonical nine.
+
+June Facebook Profile density = `HIGH`. June discovery connectivity = `HIGH`. Her Profile links naturally into Jay/Matt music context, Chris's broader social circle, Sophie as a recurring June-adjacent best-friend identity, Jack ambiguity, and Anil as an offline-only bandmate. Sophie remains a peripheral Facebook actor rather than joining the canonical nine.
+
+June posts = high interaction. June photos = high interaction with varied deterministic tiers. Sophie = frequent recurring commenter. Popular friend does not imply celebrity/influencer status.

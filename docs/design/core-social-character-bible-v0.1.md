@@ -251,3 +251,9 @@ Katie's Facebook continuity uses `Katie03.PNG` as her current profile image and 
 ## Peripheral Facebook identity: Sophie Miller
 
 Sophie may react unusually strongly to Jack-related gossip, but whether this reflects surprise, attraction, or prior social history is intentionally undefined. Her T+780/T+795 Facebook comments are classified `CURATED / RELATIONSHIP-AMBIGUITY`; they do not establish romance, jealousy, or a hard relationship edge. Sophie remains a Facebook-local `EPHEMERAL_FRIEND_OF_FRIEND`, outside the canonical nine.
+
+## June Facebook social hub
+
+June Park is 18, born June 6, and lives in Los Angeles. Her October 2010 life stage is a recent high-school graduate transitioning out of senior year. Her Facebook density is HIGH: Wall, Info, Profile Pictures, Mobile Uploads, school, birthday, close-friend, and show albums form a discovery hub for Jay, Matt, Chris, Sophie, Jack ambiguity, and offline-only Anil. Sophie is June's recurring best friend while remaining peripheral and non-canonical. June's relationship status is intentionally hidden, and no June/Jack relationship is confirmed.
+
+June's Facebook engagement level is HIGH because she is popular within a real social circle. This does not make her a celebrity, public figure, or influencer; interaction remains varied by ordinary, social, and milestone content.

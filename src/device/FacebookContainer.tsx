@@ -347,7 +347,7 @@ function FacebookProfile({ profileName, currentUserName, state, simulatedNowMs, 
       {wallItems.map(item => <button key={item.id} type="button" onClick={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: state.scrollPosition })}><span>{item.text}</span><time>{formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp })}</time></button>)}
     </div>}
     {state.profileSection === "info" && (profileInfo
-      ? <div className="facebook-profile-info"><dl><dt>Full Name</dt><dd>{profileInfo.fullName}</dd></dl></div>
+      ? <div className="facebook-profile-info"><dl><dt>Full Name</dt><dd>{profileInfo.fullName}</dd>{profileInfo.age !== undefined && <><dt>Age</dt><dd>{profileInfo.age}</dd></>}{profileInfo.birthday && <><dt>Birthday</dt><dd>{profileInfo.birthday}</dd></>}{profileInfo.location && <><dt>Location</dt><dd>{profileInfo.location}</dd></>}{profileInfo.lifeStage && <><dt>Education</dt><dd>{profileInfo.lifeStage}</dd></>}{profileInfo.interests?.length && <><dt>Interests</dt><dd>{profileInfo.interests.join(", ")}</dd></>}</dl></div>
       : <div className="facebook-profile-empty" data-provenance-status="HOLD" aria-label="Profile Info unavailable" />)}
     {state.profileSection === "photos" && <FacebookAlbumList actor={albumActor} dispatch={dispatch} />}
     {state.profileSection === "friends" && <div className="facebook-friend-list" aria-label={`${profileName} Friends`}>
@@ -407,7 +407,7 @@ function FacebookStoryMedia({ item, dispatch }: { item: FacebookFeedItem; dispat
   const album = getFacebookAlbumByStoryId(item.id);
   return <button type="button" disabled={!album} onClick={() => album && dispatch(item.kind === "album" ? { type: "OPEN_ALBUM", albumId: album.id } : { type: "OPEN_ALBUM_PHOTO", albumId: album.id, mediaId: mediaIds[0] })} className={item.kind === "album" ? "facebook-story-album-media" : "facebook-story-photo-media"} aria-label={item.albumTitle ?? `${item.author} photo`}>
     {media.map(record => <img key={record.id} src={record.src} alt="" />)}
-    {item.kind === "album" && item.albumTitle && <span>{item.albumTitle}{item.photoCount ? ` · ${item.photoCount} photos` : ""}</span>}
+    {item.kind === "album" && item.albumTitle && <span>{item.albumTitle}{media.length ? ` · ${media.length} photos` : ""}</span>}
   </button>;
 }
 

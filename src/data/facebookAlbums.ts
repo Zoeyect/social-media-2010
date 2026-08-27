@@ -5,6 +5,13 @@ import type { CanonicalVenueId } from "./canonicalVenues";
 
 export const FACEBOOK_ALBUM_IDS = Object.freeze([
   "z-tokyo-profile-pictures",
+  "june-profile-pictures",
+  "june-show-10-18",
+  "june-18th-birthday",
+  "june-girls",
+  "june-senior-year",
+  "june-mobile-uploads",
+  "luca-profile-pictures",
   "luca-pickup-basketball",
   "luca-photos",
   "alex-profile-pictures",
@@ -51,6 +58,18 @@ export const LUCA_PICKUP_BASKETBALL_MEDIA_IDS = Object.freeze([
   "luca-basketball-03",
 ] as const satisfies readonly FacebookStoryMediaId[]);
 
+export const JUNE_SHOW_MEDIA_IDS = Object.freeze([
+  "june-fb-F",
+  "june-fb-10-18-01",
+  "june-fb-10-18-02",
+] as const satisfies readonly FacebookStoryMediaId[]);
+
+export const JUNE_BIRTHDAY_MEDIA_IDS = Object.freeze([
+  "june-birthday-bag",
+  "june-birthday-gift",
+  "june-birthday-main",
+] as const satisfies readonly FacebookStoryMediaId[]);
+
 function defineFacebookAlbum(definition: Omit<FacebookAlbum, "mediaIds">): FacebookAlbum {
   const photos = Object.freeze([...definition.photos].sort((left, right) => right.timestamp.localeCompare(left.timestamp)));
   return Object.freeze({ ...definition, photos, mediaIds: Object.freeze(photos.map(photo => photo.mediaId)) });
@@ -58,6 +77,16 @@ function defineFacebookAlbum(definition: Omit<FacebookAlbum, "mediaIds">): Faceb
 
 export const FACEBOOK_ALBUMS: readonly FacebookAlbum[] = Object.freeze([
   defineFacebookAlbum({ id: "z-tokyo-profile-pictures", ownerActor: Object.freeze({ kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const, displayName: "Z.tokyo" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "z-tokyo-profile-picture" as const, storyId: "z-tokyo-profile-picture-update", timestamp: "2010-10-18T20:52:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "june-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "june-facebook-profile-picture" as const, storyId: "june-profile-picture-update", timestamp: "2010-10-10T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "june-show-10-18", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "10/18", photos: Object.freeze(JUNE_SHOW_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "june-show-photos-oct19", timestamp: "2010-10-19T23:51:00-07:00", classification: "CURATED" as const }))), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "june-18th-birthday", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "18th Birthday", photos: Object.freeze(JUNE_BIRTHDAY_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "june-18th-birthday-photos", timestamp: "2010-06-06T21:08:00-07:00", ...(mediaId === "june-birthday-main" ? { caption: "happy 18th, June ♥ 생일 축하해" } : {}), classification: "CURATED" as const }))), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "june-girls", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Girls ♥", photos: Object.freeze([{ mediaId: "june-sophie-girls" as const, storyId: "june-sophie-photo", timestamp: "2010-08-14T22:30:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "june-senior-year", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Senior Year", photos: Object.freeze([{ mediaId: "june-family-graduation" as const, storyId: "june-graduation-photo", timestamp: "2010-06-12T17:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "june-mobile-uploads", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Me", photos: Object.freeze([
+    { mediaId: "june-home-mobile" as const, storyId: "june-home-photo", timestamp: "2010-09-26T19:30:00-07:00", caption: "my sister took this lol / 책 읽는 중", classification: "CURATED" as const },
+    { mediaId: "june-starbucks-mobile" as const, storyId: "june-starbucks-photo", timestamp: "2010-10-18T14:10:00-07:00", caption: "starbucks saved my life today", classification: "CURATED" as const },
+  ]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "luca-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "luca-profile-picture" as const, storyId: "luca-profile-picture-current", timestamp: "2010-10-20T00:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "luca-pickup-basketball", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Pickup Basketball", photos: Object.freeze(LUCA_PICKUP_BASKETBALL_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "luca-pickup-basketball-photos", timestamp: "2010-10-19T22:58:00-07:00", classification: "CURATED" as const }))), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "luca-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Photos", photos: Object.freeze([{ mediaId: "luca-work-main-street-diner" as const, storyId: "luca-work-main-street-diner", timestamp: "2010-03-20T22:30:00-07:00", venueId: "main-street-diner" as const, classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "alex-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "alex" as const, displayName: "Alex" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "alex-profile-picture" as const, storyId: "alex-profile-picture-update", timestamp: "2010-10-01T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),

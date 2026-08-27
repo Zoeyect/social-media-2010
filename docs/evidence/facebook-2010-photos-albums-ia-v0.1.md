@@ -15,7 +15,8 @@ Albums and media membership are declared in the centralized Facebook album regis
 Implemented albums:
 
 - Z.tokyo: Profile Pictures
-- Luca: Pickup Basketball; Photos
+- June: Profile Pictures; 10/18; 18th Birthday; Girls ♥; Senior Year; Me
+- Luca: Profile Pictures; Pickup Basketball; Photos
 - Alex: Profile Pictures; Dogs
 - Ben: Profile Pictures; Photos
 - Chris: Profile Pictures only; generic Photos intentionally empty/HOLD
@@ -25,7 +26,7 @@ Implemented albums:
 
 Album and photo counts derive from registered media IDs. No placeholders are fabricated to match narrative copy.
 
-Luca's current profile image is the centralized `luca-profile-picture` record backed by unchanged `Luca.png`. `Pickup Basketball` contains exactly `guys.png`, `guys02.PNG`, and `guys03.png`; the Feed's “added 3 new photos” copy and album count derive from that same media-ID array. A separate generic `Photos` album contains unchanged `Luca-work.png`, dated March 20, 2010, with canonical venue ID `main-street-diner`. The historical work photo is excluded from the current Feed through the existing custom-audience visibility boundary.
+Luca's current profile image is the centralized `luca-profile-picture` record backed by unchanged `Luca.png`, and the same media is registered in his `Profile Pictures` album. No profile-picture Wall activity was invented: the album-only record documents the current image structurally. `Pickup Basketball` contains exactly `guys.png`, `guys02.PNG`, and `guys03.png`; the Feed's “added 3 new photos” copy and album count derive from that same media-ID array. A separate generic `Photos` album contains unchanged `Luca-work.png`, dated March 20, 2010, with canonical venue ID `main-street-diner`. The historical work photo is excluded from the current Feed through the existing custom-audience visibility boundary.
 
 The Pickup Basketball story owns one real Chris Like and four chronological seed comments from Chris, Luca, Chris, and ephemeral friend-of-friend Frank. Feed, Post Detail, album photos, and Photo Detail all select counts and interaction records by the shared `luca-pickup-basketball-photos` story ID; no nested modern comment chrome is introduced.
 
@@ -49,7 +50,9 @@ Each album points to the existing Facebook story ID that introduced its media. P
 
 ## Sparse profiles and exclusions
 
-Other canonical profiles and Ryan may expose an empty Photos section. Anil does not receive a Facebook profile or album. June, Jack, and Matt remain support-only until approved Facebook media exists. Instagram IG04 is not duplicated into Facebook Photos.
+Other canonical profiles and Ryan may expose an empty Photos section. Anil does not receive a Facebook profile or album. Jack remains deferred until his dedicated Profile pass. Instagram IG01–IG04 and private `June-Jack-club.png` / `June-Jack-kiss.png` are excluded from Facebook Photos.
+
+June's `10/18` album reuses `june-fb-F`, `june-fb-10-18-01`, and `june-fb-10-18-02` from the existing Wall story `june-show-photos-oct19`; Feed, Wall, Album, and Photo Detail therefore share one ordered media set, one upload timestamp, and one story interaction state. `18th Birthday` likewise shares its exact three-media set and upload story while retaining the distinct main-photo caption `happy 18th, June ♥ 생일 축하해`. Her remaining albums use approved Facebook-side records for one current profile picture, one Sophie close-friend photo, one graduation/family photo, and two `Me` daily-life photos. Family context remains secondary. `June Tagged Photos / Photos of June = DEFERRED UNTIL AFTER JACK PROFILE`.
 
 ## Historical and HOLD boundaries
 

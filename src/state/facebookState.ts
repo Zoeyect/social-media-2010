@@ -13,7 +13,19 @@ export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
 export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "photoDetail" | "chat" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
-type FacebookProfileReturnState = { profileName: string | null; actor: FacebookNavigableActor | null; section: FacebookProfileSection };
+type FacebookProfileReturnState = {
+  view: FacebookView;
+  feedItemId: string | null;
+  profileName: string | null;
+  actor: FacebookNavigableActor | null;
+  section: FacebookProfileSection;
+  scrollPosition: number;
+  friendsSection: FacebookFriendsSection;
+  friendSearchQuery: string;
+  messageId: string | null;
+  albumId: FacebookAlbumId | null;
+  photoMediaId: FacebookStoryMediaId | null;
+};
 export type FacebookFriendsSection = "friends" | "pages" | "requests";
 export type FacebookFriendRequestState = "none" | "pending" | "accepted" | "ignored";
 export type FacebookMessageState = "none" | "unread" | "read" | "replied";
@@ -169,7 +181,7 @@ export type FacebookState = {
   selectedFeedItemId: string | null;
   selectedProfileName: string | null;
   selectedProfileActor: FacebookNavigableActor | null;
-  profileReturnState: FacebookProfileReturnState | null;
+  profileReturnStack: FacebookProfileReturnState[];
   profileSection: FacebookProfileSection;
   scrollPosition: number;
   likedItemIds: string[];
@@ -267,7 +279,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     selectedFeedItemId: null,
     selectedProfileName: null,
     selectedProfileActor: null,
-    profileReturnState: null,
+    profileReturnStack: [],
     profileSection: "wall",
     scrollPosition: 0,
     likedItemIds: [],
@@ -321,6 +333,22 @@ export function createInitialFacebookState(displayName: string): FacebookState {
   };
 }
 
+function captureFacebookProfileOrigin(state: FacebookState): FacebookProfileReturnState {
+  return {
+    view: state.currentView,
+    feedItemId: state.selectedFeedItemId,
+    profileName: state.selectedProfileName,
+    actor: state.selectedProfileActor,
+    section: state.profileSection,
+    scrollPosition: state.scrollPosition,
+    friendsSection: state.friendsSection,
+    friendSearchQuery: state.friendSearchQuery,
+    messageId: state.selectedMessageId,
+    albumId: state.selectedAlbumId,
+    photoMediaId: state.selectedPhotoMediaId,
+  };
+}
+
 export function facebookStateTransition(state: FacebookState, event: FacebookEvent): FacebookState {
   switch (event.type) {
     case "SHOW_HOME":
@@ -328,6 +356,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         ...state,
         currentView: "home",
         navigationStack: ["home"],
+        profileReturnStack: [],
         homeLauncherPage: 0,
         homeSearchQuery: "",
         selectedFeedItemId: null,
@@ -344,6 +373,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         ...state,
         currentView: "profile",
         navigationStack: ["home", "profile"],
+        profileReturnStack: [],
         selectedProfileName: event.profileName,
         selectedProfileActor: { kind: "session-user", displayName: event.profileName },
         profileSection: "wall",
@@ -353,7 +383,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         ...state,
         currentView: "profile",
         navigationStack: [...state.navigationStack, "profile"],
-        profileReturnState: state.currentView === "profile" ? { profileName: state.selectedProfileName, actor: state.selectedProfileActor, section: state.profileSection } : null,
+        profileReturnStack: [...state.profileReturnStack, captureFacebookProfileOrigin(state)],
         selectedProfileName: event.profileName,
         selectedProfileActor: null,
         profileSection: "wall",
@@ -363,7 +393,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         ...state,
         currentView: "profile",
         navigationStack: [...state.navigationStack, "profile"],
-        profileReturnState: state.currentView === "profile" ? { profileName: state.selectedProfileName, actor: state.selectedProfileActor, section: state.profileSection } : null,
+        profileReturnStack: [...state.profileReturnStack, captureFacebookProfileOrigin(state)],
         selectedProfileName: event.actor.displayName,
         selectedProfileActor: event.actor,
         profileSection: "wall",
@@ -501,15 +531,25 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       if (state.navigationStack.length <= 1) return state;
       const navigationStack = state.navigationStack.slice(0, -1);
       const currentView = navigationStack[navigationStack.length - 1];
-      if (currentView === "profile" && state.profileReturnState) return {
-        ...state,
-        currentView,
-        navigationStack,
-        selectedProfileName: state.profileReturnState.profileName,
-        selectedProfileActor: state.profileReturnState.actor,
-        profileSection: state.profileReturnState.section,
-        profileReturnState: null,
-      };
+      if (state.currentView === "profile" && state.profileReturnStack.length > 0) {
+        const origin = state.profileReturnStack[state.profileReturnStack.length - 1];
+        return {
+          ...state,
+          currentView: origin.view,
+          navigationStack,
+          selectedFeedItemId: origin.feedItemId,
+          selectedProfileName: origin.profileName,
+          selectedProfileActor: origin.actor,
+          profileSection: origin.section,
+          scrollPosition: origin.scrollPosition,
+          friendsSection: origin.friendsSection,
+          friendSearchQuery: origin.friendSearchQuery,
+          selectedMessageId: origin.messageId,
+          selectedAlbumId: origin.albumId,
+          selectedPhotoMediaId: origin.photoMediaId,
+          profileReturnStack: state.profileReturnStack.slice(0, -1),
+        };
+      }
       return { ...state, currentView, navigationStack };
     }
     case "OPEN_FEED_ITEM":

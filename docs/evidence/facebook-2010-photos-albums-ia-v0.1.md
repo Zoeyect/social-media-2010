@@ -17,6 +17,7 @@ Implemented albums:
 - Z.tokyo: Profile Pictures
 - Sophie Miller: Photos, containing one Sophie-owned photo with a structured June tag
 - June: Profile Pictures; 10/18; 18th Birthday; Girls ♥; Senior Year; Me
+- Jack: Profile Pictures; Football; Summer; Photos
 - Luca: Profile Pictures; Pickup Basketball; Photos
 - Alex: Profile Pictures; Dogs
 - Ben: Profile Pictures; Photos
@@ -25,7 +26,7 @@ Implemented albums:
 - Katie: Photos
 - Jay: Music, with the Oct 19 performance, Oct 17 Jay guitar photo, and May guitar still life ordered by in-world timestamp
 
-Album and photo counts derive from registered media IDs. No placeholders are fabricated to match narrative copy.
+Jack uses centralized Shared Character Media for `Jack01.PNG`, `Game.PNG`, `Jack-party.PNG`, `Beach-10.PNG`, `Beach-8.PNG`, and `Jack-car.PNG`. Four Jack/Matt images are Jack-owned historical `Photos` records dated from 2007 through 2010. Each structurally tags canonical Matt and prepares future `Photos of Matt` aggregation without becoming a Matt-owned upload.\n\nAlbum and photo counts derive from registered media IDs. No placeholders are fabricated to match narrative copy.
 
 Luca's current profile image is the centralized `luca-profile-picture` record backed by unchanged `Luca.png`, and the same media is registered in his `Profile Pictures` album. No profile-picture Wall activity was invented: the album-only record documents the current image structurally. `Pickup Basketball` contains exactly `guys.png`, `guys02.PNG`, and `guys03.png`; the Feed's “added 3 new photos” copy and album count derive from that same media-ID array. A separate generic `Photos` album contains unchanged `Luca-work.png`, dated March 20, 2010, with canonical venue ID `main-street-diner`. The historical work photo is excluded from the current Feed through the existing custom-audience visibility boundary.
 

@@ -11,13 +11,15 @@ export const FACEBOOK_CANONICAL_ACTOR_MEDIA: Readonly<Partial<Record<CoreSocialC
   ben: Object.freeze({ profileMediaId: "ben-profile-current" as const }),
   chris: Object.freeze({ profileMediaId: "chris-profile-picture" as const }),
   matt: Object.freeze({ profileMediaId: "matt-profile-current" as const }),
+  jack: Object.freeze({ profileMediaId: "jack-profile-picture" as const }),
 });
 
-export type FacebookCanonicalProfileInfo = Readonly<{ fullName: string; age?: number; birthday?: string; location?: string; lifeStage?: string; interests?: readonly string[]; classification: "CURATED" }>;
+export type FacebookCanonicalProfileInfo = Readonly<{ fullName: string; age?: number; birthday?: string; location?: string; lifeStage?: string; activity?: string; background?: string; interests?: readonly string[]; classification: "CURATED" }>;
 
 export const FACEBOOK_CANONICAL_PROFILE_INFO: Readonly<Partial<Record<CoreSocialCharacterId, FacebookCanonicalProfileInfo>>> = Object.freeze({
   june: Object.freeze({ fullName: "June Park", age: 18, birthday: "June 6", location: "Los Angeles", lifeStage: "Recent high-school graduate", interests: Object.freeze(["Starbucks", "The Hills", "Gossip Girl", "beach", "shopping", "photography", "music"]), classification: "CURATED" as const }),
   matt: Object.freeze({ fullName: "Matteo Lee Ricci", classification: "CURATED" as const }),
+  jack: Object.freeze({ fullName: "Jack Keller", age: 18, birthday: "August 2, 1992", location: "Los Angeles", activity: "Football", background: "German-American", classification: "CURATED" as const }),
 });
 
 export const FACEBOOK_EPHEMERAL_ACTOR_MEDIA: Readonly<Partial<Record<FacebookEphemeralFriendOfFriendId, Readonly<{ profileMediaId: FacebookStoryMediaId }>>>> = Object.freeze({

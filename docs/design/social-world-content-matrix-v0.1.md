@@ -237,7 +237,7 @@ Facebook Feed now uses visibility-aware shared records across `status`, `photo`,
 
 ## Facebook Photos / Albums boundary
 
-Approved shared media is reachable through each owning Facebook Profile and a registry-driven album. Z.tokyo, Luca, Katie, Jay, Alex, and Ben now have approved album/media bindings. June, Jack, Matt, Ryan, and the current user remain empty on this surface; Anil has no Facebook profile. This is a media-availability boundary, not a statement about fictional lifetime photo counts.
+Approved shared media is reachable through each owning Facebook Profile and a registry-driven album. Jack now has a medium-density Facebook Profile with `Profile Pictures`, `Football`, `Summer`, and `Photos`; his social-centrality signal is high interaction and broad tagging potential rather than excessive self-posting. Jack ↔ Matt is `LONG-TERM OFFLINE FRIENDSHIP / NEIGHBORS`; four Jack-owned historical uploads tag Matt across 2007–2010 and provide a `HIGH` future Tagged Photos source without entering Matt-owned albums. Ryan and the current user remain empty on this surface; Anil has no Facebook profile. This is a media-availability boundary, not a statement about fictional lifetime photo counts.
 
 Katie has two Facebook album bindings: `Profile Pictures` for `Katie03.PNG` and a four-photo `Photos` history spanning July 2009 through September 2010. The September selfie carries one real canonical Ben sibling-banter comment, which preserves visible sibling continuity without the intentionally deleted family photo; historical photos remain outside the current Feed.
 

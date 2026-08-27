@@ -126,7 +126,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     </div>}
 
     {state.currentView === "messageDetail" && selectedMessage && <article className="facebook-message-detail">
-      <strong>{selectedMessage.sender}</strong>
+      <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: selectedMessage.sender })}>{selectedMessage.sender}</button>
       <div className="facebook-message-history" aria-label={`${selectedMessage.sender} message history`}>
         {selectedThreadMessages.map(message => <section className={`facebook-message-reply is-${message.authorType}`} key={message.id}>
           <strong>{message.author}</strong><p>{message.body}</p><time>{message.timestamp}</time>
@@ -251,7 +251,7 @@ function FacebookEvents({ state, dispatch }: { state: FacebookState; dispatch: D
 function FacebookPartyEvent({ state, dispatch }: { state: FacebookState; dispatch: Dispatch<FacebookEvent> }) {
   const alexPost = state.feed.find(item => item.id === "alex-jacks-party-friday");
   return <section className="facebook-event-detail">
-    <header><strong>Jack's Party</strong><span>Friday</span><small>Hosted by Jack · Location HOLD</small></header>
+    <header><strong>Jack's Party</strong><span>Friday</span><small>Hosted by <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: "Jack" })}>Jack</button> · Location HOLD</small></header>
     <fieldset><legend>RSVP</legend>{(["yes", "maybe", "no"] as const).map(value => <button key={value} type="button" aria-pressed={state.partyRsvp === value} onClick={() => dispatch({ type: "SET_PARTY_RSVP", value })}>{value === "yes" ? "Yes" : value[0].toUpperCase() + value.slice(1)}</button>)}</fieldset>
     <section className="facebook-event-wall"><h2>Event Wall</h2>{alexPost && <button type="button" onClick={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: alexPost.id, scrollPosition: state.scrollPosition })}><strong>{alexPost.author}</strong><span>{alexPost.text}</span></button>}</section>
   </section>;
@@ -320,6 +320,7 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
 }
 
 function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, simulatedNowMs, dispatch }: { profileName: string; currentUserName: string; state: FacebookState; elapsedSeconds: number; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
+  const wallRef = useRef<HTMLDivElement>(null);
   const isCurrentUser = profileName === currentUserName;
   const isFriend = state.friends.some(friend => friend.name === profileName);
   const wallItems = selectFacebookProfileWall(state, profileName);
@@ -337,6 +338,12 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
         : canonicalCharacter
           ? { kind: "canonical", characterId: canonicalCharacter.id, displayName: canonicalCharacter.displayName }
           : null);
+
+  useLayoutEffect(() => {
+    if (state.currentView !== "profile" || state.profileSection !== "wall" || !wallRef.current) return;
+    wallRef.current.scrollTop = state.scrollPosition;
+  }, [profileName, state.currentView, state.profileSection, state.scrollPosition]);
+
   return <section className="facebook-profile" aria-label={`${profileName} Profile`} data-identity-kind={state.selectedProfileActor?.kind ?? "name-route"}>
     <header className="facebook-profile-header">{profileMedia
       ? <img className="facebook-profile-photo" src={profileMedia.src} alt={`${profileName} profile`} />
@@ -344,7 +351,11 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
     <nav className="facebook-profile-sections" aria-label="Profile sections">
       {(["wall", "info", "photos", "friends"] as const).map(section => <button key={section} type="button" aria-current={state.profileSection === section ? "page" : undefined} onClick={() => dispatch({ type: "SET_PROFILE_SECTION", section })}>{section[0].toUpperCase() + section.slice(1)}</button>)}
     </nav>
-    {state.profileSection === "wall" && <div className="facebook-profile-wall">
+    {state.profileSection === "wall" && <div
+      ref={wallRef}
+      className="facebook-profile-wall"
+      onScroll={event => dispatch({ type: "SET_SCROLL_POSITION", scrollPosition: event.currentTarget.scrollTop })}
+    >
       {wallItems.map(item => <FacebookStoryView
         key={item.id}
         surface="wall"
@@ -354,17 +365,17 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
         likeCount={selectFacebookLikes(state, item.id, elapsedSeconds).length}
         storyTime={formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp })}
         onOpenProfile={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author })}
-        onOpen={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: state.scrollPosition })}
+        onOpen={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: wallRef.current?.scrollTop ?? state.scrollPosition })}
         onToggleLike={() => dispatch({ type: "TOGGLE_LIKE", itemId: item.id, displayName: currentUserName })}
         onComment={() => {
-          dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: state.scrollPosition });
+          dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: wallRef.current?.scrollTop ?? state.scrollPosition });
           dispatch({ type: "BEGIN_COMMENT", itemId: item.id });
         }}
         dispatch={dispatch}
       />)}
     </div>}
     {state.profileSection === "info" && (profileInfo
-      ? <div className="facebook-profile-info"><dl><dt>Full Name</dt><dd>{profileInfo.fullName}</dd>{profileInfo.age !== undefined && <><dt>Age</dt><dd>{profileInfo.age}</dd></>}{profileInfo.birthday && <><dt>Birthday</dt><dd>{profileInfo.birthday}</dd></>}{profileInfo.location && <><dt>Location</dt><dd>{profileInfo.location}</dd></>}{profileInfo.lifeStage && <><dt>Education</dt><dd>{profileInfo.lifeStage}</dd></>}{profileInfo.interests?.length && <><dt>Interests</dt><dd>{profileInfo.interests.join(", ")}</dd></>}</dl></div>
+      ? <div className="facebook-profile-info"><dl><dt>Full Name</dt><dd>{profileInfo.fullName}</dd>{profileInfo.age !== undefined && <><dt>Age</dt><dd>{profileInfo.age}</dd></>}{profileInfo.birthday && <><dt>Birthday</dt><dd>{profileInfo.birthday}</dd></>}{profileInfo.location && <><dt>Location</dt><dd>{profileInfo.location}</dd></>}{profileInfo.lifeStage && <><dt>Education</dt><dd>{profileInfo.lifeStage}</dd></>}{profileInfo.activity && <><dt>Activities</dt><dd>{profileInfo.activity}</dd></>}{profileInfo.interests?.length && <><dt>Interests</dt><dd>{profileInfo.interests.join(", ")}</dd></>}</dl></div>
       : <div className="facebook-profile-empty" data-provenance-status="HOLD" aria-label="Profile Info unavailable" />)}
     {state.profileSection === "photos" && <FacebookAlbumList actor={albumActor} dispatch={dispatch} />}
     {state.profileSection === "friends" && <div className="facebook-friend-list" aria-label={`${profileName} Friends`}>

@@ -144,6 +144,8 @@ June is socially prominent without being cruel, shallow, or a stereotypical mean
 
 Jack's scheduled Facebook Friend Request is intentional. His broad network makes the request plausible without implying an existing close friendship. This event should remain more significant than ordinary filler content, so Jack must not be overused.
 
+Jack Keller was born August 2, 1992, is 18 on the target date, lives in Los Angeles, and has a German-American family background. His Facebook Profile has medium density, with football, summer, car, party, and ordinary activity. `Jack01.PNG` remains his current Profile Picture. Jack is approximately 1.5 years older than Matt; they have been neighbors for years, their immigrant families know each other well, and their friendship predates SNS. Jack-owned historical photos tag Matt and reveal this continuity through casual multilingual jokes rather than Profile exposition. Jack's relationship status remains absent, and June/Jack ambiguity stays limited and unresolved.
+
 ## 11. Ben
 
 - Canonical ID: `ben`

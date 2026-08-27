@@ -52,7 +52,7 @@ Each album points to the existing Facebook story ID that introduced its media. P
 
 ## Sparse profiles and exclusions
 
-Other canonical profiles and Ryan may expose an empty Photos section. Anil does not receive a Facebook profile or album. Jack remains deferred until his dedicated Profile pass. Instagram IG01–IG04 and private `June-Jack-club.png` / `June-Jack-kiss.png` are excluded from Facebook Photos.
+Other canonical profiles and Ryan may expose an empty Photos section. Anil does not receive a Facebook profile or album. **DEPRECATED:** Jack's former deferred status is superseded by his implemented Profile, owned albums, and `Photos of Jack` aggregation. Instagram IG01–IG04 and private `June-Jack-club.png` / `June-Jack-kiss.png` are excluded from Facebook Photos.
 
 June's `10/18` album reuses `june-fb-F`, `june-fb-10-18-01`, and `june-fb-10-18-02` from the existing Wall story `june-show-photos-oct19`; Feed, Wall, Album, and Photo Detail therefore share one ordered media set, one upload timestamp, and one story interaction state. `18th Birthday` likewise shares its exact three-media set and upload story while retaining the distinct main-photo caption `happy 18th, June ♥ 생일 축하해`. Her remaining albums use approved Facebook-side records for one current profile picture, one Sophie close-friend photo, one graduation/family photo, and two `Me` daily-life photos. Family context remains secondary. `Photos of June` now routes to the same Sophie-owned `sophie-june-club-photo-story`; it does not enter any June-owned album.
 

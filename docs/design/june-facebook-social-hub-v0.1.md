@@ -19,11 +19,11 @@ No physical asset is duplicated. Album and Photo Detail media resolve through Sh
 
 Sophie Miller is June's recurring best friend and remains a Facebook-local peripheral identity with dedicated `S.png`. Jay and Matt are discoverable through structured show-post mentions. Anil remains plain text and has no SNS identity. Chris appears only as part of the broader social circle. June/Jack cues remain indirect and unresolved.
 
-## Exclusions and HOLD
+## Exclusions and superseded boundary
 
-Facebook-owned June albums exclude `IG01.JPG`, `IG02.JPG`, `IG03.JPG`, `IG04.JPG`, `June-Jack-club.png`, and `June-Jack-kiss.png`. Relationship status is hidden. `June Tagged Photos / Photos of June = DEFERRED UNTIL AFTER JACK PROFILE`; tagged ownership, aggregation, and cross-profile provenance are not implemented here.
+Facebook-owned June albums exclude `IG01.JPG`, `IG02.JPG`, `IG03.JPG`, `IG04.JPG`, `June-Jack-club.png`, and `June-Jack-kiss.png`. Relationship status is hidden. **DEPRECATED:** the former `Photos of June = DEFERRED UNTIL AFTER JACK PROFILE` boundary is superseded by implemented structured tagged aggregation.
 
-The Sophie-owned October 16 club photo (`sophie-june-club-photo`) stores a structured canonical June tag and is an approved future `Photos of June` source. It remains absent from all six June-owned albums until tagged-photo aggregation is implemented.
+The Sophie-owned October 16 club photo (`sophie-june-club-photo`) stores a structured canonical June tag and appears through `Photos of June`. It remains absent from all June-owned albums because tagging never changes owner or source album.
 
 ## Bilingual captions and engagement
 

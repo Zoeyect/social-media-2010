@@ -30,11 +30,11 @@ June's show engagement belongs to `june-show-photos-oct19`; all three Photo Deta
 | Matt | Code photo and profile-picture histories stay distinct | Profile Pictures and Photos | Code media resolves from `matt-code-2010` | Coder comments stay on `matt-code-photo-2010` | CONSISTENT |
 | Chris | Sparse profile-picture history only | Profile Pictures | One approved image | Profile-picture story key only | CONSISTENT |
 | Z.tokyo | Existing profile-picture update remains peripheral | Profile Pictures | Central author media resolver | Existing story key | CONSISTENT |
-| Jack | No approved Facebook photo history | None | None | None | CONSISTENT / HOLD |
+| Jack | Implemented owned Wall history plus externally owned tagged presence | Profile Pictures, Summer, 18th Birthday, Photos | Canonical owner/album/story resolution | Shared story IDs | CONSISTENT / SUPERSEDED OLD HOLD |
 
 ## Historical archive and HOLD boundaries
 
-Album-only history is valid and does not require a new Wall story. Instagram `IG01` through `IG04`, `June-Jack-club.png`, and `June-Jack-kiss.png` remain excluded from Facebook. `Photos of June` / Tagged Photos remains deferred until after the Jack Profile pass.
+Album-only history is valid and does not require a new Wall story. Instagram `IG01` through `IG04`, `June-Jack-club.png`, and `June-Jack-kiss.png` remain excluded from Facebook. **DEPRECATED:** the former Tagged Photos deferral is superseded by implemented owner-safe tagged aggregation.
 
 ## Unified rendering resolution
 

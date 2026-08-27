@@ -6,7 +6,7 @@ IMPLEMENTED / CURATED
 
 ## Identity and profile
 
-Jack Keller is a canonical 18-year-old Los Angeles character, born August 2, 1992, with a German-American family background. `Jack01.PNG` remains his centrally resolved Profile Picture. Info exposes full name, birthday, age, location, and Football while leaving relationship status absent.
+Jack Keller is a canonical 18-year-old Los Angeles character, born August 2, 1992, with a German-American family background and formal football team captain role. `Jack01.PNG` remains his centrally resolved Profile Picture. Info exposes full name, birthday, age, location, and captain activity while leaving relationship status absent.
 
 ## Owned albums
 
@@ -20,7 +20,7 @@ Wall, Album, and Photo Detail share canonical story/media IDs and interaction st
 
 ## Social-centrality model
 
-Jack has medium self-posting density and high response density. Practice, summer, car, party, and one ordinary movie status create a believable profile without making him a plot device. `Photos of Jack` contains exactly nine externally owned tagged records: Mike's football photo; Sarah's two beach photos; Sophie's two Aug 24 photos; Luca's Sep 14 photo; Ryan's and June's separate Sep 27 photos; and Matt's Oct 3 photo. `Photos of Jack` is therefore intentionally richer than his owned albums, while Jack-owned `J.png` remains excluded from the tagged aggregation. June's content does not confirm romance or relationship history.
+Jack has medium self-posting density, VERY HIGH tagged presence, and high response density. Practice, summer, car, party, and one ordinary movie status create a believable profile without making him a plot device. **DEPRECATED:** the former fixed tagged-photo total of nine is superseded by derived tagged aggregation (14 at the v0.2 consolidation audit). The qualitative VERY HIGH rule is canonical and should survive later count changes. `Photos of Jack` remains intentionally richer than his owned albums, while Jack-owned/self-tagged media stays excluded. June's content does not confirm romance or relationship history.
 
 ## Jack/Matt historical timeline
 

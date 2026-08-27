@@ -55,7 +55,26 @@ try {
   );
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.katie, coreSocialFriends.CORE_SOCIAL_CHARACTERS.katie, "compatibility views must reuse canonical identity objects");
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.jay, coreSocialFriends.CORE_SOCIAL_CHARACTERS.jay, "compatibility views must not duplicate character records");
-  assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => relationship.characterIds), [["katie", "ben"], ["chris", "luca"]]);
+  assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => [relationship.id, relationship.participantIds, relationship.kind]), [
+    ["katie-ben-siblings", ["katie", "ben"], "SIBLINGS"],
+    ["chris-luca-basketball-friends", ["chris", "luca"], "BASKETBALL_FRIENDS"],
+    ["jack-matt-neighbors-family-friends", ["jack", "matt"], "LONGTIME_NEIGHBORS_FAMILY_FRIENDS"],
+    ["june-sophie-best-friends", ["june", "facebook-ephemeral-sophie"], "BEST_FRIENDS"],
+  ]);
+  assert.deepEqual(coreSocialFriends.CORE_SOCIAL_BAND.members.map(member => [member.entityId, member.role, member.accountBoundary]), [
+    ["jay", "GUITAR", "CORE_SOCIAL_CHARACTER"],
+    ["matt", "BASS", "CORE_SOCIAL_CHARACTER"],
+    ["author-z-tokyo", "KEYBOARD", "AUTHOR_EASTER_EGG"],
+    ["offline-anil", "DRUMS", "OFFLINE_NO_SNS"],
+  ], "canonical band roles and account boundaries must remain exact");
+  assert.equal(coreSocialFriends.CORE_SOCIAL_BEHAVIOR.matt.personalityBoundary, "INTROVERTED_NOT_STEREOTYPE", "Matt's introversion must remain canon without stereotype reduction");
+  assert.deepEqual(coreSocialFriends.CORE_SOCIAL_BEHAVIOR.chris, { selfPosting: "VERY_LOW", taggedPresence: "MEDIUM_HIGH", engagement: "INTERACTION_FIRST", presenceModel: "INTERACTION_FIRST" }, "Chris must remain sparse and interaction-first");
+  assert.deepEqual(coreSocialFriends.CORE_SOCIAL_INTENTIONAL_AMBIGUITIES.map(ambiguity => [ambiguity.id, ambiguity.participantIds]), [
+    ["june-jack-relationship", ["june", "jack"]],
+    ["sophie-jack-history-interest", ["facebook-ephemeral-sophie", "jack"]],
+  ], "approved relationship ambiguities must remain unresolved");
+  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.sophie, undefined, "Sophie must remain outside the canonical nine");
+  assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.anil, undefined, "offline-only Anil must remain outside the SNS character registry");
   const facebookSessionStartMs = Date.parse("2010-10-20T00:02:00-07:00");
   const formatFacebookTime = (storyTimestamp, elapsedSeconds, extras = {}) => facebookStoryTime.formatFacebookStoryTime({ storyTimestamp, simulatedNowMs: facebookSessionStartMs + elapsedSeconds * 1_000, storyType: "status", ...extras });
   assert.equal(formatFacebookTime("2010-10-20T00:03:00-07:00", 60), "just now");
@@ -256,7 +275,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   }
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("katie"), "katie-profile-picture", "Katie03 must be the centralized current Facebook profile picture");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("june"), "june-facebook-profile-picture", "June must use one centralized Facebook profile picture record");
-  assert.deepEqual(facebookActorMedia.getFacebookCanonicalProfileInfo("june"), { fullName: "June Park", age: 18, birthday: "June 6", location: "Los Angeles", lifeStage: "Recent high-school graduate", interests: ["Starbucks", "The Hills", "Gossip Girl", "beach", "shopping", "photography", "music"], classification: "CURATED" });
+  assert.deepEqual(facebookActorMedia.getFacebookCanonicalProfileInfo("june"), { fullName: "June Park", age: 18, birthday: "June 6, 1992", location: "Los Angeles", lifeStage: "Recent high-school graduate", interests: ["Starbucks", "The Hills", "Gossip Girl", "beach", "shopping", "photography", "music"], classification: "CURATED" });
   const juneAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "canonical", characterId: "june", displayName: "June" });
   assert.deepEqual(juneAlbums.map(album => [album.id, album.title, album.mediaIds]), [
     ["june-profile-pictures", "Profile Pictures", ["june-facebook-profile-picture"]],

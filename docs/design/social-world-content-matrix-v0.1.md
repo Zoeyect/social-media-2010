@@ -22,6 +22,7 @@ Content should present situations and choices rather than conclusions about the 
 | Entity set | Members | Classification | Identity rule |
 | --- | --- | --- | --- |
 | Canonical social characters | Katie, Matt, Alex, Chris, Jay, June, Jack, Ben, Luca | `CORE_SOCIAL_CHARACTER` | Use `CoreSocialCharacterId` where a field references the canonical social world |
+| Recurring secondary character | Sophie Miller | `RECURRING_SECONDARY_CHARACTER` | Stable Facebook-local ID and route compatibility; never add to `CORE_SOCIAL_CHARACTERS` |
 | Author identity | Z.tokyo | `AUTHOR_EASTER_EGG` | Facebook-local/meta identity; never add to `CORE_SOCIAL_CHARACTERS` |
 | Offline character | Anil | `OFFLINE_SOCIAL_CHARACTER` | May appear only through offline evidence; has no SNS account or direct social action |
 | Family contacts | Mom, Dad | `FAMILY / UNIVERSAL RELATIONSHIP` | Separate from the canonical nine; keep prompts broad and user responses optional |
@@ -34,10 +35,13 @@ Anil is the band's Indian drummer and does not use SNS. Do not create a Twitter 
 
 | Relationship | Locked meaning | Allowed expression | Boundary |
 | --- | --- | --- | --- |
-| Katie <-> Ben | Siblings; Ben is Katie's older brother | Shared photos, casual family references, ordinary Facebook context | Do not use the relationship to define the user's family or life stage |
-| Chris <-> Luca | Friends and basketball friends | Basketball photos, Facebook posts, Foursquare context, casual references | Luca's restaurant-worker identity must remain visible; do not reduce him to basketball |
-| Jay <-> Matt <-> Z.tokyo <-> Anil | Shared music/band context: Jay music-centered, Matt bass, Z.tokyo keyboard, Anil drums | Live-performance photos, music links, background event context, references by active SNS users | Do not imply equal SNS presence; Anil remains offline and Z.tokyo remains a subtle meta identity |
-| June <-> Jack | Broader social-circle overlap | Party, school/social events, Facebook activity | Do not define romance or assume the user's party stance |
+| Katie <-> Ben | Hard canon: siblings; Ben is Katie's older brother | Shared photos, casual family references, ordinary Facebook context | Do not use the relationship to define the user's family or life stage |
+| Chris <-> Luca | Hard canon: friends and basketball friends | Basketball photos, Facebook posts, Foursquare context, casual references | Luca's restaurant-worker identity must remain visible; do not reduce him to basketball |
+| Jack <-> Matt | Hard canon: longtime neighbors/family friends; Jack approximately 1.5 years older | Historical tags, casual teasing, multilingual joking | Do not over-explain family, ethnicity, or language in UI |
+| June <-> Sophie | Hard canon: BEST_FRIENDS | Friend-owned photos, comments, recurring social overlap | Sophie remains recurring-secondary and outside the canonical nine |
+| Jay <-> Matt <-> Z.tokyo <-> Anil | Hard band roles: Jay guitar, Matt bass, Z.tokyo keyboard, Anil drums | Live-performance photos, music links, background event context | Anil remains offline; Z.tokyo remains a subtle meta identity |
+| June <-> Jack | `INTENTIONAL_AMBIGUITY` | Party, school/social events, Facebook activity | Do not define romance or assume the user's party stance |
+| Sophie <-> Jack | `INTENTIONAL_AMBIGUITY` | Reactions and shared social context | Do not define romance, jealousy, or prior relationship history |
 
 These are the currently locked relationships. Do not infer additional romance, family ties, or close-friend status from co-appearance alone.
 
@@ -46,7 +50,7 @@ These are the currently locked relationships. Do not infer additional romance, f
 | Character | Classification | Primary Hook | Secondary Hook | Strongest Apps | Secondary Apps | Typical Content | Visual Dependence | Seed Suitability | Live Suitability | User-Directed Interaction | Cross-App Threads | User Projection Risk | HOLD Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Katie | `CORE_SOCIAL_CHARACTER` | Everyday closeness | Casual family/social life | Facebook, Twitter DM | Flickr possible | Casual messages, daily life, plans, simple photos, low-context reactions such as `crazy ahaha` | Medium | High | Low/Medium | Yes: open questions such as `u coming?` and `call me when ur home` | Ben sibling context | Medium if closeness becomes romance, shared hobbies, or a fixed life stage | Keep the relationship ordinary and open |
-| Matt | `CORE_SOCIAL_CHARACTER` | Tech/code | Music/bass | Twitter | Facebook, Tumblr, band-photo contexts | Bugs, coding, computers, tech links, late nights, dry frustration, occasional bass content | Low/Medium | High | High | Yes, without assuming the user understands code | Jack party reaction; band with Jay, Z.tokyo, Anil | Medium if his technical interests are projected onto the user | He dislikes the party crowd/noise, but do not label him introverted, antisocial, or socially anxious |
+| Matt | `CORE_SOCIAL_CHARACTER` | Tech/code | Music/bass | Twitter | Facebook, Tumblr, band-photo contexts | Bugs, coding, computers, tech links, late nights, dry frustration, occasional bass content | Low/Medium | High | High | Yes, without assuming the user understands code | Jack neighbor history; band with Jay, Z.tokyo, Anil | Medium if his technical interests are projected onto the user | Introverted is canon; do not reduce him to an introvert, antisocial, or socially-anxious stereotype |
 | Alex | `CORE_SOCIAL_CHARACTER` | Dogs/ordinary life | Casual social interaction | Facebook, Flickr, Twitter | Foursquare | Golden retriever and French bulldog photos, walks, weather, casual questions, light social posts | High | High | Medium | Yes | Jack party post; Jay and friend-of-friend comments | Low/Medium; questions must not assume shared pet ownership or interest | Dog names remain HOLD |
 | Chris | `CORE_SOCIAL_CHARACTER` | Basketball/sports | Outgoing social life | Facebook, Twitter, Foursquare | Flickr | Practice, games, group plans, basketball photos, casual replies | Medium/High | High | Medium | Yes | Luca basketball relationship; wider party/social network | Medium if shared teams, school, or athletic identity are assigned to the user | Keep sports identity character-owned |
 | Jay | `CORE_SOCIAL_CHARACTER` | Music | Live performance/link sharing | Twitter, Tumblr, Flickr | Facebook | Bands, shows, guitar, music links, concerts, short and vague music reactions | High | High | Medium | Yes | Alex party comments; band with Matt, Z.tokyo, Anil | Medium if copy assumes the user's music taste or band involvement | Avoid turning every appearance into a music reference |
@@ -56,6 +60,22 @@ These are the currently locked relationships. Do not infer additional romance, f
 | Luca | `CORE_SOCIAL_CHARACTER` | Restaurant work | Basketball/Chris friendship | Facebook, Foursquare, Twitter | Flickr | Late shifts, customers, tips, closing, kitchen, coworkers, exhaustion, basketball after work | Medium | High | Medium/High | Low/Medium | Chris basketball photos and contexts | Medium if work, schedule, or sports are projected onto the user | Restaurant-worker identity must remain visible |
 | Z.tokyo | `AUTHOR_EASTER_EGG` | Hidden author presence | Keyboard/live-performance context | Facebook | Band-photo contexts only | One subtle profile/feed cameo; discreet appearance in band or live photos | High | Yes, very sparse | No by default | None required | Band background with Jay, Matt, Anil | Low if peripheral; high if made necessary or explained | Never canonical; no active Twitter/Instagram identity without separate approval |
 | Anil | `OFFLINE_SOCIAL_CHARACTER` | Band drummer | Offline group presence | None as account owner | Facebook, Flickr, Tumblr only as depicted context | Band photos, event context, mentions by other characters, offline group evidence | Medium/High when depicted | Offline evidence only | No direct SNS activity | No | Band background with Jay, Matt, Z.tokyo | Low while offline; critical boundary violation if given direct SNS activity | No posts, comments, mentions, DMs, profiles, or account identity |
+
+### Canonical social engagement hierarchy
+
+| Character | Self-posting | Tagged presence | Engagement |
+| --- | --- | --- | --- |
+| Jack | MEDIUM | VERY HIGH | HIGH |
+| June | HIGH | HIGH | HIGH |
+| Luca | MEDIUM/HIGH | MEDIUM | MEDIUM/HIGH |
+| Jay | MEDIUM | MEDIUM | MEDIUM |
+| Katie | MEDIUM | MEDIUM | MEDIUM |
+| Alex | MEDIUM | LOW/MEDIUM | MEDIUM |
+| Ben | LOW/MEDIUM | LOW | LOW/MEDIUM |
+| Matt | LOW | MEDIUM/HIGH | LOW/MEDIUM |
+| Chris | VERY LOW | MEDIUM/HIGH | INTERACTION-FIRST |
+
+These are relative authoring levels, not count targets.
 
 ## 6. App distribution matrix
 
@@ -161,7 +181,7 @@ The nine canonical characters do not require equal content volume. Density follo
 - Matt's Facebook Profile density is LOW/MEDIUM; brief technical comments are plausible, while Twitter remains his strongest platform.
 - June may have more Facebook/photo presence and the earliest Instagram presence.
 - Alex may have more pet imagery.
-- Chris has LOW self-posting, HIGH Comment/Like activity, and LOW Profile density; sparse space is intentional.
+- Chris has VERY LOW self-posting, HIGH Comment/Like activity, and LOW Profile density; sparse space is intentional and interaction-first.
 - Ben may have more office/coffee text and fewer photos.
 - Jack should have low content volume but high narrative significance.
 - Luca needs enough restaurant content to keep work more visible than basketball alone.

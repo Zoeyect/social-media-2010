@@ -6,7 +6,7 @@ Audit date: 2026-08-28
 
 This report compares the approved current canon supplied for this pass against the long-term Character Bible, the Social World Content Matrix, typed identity and relationship registries, Facebook actor/media/album/story data, timeline data, validators, and implementation/evidence documents.
 
-No Character Bible, registry, seed, timeline, media, album, or runtime file is changed by this audit.
+The audit phase is complete. Canonical Character Bible Consolidation v0.2 applies the approved central Bible, relationship, behavior, band, ambiguity, and classification corrections while preserving narrative runtime.
 
 | Audit measure | Result |
 | --- | ---: |
@@ -14,9 +14,9 @@ No Character Bible, registry, seed, timeline, media, album, or runtime file is c
 | Secondary recurring/offline identities audited | 3 |
 | Additional ephemeral Facebook identities checked | 15 |
 | Unique identities covered | 27 |
-| Direct canon conflicts | 6 |
-| Stale/superseded assertions | 10 |
-| Missing central canon links | 6 |
+| Direct canon conflicts | 0 active after v0.2 consolidation |
+| Stale/superseded assertions | 10 classified or replaced |
+| Missing central canon links | 0 for approved v0.2 scope |
 | Intentional ambiguities preserved | 3 relationship groups plus all user biography |
 | Remaining user decisions | 0 |
 
@@ -26,7 +26,7 @@ The approved model resolves three questions left open by the previous audit:
 - June and Sophie are canonical best friends.
 - Jay, Matt, Z.tokyo, and Anil have canonical band roles: guitar, bass, keyboard, and drums.
 
-These facts are already represented by current content, but `docs/CHARACTER_BIBLE_v1.0.md` and `CORE_SOCIAL_RELATIONSHIPS` still claim only Katie/Ben and Chris/Luca are hard non-user relationships. Consolidation is required later, but is not performed in this report.
+These facts are now represented centrally by `docs/CHARACTER_BIBLE_v1.0.md`, `CORE_SOCIAL_RELATIONSHIPS`, `CORE_SOCIAL_BAND`, `CORE_SOCIAL_BEHAVIOR`, and `CORE_SOCIAL_INTENTIONAL_AMBIGUITIES`.
 
 Jack's age is already correct everywhere active: DOB `1992-08-02`, age 18 on August 2, 2010, and age 18 on October 20, 2010. No Jack-at-17 value remains, so no automatic correction is necessary.
 
@@ -37,7 +37,7 @@ Jack's age is already correct everywhere active: DOB `1992-08-02`, age 18 on Aug
 | Area | Approved current canon | Existing project state | Status |
 | --- | --- | --- | --- |
 | Identity | Jack Keller; DOB `1992-08-02`; 18 on Aug 2 and Oct 20; German-American; Los Angeles; tall and blond | Facebook profile registry and Jack-specific docs match. Character Bible says only `Jack` and omits DOB/surname. | MISSING |
-| Football | Football player / captain-type social figure | Character Bible and older docs state formal high-school football captain | NEEDS_USER_DECISION |
+| Football | Formal football team captain | Character Bible, actor metadata, and typed validation now agree | RESOLVED v0.2 |
 | Behavior | Outgoing, socially comfortable; self-posting MEDIUM; tagged VERY HIGH; engagement HIGH | Jack social-centrality implementation matches this hierarchy | CONSISTENT |
 | Matt relationship | Longtime neighbors; families know each other; very close pre-SNS friendship | Approved historical stories exist, but the Character Bible social graph and typed relationship registry omit the edge | CONFLICT |
 | June/Sophie | Both intentionally ambiguous | Existing party, gossip, birthday, and photo content avoids confirmation | INTENTIONAL_AMBIGUITY |
@@ -48,7 +48,7 @@ Jack's age is already correct everywhere active: DOB `1992-08-02`, age 18 on Aug
 
 | Area | Approved current canon | Existing project state | Status |
 | --- | --- | --- | --- |
-| Identity | June Park; age 18; birthday June 6; Los Angeles; recently graduated | Runtime profile info says exactly this. Character Bible still says approximately 17–18 and recently finished/finishing high school. | STALE_CANON |
+| Identity | June Park; DOB 1992-06-06; age 18; Los Angeles; recently graduated | Character Bible and runtime profile metadata now agree | RESOLVED v0.2 |
 | Behavior | Popular without mean-girl framing; Facebook HIGH; Instagram HIGH; tagged HIGH; engagement HIGH | Current social baseline, 118/236 Instagram stats, and no follower drift match | CONSISTENT |
 | Interests | Starbucks, The Hills, Gossip Girl, beach, shopping, photography, music | Current Facebook profile info contains this exact list | CONSISTENT |
 | Sophie relationship | Best friends | Content and legacy-bible addenda match, but Character Bible v1 and typed relationships omit it | CONFLICT |
@@ -62,7 +62,7 @@ Jack's age is already correct everywhere active: DOB `1992-08-02`, age 18 on Aug
 | Area | Approved current canon | Existing project state | Status |
 | --- | --- | --- | --- |
 | Identity | Matteo Lee Ricci; everyday Matt Ricci; Asian/Italian; about 180 cm; slim | Character Bible and Facebook profile full name match; slim is not consistently centralized | MISSING |
-| Behavior | Introverted, quiet, dry/sarcastic with close friends; Facebook LOW; Twitter HIGHER | Character Bible calls him introverted, but Social World Content Matrix explicitly says not to label him introverted | CONFLICT |
+| Behavior | Introverted, quiet, dry/sarcastic with close friends; Facebook LOW; Twitter HIGHER | Matrix now preserves introversion while prohibiting stereotype reduction | RESOLVED v0.2 |
 | Skills | Code nerd and bass player | Code history, Twitter voice, show media, and band context match | CONSISTENT |
 | Jack relationship | Longtime neighbor/family friend | Current historical content matches; central Bible graph and typed registry omit it | CONFLICT |
 | Band | Matt bass; Jay/Z.tokyo/Anil band relationships | Matrix and media support this; central relationship registry/Bible do not | MISSING |
@@ -133,7 +133,7 @@ Jack's age is already correct everywhere active: DOB `1992-08-02`, age 18 on Aug
 
 | Area | Approved current canon | Existing project state | Status |
 | --- | --- | --- | --- |
-| Identity | Recurring peripheral character; not canonical nine | Current stable Facebook actor/profile supports recurrence, but classification remains `EPHEMERAL_FRIEND_OF_FRIEND` | CONFLICT |
+| Identity | Recurring secondary character; not canonical nine | Stable Facebook actor/profile now uses `RECURRING_SECONDARY_CHARACTER` | RESOLVED v0.2 |
 | June relationship | Best friend | Current club photo, comments, and addendum match; central Bible/relationship registry omit it | CONFLICT |
 | Avatar | Dedicated `S.png`, excluded from generic pool | Central actor-media mapping matches | CONSISTENT |
 | Jack relationship | Intentionally ambiguous | Current comments/birthday content do not resolve it | INTENTIONAL_AMBIGUITY |
@@ -235,7 +235,11 @@ The following must not be resolved during consolidation:
 - June ↔ Jack relationship status.
 - Sophie ↔ Jack relationship/history/interest.
 - Alex's dog names beyond the visible `旺財&BB` caption.
-- June's exact birth year; only age 18 and birthday June 6 are approved.
+- June's DOB is locked to 1992-06-06; unrelated unapproved DOBs remain intentionally unspecified.
+
+## 11. Consolidation resolution status
+
+Canonical Character Bible Consolidation v0.2 resolves all approved audit actions: Jack captain status, June DOB, Matt introversion wording, Chris interaction-first sparsity, Sophie recurring-secondary classification, expanded hard relationships, exact band roles/account boundaries, intentional ambiguity metadata, normalized media architecture with canonical joined resolver, and archival deprecation labels. No approved ambiguity was converted into a hard romance or user relationship.
 - Exact DOBs and unapproved legal names for characters whose approved model does not provide them.
 - Every aspect of the user's gender, age, school, job, hobbies, sports, romance, party preference, personality, and exact closeness to characters.
 

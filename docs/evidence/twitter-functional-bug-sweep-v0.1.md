@@ -99,6 +99,8 @@ The timeline is a deterministic array with newest-first ordering:
 11:39 PM
 ```
 
+**DEPRECATED SESSION REFERENCE:** this archived timeline contains a legitimate `12:01 AM` content timestamp, but the canonical simulation session starts at `2010-10-20T00:02:00-07:00`. The content time must not be reused as the session anchor.
+
 This sequence is correctly descending across midnight. Stable tweet IDs are
 used as React keys; ordinary rendering does not duplicate or reorder tweet
 records.

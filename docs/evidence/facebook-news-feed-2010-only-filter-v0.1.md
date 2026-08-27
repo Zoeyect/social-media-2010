@@ -18,8 +18,10 @@ The centralized `isFacebookNewsFeedEligible` selector reads `createdAt`, formats
 | `june-starbucks-photo`, `june-profile-picture-update`, `sophie-june-club-photo-story`, `june-home-photo`, `june-sophie-photo`, `june-graduation-photo`, `june-18th-birthday-photos` | June / Sophie | 2010 | No for current user | Pass year gate but remain custom/private |
 | `jack-matt-2010-photo`, `jack-practice-brutal`, `jack-car-photo`, `jack-profile-picture-update` | Jack | 2010 | No for current user | Pass year gate but remain custom/private |
 | `luca-profile-picture-current`, `luca-work-main-street-diner` | Luca | 2010 | No for current user | Pass year gate but remain custom/private |
-| `jay-may-guitar-photo`, Katie's 2010 profile/selfie stories | Jay / Katie | 2010 | No for current user | Pass year gate but remain custom/private |
-| Ben's `ben-wall-2010-*`, `ben-profile-current-update`, `ben-photo-friday-2010`, `ben-car-2010` | Ben | 2010 | No for current user | Profile history remains custom/private |
+| `jay-may-guitar-photo` | Jay | 2010 | Yes | Canonical friends-visible May music story |
+| Katie's 2010 profile/selfie stories | Katie | 2010 | No for current user | Pass year gate but remain custom/private |
+| `ben-photo-friday-2010` | Ben | 2010 | Yes | Canonical friends-visible Oct 15 photo story |
+| Ben's `ben-wall-2010-*`, `ben-profile-current-update`, `ben-car-2010` | Ben | 2010 | No for current user | Profile and Wall history remains custom/private |
 | `jack-car-matt-2009-photos`, `jack-owned-j-2009-photo`, `jack-matt-2008-photo`, `jack-matt-family-2007-photo` | Jack | 2007–2009 | No | Hard year rejection; remains on Jack Wall/Photos |
 | `alex-dogs-wangcai-bb-2009`, `alex-dog-golden-2007` | Alex | 2007 / 2009 | No | Hard year rejection; remains in Dogs album |
 | `katie-selfie-august-2009`, `katie-selfie-july-2009` | Katie | 2009 | No | Hard year rejection; remains in Photos |

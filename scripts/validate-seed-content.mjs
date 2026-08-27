@@ -1814,12 +1814,19 @@ for (const [storyId, likeCount, commentCount] of [["jack-football-game-photo", 2
   assert.deepEqual([benWallNavigation.currentView, benWallNavigation.selectedProfileName, benWallNavigation.profileWallScrollPositions.Ben, benWallNavigation.scrollPosition], ["profile", "Ben", 912, 0], "Ben Wall Post Detail Back must restore the exact Wall snapshot and preserve Feed isolation");
   benWallNavigation = facebook.facebookStateTransition(benWallNavigation, { type: "OPEN_PROFILE", profileName: "Jack" });
   assert.deepEqual([benWallNavigation.profileWallScrollPositions.Ben, benWallNavigation.profileWallScrollPositions.Jack ?? 0], [912, 0], "Ben Wall position must not leak into Jack or another profile");
-  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id.startsWith("ben-wall-") || ["ben-profile-current-update", "ben-photo-friday-2010", "ben-car-2010", "ben-coffee-2009", "ben-coffee-2006", "ben-profile-2005-update"].includes(item.id)), false, "Ben historical Wall and photo records must remain outside the current October Feed");
+  const benFeedAtSessionStart = facebook.selectFacebookVisibleFeed(interactionFacebook, Date.parse("2010-10-20T00:02:00-07:00"));
+  assert.equal(benFeedAtSessionStart.some(item => item.id === "ben-photo-friday-2010"), true, "Ben's Oct 15 Friday photo must be eligible for the current Feed");
+  assert.equal(facebook.isFacebookNewsFeedEligible(interactionFacebook, interactionFacebook.feed.find(item => item.id === "ben-photo-friday-2010"), Date.parse("2010-10-20T00:02:00-07:00")), true, "Ben's canonical Friday photo must pass centralized Feed eligibility");
+  assert.equal(benFeedAtSessionStart.some(item => item.id.startsWith("ben-wall-") || ["ben-profile-current-update", "ben-car-2010", "ben-coffee-2009", "ben-coffee-2006", "ben-profile-2005-update"].includes(item.id)), false, "Ben Wall-only and Profile-activity records must remain outside the current Feed");
   const chrisProfileWallHistory = facebook.selectFacebookProfileWall(interactionFacebook, "Chris").filter(item => item.profileWallEligible === true);
   assert.deepEqual(chrisProfileWallHistory.map(item => [item.id, item.mediaId, item.createdAt]), [["chris-profile-picture-update", "chris-profile-picture", "2009-11-14T20:30:00-08:00"]], "Chris historical Profile Wall must remain intentionally sparse");
   assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "chris-profile-picture-update"), false, "Chris historical profile-picture update must not enter the current Feed");
   assert.deepEqual(facebook.selectFacebookProfileWall(interactionFacebook, "Matt").filter(item => item.profileWallEligible === true).map(item => item.id), ["matt-code-photo-2010", "matt-jack-tagged-photo", "matt-profile-current-update", "matt-photo-2007", "matt-profile-2007-update"], "Matt Profile Wall must remain sparse and newest-first");
-  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id.startsWith("matt-code-") || item.id.startsWith("matt-profile-") || item.id === "matt-photo-2007"), false, "Matt historical Profile media must remain outside the current Feed");
+  const mattCodeStory = interactionFacebook.feed.find(item => item.id === "matt-code-photo-2010");
+  assert.deepEqual([mattCodeStory?.createdAt, mattCodeStory?.visibility, mattCodeStory?.mediaId], ["2010-10-15T23:03:00-07:00", "friends", "matt-code-2010"], "Matt's Oct 15 story must retain its canonical timestamp and media identity");
+  assert.equal(facebook.isFacebookNewsFeedEligible(interactionFacebook, mattCodeStory, Date.parse("2010-10-20T00:02:00-07:00")), true, "Matt's Oct 15 story must pass centralized Feed eligibility at session start");
+  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "matt-code-photo-2010"), true, "Matt's Oct 15 story must enter the final Feed candidate list");
+  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id.startsWith("matt-profile-") || item.id === "matt-photo-2007"), false, "Matt Profile-activity and pre-2010 media must remain outside the current Feed");
   const canonicalFeedIdsBeforeSort = interactionFacebook.feed.map(item => item.id);
   const feedAtSessionStart = facebook.selectFacebookVisibleFeed(interactionFacebook, Date.parse("2010-10-20T00:02:00-07:00"));
   const feedTimeValues = feedAtSessionStart.map(item => Date.parse(item.createdAt));
@@ -1842,6 +1849,8 @@ for (const [storyId, likeCount, commentCount] of [["jack-football-game-photo", 2
   assert.equal(feedAtSessionStart.some(item => item.id === "matt-photo-2007"), false, "Matt's 2007 photo must fail the News Feed year gate");
   assert.equal(facebookAlbums.getFacebookAlbum("matt-photos")?.mediaIds.includes("matt-photo-2007"), true, "Matt's 2007 photo must remain in his album");
   assert.equal(feedAtSessionStart.some(item => item.id === "ben-long-day"), true, "a visible 2010 story may remain Feed-eligible");
+  assert.ok(chronologyIndex("matt-code-photo-2010") < chronologyIndex("ben-photo-friday-2010"), "Matt's 11:03 PM Oct 15 story must sort above Ben's 9:49 PM Oct 15 story");
+  assert.equal(new Set(interactionFacebook.feed.map(item => item.id)).size, interactionFacebook.feed.length, "Feed eligibility corrections must not duplicate canonical stories");
   assert.equal(feedAtSessionStart.some(item => item.id === "june-starbucks-photo"), false, "a 2010 custom story must still obey audience visibility");
   const deliveredFutureLiveState = facebook.facebookStateTransition(facebook.createInitialFacebookState("Visitor"), { type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: "12:03 AM", createdAt: "2010-10-20T00:03:00-07:00" });
   assert.equal(facebook.selectFacebookVisibleFeed(deliveredFutureLiveState, Date.parse("2010-10-20T00:02:59-07:00")).some(item => item.id === "facebook-june-instagram-announcement"), false, "a delivered 2010 live story must not appear before its canonical timestamp");
@@ -1862,8 +1871,9 @@ for (const [storyId, likeCount, commentCount] of [["jack-football-game-photo", 2
     { token: "@Z.tokyo", actor: { kind: "author-easter-egg", authorId: "author-z-tokyo", displayName: "Z.tokyo" } },
   ], "only Facebook-backed Jay caption identities may receive structured mention mappings");
   assert.equal(jayBandPost?.mentions?.some(mention => mention.token === "@Anil"), false, "offline-only @Anil must remain plain text");
-  assert.deepEqual([jayMayPost?.mediaId, jayMayPost?.createdAt, jayMayPost?.text, jayMayPost?.visibility, jayMayPost?.customAudienceIncludesUser], ["jay-guitar-may", "2010-05-15T18:00:00-07:00", "hey baby", "custom", false]);
-  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "jay-may-guitar-photo"), false, "May history must not enter the current News Feed");
+  assert.deepEqual([jayMayPost?.mediaId, jayMayPost?.createdAt, jayMayPost?.text, jayMayPost?.visibility, jayMayPost?.customAudienceIncludesUser], ["jay-guitar-may", "2010-05-15T18:00:00-07:00", "hey baby", "friends", undefined]);
+  assert.equal(facebook.isFacebookNewsFeedEligible(interactionFacebook, jayMayPost, Date.parse("2010-10-20T00:02:00-07:00")), true, "Jay's May story must pass centralized Feed eligibility at session start");
+  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "jay-may-guitar-photo"), true, "Jay's valid May story must enter the current News Feed");
   assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.anil, undefined, "plain-text @Anil must not create a canonical SNS identity");
   const katieSeptemberComments = facebook.selectFacebookComments(interactionFacebook, "katie-selfie-september-2010");
   assert.deepEqual(katieSeptemberComments.map(comment => [comment.author, comment.characterId, comment.text, comment.classification]), [["Ben", "ben", "do you own any other shirts?", "CURATED / SIBLING BANTER"]]);

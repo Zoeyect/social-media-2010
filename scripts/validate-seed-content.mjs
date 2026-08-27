@@ -142,7 +142,7 @@ const jackAlbums = facebookAlbums.FACEBOOK_ALBUMS.filter(album => album.ownerAct
 assert.deepEqual(jackAlbums.map(album => [album.id, album.title, album.mediaIds.length]), [["jack-profile-pictures", "Profile Pictures", 1], ["jack-summer", "Summer", 1], ["jack-18th-birthday", "18th Birthday", 2], ["jack-photos", "Photos", 6]], "Jack owned albums must exclude externally uploaded tagged photos");
 assert.deepEqual(["jack-matt-family", "jack-matt-01", "jack-matt-02", "jack-matt-03"].filter(id => jackAlbums.flatMap(album => album.mediaIds).includes(id)), ["jack-matt-family", "jack-matt-01", "jack-matt-02", "jack-matt-03"], "Jack-owned Matt history must be present in Photos");
 assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("jack"), "jack-profile-picture", "Jack actor media must resolve centrally");
-assert.deepEqual(facebookActorMedia.getFacebookCanonicalProfileInfo("jack"), { fullName: "Jack Keller", age: 18, birthday: "August 2, 1992", location: "Los Angeles", activity: "Football", background: "German-American", classification: "CURATED" });
+assert.deepEqual(facebookActorMedia.getFacebookCanonicalProfileInfo("jack"), { fullName: "Jack Keller", age: 18, birthday: "August 2, 1992", location: "Los Angeles", activity: "Football team captain", background: "German-American", classification: "CURATED" });
 assert.equal("relationshipStatus" in facebookActorMedia.getFacebookCanonicalProfileInfo("jack"), false, "Jack relationship status must remain absent");
 assert.deepEqual(seed.facebook.feed.filter(story => story.friendId === "jack" && story.profileWallEligible).map(story => story.id), ["jack-movie", "jack-matt-2010-photo", "jack-practice-brutal", "jack-car-photo", "jack-profile-picture-update", "jack-summer-party-photo", "jack-birthday-thanks-photos", "jack-car-matt-2009-photos", "jack-owned-j-2009-photo", "jack-matt-2008-photo", "jack-matt-family-2007-photo"], "Jack Wall must expose Jack-owned uploads while excluding externally owned tagged photos");
 assert.equal(seed.facebook.feed.find(story => story.id === "jack-movie")?.text, "That movie was better than I expected.");
@@ -313,13 +313,31 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const sophieComment = facebook.selectFacebookComments(sophieAvatarState, "june-show-photos-oct19").find(comment => comment.id === "june-show-comment-sophie");
   assert.ok(sophieComment, "June's show thread must retain Sophie's comment");
   const sophieCommentActor = facebook.resolveFacebookCommentActor(sophieComment, "Visitor");
-  assert.deepEqual(sophieCommentActor, { kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" });
+  assert.deepEqual(sophieCommentActor, { kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "RECURRING_SECONDARY_CHARACTER" });
   const sophieProfileState = facebook.facebookStateTransition(sophieAvatarState, { type: "OPEN_COMMENT_AUTHOR", actor: sophieCommentActor });
   assert.deepEqual([sophieProfileState.currentView, sophieProfileState.selectedProfileActor], ["profile", sophieCommentActor], "Sophie comment and Profile must share one actor identity");
   assert.equal(facebookActorMedia.getFacebookEphemeralProfileMediaId(sophieProfileState.selectedProfileActor.ephemeralId), sophieAvatarMediaId, "Sophie Profile must reuse the comment avatar mapping");
-  const sophieAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" });
+  const sophieAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "RECURRING_SECONDARY_CHARACTER" });
   assert.deepEqual(sophieAlbums.map(album => [album.id, album.title, album.mediaIds]), [["sophie-photos", "Photos", ["sophie-june-club-photo", "jack-tagged-sophie-02", "jack-tagged-sophie-03"]]], "Sophie must own her June and Jack tagged photos");
   const sophieClubPhoto = sophieAlbums[0].photos[0];
+  const sophieClubRelationship = facebookAlbums.getFacebookCanonicalMediaRelationship("sophie-june-club-photo");
+  assert.ok(sophieClubRelationship, "Sophie club media must resolve through the canonical joined relationship helper");
+  assert.equal(sophieClubRelationship.album, sophieAlbums[0], "joined media relationship must preserve the canonical source album");
+  assert.equal(sophieClubRelationship.photo, sophieClubPhoto, "joined media relationship must preserve the canonical photo record");
+  assert.equal(sophieClubRelationship.ownerActor.classification, "RECURRING_SECONDARY_CHARACTER", "joined media relationship must preserve Sophie's recurring-secondary classification");
+  assert.equal(sophieClubRelationship.storyId, "sophie-june-club-photo-story", "joined media relationship must preserve canonical story identity");
+  assert.deepEqual(sophieClubRelationship.tags, [{ kind: "canonical", characterId: "june" }], "joined media relationship must preserve structured tags");
+  for (const album of facebookAlbums.FACEBOOK_ALBUMS) {
+    for (const photo of album.photos) {
+      const relationship = facebookAlbums.getFacebookCanonicalMediaRelationship(photo.mediaId);
+      assert.ok(relationship, `${photo.mediaId} must resolve to exactly one canonical album relationship`);
+      assert.equal(relationship.album, album, `${photo.mediaId} must retain its source album`);
+      assert.equal(relationship.photo, photo, `${photo.mediaId} must retain its source photo record`);
+      assert.equal(relationship.ownerActor, album.ownerActor, `${photo.mediaId} must retain its uploader`);
+      assert.equal(relationship.storyId, photo.storyId, `${photo.mediaId} must retain its canonical story`);
+      assert.equal(relationship.media.id, photo.mediaId, `${photo.mediaId} must resolve its canonical media record`);
+    }
+  }
   assert.deepEqual([sophieClubPhoto.storyId, sophieClubPhoto.timestamp, sophieClubPhoto.caption, sophieClubPhoto.taggedCharacterIds], ["sophie-june-club-photo-story", "2010-10-16T02:57:00-07:00", "bestie ♥ @June", ["june"]], "Sophie club photo must preserve caption and structured June tag metadata");
   const sophieClubStory = seed.facebook.feed.find(item => item.id === "sophie-june-club-photo-story");
   assert.deepEqual([sophieClubStory.author, sophieClubStory.text, sophieClubStory.mediaId, sophieClubStory.createdAt, sophieClubStory.taggedCharacterIds], ["Sophie Miller", "bestie ♥ @June", "sophie-june-club-photo", "2010-10-16T02:57:00-07:00", ["june"]], "Sophie Wall story must bind the same tagged photo record and caption");
@@ -358,7 +376,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual([taggedNavigation.currentView, taggedNavigation.selectedAlbumId, taggedNavigation.selectedPhotoMediaId], ["photoDetail", "sophie-photos", "sophie-june-club-photo"], "tagged route must open the canonical owner album Photo Detail");
   taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "TOGGLE_LIKE", itemId: "sophie-june-club-photo-story", displayName: "Visitor" });
   assert.equal(taggedNavigation.likedItemIds.includes("sophie-june-club-photo-story"), true, "tagged and owner routes must share the canonical story interaction ID");
-  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "OPEN_COMMENT_AUTHOR", actor: { kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" } });
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "OPEN_COMMENT_AUTHOR", actor: { kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "RECURRING_SECONDARY_CHARACTER" } });
   taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "GO_BACK" });
   assert.equal(taggedNavigation.currentView, "photoDetail", "cross-profile Back must restore tagged Photo Detail");
   taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "GO_BACK" });
@@ -369,7 +387,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   sophiePhotoNavigation = facebook.facebookStateTransition(sophiePhotoNavigation, { type: "OPEN_ALBUM", albumId: "sophie-photos" });
   sophiePhotoNavigation = facebook.facebookStateTransition(sophiePhotoNavigation, { type: "OPEN_ALBUM_PHOTO", albumId: "sophie-photos", mediaId: "sophie-june-club-photo" });
   assert.deepEqual([sophiePhotoNavigation.currentView, sophiePhotoNavigation.selectedAlbumId, sophiePhotoNavigation.selectedPhotoMediaId], ["photoDetail", "sophie-photos", "sophie-june-club-photo"], "Sophie club photo must open shared Photo Detail");
-  let sophieMentionNavigation = facebook.facebookStateTransition(sophieWallState, { type: "OPEN_COMMENT_AUTHOR", actor: { kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" } });
+  let sophieMentionNavigation = facebook.facebookStateTransition(sophieWallState, { type: "OPEN_COMMENT_AUTHOR", actor: { kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "RECURRING_SECONDARY_CHARACTER" } });
   sophieMentionNavigation = facebook.facebookStateTransition(sophieMentionNavigation, { type: "OPEN_COMMENT_AUTHOR", actor: sophieClubStory.mentions[0].actor });
   assert.deepEqual([sophieMentionNavigation.currentView, sophieMentionNavigation.selectedProfileName, sophieMentionNavigation.selectedProfileActor?.characterId], ["profile", "June", "june"], "@June must open canonical June Profile");
   sophieMentionNavigation = facebook.facebookStateTransition(sophieMentionNavigation, { type: "GO_BACK" });

@@ -19,7 +19,7 @@ export type FacebookCanonicalProfileInfo = Readonly<{ fullName: string; age?: nu
 export const FACEBOOK_CANONICAL_PROFILE_INFO: Readonly<Partial<Record<CoreSocialCharacterId, FacebookCanonicalProfileInfo>>> = Object.freeze({
   june: Object.freeze({ fullName: "June Park", age: 18, birthday: "June 6", location: "Los Angeles", lifeStage: "Recent high-school graduate", interests: Object.freeze(["Starbucks", "The Hills", "Gossip Girl", "beach", "shopping", "photography", "music"]), classification: "CURATED" as const }),
   matt: Object.freeze({ fullName: "Matteo Lee Ricci", classification: "CURATED" as const }),
-  jack: Object.freeze({ fullName: "Jack Keller", age: 18, birthday: "August 2, 1992", location: "Los Angeles", activity: "Football", background: "German-American", classification: "CURATED" as const }),
+  jack: Object.freeze({ fullName: "Jack Keller", age: 18, birthday: "August 2, 1992", location: "Los Angeles", activity: "Football team captain", background: "German-American", classification: "CURATED" as const }),
 });
 
 export const FACEBOOK_EPHEMERAL_ACTOR_MEDIA: Readonly<Partial<Record<FacebookEphemeralFriendOfFriendId, Readonly<{ profileMediaId: FacebookStoryMediaId }>>>> = Object.freeze({

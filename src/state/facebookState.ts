@@ -3,7 +3,7 @@ import type { ContentOrigin } from "../data/sessionSeedContent";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
 import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS } from "../data/facebookActors";
-import type { FacebookEphemeralFriendOfFriendId, FacebookFeedActor } from "../data/facebookActors";
+import type { FacebookEphemeralFriendOfFriendId, FacebookFeedActor, FacebookPeripheralActorClassification } from "../data/facebookActors";
 import type { FacebookAuthorEasterEggId } from "../data/facebookActors";
 import { MAIN_STREET_DINER_VENUE } from "../data/canonicalVenues";
 import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumForMediaId, getFacebookPhotosOfActor } from "../data/facebookAlbums";
@@ -133,7 +133,7 @@ export type FacebookMessageThread = {
 export type FacebookEphemeralIdentity = {
   id: FacebookEphemeralFriendOfFriendId;
   displayName: string;
-  classification: "EPHEMERAL_FRIEND_OF_FRIEND";
+  classification: FacebookPeripheralActorClassification;
 };
 
 export type FacebookComment = {
@@ -151,7 +151,7 @@ export type FacebookComment = {
 
 export type FacebookNavigableActor =
   | { kind: "canonical"; characterId: CoreSocialCharacterId; displayName: string }
-  | { kind: "ephemeral-friend-of-friend"; ephemeralId: FacebookEphemeralFriendOfFriendId; displayName: string; classification: "EPHEMERAL_FRIEND_OF_FRIEND" }
+  | { kind: "ephemeral-friend-of-friend"; ephemeralId: FacebookEphemeralFriendOfFriendId; displayName: string; classification: FacebookPeripheralActorClassification }
   | { kind: "session-user"; displayName: string }
   | { kind: "author-easter-egg"; authorId: FacebookAuthorEasterEggId; displayName: string };
 

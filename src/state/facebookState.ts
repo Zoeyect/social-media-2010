@@ -13,6 +13,7 @@ export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
 export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "photoDetail" | "chat" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
+type FacebookProfileReturnState = { profileName: string | null; actor: FacebookNavigableActor | null; section: FacebookProfileSection };
 export type FacebookFriendsSection = "friends" | "pages" | "requests";
 export type FacebookFriendRequestState = "none" | "pending" | "accepted" | "ignored";
 export type FacebookMessageState = "none" | "unread" | "read" | "replied";
@@ -82,6 +83,7 @@ export type FacebookFeedItem = {
   albumTitle?: string;
   photoCount?: number;
   relatedCharacterIds?: readonly CoreSocialCharacterId[];
+  taggedCharacterIds?: readonly CoreSocialCharacterId[];
   offlineSubjectIds?: readonly FacebookOfflinePersonId[];
   tagUiStatus?: "HOLD";
   contentStatus: "HOLD-fictional" | "USER-GENERATED";
@@ -167,6 +169,7 @@ export type FacebookState = {
   selectedFeedItemId: string | null;
   selectedProfileName: string | null;
   selectedProfileActor: FacebookNavigableActor | null;
+  profileReturnState: FacebookProfileReturnState | null;
   profileSection: FacebookProfileSection;
   scrollPosition: number;
   likedItemIds: string[];
@@ -264,6 +267,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     selectedFeedItemId: null,
     selectedProfileName: null,
     selectedProfileActor: null,
+    profileReturnState: null,
     profileSection: "wall",
     scrollPosition: 0,
     likedItemIds: [],
@@ -349,6 +353,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         ...state,
         currentView: "profile",
         navigationStack: [...state.navigationStack, "profile"],
+        profileReturnState: state.currentView === "profile" ? { profileName: state.selectedProfileName, actor: state.selectedProfileActor, section: state.profileSection } : null,
         selectedProfileName: event.profileName,
         selectedProfileActor: null,
         profileSection: "wall",
@@ -358,6 +363,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         ...state,
         currentView: "profile",
         navigationStack: [...state.navigationStack, "profile"],
+        profileReturnState: state.currentView === "profile" ? { profileName: state.selectedProfileName, actor: state.selectedProfileActor, section: state.profileSection } : null,
         selectedProfileName: event.actor.displayName,
         selectedProfileActor: event.actor,
         profileSection: "wall",
@@ -494,7 +500,17 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "GO_BACK": {
       if (state.navigationStack.length <= 1) return state;
       const navigationStack = state.navigationStack.slice(0, -1);
-      return { ...state, currentView: navigationStack[navigationStack.length - 1], navigationStack };
+      const currentView = navigationStack[navigationStack.length - 1];
+      if (currentView === "profile" && state.profileReturnState) return {
+        ...state,
+        currentView,
+        navigationStack,
+        selectedProfileName: state.profileReturnState.profileName,
+        selectedProfileActor: state.profileReturnState.actor,
+        profileSection: state.profileReturnState.section,
+        profileReturnState: null,
+      };
+      return { ...state, currentView, navigationStack };
     }
     case "OPEN_FEED_ITEM":
       if (!state.feed.some(item => item.id === event.itemId)) return state;

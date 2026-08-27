@@ -15,6 +15,7 @@ Albums and media membership are declared in the centralized Facebook album regis
 Implemented albums:
 
 - Z.tokyo: Profile Pictures
+- Sophie Miller: Photos, containing one Sophie-owned photo with a structured June tag
 - June: Profile Pictures; 10/18; 18th Birthday; Girls ♥; Senior Year; Me
 - Luca: Profile Pictures; Pickup Basketball; Photos
 - Alex: Profile Pictures; Dogs
@@ -59,3 +60,5 @@ June's `10/18` album reuses `june-fb-F`, `june-fb-10-18-01`, and `june-fb-10-18-
 Classification: CURATED IA / CURATED media binding.
 
 Modern Memories, Stories, Reels, automatic face grouping, and contemporary gallery chrome are rejected. Exact 2010 pixel-level album and photo-detail chrome remains HOLD for a later visual-fidelity pass.
+
+Sophie owns `sophie-june-club-photo`, backed by unchanged `June-club.png`, uploaded October 16, 2010 at 2:57 AM PDT with caption `bestie ♥`. The photo record and Sophie Wall story both store `taggedCharacterIds: ["june"]`. It opens through shared Photo Detail and never enters a June-owned album. `Photos of June` aggregation and visible tag chrome remain deferred/HOLD.

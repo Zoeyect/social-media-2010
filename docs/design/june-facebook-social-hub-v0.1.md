@@ -23,6 +23,8 @@ Sophie Miller is June's recurring best friend and remains a Facebook-local perip
 
 Facebook-owned June albums exclude `IG01.JPG`, `IG02.JPG`, `IG03.JPG`, `IG04.JPG`, `June-Jack-club.png`, and `June-Jack-kiss.png`. Relationship status is hidden. `June Tagged Photos / Photos of June = DEFERRED UNTIL AFTER JACK PROFILE`; tagged ownership, aggregation, and cross-profile provenance are not implemented here.
 
+The Sophie-owned October 16 club photo (`sophie-june-club-photo`) stores a structured canonical June tag and is an approved future `Photos of June` source. It remains absent from all six June-owned albums until tagged-photo aggregation is implemented.
+
 ## Bilingual captions and engagement
 
 The reading photo caption is `my sister took this lol / 책 읽는 중`; the sister remains an offline caption reference. The birthday main photo caption is `happy 18th, June ♥ 생일 축하해`.

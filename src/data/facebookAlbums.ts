@@ -5,6 +5,7 @@ import type { CanonicalVenueId } from "./canonicalVenues";
 
 export const FACEBOOK_ALBUM_IDS = Object.freeze([
   "z-tokyo-profile-pictures",
+  "sophie-photos",
   "june-profile-pictures",
   "june-show-10-18",
   "june-18th-birthday",
@@ -50,6 +51,7 @@ export type FacebookAlbumPhoto = {
   timestamp: string;
   caption?: string;
   venueId?: CanonicalVenueId;
+  taggedCharacterIds?: readonly CoreSocialCharacterId[];
   classification: "CURATED";
 };
 
@@ -84,6 +86,7 @@ function defineFacebookAlbum(definition: Omit<FacebookAlbum, "mediaIds">): Faceb
 
 export const FACEBOOK_ALBUMS: readonly FacebookAlbum[] = Object.freeze([
   defineFacebookAlbum({ id: "z-tokyo-profile-pictures", ownerActor: Object.freeze({ kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const, displayName: "Z.tokyo" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "z-tokyo-profile-picture" as const, storyId: "z-tokyo-profile-picture-update", timestamp: "2010-10-18T20:52:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "sophie-photos", ownerActor: Object.freeze({ kind: "ephemeral-friend-of-friend" as const, ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }), title: "Photos", photos: Object.freeze([{ mediaId: "sophie-june-club-photo" as const, storyId: "sophie-june-club-photo-story", timestamp: "2010-10-16T02:57:00-07:00", caption: "bestie ♥ @June", taggedCharacterIds: Object.freeze(["june"] as const), classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "june-facebook-profile-picture" as const, storyId: "june-profile-picture-update", timestamp: "2010-10-10T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-show-10-18", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "10/18", photos: Object.freeze(JUNE_SHOW_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "june-show-photos-oct19", timestamp: "2010-10-19T23:51:00-07:00", classification: "CURATED" as const }))), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-18th-birthday", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "18th Birthday", photos: Object.freeze(JUNE_BIRTHDAY_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: JUNE_BIRTHDAY_PHOTO_STORY_IDS[mediaId], uploadStoryId: "june-18th-birthday-photos", timestamp: "2010-06-06T21:08:00-07:00", ...(mediaId === "june-birthday-main" ? { caption: "happy 18th, June ♥ 생일 축하해" } : {}), classification: "CURATED" as const }))), classification: "CURATED" as const }),

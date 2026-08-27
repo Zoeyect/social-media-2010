@@ -106,6 +106,7 @@ try {
     facebookAlbums.FACEBOOK_ALBUMS.map(album => [album.id, album.ownerActor.displayName, album.title, album.mediaIds, album.photos.map(photo => photo.storyId), album.classification]),
     [
       ["z-tokyo-profile-pictures", "Z.tokyo", "Profile Pictures", ["z-tokyo-profile-picture"], ["z-tokyo-profile-picture-update"], "CURATED"],
+      ["sophie-photos", "Sophie Miller", "Photos", ["sophie-june-club-photo"], ["sophie-june-club-photo-story"], "CURATED"],
       ["june-profile-pictures", "June", "Profile Pictures", ["june-facebook-profile-picture"], ["june-profile-picture-update"], "CURATED"],
       ["june-show-10-18", "June", "10/18", ["june-fb-F", "june-fb-10-18-01", "june-fb-10-18-02"], ["june-show-photos-oct19", "june-show-photos-oct19", "june-show-photos-oct19"], "CURATED"],
       ["june-18th-birthday", "June", "18th Birthday", ["june-birthday-bag", "june-birthday-gift", "june-birthday-main"], ["june-birthday-bag-photo", "june-birthday-gift-photo", "june-birthday-main-photo"], "CURATED"],
@@ -128,7 +129,7 @@ try {
     ],
     "Facebook albums must preserve the exact approved owner/media/story bindings",
   );
-  assert.deepEqual(facebookAlbums.FACEBOOK_ALBUMS.map(album => album.mediaIds.length), [1, 1, 3, 3, 1, 1, 2, 1, 3, 1, 1, 2, 2, 4, 1, 2, 2, 1, 4, 3], "album counts must derive from approved media membership");
+  assert.deepEqual(facebookAlbums.FACEBOOK_ALBUMS.map(album => album.mediaIds.length), [1, 1, 1, 3, 3, 1, 1, 2, 1, 3, 1, 1, 2, 2, 4, 1, 2, 2, 1, 4, 3], "album counts must derive from approved media membership");
   const facebookFeedById = new Map(seed.facebook.feed.map(story => [story.id, story]));
   const resolvableFacebookMediaIds = new Set([...sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ...facebookMedia.FACEBOOK_MEDIA_IDS]);
   for (const album of facebookAlbums.FACEBOOK_ALBUMS) {
@@ -212,6 +213,27 @@ try {
   const sophieProfileState = facebook.facebookStateTransition(sophieAvatarState, { type: "OPEN_COMMENT_AUTHOR", actor: sophieCommentActor });
   assert.deepEqual([sophieProfileState.currentView, sophieProfileState.selectedProfileActor], ["profile", sophieCommentActor], "Sophie comment and Profile must share one actor identity");
   assert.equal(facebookActorMedia.getFacebookEphemeralProfileMediaId(sophieProfileState.selectedProfileActor.ephemeralId), sophieAvatarMediaId, "Sophie Profile must reuse the comment avatar mapping");
+  const sophieAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" });
+  assert.deepEqual(sophieAlbums.map(album => [album.id, album.title, album.mediaIds]), [["sophie-photos", "Photos", ["sophie-june-club-photo"]]], "Sophie must own the tagged club photo");
+  const sophieClubPhoto = sophieAlbums[0].photos[0];
+  assert.deepEqual([sophieClubPhoto.storyId, sophieClubPhoto.timestamp, sophieClubPhoto.caption, sophieClubPhoto.taggedCharacterIds], ["sophie-june-club-photo-story", "2010-10-16T02:57:00-07:00", "bestie ♥ @June", ["june"]], "Sophie club photo must preserve caption and structured June tag metadata");
+  const sophieClubStory = seed.facebook.feed.find(item => item.id === "sophie-june-club-photo-story");
+  assert.deepEqual([sophieClubStory.author, sophieClubStory.text, sophieClubStory.mediaId, sophieClubStory.createdAt, sophieClubStory.taggedCharacterIds], ["Sophie Miller", "bestie ♥ @June", "sophie-june-club-photo", "2010-10-16T02:57:00-07:00", ["june"]], "Sophie Wall story must bind the same tagged photo record and caption");
+  assert.deepEqual(sophieClubStory.mentions, [{ token: "@June", actor: { kind: "canonical", characterId: "june", displayName: "June" } }], "@June must use structured canonical mention metadata");
+  const sophieWallState = facebook.createInitialFacebookState("Visitor");
+  assert.deepEqual(facebook.selectFacebookProfileWall(sophieWallState, "Sophie Miller").map(item => item.id), ["sophie-june-club-photo-story"], "Sophie Wall must contain the canonical tagged photo story");
+  assert.equal(juneAlbums.some(album => album.mediaIds.includes("sophie-june-club-photo")), false, "Sophie-owned tagged media must not enter June-owned albums");
+  let sophiePhotoNavigation = facebook.createInitialFacebookState("Visitor");
+  sophiePhotoNavigation = facebook.facebookStateTransition(sophiePhotoNavigation, { type: "OPEN_ALBUM", albumId: "sophie-photos" });
+  sophiePhotoNavigation = facebook.facebookStateTransition(sophiePhotoNavigation, { type: "OPEN_ALBUM_PHOTO", albumId: "sophie-photos", mediaId: "sophie-june-club-photo" });
+  assert.deepEqual([sophiePhotoNavigation.currentView, sophiePhotoNavigation.selectedAlbumId, sophiePhotoNavigation.selectedPhotoMediaId], ["photoDetail", "sophie-photos", "sophie-june-club-photo"], "Sophie club photo must open shared Photo Detail");
+  let sophieMentionNavigation = facebook.facebookStateTransition(sophieWallState, { type: "OPEN_COMMENT_AUTHOR", actor: { kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" } });
+  sophieMentionNavigation = facebook.facebookStateTransition(sophieMentionNavigation, { type: "OPEN_COMMENT_AUTHOR", actor: sophieClubStory.mentions[0].actor });
+  assert.deepEqual([sophieMentionNavigation.currentView, sophieMentionNavigation.selectedProfileName, sophieMentionNavigation.selectedProfileActor?.characterId], ["profile", "June", "june"], "@June must open canonical June Profile");
+  sophieMentionNavigation = facebook.facebookStateTransition(sophieMentionNavigation, { type: "GO_BACK" });
+  assert.deepEqual([sophieMentionNavigation.currentView, sophieMentionNavigation.selectedProfileName, sophieMentionNavigation.selectedProfileActor?.ephemeralId], ["profile", "Sophie Miller", "facebook-ephemeral-sophie"], "Back must restore the originating Sophie Profile");
+  let sophieSharedInteraction = facebook.facebookStateTransition(sophieWallState, { type: "TOGGLE_LIKE", itemId: "sophie-june-club-photo-story", displayName: "Visitor" });
+  assert.deepEqual([sophieSharedInteraction.likedItemIds.includes(sophieClubPhoto.storyId), facebook.selectFacebookLikes(sophieSharedInteraction, sophieClubPhoto.storyId, 0).length], [true, 1], "Wall and Photo Detail must share the canonical Sophie photo interaction key");
   const alexAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "canonical", characterId: "alex", displayName: "Alex" });
   assert.deepEqual(alexAlbums.map(album => [album.id, album.title, album.mediaIds]), [["alex-profile-pictures", "Profile Pictures", ["alex-profile-picture"]], ["alex-dogs", "Dogs", ["alex-dogs-wangcai-bb-2009", "alex-dog-golden-2007"]]], "Alex albums must preserve Profile Pictures and newest-first dog history");
   assert.deepEqual(alexAlbums.find(album => album.id === "alex-dogs")?.photos.map(photo => [photo.mediaId, photo.timestamp, photo.caption]), [["alex-dogs-wangcai-bb-2009", "2009-05-08T16:00:00-07:00", "旺財&BB"], ["alex-dog-golden-2007", "2007-10-03T16:00:00-07:00", undefined]], "Alex dog history must preserve exact chronology and UTF-8 caption");
@@ -1392,7 +1414,7 @@ try {
   );
   assert.equal(juneInstagramAccount?.username, coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "Facebook and Instagram must resolve the same canonical June handle");
   assert.deepEqual([juneInstagramAccount?.discoveryUiStatus, juneInstagramAccount?.followUiStatus, juneInstagramAccount?.profileUiStatus], ["READY", "READY", "HOLD"]);
-  assert.deepEqual(sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "june-fb-F", "june-fb-10-18-01", "june-fb-10-18-02", "june-facebook-profile-picture", "june-birthday-main", "june-birthday-gift", "june-birthday-bag", "june-sophie-girls", "june-family-graduation", "june-home-mobile", "june-starbucks-mobile", "jay-guitar", "jay-guitar-may", "jay-band-performance", "katie-selfie-july-2009", "katie-selfie-august-2009", "katie-profile-picture", "katie-selfie-july-2010", "katie-selfie-september-2010", "luca-profile-picture", "luca-basketball-01", "luca-basketball-02", "luca-basketball-03", "luca-work-main-street-diner", "alex-profile-picture", "alex-dog-golden-2007", "alex-dogs-wangcai-bb-2009", "ben-profile-current", "ben-photo-friday-2010", "ben-profile-2005", "ben-coffee-2006", "ben-coffee-2009", "ben-car-2010", "chris-profile-picture", "matt-profile-current", "matt-profile-2007", "matt-photo-2007", "matt-code-2010"]);
+  assert.deepEqual(sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "june-fb-F", "june-fb-10-18-01", "june-fb-10-18-02", "june-facebook-profile-picture", "june-birthday-main", "june-birthday-gift", "june-birthday-bag", "june-sophie-girls", "sophie-june-club-photo", "june-family-graduation", "june-home-mobile", "june-starbucks-mobile", "jay-guitar", "jay-guitar-may", "jay-band-performance", "katie-selfie-july-2009", "katie-selfie-august-2009", "katie-profile-picture", "katie-selfie-july-2010", "katie-selfie-september-2010", "luca-profile-picture", "luca-basketball-01", "luca-basketball-02", "luca-basketball-03", "luca-work-main-street-diner", "alex-profile-picture", "alex-dog-golden-2007", "alex-dogs-wangcai-bb-2009", "ben-profile-current", "ben-photo-friday-2010", "ben-profile-2005", "ben-coffee-2006", "ben-coffee-2009", "ben-car-2010", "chris-profile-picture", "matt-profile-current", "matt-profile-2007", "matt-photo-2007", "matt-code-2010"]);
   assert.deepEqual(
     sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS.map(id => {
       const media = sharedCharacterMedia.getSharedCharacterMedia(id);
@@ -1412,6 +1434,7 @@ try {
       ["june-birthday-gift", "June-BH01.jpg", "june", "facebook", "2010-06-06T21:05:00-07:00", "birthday", "visible"],
       ["june-birthday-bag", "June-BH02.jpg", "june", "facebook", "2010-06-06T21:08:00-07:00", "birthday", "visible"],
       ["june-sophie-girls", "June-Sophie Miller.PNG", "june", "facebook", "2010-08-14T22:30:00-07:00", "close-friend", "visible"],
+      ["sophie-june-club-photo", "June-club.png", "june", "facebook", "2010-10-16T02:57:00-07:00", "close-friend", "visible"],
       ["june-family-graduation", "June-family.PNG", "june", "facebook", "2010-06-12T17:00:00-07:00", "graduation-family", "visible"],
       ["june-home-mobile", "June-home.PNG", "june", "facebook", "2010-09-26T19:30:00-07:00", "daily-life", "visible"],
       ["june-starbucks-mobile", "June02.PNG", "june", "facebook", "2010-10-18T14:10:00-07:00", "daily-life", "visible"],

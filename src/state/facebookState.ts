@@ -9,6 +9,7 @@ import { MAIN_STREET_DINER_VENUE } from "../data/canonicalVenues";
 import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumForMediaId, getFacebookPhotosOfActor } from "../data/facebookAlbums";
 import type { FacebookAlbumId, FacebookPhotoTagActor } from "../data/facebookAlbums";
 import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
+import { SESSION_START_ISO } from "./deviceMachine";
 export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
 export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "notifications" | "account";
@@ -243,7 +244,7 @@ export type FacebookEvent =
   | { type: "OPEN_STATUS_COMPOSER" }
   | { type: "EDIT_STATUS"; value: string }
   | { type: "CANCEL_STATUS" }
-  | { type: "SUBMIT_STATUS"; displayName: string; timestamp: string }
+  | { type: "SUBMIT_STATUS"; displayName: string; timestamp: string; createdAt: string }
   | { type: "GO_BACK" }
   | { type: "OPEN_FEED_ITEM"; itemId: string; scrollPosition: number }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
@@ -262,9 +263,9 @@ export type FacebookEvent =
   | { type: "SUBMIT_COMMENT"; displayName: string }
   | { type: "DELIVER_JACK_REQUEST" }
   | { type: "DELIVER_JUNE_MESSAGE" }
-  | { type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT"; timestamp: string }
+  | { type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT"; timestamp: string; createdAt: string }
   | { type: "DELIVER_JUNE_JACK_GOSSIP"; reactionId: "facebook-june-jack-gossip-katie" | "facebook-june-jack-gossip-chris"; characterId: "katie" | "chris"; text: string }
-  | { type: "DELIVER_EPHEMERAL_GOSSIP"; postId: typeof FACEBOOK_EPHEMERAL_GOSSIP_POST_ID; ephemeralId: typeof FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID; text: "june + jack??? lol"; timestamp: string }
+  | { type: "DELIVER_EPHEMERAL_GOSSIP"; postId: typeof FACEBOOK_EPHEMERAL_GOSSIP_POST_ID; ephemeralId: typeof FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID; text: "june + jack??? lol"; timestamp: string; createdAt: string }
   | { type: "DELIVER_KATIE_GOSSIP_MESSAGE"; timestamp: string }
   | { type: "DELIVER_SOPHIE_JUNE_COMMENT"; commentId: "facebook-sophie-june-instagram-comment-1" | "facebook-sophie-june-instagram-comment-2"; text: "what are you doing???" | "Jack????" }
   | { type: "DELIVER_PARTY_INVITE"; timestamp: string }
@@ -532,6 +533,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
           author: event.displayName,
           text,
           timestamp: event.timestamp,
+          createdAt: event.createdAt,
           kind: "status",
           visibility: "friends",
           contentStatus: "USER-GENERATED",
@@ -703,6 +705,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
           author: CORE_SOCIAL_CHARACTERS.june.displayName,
           text: `finally got instagram lol @${CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram}`,
           timestamp: event.timestamp,
+          createdAt: event.createdAt,
           kind: "status",
           visibility: "friends",
           contentStatus: "HOLD-fictional",
@@ -734,6 +737,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
           author: author.displayName,
           text: event.text,
           timestamp: event.timestamp,
+          createdAt: event.createdAt,
           kind: "status",
           visibility: "friends-of-friends",
           contentStatus: "HOLD-fictional",
@@ -936,17 +940,35 @@ export const FACEBOOK_JUNE_LIKE_GROWTH: readonly FacebookLike[] = Object.freeze(
   Object.freeze({ id: "june-show-live-like-10", itemId: "june-show-photos-oct19", displayName: "Trevor", ephemeralId: "june-show-live-contact-10", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 805 }),
 ]);
 
-export function selectFacebookVisibleFeed(state: FacebookState): FacebookFeedItem[] {
-  return state.feed.filter(item => {
-    if (item.origin === "user" || item.visibility === "everyone" || item.visibility === "friends-of-friends") return true;
-    if (item.visibility === "custom") return item.customAudienceIncludesUser === true;
-    return item.friendId !== undefined && state.friends.some(friend => friend.id === item.friendId);
-  });
+const FACEBOOK_NEWS_FEED_YEAR = "2010";
+const FACEBOOK_TIME_ZONE = "America/Los_Angeles";
+const FACEBOOK_YEAR_FORMATTER = new Intl.DateTimeFormat("en-US", { year: "numeric", timeZone: FACEBOOK_TIME_ZONE });
+
+export function isFacebookStoryVisibleToUser(state: FacebookState, item: FacebookFeedItem): boolean {
+  if (item.origin === "user" || item.visibility === "everyone" || item.visibility === "friends-of-friends") return true;
+  if (item.visibility === "custom") return item.customAudienceIncludesUser === true;
+  return item.friendId !== undefined && state.friends.some(friend => friend.id === item.friendId);
+}
+
+export function isFacebookNewsFeedEligible(state: FacebookState, item: FacebookFeedItem, simulatedNowMs: number): boolean {
+  if (!item.createdAt) return false;
+  const storyTimeMs = Date.parse(item.createdAt);
+  if (!Number.isFinite(storyTimeMs) || storyTimeMs > simulatedNowMs) return false;
+  if (FACEBOOK_YEAR_FORMATTER.format(storyTimeMs) !== FACEBOOK_NEWS_FEED_YEAR) return false;
+  return isFacebookStoryVisibleToUser(state, item);
+}
+
+export function selectFacebookVisibleFeed(state: FacebookState, simulatedNowMs = Date.parse(SESSION_START_ISO)): FacebookFeedItem[] {
+  return state.feed.filter(item => isFacebookNewsFeedEligible(state, item, simulatedNowMs));
 }
 
 export function selectFacebookProfileWall(state: FacebookState, profileName: string): FacebookFeedItem[] {
-  const visibleItemIds = new Set(selectFacebookVisibleFeed(state).map(item => item.id));
-  return state.feed.filter(item => item.author === profileName && (visibleItemIds.has(item.id) || item.profileWallEligible === true));
+  const visibleItemIds = new Set(state.feed.filter(item => isFacebookStoryVisibleToUser(state, item)).map(item => item.id));
+  return state.feed.filter(item => {
+    if (item.author !== profileName) return false;
+    const owningAlbum = getFacebookAlbumByStoryId(item.id);
+    return visibleItemIds.has(item.id) || item.profileWallEligible === true || owningAlbum?.ownerActor.displayName === profileName;
+  });
 }
 
 export function selectFacebookComments(state: FacebookState, itemId: string): FacebookComment[] {

@@ -17,6 +17,7 @@ button, input { font: inherit; }
 .home.is-pressed { border-color: #2b2b2b; background: radial-gradient(circle,#101010,#030303); box-shadow: inset 0 1px 3px #000; }
 .home i { display: block; width: 20px; height: 20px; margin: auto; border: 2px solid #777; border-radius: 3px; }
 .off, .boot, .dead { height: 100%; display: grid; place-items: center; }
+.screen-off-surface { position: absolute; z-index: 100; inset: 0; width: 100%; height: 100%; background: #000; pointer-events: none; }
 .boot { position: relative; background: #000; }
 .off p { align-self: end; margin-bottom: 40px; color: #aaa; font-size: 12px; }
 .hold { position: absolute; left: 50%; bottom: 24px; width: 160px; height: 2px; transform: translateX(-50%); background: #333; }

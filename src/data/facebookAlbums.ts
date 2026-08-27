@@ -6,6 +6,9 @@ import { getFacebookStoryMedia } from "./facebookStoryMedia";
 
 export const FACEBOOK_ALBUM_IDS = Object.freeze([
   "z-tokyo-profile-pictures",
+  "mike-football-photos",
+  "sarah-beach-photos",
+  "ryan-photos",
   "sophie-photos",
   "june-profile-pictures",
   "june-show-10-18",
@@ -13,8 +16,8 @@ export const FACEBOOK_ALBUM_IDS = Object.freeze([
   "june-girls",
   "june-senior-year",
   "june-mobile-uploads",
+  "june-photos",
   "jack-profile-pictures",
-  "jack-football",
   "jack-summer",
   "jack-photos",
   "luca-profile-pictures",
@@ -50,6 +53,7 @@ export type FacebookAlbum = {
 };
 
 export type FacebookAlbumPhoto = {
+  albumId: FacebookAlbumId;
   mediaId: FacebookStoryMediaId;
   storyId: string;
   uploadStoryId?: string;
@@ -94,14 +98,29 @@ const JUNE_BIRTHDAY_PHOTO_STORY_IDS = Object.freeze({
   "june-birthday-main": "june-birthday-main-photo",
 } as const satisfies Record<typeof JUNE_BIRTHDAY_MEDIA_IDS[number], string>);
 
-function defineFacebookAlbum(definition: Omit<FacebookAlbum, "mediaIds">): FacebookAlbum {
-  const photos = Object.freeze([...definition.photos].sort((left, right) => right.timestamp.localeCompare(left.timestamp)));
+type FacebookAlbumPhotoDefinition = Omit<FacebookAlbumPhoto, "albumId">;
+type FacebookAlbumDefinition = Omit<FacebookAlbum, "mediaIds" | "photos"> & { photos: readonly FacebookAlbumPhotoDefinition[] };
+
+function defineFacebookAlbum(definition: FacebookAlbumDefinition): FacebookAlbum {
+  const photos = Object.freeze([...definition.photos]
+    .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
+    .map(photo => Object.freeze({ ...photo, albumId: definition.id })));
   return Object.freeze({ ...definition, photos, mediaIds: Object.freeze(photos.map(photo => photo.mediaId)) });
 }
 
 export const FACEBOOK_ALBUMS: readonly FacebookAlbum[] = Object.freeze([
   defineFacebookAlbum({ id: "z-tokyo-profile-pictures", ownerActor: Object.freeze({ kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const, displayName: "Z.tokyo" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "z-tokyo-profile-picture" as const, storyId: "z-tokyo-profile-picture-update", timestamp: "2010-10-18T20:52:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
-  defineFacebookAlbum({ id: "sophie-photos", ownerActor: Object.freeze({ kind: "ephemeral-friend-of-friend" as const, ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }), title: "Photos", photos: Object.freeze([{ mediaId: "sophie-june-club-photo" as const, storyId: "sophie-june-club-photo-story", timestamp: "2010-10-16T02:57:00-07:00", caption: "bestie ♥ @June", taggedCharacterIds: Object.freeze(["june"] as const), classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "mike-football-photos", ownerActor: Object.freeze({ kind: "ephemeral-friend-of-friend" as const, ephemeralId: "facebook-ephemeral-mike" as const, displayName: "Mike", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }), title: "Photos", photos: Object.freeze([{ mediaId: "jack-football-game" as const, storyId: "jack-football-game-photo", timestamp: "2010-10-15T22:45:00-07:00", caption: "good win", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "sarah-beach-photos", ownerActor: Object.freeze({ kind: "ephemeral-friend-of-friend" as const, ephemeralId: "facebook-ephemeral-sarah" as const, displayName: "Sarah", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }), title: "Photos", photos: Object.freeze([
+    { mediaId: "jack-beach-10" as const, storyId: "jack-summer-photos", timestamp: "2010-08-22T17:30:00-07:00", caption: "summer", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
+    { mediaId: "jack-beach-8" as const, storyId: "jack-summer-photos", timestamp: "2010-08-22T17:30:00-07:00", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
+  ]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "ryan-photos", ownerActor: Object.freeze({ kind: "ephemeral-friend-of-friend" as const, ephemeralId: "fof-ryan-001" as const, displayName: "Ryan", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }), title: "Photos", photos: Object.freeze([{ mediaId: "jack-tagged-ryan" as const, storyId: "ryan-jack-night-photo", timestamp: "2010-09-27T21:00:00-07:00", caption: "good night with these idiots", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "sophie-photos", ownerActor: Object.freeze({ kind: "ephemeral-friend-of-friend" as const, ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }), title: "Photos", photos: Object.freeze([
+    { mediaId: "sophie-june-club-photo" as const, storyId: "sophie-june-club-photo-story", timestamp: "2010-10-16T02:57:00-07:00", caption: "bestie ♥ @June", taggedCharacterIds: Object.freeze(["june"] as const), classification: "CURATED" as const },
+    { mediaId: "jack-tagged-sophie-02" as const, storyId: "sophie-jack-tagged-02", timestamp: "2010-08-24T20:00:00-07:00", caption: "he cleans up okay ;)", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
+    { mediaId: "jack-tagged-sophie-03" as const, storyId: "sophie-jack-tagged-03", timestamp: "2010-08-24T20:00:00-07:00", caption: "don't let this go to your head @Jack", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
+  ]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "june-facebook-profile-picture" as const, storyId: "june-profile-picture-update", timestamp: "2010-10-10T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-show-10-18", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "10/18", photos: Object.freeze(JUNE_SHOW_MEDIA_IDS.map(mediaId => Object.freeze({
     mediaId,
@@ -121,14 +140,15 @@ export const FACEBOOK_ALBUMS: readonly FacebookAlbum[] = Object.freeze([
     { mediaId: "june-home-mobile" as const, storyId: "june-home-photo", timestamp: "2010-09-26T19:30:00-07:00", caption: "my sister took this lol / 책 읽는 중", classification: "CURATED" as const },
     { mediaId: "june-starbucks-mobile" as const, storyId: "june-starbucks-photo", timestamp: "2010-10-18T14:10:00-07:00", caption: "starbucks saved my life today", classification: "CURATED" as const },
   ]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "june-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Photos", photos: Object.freeze([
+    { mediaId: "jack-tagged-june" as const, storyId: "june-jack-tagged-night-photo", timestamp: "2010-09-27T21:00:00-07:00", caption: "last night was actually so much fun :) @Jack", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
+  ]), classification: "CURATED" as const }),
 defineFacebookAlbum({ id: "jack-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jack" as const, displayName: "Jack" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "jack-profile-picture" as const, storyId: "jack-profile-picture-update", timestamp: "2010-09-05T18:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
-defineFacebookAlbum({ id: "jack-football", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jack" as const, displayName: "Jack" }), title: "Football", photos: Object.freeze([{ mediaId: "jack-football-game" as const, storyId: "jack-football-game-photo", timestamp: "2010-10-15T22:45:00-07:00", caption: "good win", taggedCharacterIds: Object.freeze(["jack"] as const), classification: "CURATED" as const }]), classification: "CURATED" as const }),
 defineFacebookAlbum({ id: "jack-summer", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jack" as const, displayName: "Jack" }), title: "Summer", photos: Object.freeze([
-  { mediaId: "jack-summer-party" as const, storyId: "jack-summer-photos", timestamp: "2010-08-22T17:30:00-07:00", caption: "summer", taggedCharacterIds: Object.freeze(["jack"] as const), classification: "CURATED" as const },
-  { mediaId: "jack-beach-10" as const, storyId: "jack-summer-photos", timestamp: "2010-08-22T17:30:00-07:00", taggedCharacterIds: Object.freeze(["jack"] as const), classification: "CURATED" as const },
-  { mediaId: "jack-beach-8" as const, storyId: "jack-summer-photos", timestamp: "2010-08-22T17:30:00-07:00", taggedCharacterIds: Object.freeze(["jack"] as const), classification: "CURATED" as const },
+  { mediaId: "jack-summer-party" as const, storyId: "jack-summer-party-photo", timestamp: "2010-08-22T17:30:00-07:00", caption: "summer", classification: "CURATED" as const },
 ]), classification: "CURATED" as const }),
 defineFacebookAlbum({ id: "jack-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jack" as const, displayName: "Jack" }), title: "Photos", photos: Object.freeze([
+    { mediaId: "jack-owned-j-2009" as const, storyId: "jack-owned-j-2009-photo", timestamp: "2009-04-15T16:00:00-07:00", caption: "good day.", classification: "CURATED" as const },
     { mediaId: "jack-matt-01" as const, storyId: "jack-matt-2010-photo", timestamp: "2010-10-18T22:34:00-07:00", caption: "@Matt Ciao, bello", taggedCharacterIds: Object.freeze(["matt"] as const), classification: "CURATED" as const },
     { mediaId: "jack-car" as const, storyId: "jack-car-matt-2009-photos", timestamp: "2009-11-14T21:10:00-08:00", caption: "@Matt get off the computer and get your license already lol", taggedCharacterIds: Object.freeze(["matt"] as const), classification: "CURATED" as const },
     { mediaId: "jack-matt-02" as const, storyId: "jack-car-matt-2009-photos", timestamp: "2009-11-14T21:10:00-08:00", caption: "@Matt get off the computer and get your license already lol", taggedCharacterIds: Object.freeze(["matt"] as const), classification: "CURATED" as const },
@@ -137,7 +157,10 @@ defineFacebookAlbum({ id: "jack-photos", ownerActor: Object.freeze({ kind: "cano
   ]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "luca-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "luca-profile-picture" as const, storyId: "luca-profile-picture-current", timestamp: "2010-10-20T00:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "luca-pickup-basketball", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Pickup Basketball", photos: Object.freeze(LUCA_PICKUP_BASKETBALL_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "luca-pickup-basketball-photos", timestamp: "2010-10-19T22:58:00-07:00", classification: "CURATED" as const }))), classification: "CURATED" as const }),
-  defineFacebookAlbum({ id: "luca-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Photos", photos: Object.freeze([{ mediaId: "luca-work-main-street-diner" as const, storyId: "luca-work-main-street-diner", timestamp: "2010-03-20T22:30:00-07:00", venueId: "main-street-diner" as const, classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "luca-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Photos", photos: Object.freeze([
+    { mediaId: "jack-tagged-luca-01" as const, storyId: "luca-jack-tagged-photo", timestamp: "2010-09-14T20:00:00-07:00", caption: "somehow this guy ends up in every picture lol", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
+    { mediaId: "luca-work-main-street-diner" as const, storyId: "luca-work-main-street-diner", timestamp: "2010-03-20T22:30:00-07:00", venueId: "main-street-diner" as const, classification: "CURATED" as const },
+  ]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "alex-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "alex" as const, displayName: "Alex" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "alex-profile-picture" as const, storyId: "alex-profile-picture-update", timestamp: "2010-10-01T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "alex-dogs", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "alex" as const, displayName: "Alex" }), title: "Dogs", photos: Object.freeze([
     { mediaId: "alex-dog-golden-2007" as const, storyId: "alex-dog-golden-2007", timestamp: "2007-10-03T16:00:00-07:00", classification: "CURATED" as const },
@@ -162,6 +185,7 @@ defineFacebookAlbum({ id: "jack-photos", ownerActor: Object.freeze({ kind: "cano
   ]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "matt-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "matt" as const, displayName: "Matt" }), title: "Photos", photos: Object.freeze([
     { mediaId: "matt-code-2010" as const, storyId: "matt-code-photo-2010", timestamp: "2010-10-15T23:03:00-07:00", classification: "CURATED" as const },
+    { mediaId: "jack-tagged-matt-02" as const, storyId: "matt-jack-tagged-photo", timestamp: "2010-10-03T20:00:00-07:00", caption: "apparently standing still isn't an option", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
     { mediaId: "matt-photo-2007" as const, storyId: "matt-photo-2007", timestamp: "2007-09-25T21:14:00-07:00", classification: "CURATED" as const },
   ]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "katie-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "katie" as const, displayName: "Katie" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "katie-profile-picture" as const, storyId: "katie-profile-picture-update", timestamp: "2010-10-10T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),

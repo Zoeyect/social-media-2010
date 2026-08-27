@@ -49,9 +49,9 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   const selectedAlbum = state.selectedAlbumId ? getFacebookAlbum(state.selectedAlbumId) : null;
   const selectedPhoto = state.selectedPhotoMediaId ? getFacebookStoryMedia(state.selectedPhotoMediaId) : null;
   const selectedTaggedPhotos = state.selectedTaggedActor ? getFacebookPhotosOfActor(state.selectedTaggedActor) : [];
-  const visibleFeed = selectFacebookVisibleFeed(state);
   const elapsedSeconds = Math.floor(elapsedMs / 1_000);
   const simulatedNowMs = Date.parse(SESSION_START_ISO) + elapsedMs;
+  const visibleFeed = selectFacebookVisibleFeed(state, simulatedNowMs);
 
   useLayoutEffect(() => {
     if (state.currentView !== "feed" || !feedRef.current) return;
@@ -71,7 +71,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
       </nav>
       {state.statusComposerOpen && <form className="facebook-status-composer" onSubmit={event => {
         event.preventDefault();
-        dispatch({ type: "SUBMIT_STATUS", displayName: sessionIdentity.name, timestamp: currentDeviceTime });
+        dispatch({ type: "SUBMIT_STATUS", displayName: sessionIdentity.name, timestamp: currentDeviceTime, createdAt: new Date(simulatedNowMs).toISOString() });
       }}>
         <textarea aria-label="Status" autoFocus value={state.statusDraft} onChange={event => dispatch({ type: "EDIT_STATUS", value: event.currentTarget.value })} />
         <div><button type="button" onClick={() => dispatch({ type: "CANCEL_STATUS" })}>Cancel</button><button type="submit" disabled={!state.statusDraft.trim()}>Share</button></div>

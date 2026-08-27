@@ -231,11 +231,11 @@ export function App() {
     } else if (event.type === "facebookPartyInvite" && event.payload?.kind === "facebook-party-invite") {
       dispatchFacebook({ type: "DELIVER_PARTY_INVITE", timestamp: deviceStatusTime });
     } else if (event.type === "facebookJuneInstagramAnnouncement" && event.payload?.kind === "facebook-june-instagram-announcement") {
-      dispatchFacebook({ type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: deviceStatusTime });
+      dispatchFacebook({ type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: deviceStatusTime, createdAt: deviceDateTime.toISOString() });
     } else if (event.type === "facebookJuneJackGossip" && event.payload?.kind === "facebook-june-jack-gossip") {
       dispatchFacebook({ type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: event.payload.reactionId, characterId: event.payload.characterId, text: event.payload.text });
     } else if (event.type === "facebookEphemeralGossip" && event.payload?.kind === "facebook-ephemeral-gossip") {
-      dispatchFacebook({ type: "DELIVER_EPHEMERAL_GOSSIP", postId: event.payload.postId, ephemeralId: event.payload.ephemeralId, text: event.payload.text, timestamp: deviceStatusTime });
+      dispatchFacebook({ type: "DELIVER_EPHEMERAL_GOSSIP", postId: event.payload.postId, ephemeralId: event.payload.ephemeralId, text: event.payload.text, timestamp: deviceStatusTime, createdAt: deviceDateTime.toISOString() });
     } else if (event.type === "facebookKatieGossipMessage" && event.payload?.kind === "facebook-katie-jack-gossip-message") {
       dispatchFacebook({ type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: deviceStatusTime });
     } else if (event.type === "facebookSophieJuneComment" && event.payload?.kind === "facebook-sophie-june-comment") {
@@ -789,9 +789,9 @@ export function App() {
             }
           }}
         />}
-        {session.phase === "sleeping" && <div className="dead" />}
+        {session.phase === "sleeping" && <div className="screen-off-surface" aria-hidden="true" />}
         {session.phase === "powerOffConfirm" && <PowerOffConfirm onCancel={() => update({ phase: session.previousPhase ?? "locked", previousPhase: null })} onConfirm={() => update({ phase: "shutdown", shutdownReason: "manual" })} />}
-        {session.phase === "shutdown" && <div className="dead" />}
+        {session.phase === "shutdown" && <div className="screen-off-surface" aria-hidden="true" />}
         {session.phase === "lowBatteryWarning" && <img className="low-battery-screen" src={lowBatterySrc} alt="" aria-hidden="true" />}
         {(session.activeWarning === 20 || session.activeWarning === 10) && (session.phase === "springboard" || session.phase === "app") && <LowBatteryAlert
           level={session.activeWarning}

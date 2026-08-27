@@ -1756,6 +1756,16 @@ for (const [storyId, likeCount, commentCount] of [["jack-football-game-photo", 2
   interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "TOGGLE_LIKE", itemId: "ben-long-day", displayName: "Zoey" });
   assert.deepEqual(facebook.selectFacebookLikes(interactionFacebook, "ben-long-day", 0).map(like => [like.displayName, like.origin]), [["Zoey", "user"]]);
   let commentNavigation = facebook.facebookStateTransition(facebook.createInitialFacebookState("Zoey"), { type: "SHOW_FEED" });
+  commentNavigation = facebook.facebookStateTransition(commentNavigation, { type: "SET_SCROLL_POSITION", scrollPosition: 132 });
+  const feedIdsBeforeLike = commentNavigation.feed.map(item => item.id);
+  commentNavigation = facebook.facebookStateTransition(commentNavigation, { type: "TOGGLE_LIKE", itemId: "alex-jacks-party-friday", displayName: "Zoey" });
+  assert.deepEqual([commentNavigation.scrollPosition, commentNavigation.feed.map(item => item.id)], [132, feedIdsBeforeLike], "Feed Like must preserve scroll state and exact story ordering");
+  commentNavigation = facebook.facebookStateTransition(commentNavigation, { type: "OPEN_PROFILE", profileName: "Alex", scrollPosition: 146 });
+  commentNavigation = facebook.facebookStateTransition(commentNavigation, { type: "GO_BACK" });
+  assert.deepEqual([commentNavigation.currentView, commentNavigation.scrollPosition], ["feed", 146], "Feed actor Profile Back must restore the live Feed scroll snapshot");
+  commentNavigation = facebook.facebookStateTransition(commentNavigation, { type: "SHOW_HOME" });
+  commentNavigation = facebook.facebookStateTransition(commentNavigation, { type: "SHOW_FEED" });
+  assert.equal(commentNavigation.scrollPosition, 0, "an explicit fresh News Feed entry must start at the top");
   commentNavigation = facebook.facebookStateTransition(commentNavigation, { type: "OPEN_FEED_ITEM", itemId: "alex-jacks-party-friday", scrollPosition: 84 });
   const commentStateBeforeProfile = [commentNavigation.selectedFeedItemId, commentNavigation.scrollPosition, commentNavigation.comments.length, commentNavigation.likes.length, commentNavigation.partyInviteState];
   const jayComment = commentNavigation.comments.find(comment => comment.id === "alex-party-comment-jay");
@@ -1986,6 +1996,11 @@ for (const [storyId, likeCount, commentCount] of [["jack-football-game-photo", 2
   const facebookStoryTimeSource = await readFile(resolve(projectRoot, "src/data/facebookStoryTime.ts"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
   const deviceCssSource = await readFile(resolve(projectRoot, "src/styles/device.css"), "utf8");
+  assert.equal((deviceCssSource.match(/\.facebook-feed\s*\{[^}]*overflow-y:\s*auto/g) ?? []).length, 1, "News Feed must have exactly one authoritative vertical scroll container");
+  assert.match(deviceCssSource, /\.facebook-feed\s*\{[^}]*overscroll-behavior-y:\s*contain;[^}]*overflow-anchor:\s*none;[^}]*touch-action:\s*pan-y;/, "News Feed scrolling must remain inside the device viewport and use explicit story anchoring");
+  assert.match(facebookContainerSource, /key=\{item\.id\}/, "Feed stories must retain stable canonical story IDs as React keys");
+  assert.match(facebookContainerSource, /data-facebook-feed-story-id=\{surface === "feed" \? item\.id : undefined\}/, "Feed rows must expose canonical IDs for viewport anchoring");
+  assert.match(facebookContainerSource, /captureFacebookFeedAnchor/, "News Feed must preserve a visible story anchor across rerenders and live insertion");
   assert.match(appSource, /session\.phase === "app" && <AppLaunchContainer/, "an app viewport must render only while the device phase is app");
   assert.match(appSource, /session\.phase === "sleeping" && <div className="screen-off-surface"/, "sleeping must render the dedicated display-off surface");
   assert.match(appSource, /session\.phase === "locked" && <LockScreen/, "locked must render Lock Screen");

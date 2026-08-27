@@ -218,8 +218,8 @@ export type FacebookEvent =
   | { type: "EDIT_HOME_SEARCH"; value: string }
   | { type: "SHOW_FEED" }
   | { type: "SHOW_PROFILE"; profileName: string }
-  | { type: "OPEN_PROFILE"; profileName: string }
-  | { type: "OPEN_COMMENT_AUTHOR"; actor: FacebookNavigableActor }
+  | { type: "OPEN_PROFILE"; profileName: string; scrollPosition?: number }
+  | { type: "OPEN_COMMENT_AUTHOR"; actor: FacebookNavigableActor; scrollPosition?: number }
   | { type: "SET_PROFILE_SECTION"; section: FacebookProfileSection }
   | { type: "SHOW_FRIENDS" }
   | { type: "SET_FRIENDS_SECTION"; section: FacebookFriendsSection }
@@ -374,7 +374,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "EDIT_HOME_SEARCH":
       return state.currentView === "home" ? { ...state, homeSearchQuery: event.value } : state;
     case "SHOW_FEED":
-      return { ...state, currentView: "feed", navigationStack: ["home", "feed"], selectedFeedItemId: null };
+      return { ...state, currentView: "feed", navigationStack: ["home", "feed"], selectedFeedItemId: null, scrollPosition: 0 };
     case "SHOW_PROFILE":
       return {
         ...state,
@@ -385,26 +385,34 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         selectedProfileActor: { kind: "session-user", displayName: event.profileName },
         profileSection: "wall",
       };
-    case "OPEN_PROFILE":
+    case "OPEN_PROFILE": {
+      const originState = event.scrollPosition === undefined
+        ? state
+        : { ...state, scrollPosition: Math.max(0, event.scrollPosition) };
       return {
-        ...state,
+        ...originState,
         currentView: "profile",
-        navigationStack: [...state.navigationStack, "profile"],
-        profileReturnStack: [...state.profileReturnStack, captureFacebookProfileOrigin(state)],
+        navigationStack: [...originState.navigationStack, "profile"],
+        profileReturnStack: [...originState.profileReturnStack, captureFacebookProfileOrigin(originState)],
         selectedProfileName: event.profileName,
         selectedProfileActor: null,
         profileSection: "wall",
       };
-    case "OPEN_COMMENT_AUTHOR":
+    }
+    case "OPEN_COMMENT_AUTHOR": {
+      const originState = event.scrollPosition === undefined
+        ? state
+        : { ...state, scrollPosition: Math.max(0, event.scrollPosition) };
       return {
-        ...state,
+        ...originState,
         currentView: "profile",
-        navigationStack: [...state.navigationStack, "profile"],
-        profileReturnStack: [...state.profileReturnStack, captureFacebookProfileOrigin(state)],
+        navigationStack: [...originState.navigationStack, "profile"],
+        profileReturnStack: [...originState.profileReturnStack, captureFacebookProfileOrigin(originState)],
         selectedProfileName: event.actor.displayName,
         selectedProfileActor: event.actor,
         profileSection: "wall",
       };
+    }
     case "SET_PROFILE_SECTION":
       return state.currentView === "profile" ? { ...state, profileSection: event.section } : state;
     case "SHOW_FRIENDS":

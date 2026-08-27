@@ -5,6 +5,7 @@ import {
   FACEBOOK_PLACE_OPTIONS,
   FacebookEvent,
   FacebookFeedItem,
+  FacebookNavigableActor,
   FacebookState,
   selectFacebookInboxUnreadCount,
   selectFacebookComments,
@@ -35,9 +36,25 @@ import { SESSION_START_ISO } from "../state/deviceMachine";
 
 type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number };
 
+type FacebookFeedAnchor = { storyId: string; viewportOffset: number };
+
+function captureFacebookFeedAnchor(feed: HTMLDivElement): FacebookFeedAnchor | null {
+  const rows = feed.querySelectorAll<HTMLElement>("[data-facebook-feed-story-id]");
+  for (const row of rows) {
+    if (row.offsetTop + row.offsetHeight > feed.scrollTop) {
+      return {
+        storyId: row.dataset.facebookFeedStoryId ?? "",
+        viewportOffset: row.offsetTop - feed.scrollTop,
+      };
+    }
+  }
+  return null;
+}
+
 export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedMs }: FacebookContainerProps) {
   const sessionIdentity = useSessionIdentity();
   const feedRef = useRef<HTMLDivElement>(null);
+  const feedAnchorRef = useRef<FacebookFeedAnchor | null>(null);
   const selectedItem = state.feed.find(item => item.id === state.selectedFeedItemId) ?? null;
   const selectedMessage = state.inboxThreads.find(message => message.id === state.selectedMessageId) ?? null;
   const selectedThreadMessages = selectedMessage ? selectFacebookThreadMessages(state, selectedMessage.id) : [];
@@ -55,8 +72,21 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
 
   useLayoutEffect(() => {
     if (state.currentView !== "feed" || !feedRef.current) return;
-    feedRef.current.scrollTop = state.scrollPosition;
-  }, [state.currentView, state.scrollPosition]);
+    const feed = feedRef.current;
+    const anchor = feedAnchorRef.current;
+    if (state.scrollPosition === 0) {
+      feed.scrollTop = 0;
+      feedAnchorRef.current = null;
+    } else if (anchor?.storyId) {
+      const row = feed.querySelector<HTMLElement>(`[data-facebook-feed-story-id="${anchor.storyId}"]`);
+      feed.scrollTop = row ? Math.max(0, row.offsetTop - anchor.viewportOffset) : state.scrollPosition;
+    } else {
+      feed.scrollTop = state.scrollPosition;
+    }
+    return () => {
+      if (feedRef.current) feedAnchorRef.current = captureFacebookFeedAnchor(feedRef.current);
+    };
+  });
 
   return <section className="facebook-container" aria-label="Facebook" data-chrome-status="HOLD">
     <FacebookNavigationHeader state={state} displayName={sessionIdentity.name} dispatch={dispatch} />
@@ -82,7 +112,8 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
           surface="feed"
           item={item}
           liked={state.likedItemIds.includes(item.id)}
-          onOpenProfile={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author })}
+          onOpenProfile={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition })}
+          onOpenActor={actor => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition })}
           onOpen={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition })}
           commentCount={selectFacebookComments(state, item.id).length}
           likeCount={selectFacebookLikes(state, item.id, elapsedSeconds).length}
@@ -436,7 +467,7 @@ function FacebookCommentRow({ comment, sessionUserName, dispatch }: { comment: F
   </article>;
 }
 
-function FacebookStoryView({ surface, item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpen, onToggleLike, onComment, dispatch }: { surface: "feed" | "wall"; item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookStoryView({ surface, item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpenActor, onOpen, onToggleLike, onComment, dispatch }: { surface: "feed" | "wall"; item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpenActor?: (actor: FacebookNavigableActor) => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
   const actorProfileMediaId = item.actor?.kind === "author-easter-egg"
     ? item.mediaId
     : item.actor?.kind === "ephemeral-friend-of-friend"
@@ -445,13 +476,13 @@ function FacebookStoryView({ surface, item, liked, commentCount, likeCount, stor
         ? getFacebookCanonicalProfileMediaId(item.friendId)
         : null;
   const avatarMedia = actorProfileMediaId ? getFacebookStoryMedia(actorProfileMediaId) : null;
-  return <article className={`facebook-feed-row facebook-story-view is-${surface}`} data-content-status={item.contentStatus}>
+  return <article className={`facebook-feed-row facebook-story-view is-${surface}`} data-content-status={item.contentStatus} data-facebook-feed-story-id={surface === "feed" ? item.id : undefined}>
     <button type="button" className="facebook-avatar-link" aria-label={`${item.author} Profile`} onClick={onOpenProfile}>{avatarMedia
       ? <img className="facebook-avatar-image" src={avatarMedia.src} alt="" aria-hidden="true" />
       : <span className="facebook-avatar-hold" aria-hidden="true" />}</button>
     <span className="facebook-feed-copy">
       <button type="button" className="facebook-author-link" onClick={onOpenProfile}>{item.author}</button>
-      <span className="facebook-story-link" role="button" tabIndex={0} onClick={onOpen} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen(); }}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} /></span>
+      <span className="facebook-story-link" role="button" tabIndex={0} onClick={onOpen} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen(); }}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} onOpenActor={onOpenActor} /></span>
       <FacebookStoryMedia item={item} dispatch={dispatch} />
       <time>{storyTime}</time>
       <FacebookStoryCounts commentCount={commentCount} likeCount={likeCount} />
@@ -474,7 +505,7 @@ function FacebookStoryMedia({ item, dispatch }: { item: FacebookFeedItem; dispat
   </button>;
 }
 
-function FacebookInlineEntityText({ text, mentions, dispatch }: { text: string; mentions?: FacebookFeedItem["mentions"]; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookInlineEntityText({ text, mentions, dispatch, onOpenActor }: { text: string; mentions?: FacebookFeedItem["mentions"]; dispatch: Dispatch<FacebookEvent>; onOpenActor?: (actor: FacebookNavigableActor) => void }) {
   if (!mentions?.length) return <>{text}</>;
   const pieces: ReactNode[] = [];
   let cursor = 0;
@@ -482,7 +513,7 @@ function FacebookInlineEntityText({ text, mentions, dispatch }: { text: string; 
     const tokenIndex = text.indexOf(mention.token, cursor);
     if (tokenIndex < 0) return;
     if (tokenIndex > cursor) pieces.push(text.slice(cursor, tokenIndex));
-    pieces.push(<button key={`${mention.token}-${mentionIndex}`} type="button" className="facebook-inline-mention" onClick={event => { event.stopPropagation(); dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: mention.actor }); }}>{mention.token}</button>);
+    pieces.push(<button key={`${mention.token}-${mentionIndex}`} type="button" className="facebook-inline-mention" onClick={event => { event.stopPropagation(); onOpenActor ? onOpenActor(mention.actor) : dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: mention.actor }); }}>{mention.token}</button>);
     cursor = tokenIndex + mention.token.length;
   });
   if (cursor < text.length) pieces.push(text.slice(cursor));

@@ -156,6 +156,8 @@ Jack's scheduled Facebook Friend Request is intentional. His broad network makes
 
 Ben is an ordinary small-company office worker, never a Wall Street or finance-bro caricature.
 
+Facebook continuity locks Ben at age 23, about one year into work at a small finance company. `Ben01.JPG` is his current profile picture from October 15, 2010; `Ben0.png` remains his September 2005 Profile Pictures history. His separate `Photos` album reuses the unchanged `Ben01.JPG` source for `happy friday. finally.`, alongside the July 2010 `new truck :)` photo and older coffee images. Thirty explicit late-2009-to-October-2010 Wall statuses provide uneven office/coffee texture without entering the current News Feed or defining the user.
+
 ## 12. Luca
 
 - Canonical ID: `luca`

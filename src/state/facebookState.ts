@@ -72,6 +72,7 @@ export type FacebookFeedItem = {
   mentions?: readonly FacebookInlineMention[];
   timestamp: string;
   createdAt?: string;
+  profileWallEligible?: boolean;
   sourceApp?: string;
   mediaId?: FacebookStoryMediaId;
   mediaIds?: readonly FacebookStoryMediaId[];
@@ -823,6 +824,11 @@ export function selectFacebookVisibleFeed(state: FacebookState): FacebookFeedIte
     if (item.visibility === "custom") return item.customAudienceIncludesUser === true;
     return item.friendId !== undefined && state.friends.some(friend => friend.id === item.friendId);
   });
+}
+
+export function selectFacebookProfileWall(state: FacebookState, profileName: string): FacebookFeedItem[] {
+  const visibleItemIds = new Set(selectFacebookVisibleFeed(state).map(item => item.id));
+  return state.feed.filter(item => item.author === profileName && (visibleItemIds.has(item.id) || item.profileWallEligible === true));
 }
 
 export function selectFacebookComments(state: FacebookState, itemId: string): FacebookComment[] {

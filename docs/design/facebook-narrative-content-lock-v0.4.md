@@ -61,7 +61,7 @@ The mix includes canonical friends and ephemeral Facebook contacts. Jay's Like i
 8. Jay's `yeah probably` reply and Ryan's `EPHEMERAL_FRIEND_OF_FRIEND` reply.
 9. Ben's sparse `Long day.` office-life anchor.
 10. Luca's basketball album clue with Chris.
-11. Katie's family-context photo clue with Ben.
+11. Katie and Ben's sibling continuity through canonical relationship metadata and Ben's comment on Katie's September photo; the former family photo asset was intentionally removed.
 12. Jay's restrained guitar photo, Z.tokyo's existing peripheral profile activity, and the broader offline band context.
 
 Jay and Matt have zero June/Jack gossip records. IG04 remains Instagram-only and is never duplicated into Facebook.
@@ -71,7 +71,7 @@ Ryan is one Facebook-local `EPHEMERAL_FRIEND_OF_FRIEND`, not a canonical charact
 ## Shared media placement
 
 - Luca's Pickup Basketball story and album share `luca-basketball-01`, `luca-basketball-02`, and `luca-basketball-03`; the three-photo preview implies the Chris/Luca basketball relationship without explanatory copy.
-- `katie-ben-family` uses `Katie-Ben.JPG` as Katie's ordinary photo activity and leaves the sibling relationship implicit in UI.
+- Katie/Ben sibling continuity no longer depends on a family-context image. Canonical relationship metadata and Ben's `do you own any other shirts?` comment remain the approved visible evidence.
 - Jay's single `Music` album uses `jay-band-performance`, `jay-guitar`, and `jay-guitar-may` for an Oct 19 performance post, the existing Oct 17 guitar photo, and a May guitar still life. Album order derives from in-world timestamps rather than filenames.
 - Z.tokyo continues to use the Facebook-local author media registry.
 - June's accidental `june-ig-04` is excluded from Facebook stories.

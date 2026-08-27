@@ -15,6 +15,7 @@ import {
   selectFacebookRequestCount,
   selectFacebookThreadMessages,
   resolveFacebookCommentActor,
+  selectFacebookProfileWall,
   selectFacebookVisibleFeed,
   formatFacebookCommentCount,
   formatFacebookLikeCount,
@@ -320,7 +321,7 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
 function FacebookProfile({ profileName, currentUserName, state, simulatedNowMs, dispatch }: { profileName: string; currentUserName: string; state: FacebookState; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
   const isCurrentUser = profileName === currentUserName;
   const isFriend = state.friends.some(friend => friend.name === profileName);
-  const wallItems = selectFacebookVisibleFeed(state).filter(item => item.author === profileName);
+  const wallItems = selectFacebookProfileWall(state, profileName);
   const authorIdentity = getFacebookAuthorEasterEggByDisplayName(profileName);
   const canonicalCharacter = Object.values(CORE_SOCIAL_CHARACTERS).find(character => character.displayName === profileName);
   const ephemeralProfileMediaId = state.selectedProfileActor?.kind === "ephemeral-friend-of-friend" ? getFacebookEphemeralProfileMediaId(state.selectedProfileActor.ephemeralId) : null;

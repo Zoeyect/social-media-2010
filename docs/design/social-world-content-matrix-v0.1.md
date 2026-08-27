@@ -77,14 +77,14 @@ All approved character photos are `SHARED CHARACTER MEDIA`, not Facebook-only as
 
 | Character | Existing Media | Best Reuse Surfaces | New Media Need | Priority |
 | --- | --- | --- | --- | --- |
-| Katie | `Katie01.jpg`, `Katie02.jpg`, `Katie03.PNG`, `Katie04.jpg`, `Katie05.jpg`, `Katie-Ben.JPG` | Facebook photos/profile, Flickr, Katie/Ben shared context | None required until a specific story needs it | Medium |
+| Katie | `Katie01.jpg`, `Katie02.jpg`, `Katie03.PNG`, `Katie04.jpg`, `Katie05.jpg` | Facebook photos/profile, Flickr | None required until a specific story needs it | Medium |
 | Matt | `Matt-code-10....PNG`, `Matt01.JPG`, `Matt02.JPG`, `Matt03.JPG`, `Matt04.JPG` | Twitter links, Facebook, Tumblr, band context | Approved bass/band evidence if existing images do not establish it | Medium |
 | Alex | `Alex-dogs.PNG`, `Alex01.PNG` | Facebook, Flickr, Twitter image posts | Additional dog media only after dog identity details are locked | High |
 | Chris | `Chris-Luca.PNG`, `Chris01.PNG` | Facebook, Flickr, basketball context | Additional sports/group media optional | Medium |
 | Jay | `10-18.JPG`, `Jay01.PNG`, `Jay02.PNG` | Flickr, Tumblr, Twitter links, Facebook, band context | Band/live coverage only if needed | High |
 | June | Existing canonical references; no new filename locked here | Facebook, Instagram, Flickr | Historically appropriate early-Instagram imagery remains dependent on IA and asset approval | High |
 | Jack | Existing canonical references; no new filename locked here | Facebook profile/activity, sparse event context | Football or group-event media optional, not required for narrative | Low/Medium |
-| Ben | `Ben-car.JPG`, `Ben-coffee.PNG`, `Ben-coffee02.JPG`, `Ben01.JPG`, `Katie-Ben.JPG` | Twitter links, Facebook, Foursquare, sibling context | None required | Medium |
+| Ben | `Ben0.png`, `Ben-car.JPG`, `Ben-coffee.PNG`, `Ben-coffee02.JPG`, `Ben01.JPG` | Twitter links, Facebook, Foursquare | None required | Medium |
 | Luca | `Chris-Luca.PNG`, `Luca.png`, `guys.png`, `guys02.PNG`, `guys03.png`, `Luca-work.png` | Facebook profile/photos, Flickr, Foursquare context | None required for the current profile/work/basketball baseline | Medium |
 | Z.tokyo | Supplied author portrait at `src/assets/facebook/characters/z-tokyo/profile/IMG_1423.JPG`; existing author/photo references where approved | Facebook profile picture, Wall activity, Photos/Profile Pictures album later; discreet band media | Full Photos UI and additional album content remain HOLD | High for existing cameo, low for expansion |
 | Anil | No standalone social-profile asset approved; band evidence only | Facebook/Flickr/Tumblr photos owned or posted by others | Band/group depiction only if separately approved | Low until a background thread needs it |
@@ -115,6 +115,8 @@ Frank is a Facebook-local `EPHEMERAL_FRIEND_OF_FRIEND` and basketball-social per
 Jay's October 19 band post is high-engagement social/music-circle content with a deterministic 48-Like and 11-comment baseline. Ryan and Frank remain Facebook-local ephemeral actors and use the shared default Facebook avatar; their participation does not make them canonical or recurring protagonists.
 
 Alex's centralized Facebook media includes `Alex.png` plus a `Dogs` album documenting long-term pet continuity from a 2007 golden retriever photo to the 2009 `旺財&BB` golden retriever/French bulldog photo. These remain historical Profile content rather than current Feed stories.
+
+Ben's Facebook baseline now has centralized `Profile Pictures` and `Photos` albums plus 30 explicit historical Wall statuses. The record density is intentionally uneven from November 2009 through October 2010: mostly mundane coffee, commute, deadline and end-of-day fragments, with occasional dry office humor. `Ben01.JPG` is one physical shared asset referenced by separate ordinary-photo and profile-picture records; all historical records remain Profile-only and do not inflate the current Feed.
 
 ## 9. User projection risk matrix
 
@@ -227,12 +229,12 @@ Also confirm that canonical references use `CoreSocialCharacterId`, Z.tokyo rema
 
 ## 16. Facebook narrative content lock v0.4
 
-Facebook narrative content is now `LOCKED`. The final map is June's Instagram announcement and Katie/Chris aftermath, Katie's private message, Jack's request and one shared party Event, Alex/Jay/Ryan party context, Ben's office-life anchor, Chris/Luca basketball media, Katie/Ben family media, and restrained Jay/Z.tokyo/offline-band context. Major new Facebook drama requires explicitly reopening the lock.
+Facebook narrative content is now `LOCKED`. The final map is June's Instagram announcement and Katie/Chris aftermath, Katie's private message, Jack's request and one shared party Event, Alex/Jay/Ryan party context, Ben's office-life anchor, Chris/Luca basketball media, Katie/Ben sibling interaction, and restrained Jay/Z.tokyo/offline-band context. Major new Facebook drama requires explicitly reopening the lock.
 
 Facebook Feed now uses visibility-aware shared records across `status`, `photo`, `album`, `checkin`, and `activity`. Comments and Likes derive from actor records; June's deterministic Like growth is notification-free. IG04 remains Instagram-only, Jack friends-only content is hidden before acceptance, and Anil remains an offline-only identity pending approved group media.
 
 ## Facebook Photos / Albums boundary
 
-Approved shared media is reachable through each owning Facebook Profile and a registry-driven album. Z.tokyo, Luca, Katie, and Jay have one approved album/media binding each. June, Jack, Matt, Alex, Ben, Ryan, and the current user remain empty on this surface; Anil has no Facebook profile. This is a media-availability boundary, not a statement about fictional lifetime photo counts.
+Approved shared media is reachable through each owning Facebook Profile and a registry-driven album. Z.tokyo, Luca, Katie, Jay, Alex, and Ben now have approved album/media bindings. June, Jack, Matt, Ryan, and the current user remain empty on this surface; Anil has no Facebook profile. This is a media-availability boundary, not a statement about fictional lifetime photo counts.
 
-Katie has three separate Facebook album bindings: `Profile Pictures` for `Katie03.PNG`, a four-photo `Photos` history spanning July 2009 through September 2010, and the preserved Katie/Ben `Family Photos` context. The September selfie carries one real canonical Ben sibling-banter comment; historical photos remain outside the current Feed.
+Katie has two Facebook album bindings: `Profile Pictures` for `Katie03.PNG` and a four-photo `Photos` history spanning July 2009 through September 2010. The September selfie carries one real canonical Ben sibling-banter comment, which preserves visible sibling continuity without the intentionally deleted family photo; historical photos remain outside the current Feed.

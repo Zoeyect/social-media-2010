@@ -53,7 +53,7 @@ Session start is `2010-10-20T00:02:00-07:00`. All stories already present before
 | `luca-pickup-basketball-photos` | Luca / Chris | `10:58 PM`, calendar date ambiguous | `2010-10-19T22:58:00-07:00` | CORRECTED |
 | `luca-main-street-diner-checkin` | Luca | `10:44 PM`, calendar date ambiguous | `2010-10-19T22:44:00-07:00` | CORRECTED |
 | `jay-band-performance-photo` | Jay | explicit ISO | `2010-10-19T22:00:00-07:00` | PRESERVED; performance occurred Oct 18 |
-| `katie-photo-with-ben` | Katie / Ben | explicit ISO | `2010-10-18T19:24:00-07:00` | PRESERVED |
+| Former Katie/Ben family photo story | Katie / Ben | removed with deleted source asset | n/a | DEPRECATED / REMOVED in v0.5.17 |
 | `z-tokyo-profile-picture-update` | Z.tokyo | explicit ISO | `2010-10-18T20:52:00-07:00` | PRESERVED |
 | `facebook-june-instagram-announcement` | June | T+60 live delivery | `2010-10-20T00:03:00-07:00` | LIVE / PRESERVED |
 | `facebook-june-jack-gossip-ryan-standalone` | Ryan | T+135 live delivery | approximately `2010-10-20T00:04:15-07:00` | LIVE / PRESERVED |

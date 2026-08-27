@@ -113,19 +113,23 @@ try {
       ["ben-profile-pictures", "Ben", "Profile Pictures", ["ben-profile-current", "ben-profile-2005"], ["ben-profile-current-update", "ben-profile-2005-update"], "CURATED"],
       ["ben-photos", "Ben", "Photos", ["ben-photo-friday-2010", "ben-car-2010", "ben-coffee-2009", "ben-coffee-2006"], ["ben-photo-friday-2010", "ben-car-2010", "ben-coffee-2009", "ben-coffee-2006"], "CURATED"],
       ["chris-profile-pictures", "Chris", "Profile Pictures", ["chris-profile-picture"], ["chris-profile-picture-update"], "CURATED"],
+      ["matt-profile-pictures", "Matt", "Profile Pictures", ["matt-profile-current", "matt-profile-2007"], ["matt-profile-current-update", "matt-profile-2007-update"], "CURATED"],
+      ["matt-photos", "Matt", "Photos", ["matt-code-2010", "matt-photo-2007"], ["matt-code-photo-2010", "matt-photo-2007"], "CURATED"],
       ["katie-profile-pictures", "Katie", "Profile Pictures", ["katie-profile-picture"], ["katie-profile-picture-update"], "CURATED"],
       ["katie-photo-history", "Katie", "Photos", ["katie-selfie-september-2010", "katie-selfie-july-2010", "katie-selfie-august-2009", "katie-selfie-july-2009"], ["katie-selfie-september-2010", "katie-selfie-july-2010", "katie-selfie-august-2009", "katie-selfie-july-2009"], "CURATED"],
       ["jay-music", "Jay", "Music", ["jay-band-performance", "jay-guitar", "jay-guitar-may"], ["jay-band-performance-photo", "jay-guitar-photo", "jay-may-guitar-photo"], "CURATED"],
     ],
     "Facebook albums must preserve the exact approved owner/media/story bindings",
   );
-  assert.deepEqual(facebookAlbums.FACEBOOK_ALBUMS.map(album => album.mediaIds.length), [1, 3, 1, 1, 2, 2, 4, 1, 1, 4, 3], "album counts must derive from approved media membership");
+  assert.deepEqual(facebookAlbums.FACEBOOK_ALBUMS.map(album => album.mediaIds.length), [1, 3, 1, 1, 2, 2, 4, 1, 2, 2, 1, 4, 3], "album counts must derive from approved media membership");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("katie"), "katie-profile-picture", "Katie03 must be the centralized current Facebook profile picture");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("luca"), "luca-profile-picture", "Luca.png must be the centralized current Facebook profile picture");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("jay"), "facebook-default-avatar", "Jay must use the centralized Facebook default avatar");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("alex"), "alex-profile-picture", "Alex.png must be the centralized current Facebook profile picture");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("ben"), "ben-profile-current", "Ben01.JPG must be the centralized current Facebook profile picture");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("chris"), "chris-profile-picture", "Chris01.PNG must be the centralized current Facebook profile picture");
+  assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("matt"), "matt-profile-current", "Matt03.JPG must be the centralized current Facebook profile picture");
+  assert.deepEqual(facebookActorMedia.getFacebookCanonicalProfileInfo("matt"), { fullName: "Matteo Lee Ricci", classification: "CURATED" }, "Matt Info must expose only the locked full name metadata");
   assert.equal(facebookActorMedia.getFacebookEphemeralProfileMediaId("fof-ryan-001"), "facebook-default-avatar", "Ryan must use the centralized Facebook default avatar");
   assert.equal(facebookActorMedia.getFacebookEphemeralProfileMediaId("facebook-ephemeral-frank"), "facebook-default-avatar", "Frank must use the centralized Facebook default avatar");
   const musicCircleAvatarMapping = [
@@ -189,6 +193,35 @@ try {
   chrisPhotoNavigation = facebook.facebookStateTransition(chrisPhotoNavigation, { type: "OPEN_ALBUM", albumId: "chris-profile-pictures" });
   chrisPhotoNavigation = facebook.facebookStateTransition(chrisPhotoNavigation, { type: "OPEN_ALBUM_PHOTO", albumId: "chris-profile-pictures", mediaId: "chris-profile-picture" });
   assert.deepEqual([chrisPhotoNavigation.currentView, chrisPhotoNavigation.selectedAlbumId, chrisPhotoNavigation.selectedPhotoMediaId], ["photoDetail", "chris-profile-pictures", "chris-profile-picture"], "Chris01.PNG must open through shared Photo Detail");
+  const mattAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "canonical", characterId: "matt", displayName: "Matt" });
+  assert.deepEqual(mattAlbums.map(album => [album.id, album.title, album.mediaIds]), [["matt-profile-pictures", "Profile Pictures", ["matt-profile-current", "matt-profile-2007"]], ["matt-photos", "Photos", ["matt-code-2010", "matt-photo-2007"]]], "Matt albums must preserve separate newest-first Profile Pictures and Photos histories");
+  assert.deepEqual(mattAlbums.flatMap(album => album.photos.map(photo => [album.id, photo.mediaId, photo.storyId, photo.timestamp, photo.caption])), [["matt-profile-pictures", "matt-profile-current", "matt-profile-current-update", "2010-10-02T21:18:00-07:00", undefined], ["matt-profile-pictures", "matt-profile-2007", "matt-profile-2007-update", "2007-08-18T20:10:00-07:00", undefined], ["matt-photos", "matt-code-2010", "matt-code-photo-2010", "2010-10-15T23:03:00-07:00", undefined], ["matt-photos", "matt-photo-2007", "matt-photo-2007", "2007-09-25T21:14:00-07:00", undefined]], "Matt photo records must preserve exact timestamps and no captions");
+  for (const mediaId of ["matt-code-2010", "matt-photo-2007"]) {
+    let mattPhotoNavigation = facebook.createInitialFacebookState("Visitor");
+    mattPhotoNavigation = facebook.facebookStateTransition(mattPhotoNavigation, { type: "OPEN_PROFILE", profileName: "Matt" });
+    mattPhotoNavigation = facebook.facebookStateTransition(mattPhotoNavigation, { type: "SET_PROFILE_SECTION", section: "photos" });
+    mattPhotoNavigation = facebook.facebookStateTransition(mattPhotoNavigation, { type: "OPEN_ALBUM", albumId: "matt-photos" });
+    mattPhotoNavigation = facebook.facebookStateTransition(mattPhotoNavigation, { type: "OPEN_ALBUM_PHOTO", albumId: "matt-photos", mediaId });
+    assert.deepEqual([mattPhotoNavigation.currentView, mattPhotoNavigation.selectedAlbumId, mattPhotoNavigation.selectedPhotoMediaId], ["photoDetail", "matt-photos", mediaId], `${mediaId} must open through shared Photo Detail`);
+  }
+  let mattCodeThreadState = facebook.createInitialFacebookState("Visitor");
+  const mattCodeComments = facebook.selectFacebookComments(mattCodeThreadState, "matt-code-photo-2010");
+  assert.deepEqual(mattCodeComments.map(comment => [comment.id, comment.author, comment.characterId, comment.ephemeralAuthor?.id, comment.text, comment.classification]), [
+    ["matt-code-comment-eric-jsonp", "Eric", undefined, "facebook-ephemeral-eric", "jsonp? lol", "PERIOD-EVIDENCE-INFORMED / CURATED"],
+    ["matt-code-comment-daniel-callback", "Daniel", undefined, "facebook-ephemeral-daniel", "yeah callback=? should work", "PERIOD-EVIDENCE-INFORMED / CURATED"],
+    ["matt-code-comment-sam-jquery", "Sam", undefined, "facebook-ephemeral-sam", "still on 1.4.2. not touching rc2 yet", "PERIOD-EVIDENCE-INFORMED / CURATED"],
+    ["matt-code-comment-kevin-image", "Kevin", undefined, "facebook-ephemeral-kevin", "image[2]['#text'] should give you the larger one", "PERIOD-EVIDENCE-INFORMED / CURATED"],
+    ["matt-code-comment-rachel-album", "Rachel", undefined, "facebook-ephemeral-rachel", "oracular spectacular again lol", "CURATED"],
+    ["matt-code-comment-matt-reply", "Matt", "matt", undefined, "works now", "CURATED"],
+  ], "Matt code photo must retain the exact six-comment technical/music chronology");
+  assert.equal(mattCodeComments.some(comment => comment.text.includes("1.4.3 final") || comment.text.includes("final 1.4.3")), false, "Oct 15 comments must not imply final jQuery 1.4.3 was released");
+  for (const comment of mattCodeComments.filter(comment => comment.ephemeralAuthor)) {
+    assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS[comment.ephemeralAuthor.id], undefined, `${comment.author} must remain outside the canonical registry`);
+  }
+  mattCodeThreadState = facebook.facebookStateTransition(mattCodeThreadState, { type: "BEGIN_COMMENT", itemId: "matt-code-photo-2010" });
+  mattCodeThreadState = facebook.facebookStateTransition(mattCodeThreadState, { type: "EDIT_COMMENT", value: "nice" });
+  mattCodeThreadState = facebook.facebookStateTransition(mattCodeThreadState, { type: "SUBMIT_COMMENT", displayName: "Visitor" });
+  assert.equal(facebook.selectFacebookComments(mattCodeThreadState, "matt-code-photo-2010").length, 7, "user comment must increment Matt's code thread from six to seven");
   const lucaAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "canonical", characterId: "luca", displayName: "Luca" });
   assert.deepEqual(lucaAlbums.map(album => [album.id, album.title, album.mediaIds]), [["luca-pickup-basketball", "Pickup Basketball", ["luca-basketball-01", "luca-basketball-02", "luca-basketball-03"]], ["luca-photos", "Photos", ["luca-work-main-street-diner"]]], "Luca albums must use the approved basketball set and one historical work photo");
   assert.deepEqual(lucaAlbums.find(album => album.id === "luca-photos")?.photos.map(photo => [photo.mediaId, photo.timestamp, photo.venueId]), [["luca-work-main-street-diner", "2010-03-20T22:30:00-07:00", "main-street-diner"]], "Luca work history must retain its deterministic March date and canonical venue ID");
@@ -479,7 +512,7 @@ try {
   assert.equal(facebook.selectFacebookJuneMessageState(facebookA), "none");
   assert.ok(facebookA.inboxThreads.every(thread => thread.origin === "seed" && thread.status === "read"));
   assert.deepEqual(facebookA.inboxThreads.map(thread => [thread.friendId, thread.sender]), [["katie", "Katie"], ["jay", "Jay"]]);
-  assert.deepEqual([...new Set(facebookA.feed.filter(item => item.friendId).map(item => item.friendId))].sort(), ["alex", "ben", "chris", "jack", "jay", "katie", "luca"]);
+  assert.deepEqual([...new Set(facebookA.feed.filter(item => item.friendId).map(item => item.friendId))].sort(), ["alex", "ben", "chris", "jack", "jay", "katie", "luca", "matt"]);
   assert.deepEqual([...new Set(facebookA.feed.map(item => item.kind))].sort(), ["activity", "album", "checkin", "photo", "status"], "Facebook seed must exercise every locked story structure");
   assert.ok(facebookA.feed.every(item => ["friends", "friends-of-friends", "everyone", "custom"].includes(item.visibility)), "every Facebook story must carry a visibility scope");
   assert.equal(facebook.selectFacebookVisibleFeed(facebookA).some(item => item.id === "jack-movie"), false, "Jack friends-only content must remain hidden before acceptance");
@@ -1287,7 +1320,7 @@ try {
   );
   assert.equal(juneInstagramAccount?.username, coreSocialFriends.CORE_SOCIAL_CHARACTERS.june.socialHandles.instagram, "Facebook and Instagram must resolve the same canonical June handle");
   assert.deepEqual([juneInstagramAccount?.discoveryUiStatus, juneInstagramAccount?.followUiStatus, juneInstagramAccount?.profileUiStatus], ["READY", "READY", "HOLD"]);
-  assert.deepEqual(sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "jay-guitar", "jay-guitar-may", "jay-band-performance", "katie-selfie-july-2009", "katie-selfie-august-2009", "katie-profile-picture", "katie-selfie-july-2010", "katie-selfie-september-2010", "luca-profile-picture", "luca-basketball-01", "luca-basketball-02", "luca-basketball-03", "luca-work-main-street-diner", "alex-profile-picture", "alex-dog-golden-2007", "alex-dogs-wangcai-bb-2009", "ben-profile-current", "ben-photo-friday-2010", "ben-profile-2005", "ben-coffee-2006", "ben-coffee-2009", "ben-car-2010", "chris-profile-picture"]);
+  assert.deepEqual(sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS, ["june-ig-01", "june-ig-02", "june-ig-03", "june-ig-04", "june-profile-avatar", "jay-guitar", "jay-guitar-may", "jay-band-performance", "katie-selfie-july-2009", "katie-selfie-august-2009", "katie-profile-picture", "katie-selfie-july-2010", "katie-selfie-september-2010", "luca-profile-picture", "luca-basketball-01", "luca-basketball-02", "luca-basketball-03", "luca-work-main-street-diner", "alex-profile-picture", "alex-dog-golden-2007", "alex-dogs-wangcai-bb-2009", "ben-profile-current", "ben-photo-friday-2010", "ben-profile-2005", "ben-coffee-2006", "ben-coffee-2009", "ben-car-2010", "chris-profile-picture", "matt-profile-current", "matt-profile-2007", "matt-photo-2007", "matt-code-2010"]);
   assert.deepEqual(
     sharedCharacterMedia.SHARED_CHARACTER_MEDIA_IDS.map(id => {
       const media = sharedCharacterMedia.getSharedCharacterMedia(id);
@@ -1322,6 +1355,10 @@ try {
       ["ben-coffee-2009", "Ben-coffee02.JPG", "ben", "facebook", "2009-02-14T16:00:00-08:00", "coffee-history", "visible"],
       ["ben-car-2010", "Ben-car.JPG", "ben", "facebook", "2010-07-10T16:00:00-07:00", "car-history", "visible"],
       ["chris-profile-picture", "Chris01.PNG", "chris", "facebook", "2009-11-14T20:30:00-08:00", "facebook-profile-picture", "visible"],
+      ["matt-profile-current", "Matt03.JPG", "matt", "facebook", "2010-10-02T21:18:00-07:00", "facebook-profile-picture", "visible"],
+      ["matt-profile-2007", "Matt01.JPG", "matt", "facebook", "2007-08-18T20:10:00-07:00", "facebook-profile-picture", "visible"],
+      ["matt-photo-2007", "Matt02.JPG", "matt", "facebook", "2007-09-25T21:14:00-07:00", "facebook-photo", "visible"],
+      ["matt-code-2010", "Matt-code-10-15.PNG", "matt", "facebook", "2010-10-15T23:03:00-07:00", "code-project", "visible"],
     ],
   );
   assert.deepEqual(
@@ -1469,6 +1506,8 @@ try {
   const chrisProfileWallHistory = facebook.selectFacebookProfileWall(interactionFacebook, "Chris").filter(item => item.profileWallEligible === true);
   assert.deepEqual(chrisProfileWallHistory.map(item => [item.id, item.mediaId, item.createdAt]), [["chris-profile-picture-update", "chris-profile-picture", "2009-11-14T20:30:00-08:00"]], "Chris historical Profile Wall must remain intentionally sparse");
   assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "chris-profile-picture-update"), false, "Chris historical profile-picture update must not enter the current Feed");
+  assert.deepEqual(facebook.selectFacebookProfileWall(interactionFacebook, "Matt").filter(item => item.profileWallEligible === true).map(item => item.id), ["matt-code-photo-2010", "matt-profile-current-update", "matt-photo-2007", "matt-profile-2007-update"], "Matt Profile Wall must remain sparse and newest-first");
+  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id.startsWith("matt-code-") || item.id.startsWith("matt-profile-") || item.id === "matt-photo-2007"), false, "Matt historical Profile media must remain outside the current Feed");
   assert.equal(facebookAlbums.getFacebookAlbum("luca-pickup-basketball")?.ownerActor.displayName, "Luca", "Luca must remain the owner of Pickup Basketball media");
   assert.equal(interactionFacebook.likes.some(like => like.itemId === "luca-pickup-basketball-photos" && like.characterId === "chris"), true, "Chris must retain his Like on Luca's basketball content");
   assert.deepEqual(facebook.selectFacebookComments(interactionFacebook, "luca-pickup-basketball-photos").filter(comment => comment.characterId === "chris").map(comment => comment.text), ["my shot was clean tho lol", "details details"], "Chris must retain his two comments on Luca's basketball content");
@@ -1591,7 +1630,7 @@ try {
   assert.equal(facebook.selectFacebookJuneMessageState(facebookAlex), "none");
   assert.equal(facebookAlex.threadMessages.some(message => message.origin === "user"), false);
   assert.equal(facebookAlex.messageReplyDraft, "");
-  assert.deepEqual(facebookAlex.comments.map(comment => comment.id), ["alex-party-comment-jay", "alex-party-comment-ryan", "katie-september-comment-ben", "luca-basketball-comment-chris-shot", "luca-basketball-comment-luca-misses", "luca-basketball-comment-chris-details", "luca-basketball-comment-frank-count", "jay-band-comment-katie", "jay-band-comment-alex", "jay-band-comment-jack", "jay-band-comment-mike", "jay-band-comment-sarah", "jay-band-comment-kevin", "jay-band-comment-emily", "jay-band-comment-nick", "jay-band-comment-rachel", "jay-band-comment-frank", "jay-band-comment-ryan"]);
+  assert.deepEqual(facebookAlex.comments.map(comment => comment.id), ["alex-party-comment-jay", "alex-party-comment-ryan", "katie-september-comment-ben", "luca-basketball-comment-chris-shot", "luca-basketball-comment-luca-misses", "luca-basketball-comment-chris-details", "luca-basketball-comment-frank-count", "jay-band-comment-katie", "jay-band-comment-alex", "jay-band-comment-jack", "jay-band-comment-mike", "jay-band-comment-sarah", "jay-band-comment-kevin", "jay-band-comment-emily", "jay-band-comment-nick", "jay-band-comment-rachel", "jay-band-comment-frank", "jay-band-comment-ryan", "matt-code-comment-eric-jsonp", "matt-code-comment-daniel-callback", "matt-code-comment-sam-jquery", "matt-code-comment-kevin-image", "matt-code-comment-rachel-album", "matt-code-comment-matt-reply"]);
   assert.deepEqual(facebookAlex.likes.map(like => like.id), ["luca-pickup-basketball-like-chris", ...Array.from({ length: 48 }, (_, index) => `jay-band-performance-like-${String(index + 1).padStart(2, "0")}`)], "new session must restore the complete deterministic Facebook seed Like baseline");
   assert.equal(facebookAlex.commentComposerItemId, null);
   assert.equal(facebookAlex.commentDraft, "");

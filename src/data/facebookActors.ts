@@ -10,6 +10,9 @@ export const FACEBOOK_EPHEMERAL_KEVIN_ID = "facebook-ephemeral-kevin" as const;
 export const FACEBOOK_EPHEMERAL_EMILY_ID = "facebook-ephemeral-emily" as const;
 export const FACEBOOK_EPHEMERAL_NICK_ID = "facebook-ephemeral-nick" as const;
 export const FACEBOOK_EPHEMERAL_RACHEL_ID = "facebook-ephemeral-rachel" as const;
+export const FACEBOOK_EPHEMERAL_ERIC_ID = "facebook-ephemeral-eric" as const;
+export const FACEBOOK_EPHEMERAL_DANIEL_ID = "facebook-ephemeral-daniel" as const;
+export const FACEBOOK_EPHEMERAL_SAM_ID = "facebook-ephemeral-sam" as const;
 
 export const FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS = Object.freeze({
   [FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID]: Object.freeze({
@@ -28,6 +31,9 @@ export const FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS = Object.freeze({
   [FACEBOOK_EPHEMERAL_EMILY_ID]: Object.freeze({ id: FACEBOOK_EPHEMERAL_EMILY_ID, displayName: "Emily", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }),
   [FACEBOOK_EPHEMERAL_NICK_ID]: Object.freeze({ id: FACEBOOK_EPHEMERAL_NICK_ID, displayName: "Nick", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }),
   [FACEBOOK_EPHEMERAL_RACHEL_ID]: Object.freeze({ id: FACEBOOK_EPHEMERAL_RACHEL_ID, displayName: "Rachel", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }),
+  [FACEBOOK_EPHEMERAL_ERIC_ID]: Object.freeze({ id: FACEBOOK_EPHEMERAL_ERIC_ID, displayName: "Eric", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }),
+  [FACEBOOK_EPHEMERAL_DANIEL_ID]: Object.freeze({ id: FACEBOOK_EPHEMERAL_DANIEL_ID, displayName: "Daniel", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }),
+  [FACEBOOK_EPHEMERAL_SAM_ID]: Object.freeze({ id: FACEBOOK_EPHEMERAL_SAM_ID, displayName: "Sam", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }),
 });
 
 export type FacebookEphemeralFriendOfFriendId = keyof typeof FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS;

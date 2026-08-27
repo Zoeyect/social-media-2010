@@ -24,7 +24,7 @@ import { useSessionIdentity } from "../state/sessionIdentity";
 import { getFacebookAuthorEasterEggByDisplayName } from "../data/facebookActors";
 import { getFacebookMedia } from "../data/facebookMedia";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
-import { getFacebookCanonicalProfileMediaId, getFacebookEphemeralProfileMediaId } from "../data/facebookActorMedia";
+import { getFacebookCanonicalProfileInfo, getFacebookCanonicalProfileMediaId, getFacebookEphemeralProfileMediaId } from "../data/facebookActorMedia";
 import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumPhoto, getFacebookAlbumsForActor } from "../data/facebookAlbums";
 import type { FacebookAlbum, FacebookAlbumActor } from "../data/facebookAlbums";
 import { getFacebookStoryMedia } from "../data/facebookStoryMedia";
@@ -324,6 +324,7 @@ function FacebookProfile({ profileName, currentUserName, state, simulatedNowMs, 
   const wallItems = selectFacebookProfileWall(state, profileName);
   const authorIdentity = getFacebookAuthorEasterEggByDisplayName(profileName);
   const canonicalCharacter = Object.values(CORE_SOCIAL_CHARACTERS).find(character => character.displayName === profileName);
+  const profileInfo = canonicalCharacter ? getFacebookCanonicalProfileInfo(canonicalCharacter.id) : null;
   const ephemeralProfileMediaId = state.selectedProfileActor?.kind === "ephemeral-friend-of-friend" ? getFacebookEphemeralProfileMediaId(state.selectedProfileActor.ephemeralId) : null;
   const profileMediaId = authorIdentity?.profileMediaId ?? (canonicalCharacter ? getFacebookCanonicalProfileMediaId(canonicalCharacter.id) : null) ?? ephemeralProfileMediaId;
   const profileMedia = profileMediaId ? getFacebookStoryMedia(profileMediaId) : null;
@@ -345,7 +346,9 @@ function FacebookProfile({ profileName, currentUserName, state, simulatedNowMs, 
     {state.profileSection === "wall" && <div className="facebook-profile-wall">
       {wallItems.map(item => <button key={item.id} type="button" onClick={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: state.scrollPosition })}><span>{item.text}</span><time>{formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp })}</time></button>)}
     </div>}
-    {state.profileSection === "info" && <div className="facebook-profile-empty" data-provenance-status="HOLD" aria-label="Profile Info unavailable" />}
+    {state.profileSection === "info" && (profileInfo
+      ? <div className="facebook-profile-info"><dl><dt>Full Name</dt><dd>{profileInfo.fullName}</dd></dl></div>
+      : <div className="facebook-profile-empty" data-provenance-status="HOLD" aria-label="Profile Info unavailable" />)}
     {state.profileSection === "photos" && <FacebookAlbumList actor={albumActor} dispatch={dispatch} />}
     {state.profileSection === "friends" && <div className="facebook-friend-list" aria-label={`${profileName} Friends`}>
       {isCurrentUser && state.friends.map(friend => <button key={friend.id} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: friend.name })}><strong>{friend.name}</strong></button>)}

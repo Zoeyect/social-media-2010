@@ -128,7 +128,7 @@ export type FacebookComment = {
   mentions?: readonly FacebookInlineMention[];
   origin: "seed" | "live" | "user";
   characterId?: CoreSocialCharacterId;
-  classification?: "CURATED" | "CURATED / SIBLING BANTER";
+  classification?: "CURATED" | "CURATED / SIBLING BANTER" | "PERIOD-EVIDENCE-INFORMED / CURATED";
   ephemeralAuthor?: FacebookEphemeralIdentity;
   authorEasterEggId?: FacebookAuthorEasterEggId;
 };
@@ -302,7 +302,10 @@ export function createInitialFacebookState(displayName: string): FacebookState {
             characterId: comment.author.characterId,
             classification: "classification" in comment ? comment.classification : comment.author.classification,
           }
-        : { ephemeralAuthor: { id: comment.author.id, displayName: comment.author.displayName, classification: comment.author.classification } }),
+        : {
+            ephemeralAuthor: { id: comment.author.id, displayName: comment.author.displayName, classification: comment.author.classification },
+            ...("classification" in comment ? { classification: comment.classification } : {}),
+          }),
     })),
     commentComposerItemId: null,
     commentDraft: "",

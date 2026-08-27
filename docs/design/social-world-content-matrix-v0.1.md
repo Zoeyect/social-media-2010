@@ -78,7 +78,7 @@ All approved character photos are `SHARED CHARACTER MEDIA`, not Facebook-only as
 | Character | Existing Media | Best Reuse Surfaces | New Media Need | Priority |
 | --- | --- | --- | --- | --- |
 | Katie | `Katie01.jpg`, `Katie02.jpg`, `Katie03.PNG`, `Katie04.jpg`, `Katie05.jpg` | Facebook photos/profile, Flickr | None required until a specific story needs it | Medium |
-| Matt | `Matt-code-10....PNG`, `Matt01.JPG`, `Matt02.JPG`, `Matt03.JPG`, `Matt04.JPG` | Twitter links, Facebook, Tumblr, band context | Approved bass/band evidence if existing images do not establish it | Medium |
+| Matt | `Matt-code-10-15.PNG`, `Matt01.JPG`, `Matt02.JPG`, `Matt03.JPG`; `Matt04.JPG` remains unassigned | Twitter links, sparse Facebook Profile/Photos, Tumblr, band context | Approved bass/band evidence if existing images do not establish it | Medium |
 | Alex | `Alex-dogs.PNG`, `Alex01.PNG` | Facebook, Flickr, Twitter image posts | Additional dog media only after dog identity details are locked | High |
 | Chris | `Chris01.PNG` | Facebook Profile Picture; social presence primarily through Likes/comments on friends' content | Generic Photos remain intentionally empty; deleted Chris-Luca media stays removed | Medium |
 | Jay | `10-18.JPG`, `Jay01.PNG`, `Jay02.PNG` | Flickr, Tumblr, Twitter links, Facebook, band context | Band/live coverage only if needed | High |
@@ -158,6 +158,7 @@ These weights are directional. Do not turn them into exact quotas without a sepa
 The nine canonical characters do not require equal content volume. Density follows platform fit, visual dependence, narrative role, time-of-day plausibility, and believable 2010 usage patterns.
 
 - Matt may have more Twitter text and fewer photos.
+- Matt's Facebook Profile density is LOW/MEDIUM; brief technical comments are plausible, while Twitter remains his strongest platform.
 - June may have more Facebook/photo presence and the earliest Instagram presence.
 - Alex may have more pet imagery.
 - Chris has LOW self-posting, HIGH Comment/Like activity, and LOW Profile density; sparse space is intentional.

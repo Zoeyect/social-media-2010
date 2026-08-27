@@ -69,6 +69,8 @@ Katie should feel comfortable sending a message that assumes shared context. Exi
 
 Matt's existing Twitter DM role remains canonical. Technical content should sound ordinary and specific, not like polished product marketing.
 
+Matt's full name is `Matteo Lee Ricci`, while everyday Facebook and cross-app display remains `Matt`. His current Facebook profile image is `Matt03.JPG` from October 2, 2010; `Matt01.JPG` is the 2007 historical Profile Picture. A sparse `Photos` history contains uncaptioned `Matt02.JPG` and the October 15 Last.fm code experiment screenshot. A small Facebook-local coder circle comments in brief period-informed language, while Matt answers once and remains quieter on Facebook than Twitter. His bass identity continues through Jay's band context rather than turning this Profile into a music archive.
+
 ## 6. Alex
 
 - Canonical ID: `alex`

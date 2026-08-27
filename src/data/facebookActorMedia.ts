@@ -9,6 +9,11 @@ export const FACEBOOK_CANONICAL_ACTOR_MEDIA: Readonly<Partial<Record<CoreSocialC
   alex: Object.freeze({ profileMediaId: "alex-profile-picture" as const }),
   ben: Object.freeze({ profileMediaId: "ben-profile-current" as const }),
   chris: Object.freeze({ profileMediaId: "chris-profile-picture" as const }),
+  matt: Object.freeze({ profileMediaId: "matt-profile-current" as const }),
+});
+
+export const FACEBOOK_CANONICAL_PROFILE_INFO: Readonly<Partial<Record<CoreSocialCharacterId, Readonly<{ fullName: string; classification: "CURATED" }>>>> = Object.freeze({
+  matt: Object.freeze({ fullName: "Matteo Lee Ricci", classification: "CURATED" as const }),
 });
 
 export const FACEBOOK_EPHEMERAL_ACTOR_MEDIA: Readonly<Partial<Record<FacebookEphemeralFriendOfFriendId, Readonly<{ profileMediaId: FacebookStoryMediaId }>>>> = Object.freeze({
@@ -20,6 +25,9 @@ export const FACEBOOK_EPHEMERAL_ACTOR_MEDIA: Readonly<Partial<Record<FacebookEph
   "facebook-ephemeral-emily": Object.freeze({ profileMediaId: "facebook-avatar-03" as const }),
   "facebook-ephemeral-nick": Object.freeze({ profileMediaId: "facebook-avatar-06" as const }),
   "facebook-ephemeral-rachel": Object.freeze({ profileMediaId: "facebook-avatar-07" as const }),
+  "facebook-ephemeral-eric": Object.freeze({ profileMediaId: "facebook-default-avatar" as const }),
+  "facebook-ephemeral-daniel": Object.freeze({ profileMediaId: "facebook-default-avatar" as const }),
+  "facebook-ephemeral-sam": Object.freeze({ profileMediaId: "facebook-default-avatar" as const }),
 });
 
 export function getFacebookCanonicalProfileMediaId(characterId: CoreSocialCharacterId) {
@@ -28,4 +36,8 @@ export function getFacebookCanonicalProfileMediaId(characterId: CoreSocialCharac
 
 export function getFacebookEphemeralProfileMediaId(ephemeralId: FacebookEphemeralFriendOfFriendId) {
   return FACEBOOK_EPHEMERAL_ACTOR_MEDIA[ephemeralId]?.profileMediaId ?? null;
+}
+
+export function getFacebookCanonicalProfileInfo(characterId: CoreSocialCharacterId) {
+  return FACEBOOK_CANONICAL_PROFILE_INFO[characterId] ?? null;
 }

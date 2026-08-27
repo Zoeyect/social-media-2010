@@ -982,8 +982,15 @@ export function isFacebookNewsFeedEligible(state: FacebookState, item: FacebookF
   return isFacebookStoryVisibleToUser(state, item);
 }
 
+export function compareFacebookNewsFeedChronology(left: FacebookFeedItem, right: FacebookFeedItem): number {
+  const timeDifference = Date.parse(right.createdAt!) - Date.parse(left.createdAt!);
+  return timeDifference || left.id.localeCompare(right.id);
+}
+
 export function selectFacebookVisibleFeed(state: FacebookState, simulatedNowMs = Date.parse(SESSION_START_ISO)): FacebookFeedItem[] {
-  return state.feed.filter(item => isFacebookNewsFeedEligible(state, item, simulatedNowMs));
+  return state.feed
+    .filter(item => isFacebookNewsFeedEligible(state, item, simulatedNowMs))
+    .sort(compareFacebookNewsFeedChronology);
 }
 
 export function selectFacebookProfileWall(state: FacebookState, profileName: string): FacebookFeedItem[] {

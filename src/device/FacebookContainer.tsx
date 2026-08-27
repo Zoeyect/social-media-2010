@@ -75,8 +75,9 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
         <div><button type="button" onClick={() => dispatch({ type: "CANCEL_STATUS" })}>Cancel</button><button type="submit" disabled={!state.statusDraft.trim()}>Share</button></div>
       </form>}
       <div ref={feedRef} className="facebook-feed" onScroll={event => dispatch({ type: "SET_SCROLL_POSITION", scrollPosition: event.currentTarget.scrollTop })}>
-        {visibleFeed.map(item => <FeedRow
+        {visibleFeed.map(item => <FacebookStoryView
           key={item.id}
+          surface="feed"
           item={item}
           liked={state.likedItemIds.includes(item.id)}
           onOpenProfile={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author })}
@@ -114,7 +115,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
       </form>}
     </article>}
 
-    {state.currentView === "profile" && <FacebookProfile profileName={selectedProfileName} currentUserName={sessionIdentity.name} state={state} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
+    {state.currentView === "profile" && <FacebookProfile profileName={selectedProfileName} currentUserName={sessionIdentity.name} state={state} elapsedSeconds={elapsedSeconds} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
 
     {state.currentView === "friends" && <FacebookFriends state={state} requestCount={requestCount} dispatch={dispatch} />}
 
@@ -318,7 +319,7 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
   </article>;
 }
 
-function FacebookProfile({ profileName, currentUserName, state, simulatedNowMs, dispatch }: { profileName: string; currentUserName: string; state: FacebookState; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, simulatedNowMs, dispatch }: { profileName: string; currentUserName: string; state: FacebookState; elapsedSeconds: number; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
   const isCurrentUser = profileName === currentUserName;
   const isFriend = state.friends.some(friend => friend.name === profileName);
   const wallItems = selectFacebookProfileWall(state, profileName);
@@ -344,7 +345,23 @@ function FacebookProfile({ profileName, currentUserName, state, simulatedNowMs, 
       {(["wall", "info", "photos", "friends"] as const).map(section => <button key={section} type="button" aria-current={state.profileSection === section ? "page" : undefined} onClick={() => dispatch({ type: "SET_PROFILE_SECTION", section })}>{section[0].toUpperCase() + section.slice(1)}</button>)}
     </nav>
     {state.profileSection === "wall" && <div className="facebook-profile-wall">
-      {wallItems.map(item => <button key={item.id} type="button" onClick={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: state.scrollPosition })}><span>{item.text}</span><time>{formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp })}</time></button>)}
+      {wallItems.map(item => <FacebookStoryView
+        key={item.id}
+        surface="wall"
+        item={item}
+        liked={state.likedItemIds.includes(item.id)}
+        commentCount={selectFacebookComments(state, item.id).length}
+        likeCount={selectFacebookLikes(state, item.id, elapsedSeconds).length}
+        storyTime={formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp })}
+        onOpenProfile={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author })}
+        onOpen={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: state.scrollPosition })}
+        onToggleLike={() => dispatch({ type: "TOGGLE_LIKE", itemId: item.id, displayName: currentUserName })}
+        onComment={() => {
+          dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: state.scrollPosition });
+          dispatch({ type: "BEGIN_COMMENT", itemId: item.id });
+        }}
+        dispatch={dispatch}
+      />)}
     </div>}
     {state.profileSection === "info" && (profileInfo
       ? <div className="facebook-profile-info"><dl><dt>Full Name</dt><dd>{profileInfo.fullName}</dd>{profileInfo.age !== undefined && <><dt>Age</dt><dd>{profileInfo.age}</dd></>}{profileInfo.birthday && <><dt>Birthday</dt><dd>{profileInfo.birthday}</dd></>}{profileInfo.location && <><dt>Location</dt><dd>{profileInfo.location}</dd></>}{profileInfo.lifeStage && <><dt>Education</dt><dd>{profileInfo.lifeStage}</dd></>}{profileInfo.interests?.length && <><dt>Interests</dt><dd>{profileInfo.interests.join(", ")}</dd></>}</dl></div>
@@ -365,7 +382,9 @@ function FacebookCommentRow({ comment, sessionUserName, dispatch }: { comment: F
       : null;
   const avatarMedia = avatarMediaId ? getFacebookStoryMedia(avatarMediaId) : null;
   return <article className="facebook-comment">
-    {avatarMedia && <img className="facebook-comment-avatar" src={avatarMedia.src} alt="" aria-hidden="true" />}
+    {avatarMedia
+      ? <img className="facebook-comment-avatar" src={avatarMedia.src} alt="" aria-hidden="true" />
+      : <span className="facebook-comment-avatar is-placeholder" aria-hidden="true" />}
     {actor
       ? <button type="button" className="facebook-comment-author" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor })}>{actor.displayName}</button>
       : <strong>{comment.author}</strong>}
@@ -373,7 +392,7 @@ function FacebookCommentRow({ comment, sessionUserName, dispatch }: { comment: F
   </article>;
 }
 
-function FeedRow({ item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpen, onToggleLike, onComment, dispatch }: { item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookStoryView({ surface, item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpen, onToggleLike, onComment, dispatch }: { surface: "feed" | "wall"; item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
   const actorProfileMediaId = item.actor?.kind === "author-easter-egg"
     ? item.mediaId
     : item.actor?.kind === "ephemeral-friend-of-friend"
@@ -382,7 +401,7 @@ function FeedRow({ item, liked, commentCount, likeCount, storyTime, onOpenProfil
         ? getFacebookCanonicalProfileMediaId(item.friendId)
         : null;
   const avatarMedia = actorProfileMediaId ? getFacebookStoryMedia(actorProfileMediaId) : null;
-  return <article className="facebook-feed-row" data-content-status={item.contentStatus}>
+  return <article className={`facebook-feed-row facebook-story-view is-${surface}`} data-content-status={item.contentStatus}>
     <button type="button" className="facebook-avatar-link" aria-label={`${item.author} Profile`} onClick={onOpenProfile}>{avatarMedia
       ? <img className="facebook-avatar-image" src={avatarMedia.src} alt="" aria-hidden="true" />
       : <span className="facebook-avatar-hold" aria-hidden="true" />}</button>

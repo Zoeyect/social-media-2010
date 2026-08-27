@@ -108,7 +108,7 @@ try {
       ["z-tokyo-profile-pictures", "Z.tokyo", "Profile Pictures", ["z-tokyo-profile-picture"], ["z-tokyo-profile-picture-update"], "CURATED"],
       ["june-profile-pictures", "June", "Profile Pictures", ["june-facebook-profile-picture"], ["june-profile-picture-update"], "CURATED"],
       ["june-show-10-18", "June", "10/18", ["june-fb-F", "june-fb-10-18-01", "june-fb-10-18-02"], ["june-show-photos-oct19", "june-show-photos-oct19", "june-show-photos-oct19"], "CURATED"],
-      ["june-18th-birthday", "June", "18th Birthday", ["june-birthday-bag", "june-birthday-gift", "june-birthday-main"], ["june-18th-birthday-photos", "june-18th-birthday-photos", "june-18th-birthday-photos"], "CURATED"],
+      ["june-18th-birthday", "June", "18th Birthday", ["june-birthday-bag", "june-birthday-gift", "june-birthday-main"], ["june-birthday-bag-photo", "june-birthday-gift-photo", "june-birthday-main-photo"], "CURATED"],
       ["june-girls", "June", "Girls ♥", ["june-sophie-girls"], ["june-sophie-photo"], "CURATED"],
       ["june-senior-year", "June", "Senior Year", ["june-family-graduation"], ["june-graduation-photo"], "CURATED"],
       ["june-mobile-uploads", "June", "Me", ["june-starbucks-mobile", "june-home-mobile"], ["june-starbucks-photo", "june-home-photo"], "CURATED"],
@@ -140,7 +140,7 @@ try {
       photoState = facebook.facebookStateTransition(photoState, { type: "OPEN_ALBUM", albumId: album.id });
       photoState = facebook.facebookStateTransition(photoState, { type: "OPEN_ALBUM_PHOTO", albumId: album.id, mediaId: photo.mediaId });
       assert.deepEqual([photoState.currentView, photoState.selectedAlbumId, photoState.selectedPhotoMediaId], ["photoDetail", album.id, photo.mediaId], `${album.id}/${photo.mediaId} must open canonical Photo Detail`);
-      const story = facebookFeedById.get(photo.storyId);
+      const story = facebookFeedById.get(photo.uploadStoryId ?? photo.storyId);
       if (story) assert.equal(photo.timestamp, story.createdAt, `${photo.storyId} Wall and Photo Detail must share one underlying timestamp`);
     }
   }
@@ -171,6 +171,11 @@ try {
   const juneSocialHubState = facebook.createInitialFacebookState("Visitor");
   assert.deepEqual([["june-18th-birthday-photos", 38, 12], ["june-home-photo", 16, 6], ["june-starbucks-photo", 21, 7], ["june-sophie-photo", 27, 9], ["june-graduation-photo", 32, 10]].map(([itemId]) => [itemId, facebook.selectFacebookLikes(juneSocialHubState, itemId, 0).length, facebook.selectFacebookComments(juneSocialHubState, itemId).length]), [["june-18th-birthday-photos", 38, 12], ["june-home-photo", 16, 6], ["june-starbucks-photo", 21, 7], ["june-sophie-photo", 27, 9], ["june-graduation-photo", 32, 10]], "June engagement tiers must derive from varied real seed records");
   assert.equal(facebookAlbums.getFacebookAlbumByStoryId("june-show-photos-oct19")?.id, "june-show-10-18", "June Wall and Photos must share the show story");
+  const juneBirthdayAlbum = facebookAlbums.getFacebookAlbum("june-18th-birthday");
+  assert.deepEqual(juneBirthdayAlbum.photos.map(photo => [photo.mediaId, photo.storyId, photo.uploadStoryId]), [["june-birthday-bag", "june-birthday-bag-photo", "june-18th-birthday-photos"], ["june-birthday-gift", "june-birthday-gift-photo", "june-18th-birthday-photos"], ["june-birthday-main", "june-birthday-main-photo", "june-18th-birthday-photos"]], "birthday upload and individual photo interaction identities must be explicit");
+  let birthdayInteractionState = facebook.createInitialFacebookState("Zoey");
+  birthdayInteractionState = facebook.facebookStateTransition(birthdayInteractionState, { type: "TOGGLE_LIKE", itemId: "june-birthday-main-photo", displayName: "Zoey" });
+  assert.deepEqual([facebook.selectFacebookLikes(birthdayInteractionState, "june-18th-birthday-photos", 0).length, facebook.selectFacebookLikes(birthdayInteractionState, "june-birthday-main-photo", 0).length], [38, 1], "birthday photo interaction must not mutate upload-story engagement");
   const forbiddenJuneFacebookFilenames = new Set(["IG01.JPG", "IG02.JPG", "IG03.JPG", "IG04.JPG", "June-Jack-club.png", "June-Jack-kiss.png"]);
   assert.ok(juneAlbums.flatMap(album => album.mediaIds).every(mediaId => !forbiddenJuneFacebookFilenames.has(sharedCharacterMedia.getSharedCharacterMedia(mediaId)?.originalFilename)), "June Facebook albums must exclude Instagram and private June/Jack assets");
   assert.equal(juneAlbums.some(album => /Photos of June/i.test(album.title)), false, "June Tagged Photos / Photos of June must remain deferred");
@@ -1809,6 +1814,9 @@ try {
   assert.match(deviceCssSource, /\.instagram-square-photo img\s*\{[^}]*width:\s*100%[^}]*height:\s*100%[^}]*object-fit:\s*cover/, "square Instagram images must fill their 1:1 surface without stretching");
   assert.match(facebookContainerSource, /getFacebookStoryMedia\(mediaId\)/, "Facebook Feed must resolve local and shared story media through the centralized registry resolver");
   assert.match(facebookContainerSource, /getFacebookAlbumByStoryId\(item\.id\)/, "Feed media must route through the centralized album registry");
+  assert.match(facebookProfileSource, /wallItems\.map\(item => <FacebookStoryView/, "Profile Wall must reuse the canonical Feed story renderer");
+  assert.equal([...facebookContainerSource.matchAll(/function FacebookCommentRow\(/g)].length, 1, "Post Detail and Photo Detail must share one comment-row component");
+  assert.match(facebookContainerSource, /selectFacebookLikes\(state, item\.id, elapsedSeconds\)/, "Wall must consume current canonical and live Like state");
   assert.doesNotMatch(facebookContainerSource, /assets\/facebook\/characters|assets\/characters/, "Facebook UI components must not import character image files directly");
   assert.match(facebookProfileSource, /const profileMediaId = authorIdentity\?\.profileMediaId \?\? \(canonicalCharacter \? getFacebookCanonicalProfileMediaId\(canonicalCharacter\.id\) : null\) \?\? ephemeralProfileMediaId/, "Facebook Profile media ID must derive from author, canonical, or ephemeral actor-media mapping");
   assert.match(facebookProfileSource, /const profileMedia = profileMediaId \? getFacebookStoryMedia\(profileMediaId\) : null/, "Facebook Profile must resolve its actor-derived media ID through the shared story-media resolver");

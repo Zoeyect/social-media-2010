@@ -46,6 +46,7 @@ export type FacebookAlbum = {
 export type FacebookAlbumPhoto = {
   mediaId: FacebookStoryMediaId;
   storyId: string;
+  uploadStoryId?: string;
   timestamp: string;
   caption?: string;
   venueId?: CanonicalVenueId;
@@ -70,6 +71,12 @@ export const JUNE_BIRTHDAY_MEDIA_IDS = Object.freeze([
   "june-birthday-main",
 ] as const satisfies readonly FacebookStoryMediaId[]);
 
+const JUNE_BIRTHDAY_PHOTO_STORY_IDS = Object.freeze({
+  "june-birthday-bag": "june-birthday-bag-photo",
+  "june-birthday-gift": "june-birthday-gift-photo",
+  "june-birthday-main": "june-birthday-main-photo",
+} as const satisfies Record<typeof JUNE_BIRTHDAY_MEDIA_IDS[number], string>);
+
 function defineFacebookAlbum(definition: Omit<FacebookAlbum, "mediaIds">): FacebookAlbum {
   const photos = Object.freeze([...definition.photos].sort((left, right) => right.timestamp.localeCompare(left.timestamp)));
   return Object.freeze({ ...definition, photos, mediaIds: Object.freeze(photos.map(photo => photo.mediaId)) });
@@ -79,7 +86,7 @@ export const FACEBOOK_ALBUMS: readonly FacebookAlbum[] = Object.freeze([
   defineFacebookAlbum({ id: "z-tokyo-profile-pictures", ownerActor: Object.freeze({ kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const, displayName: "Z.tokyo" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "z-tokyo-profile-picture" as const, storyId: "z-tokyo-profile-picture-update", timestamp: "2010-10-18T20:52:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "june-facebook-profile-picture" as const, storyId: "june-profile-picture-update", timestamp: "2010-10-10T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-show-10-18", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "10/18", photos: Object.freeze(JUNE_SHOW_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "june-show-photos-oct19", timestamp: "2010-10-19T23:51:00-07:00", classification: "CURATED" as const }))), classification: "CURATED" as const }),
-  defineFacebookAlbum({ id: "june-18th-birthday", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "18th Birthday", photos: Object.freeze(JUNE_BIRTHDAY_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "june-18th-birthday-photos", timestamp: "2010-06-06T21:08:00-07:00", ...(mediaId === "june-birthday-main" ? { caption: "happy 18th, June ♥ 생일 축하해" } : {}), classification: "CURATED" as const }))), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "june-18th-birthday", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "18th Birthday", photos: Object.freeze(JUNE_BIRTHDAY_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: JUNE_BIRTHDAY_PHOTO_STORY_IDS[mediaId], uploadStoryId: "june-18th-birthday-photos", timestamp: "2010-06-06T21:08:00-07:00", ...(mediaId === "june-birthday-main" ? { caption: "happy 18th, June ♥ 생일 축하해" } : {}), classification: "CURATED" as const }))), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-girls", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Girls ♥", photos: Object.freeze([{ mediaId: "june-sophie-girls" as const, storyId: "june-sophie-photo", timestamp: "2010-08-14T22:30:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-senior-year", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Senior Year", photos: Object.freeze([{ mediaId: "june-family-graduation" as const, storyId: "june-graduation-photo", timestamp: "2010-06-12T17:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-mobile-uploads", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Me", photos: Object.freeze([
@@ -157,7 +164,7 @@ export function getFacebookAlbumForMediaId(mediaId: FacebookStoryMediaId) {
 }
 
 export function getFacebookAlbumByStoryId(storyId: string) {
-  return FACEBOOK_ALBUMS.find(album => album.photos.some(photo => photo.storyId === storyId));
+  return FACEBOOK_ALBUMS.find(album => album.photos.some(photo => photo.storyId === storyId || photo.uploadStoryId === storyId));
 }
 
 export function getFacebookAlbumPhoto(album: FacebookAlbum, mediaId: FacebookStoryMediaId) {

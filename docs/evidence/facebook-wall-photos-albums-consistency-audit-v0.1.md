@@ -35,3 +35,9 @@ June's show engagement belongs to `june-show-photos-oct19`; all three Photo Deta
 ## Historical archive and HOLD boundaries
 
 Album-only history is valid and does not require a new Wall story. Instagram `IG01` through `IG04`, `June-Jack-club.png`, and `June-Jack-kiss.png` remain excluded from Facebook. `Photos of June` / Tagged Photos remains deferred until after the Jack Profile pass.
+
+## Unified rendering resolution
+
+Profile Wall now renders the same canonical story component as News Feed. Existing Wall stories therefore expose their registered media, structured mentions, current timestamp formatting, real Like/Comment summaries, and shared actions instead of a text-only activity row. Post Detail and Photo Detail both use the single actor-aware comment row and centralized avatar resolver.
+
+June's birthday batch upload retains engagement on `june-18th-birthday-photos`; its three individual Photo Detail records use separate `june-birthday-*-photo` interaction IDs linked through `uploadStoryId`. June show and Luca basketball remain intentionally upload-story-owned interactions. These policies are explicit rather than inferred from physical media reuse.

@@ -260,9 +260,10 @@ button, input { font: inherit; }
 .facebook-detail-actions button { padding: 0; color: #3b5998; border: 0; border-right: 1px solid #ccc; background: linear-gradient(#fff,#e7e7e7); font-size: 12px; font-weight: bold; }
 .facebook-detail-actions button:last-child { border-right: 0; }
 .facebook-detail-actions button:disabled { color: #999; }
-.facebook-comment { padding: 8px 6px; display: grid; gap: 2px; border-bottom: 1px solid #ccc; background: #f2f5f9; font-size: 12px; }
+.facebook-comment { padding: 8px 6px; display: grid; grid-template-columns: 28px minmax(0,1fr); grid-template-rows: auto auto; column-gap: 7px; row-gap: 2px; border-bottom: 1px solid #ccc; background: #f2f5f9; font-size: 12px; }
 .facebook-comment strong,.facebook-message-reply strong { color: #3b5998; }
-.facebook-comment-author { width: max-content; min-height: 24px; margin: -5px 0 -2px -6px; padding: 4px 6px; color: #3b5998; border: 0; background: transparent; font-size: 12px; font-weight: bold; text-align: left; }
+.facebook-comment-author { grid-column: 2; width: max-content; min-height: 20px; margin: -3px 0 -2px -4px; padding: 2px 4px; color: #3b5998; border: 0; background: transparent; font-size: 12px; font-weight: bold; text-align: left; }
+.facebook-comment > strong,.facebook-comment > span:not(.facebook-comment-avatar) { grid-column: 2; }
 .facebook-comment-composer,.facebook-message-composer { padding: 9px 0; display: grid; gap: 6px; }
 .facebook-comment-composer textarea,.facebook-message-composer textarea { box-sizing: border-box; width: 100%; min-height: 54px; padding: 6px; resize: none; border: 1px solid #aaa; border-radius: 3px; background: #fff; font: 13px/17px "Helvetica Neue",Helvetica,Arial,sans-serif; }
 .facebook-comment-composer > div { display: flex; justify-content: flex-end; gap: 6px; }
@@ -299,7 +300,7 @@ button, input { font: inherit; }
 .facebook-profile-sections { flex: 0 0 34px; display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid #999; background: #e6e6e6; }
 .facebook-profile-sections button { padding: 0; color: #3b5998; border: 0; border-right: 1px solid #bbb; background: transparent; font-size: 11px; font-weight: bold; }.facebook-profile-sections button:last-child { border-right: 0; }.facebook-profile-sections button[aria-current="page"] { color: #222; background: #ccc; }
 .facebook-profile-wall,.facebook-profile-empty { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-.facebook-profile-wall > button { width: 100%; min-height: 55px; padding: 8px 12px; display: grid; gap: 4px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }.facebook-profile-wall time { color: #888; font-size: 11px; }
+.facebook-profile-wall .facebook-story-view { width: 100%; }.facebook-profile-wall time { color: #888; font-size: 11px; }
 .instagram-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #26211d; background: #eeeae3; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
 .instagram-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-bottom: 1px solid #322a22; background: #554a3e; text-shadow: 0 -1px rgba(0,0,0,.75); }
 .instagram-navigation-bar strong { font-size: 18px; line-height: 44px; }
@@ -631,7 +632,8 @@ button, input { font: inherit; }
 .facebook-inline-mention { display: inline; margin: 0; padding: 0; color: #3b5998; border: 0; background: transparent; font: inherit; font-weight: bold; text-decoration: none; }
 .facebook-photo-viewer .facebook-story-counts { color: #ccc; }
 .facebook-photo-viewer .facebook-comment { color: #222; background: #eee; }
-.facebook-comment-avatar { width: 28px; height: 28px; flex: 0 0 28px; object-fit: cover; }
+.facebook-comment-avatar { grid-column: 1; grid-row: 1 / span 2; width: 28px; height: 28px; display: block; object-fit: cover; background: #d8dce5; }
+.facebook-comment-avatar.is-placeholder { border: 1px solid #c0c5cf; box-sizing: border-box; }
 .facebook-album-gallery { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
 .facebook-album-gallery > header { padding: 9px 12px; display: grid; gap: 2px; border-bottom: 1px solid #aaa; background: #eee; }
 .facebook-album-gallery > header strong { color: #3b5998; font-size: 15px; }

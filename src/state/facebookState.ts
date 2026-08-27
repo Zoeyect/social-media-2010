@@ -6,7 +6,7 @@ import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EP
 import type { FacebookEphemeralFriendOfFriendId, FacebookFeedActor } from "../data/facebookActors";
 import type { FacebookAuthorEasterEggId } from "../data/facebookActors";
 import { MAIN_STREET_DINER_VENUE } from "../data/canonicalVenues";
-import { getFacebookAlbum, getFacebookAlbumForMediaId } from "../data/facebookAlbums";
+import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumForMediaId } from "../data/facebookAlbums";
 import type { FacebookAlbumId } from "../data/facebookAlbums";
 import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
@@ -508,7 +508,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "SET_SCROLL_POSITION":
       return { ...state, scrollPosition: Math.max(0, event.scrollPosition) };
     case "TOGGLE_LIKE":
-      if (!state.feed.some(item => item.id === event.itemId)) return state;
+      if (!isFacebookInteractionStoryId(state, event.itemId)) return state;
       if (state.likedItemIds.includes(event.itemId)) return {
         ...state,
         likedItemIds: state.likedItemIds.filter(id => id !== event.itemId),
@@ -588,7 +588,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       };
     }
     case "BEGIN_COMMENT":
-      if (!state.feed.some(item => item.id === event.itemId)) return state;
+      if (!isFacebookInteractionStoryId(state, event.itemId)) return state;
       return {
         ...state,
         commentComposerItemId: event.itemId,
@@ -601,7 +601,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "SUBMIT_COMMENT": {
       const text = state.commentDraft.trim();
       const itemId = state.commentComposerItemId;
-      if (!text || itemId === null || !state.feed.some(item => item.id === itemId)) return state;
+      if (!text || itemId === null || !isFacebookInteractionStoryId(state, itemId)) return state;
       return {
         ...state,
         comments: [...state.comments, {
@@ -724,6 +724,10 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "RESET":
       return createInitialFacebookState(event.displayName ?? "");
   }
+}
+
+function isFacebookInteractionStoryId(state: FacebookState, storyId: string) {
+  return state.feed.some(item => item.id === storyId) || getFacebookAlbumByStoryId(storyId) !== undefined;
 }
 
 export function selectFacebookRequestCount(state: FacebookState): number {

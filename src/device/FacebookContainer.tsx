@@ -21,12 +21,13 @@ import {
   formatFacebookLikeCount,
 } from "../state/facebookState";
 import { useSessionIdentity } from "../state/sessionIdentity";
-import { getFacebookAuthorEasterEggByDisplayName } from "../data/facebookActors";
+import { FACEBOOK_AUTHOR_EASTER_EGGS, getFacebookAuthorEasterEggByDisplayName } from "../data/facebookActors";
 import { getFacebookMedia } from "../data/facebookMedia";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
+import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
 import { getFacebookCanonicalProfileInfo, getFacebookCanonicalProfileMediaId, getFacebookEphemeralProfileMediaId } from "../data/facebookActorMedia";
-import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumPhoto, getFacebookAlbumsForActor } from "../data/facebookAlbums";
-import type { FacebookAlbum, FacebookAlbumActor } from "../data/facebookAlbums";
+import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumPhoto, getFacebookAlbumsForActor, getFacebookPhotosOfActor, getFacebookPhotoTagActors } from "../data/facebookAlbums";
+import type { FacebookAlbum, FacebookAlbumActor, FacebookPhotoTagActor, FacebookTaggedPhotoRecord } from "../data/facebookAlbums";
 import { getFacebookStoryMedia } from "../data/facebookStoryMedia";
 import { formatFacebookStoryTime } from "../data/facebookStoryTime";
 import { getCanonicalVenue } from "../data/canonicalVenues";
@@ -47,6 +48,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   const selectedProfileName = state.selectedProfileName ?? sessionIdentity.name;
   const selectedAlbum = state.selectedAlbumId ? getFacebookAlbum(state.selectedAlbumId) : null;
   const selectedPhoto = state.selectedPhotoMediaId ? getFacebookStoryMedia(state.selectedPhotoMediaId) : null;
+  const selectedTaggedPhotos = state.selectedTaggedActor ? getFacebookPhotosOfActor(state.selectedTaggedActor) : [];
   const visibleFeed = selectFacebookVisibleFeed(state);
   const elapsedSeconds = Math.floor(elapsedMs / 1_000);
   const simulatedNowMs = Date.parse(SESSION_START_ISO) + elapsedMs;
@@ -143,6 +145,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     {state.currentView === "places" && <FacebookPlaces state={state} displayName={sessionIdentity.name} currentDeviceTime={currentDeviceTime} dispatch={dispatch} />}
     {state.currentView === "photos" && <FacebookPhotos currentUserName={sessionIdentity.name} dispatch={dispatch} />}
     {state.currentView === "album" && selectedAlbum && <FacebookAlbumGallery album={selectedAlbum} dispatch={dispatch} />}
+    {state.currentView === "taggedPhotos" && state.selectedTaggedActor && <FacebookTaggedPhotoGallery actor={state.selectedTaggedActor} records={selectedTaggedPhotos} dispatch={dispatch} />}
     {state.currentView === "photoDetail" && selectedAlbum && selectedPhoto && <FacebookPhotoDetail album={selectedAlbum} media={selectedPhoto} state={state} currentUserName={sessionIdentity.name} elapsedSeconds={elapsedSeconds} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
     {state.currentView === "chat" && <div className="facebook-chat-roster" aria-label="Facebook Chat">
       {FACEBOOK_CHAT_ROSTER.map(person => <button key={person.characterId} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: person.displayName })}>
@@ -273,6 +276,13 @@ function FacebookPhotos({ currentUserName, dispatch }: { currentUserName: string
 
 function FacebookAlbumList({ actor, dispatch }: { actor: FacebookAlbumActor | null; dispatch: Dispatch<FacebookEvent> }) {
   const albums = getFacebookAlbumsForActor(actor);
+  const taggedActor: FacebookPhotoTagActor | null = actor?.kind === "canonical"
+    ? { kind: "canonical", characterId: actor.characterId }
+    : actor?.kind === "author-easter-egg"
+      ? { kind: "author-easter-egg", authorId: actor.authorId }
+      : null;
+  const taggedDisplayName = actor?.kind === "canonical" || actor?.kind === "author-easter-egg" ? actor.displayName : null;
+  const taggedPhotos = taggedActor ? getFacebookPhotosOfActor(taggedActor) : [];
   return <section className="facebook-photo-albums">
     <h2>Albums</h2>
     {albums.length === 0 && <p className="facebook-empty-list">No photos.</p>}
@@ -280,6 +290,27 @@ function FacebookAlbumList({ actor, dispatch }: { actor: FacebookAlbumActor | nu
       const cover = getFacebookStoryMedia(album.photos[0].mediaId);
       return <button key={album.id} type="button" onClick={() => dispatch({ type: "OPEN_ALBUM", albumId: album.id })}>{cover && <img src={cover.src} alt="" />}<span><strong>{album.title}</strong><small>{album.mediaIds.length} photo{album.mediaIds.length === 1 ? "" : "s"}</small></span></button>;
     })}
+    {taggedActor && taggedDisplayName && taggedPhotos.length > 0 && <button type="button" onClick={() => dispatch({ type: "OPEN_TAGGED_PHOTOS", actor: taggedActor })}>
+      <img src={getFacebookStoryMedia(taggedPhotos[0].photo.mediaId)?.src} alt="" />
+      <span><strong>Photos of {taggedDisplayName}</strong><small>{taggedPhotos.length} photo{taggedPhotos.length === 1 ? "" : "s"}</small></span>
+    </button>}
+  </section>;
+}
+
+function resolveFacebookPhotoTagActor(actor: FacebookPhotoTagActor) {
+  return actor.kind === "canonical"
+    ? { kind: "canonical" as const, characterId: actor.characterId, displayName: CORE_SOCIAL_CHARACTERS[actor.characterId].displayName }
+    : { kind: "author-easter-egg" as const, authorId: actor.authorId, displayName: FACEBOOK_AUTHOR_EASTER_EGGS[actor.authorId].displayName };
+}
+
+function FacebookTaggedPhotoGallery({ actor, records, dispatch }: { actor: FacebookPhotoTagActor; records: FacebookTaggedPhotoRecord[]; dispatch: Dispatch<FacebookEvent> }) {
+  const displayName = resolveFacebookPhotoTagActor(actor).displayName;
+  return <section className="facebook-album-gallery" aria-label={`Photos of ${displayName}`}>
+    <header><strong>Photos of {displayName}</strong><span>{records.length} photo{records.length === 1 ? "" : "s"}</span></header>
+    <div>{records.map(({ album, photo }) => {
+      const media = getFacebookStoryMedia(photo.mediaId);
+      return media ? <button key={`${album.id}-${photo.mediaId}`} type="button" onClick={() => dispatch({ type: "OPEN_TAGGED_PHOTO", actor, mediaId: photo.mediaId })}><img src={media.src} alt={`${displayName} tagged photo`} /></button> : null;
+    })}</div>
   </section>;
 }
 
@@ -300,12 +331,14 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
   const comments = selectFacebookComments(state, photo.storyId);
   const likes = selectFacebookLikes(state, photo.storyId, elapsedSeconds);
   const venue = photo.venueId ? getCanonicalVenue(photo.venueId) : null;
+  const taggedActors = getFacebookPhotoTagActors(photo).map(resolveFacebookPhotoTagActor);
   return <article className="facebook-photo-viewer">
     <img src={media.src} alt={`${album.ownerActor.displayName} photo`} />
-    <strong>{album.ownerActor.displayName}</strong>
+    <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: album.ownerActor })}>{album.ownerActor.displayName}</button>
     <span>{album.title} · {formatFacebookStoryTime({ storyId: photo.storyId, storyTimestamp: photo.timestamp, simulatedNowMs, storyType: "photo", sourceApp: story?.sourceApp, surface: "detail" })}</span>
     {venue && <span>{venue.name}</span>}
     {photo.caption && <p><FacebookInlineEntityText text={photo.caption} mentions={story?.mentions} dispatch={dispatch} /></p>}
+    {taggedActors.length > 0 && <span>With {taggedActors.map((taggedActor, index) => <span key={taggedActor.kind === "canonical" ? taggedActor.characterId : taggedActor.authorId}>{index > 0 ? ", " : ""}<button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: taggedActor })}>{taggedActor.displayName}</button></span>)}</span>}
     <FacebookStoryCounts commentCount={comments.length} likeCount={likes.length} />
     <div className="facebook-detail-actions">
       <button type="button" aria-pressed={state.likedItemIds.includes(photo.storyId)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: photo.storyId, displayName: currentUserName })}>{state.likedItemIds.includes(photo.storyId) ? "Unlike" : "Like"}</button>
@@ -477,6 +510,7 @@ function viewTitle(view: FacebookState["currentView"]): string {
     case "places": return "Places";
     case "photos": return "Photos";
     case "album": return "Album";
+    case "taggedPhotos": return "Photos";
     case "photoDetail": return "Photo";
     case "chat": return "Chat";
     case "notifications": return "Notifications";

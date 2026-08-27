@@ -6,12 +6,12 @@ import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EP
 import type { FacebookEphemeralFriendOfFriendId, FacebookFeedActor } from "../data/facebookActors";
 import type { FacebookAuthorEasterEggId } from "../data/facebookActors";
 import { MAIN_STREET_DINER_VENUE } from "../data/canonicalVenues";
-import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumForMediaId } from "../data/facebookAlbums";
-import type { FacebookAlbumId } from "../data/facebookAlbums";
+import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumForMediaId, getFacebookPhotosOfActor } from "../data/facebookAlbums";
+import type { FacebookAlbumId, FacebookPhotoTagActor } from "../data/facebookAlbums";
 import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
-export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "photoDetail" | "chat" | "notifications" | "account";
+export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
 type FacebookProfileReturnState = {
   view: FacebookView;
@@ -25,6 +25,7 @@ type FacebookProfileReturnState = {
   messageId: string | null;
   albumId: FacebookAlbumId | null;
   photoMediaId: FacebookStoryMediaId | null;
+  taggedActor: FacebookPhotoTagActor | null;
 };
 export type FacebookFriendsSection = "friends" | "pages" | "requests";
 export type FacebookFriendRequestState = "none" | "pending" | "accepted" | "ignored";
@@ -205,6 +206,7 @@ export type FacebookState = {
   commentDraft: string;
   selectedAlbumId: FacebookAlbumId | null;
   selectedPhotoMediaId: FacebookStoryMediaId | null;
+  selectedTaggedActor: FacebookPhotoTagActor | null;
   userCheckIn: FacebookUserCheckIn | null;
   readNotificationIds: string[];
 };
@@ -231,6 +233,8 @@ export type FacebookEvent =
   | { type: "SHOW_PHOTOS" }
   | { type: "OPEN_ALBUM"; albumId: FacebookAlbumId }
   | { type: "OPEN_ALBUM_PHOTO"; albumId: FacebookAlbumId; mediaId: FacebookStoryMediaId }
+  | { type: "OPEN_TAGGED_PHOTOS"; actor: FacebookPhotoTagActor }
+  | { type: "OPEN_TAGGED_PHOTO"; actor: FacebookPhotoTagActor; mediaId: FacebookStoryMediaId }
   | { type: "OPEN_PHOTO"; mediaId: FacebookStoryMediaId }
   | { type: "SHOW_CHAT" }
   | { type: "SHOW_NOTIFICATIONS" }
@@ -328,6 +332,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     commentDraft: "",
     selectedAlbumId: null,
     selectedPhotoMediaId: null,
+    selectedTaggedActor: null,
     userCheckIn: null,
     readNotificationIds: [],
   };
@@ -346,6 +351,7 @@ function captureFacebookProfileOrigin(state: FacebookState): FacebookProfileRetu
     messageId: state.selectedMessageId,
     albumId: state.selectedAlbumId,
     photoMediaId: state.selectedPhotoMediaId,
+    taggedActor: state.selectedTaggedActor,
   };
 }
 
@@ -466,14 +472,22 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       };
     }
     case "SHOW_PHOTOS":
-      return { ...state, currentView: "photos", navigationStack: ["home", "photos"], selectedAlbumId: null, selectedPhotoMediaId: null };
+      return { ...state, currentView: "photos", navigationStack: ["home", "photos"], selectedAlbumId: null, selectedPhotoMediaId: null, selectedTaggedActor: null };
     case "OPEN_ALBUM":
       if (!getFacebookAlbum(event.albumId)) return state;
-      return { ...state, currentView: "album", navigationStack: [...state.navigationStack, "album"], selectedAlbumId: event.albumId, selectedPhotoMediaId: null };
+      return { ...state, currentView: "album", navigationStack: [...state.navigationStack, "album"], selectedAlbumId: event.albumId, selectedPhotoMediaId: null, selectedTaggedActor: null };
     case "OPEN_ALBUM_PHOTO": {
       const album = getFacebookAlbum(event.albumId);
       if (!album?.mediaIds.includes(event.mediaId)) return state;
       return { ...state, currentView: "photoDetail", navigationStack: [...state.navigationStack, "photoDetail"], selectedAlbumId: album.id, selectedPhotoMediaId: event.mediaId };
+    }
+    case "OPEN_TAGGED_PHOTOS":
+      if (getFacebookPhotosOfActor(event.actor).length === 0) return state;
+      return { ...state, currentView: "taggedPhotos", navigationStack: [...state.navigationStack, "taggedPhotos"], selectedAlbumId: null, selectedPhotoMediaId: null, selectedTaggedActor: event.actor };
+    case "OPEN_TAGGED_PHOTO": {
+      const taggedRecord = getFacebookPhotosOfActor(event.actor).find(({ photo }) => photo.mediaId === event.mediaId);
+      if (!taggedRecord) return state;
+      return { ...state, currentView: "photoDetail", navigationStack: [...state.navigationStack, "photoDetail"], selectedAlbumId: taggedRecord.album.id, selectedPhotoMediaId: taggedRecord.photo.mediaId, selectedTaggedActor: event.actor };
     }
     case "OPEN_PHOTO": {
       const album = getFacebookAlbumForMediaId(event.mediaId);
@@ -547,6 +561,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
           selectedMessageId: origin.messageId,
           selectedAlbumId: origin.albumId,
           selectedPhotoMediaId: origin.photoMediaId,
+          selectedTaggedActor: origin.taggedActor,
           profileReturnStack: state.profileReturnStack.slice(0, -1),
         };
       }

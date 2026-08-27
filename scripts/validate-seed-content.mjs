@@ -207,7 +207,8 @@ for (const [storyId, likeCount, commentCount] of [["jack-football-game-photo", 2
   assert.deepEqual([facebook.selectFacebookLikes(birthdayInteractionState, "june-18th-birthday-photos", 0).length, facebook.selectFacebookLikes(birthdayInteractionState, "june-birthday-main-photo", 0).length], [38, 1], "birthday photo interaction must not mutate upload-story engagement");
   const forbiddenJuneFacebookFilenames = new Set(["IG01.JPG", "IG02.JPG", "IG03.JPG", "IG04.JPG", "June-Jack-club.png", "June-Jack-kiss.png"]);
   assert.ok(juneAlbums.flatMap(album => album.mediaIds).every(mediaId => !forbiddenJuneFacebookFilenames.has(sharedCharacterMedia.getSharedCharacterMedia(mediaId)?.originalFilename)), "June Facebook albums must exclude Instagram and private June/Jack assets");
-  assert.equal(juneAlbums.some(album => /Photos of June/i.test(album.title)), false, "June Tagged Photos / Photos of June must remain deferred");
+  const juneTaggedPhotos = facebookAlbums.getFacebookPhotosOfCharacter("june");
+  assert.deepEqual(juneTaggedPhotos.map(({ album, photo }) => [album.id, album.ownerActor.displayName, photo.mediaId, photo.storyId]), [["sophie-photos", "Sophie Miller", "sophie-june-club-photo", "sophie-june-club-photo-story"]], "Photos of June must aggregate the Sophie-owned structured tag without changing ownership");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("luca"), "luca-profile-picture", "Luca.png must be the centralized current Facebook profile picture");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("jay"), "facebook-default-avatar", "Jay must use the centralized Facebook default avatar");
   assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId("alex"), "alex-profile-picture", "Alex.png must be the centralized current Facebook profile picture");
@@ -251,6 +252,45 @@ for (const [storyId, likeCount, commentCount] of [["jack-football-game-photo", 2
   const sophieWallState = facebook.createInitialFacebookState("Visitor");
   assert.deepEqual(facebook.selectFacebookProfileWall(sophieWallState, "Sophie Miller").map(item => item.id), ["sophie-june-club-photo-story"], "Sophie Wall must contain the canonical tagged photo story");
   assert.equal(juneAlbums.some(album => album.mediaIds.includes("sophie-june-club-photo")), false, "Sophie-owned tagged media must not enter June-owned albums");
+  const mattAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "canonical", characterId: "matt", displayName: "Matt" });
+  const mattTaggedPhotos = facebookAlbums.getFacebookPhotosOfCharacter("matt");
+  assert.deepEqual(mattTaggedPhotos.map(({ album, photo }) => [album.id, album.ownerActor.displayName, photo.mediaId, photo.storyId]), [
+    ["june-show-10-18", "June", "june-fb-10-18-01", "june-show-photos-oct19"],
+    ["june-show-10-18", "June", "june-fb-10-18-02", "june-show-photos-oct19"],
+    ["jack-photos", "Jack", "jack-matt-01", "jack-matt-2010-photo"],
+    ["jack-photos", "Jack", "jack-car", "jack-car-matt-2009-photos"],
+    ["jack-photos", "Jack", "jack-matt-02", "jack-car-matt-2009-photos"],
+    ["jack-photos", "Jack", "jack-matt-03", "jack-matt-2008-photo"],
+    ["jack-photos", "Jack", "jack-matt-family", "jack-matt-family-2007-photo"],
+  ], "Photos of Matt must aggregate exact Jack-owned structured tags newest-first");
+  const juneShowAlbum = facebookAlbums.getFacebookAlbum("june-show-10-18");
+  assert.deepEqual(juneShowAlbum.photos.map(photo => [photo.mediaId, photo.taggedActors]), [
+    ["june-fb-F", undefined],
+    ["june-fb-10-18-01", [{ kind: "canonical", characterId: "matt" }]],
+    ["june-fb-10-18-02", [{ kind: "canonical", characterId: "matt" }, { kind: "author-easter-egg", authorId: "author-z-tokyo" }]],
+  ], "June show tags must follow visible photo-level band membership rather than caption parsing");
+  const zTokyoTaggedPhotos = facebookAlbums.getFacebookPhotosOfActor({ kind: "author-easter-egg", authorId: "author-z-tokyo" });
+  assert.deepEqual(zTokyoTaggedPhotos.map(({ album, photo }) => [album.id, album.ownerActor.displayName, photo.mediaId, photo.storyId]), [["june-show-10-18", "June", "june-fb-10-18-02", "june-show-photos-oct19"]], "Photos of Z.tokyo must expose the single June-owned show photo with a structured author tag");
+  assert.equal(juneShowAlbum.photos.some(photo => (photo.taggedActors ?? []).some(actor =>
+    (actor.kind === "canonical" && actor.characterId === "anil") ||
+    (actor.kind === "author-easter-egg" && actor.authorId === "anil"))), false, "offline-only Anil must not receive a Facebook photo actor tag");
+  assert.equal(mattAlbums.flatMap(album => album.mediaIds).some(mediaId => mattTaggedPhotos.some(({ photo }) => photo.mediaId === mediaId)), false, "Jack-owned tagged photos must remain absent from Matt-owned albums");
+  assert.deepEqual(facebookAlbums.getFacebookPhotosOfCharacter("jack"), [], "self-owned Jack tags must not duplicate owned media into Photos of Jack");
+  let taggedNavigation = facebook.createInitialFacebookState("Visitor");
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "OPEN_PROFILE", profileName: "June" });
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "SET_PROFILE_SECTION", section: "photos" });
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "OPEN_TAGGED_PHOTOS", actor: { kind: "canonical", characterId: "june" } });
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "OPEN_TAGGED_PHOTO", actor: { kind: "canonical", characterId: "june" }, mediaId: "sophie-june-club-photo" });
+  assert.deepEqual([taggedNavigation.currentView, taggedNavigation.selectedAlbumId, taggedNavigation.selectedPhotoMediaId], ["photoDetail", "sophie-photos", "sophie-june-club-photo"], "tagged route must open the canonical owner album Photo Detail");
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "TOGGLE_LIKE", itemId: "sophie-june-club-photo-story", displayName: "Visitor" });
+  assert.equal(taggedNavigation.likedItemIds.includes("sophie-june-club-photo-story"), true, "tagged and owner routes must share the canonical story interaction ID");
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "OPEN_COMMENT_AUTHOR", actor: { kind: "ephemeral-friend-of-friend", ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" } });
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "GO_BACK" });
+  assert.equal(taggedNavigation.currentView, "photoDetail", "cross-profile Back must restore tagged Photo Detail");
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "GO_BACK" });
+  assert.equal(taggedNavigation.currentView, "taggedPhotos", "Photo Back must restore Photos of June");
+  taggedNavigation = facebook.facebookStateTransition(taggedNavigation, { type: "GO_BACK" });
+  assert.deepEqual([taggedNavigation.currentView, taggedNavigation.profileSection], ["profile", "photos"], "tagged gallery Back must restore June Photos");
   let sophiePhotoNavigation = facebook.createInitialFacebookState("Visitor");
   sophiePhotoNavigation = facebook.facebookStateTransition(sophiePhotoNavigation, { type: "OPEN_ALBUM", albumId: "sophie-photos" });
   sophiePhotoNavigation = facebook.facebookStateTransition(sophiePhotoNavigation, { type: "OPEN_ALBUM_PHOTO", albumId: "sophie-photos", mediaId: "sophie-june-club-photo" });
@@ -313,7 +353,6 @@ for (const [storyId, likeCount, commentCount] of [["jack-football-game-photo", 2
   chrisPhotoNavigation = facebook.facebookStateTransition(chrisPhotoNavigation, { type: "OPEN_ALBUM", albumId: "chris-profile-pictures" });
   chrisPhotoNavigation = facebook.facebookStateTransition(chrisPhotoNavigation, { type: "OPEN_ALBUM_PHOTO", albumId: "chris-profile-pictures", mediaId: "chris-profile-picture" });
   assert.deepEqual([chrisPhotoNavigation.currentView, chrisPhotoNavigation.selectedAlbumId, chrisPhotoNavigation.selectedPhotoMediaId], ["photoDetail", "chris-profile-pictures", "chris-profile-picture"], "Chris01.PNG must open through shared Photo Detail");
-  const mattAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "canonical", characterId: "matt", displayName: "Matt" });
   assert.deepEqual(mattAlbums.map(album => [album.id, album.title, album.mediaIds]), [["matt-profile-pictures", "Profile Pictures", ["matt-profile-current", "matt-profile-2007"]], ["matt-photos", "Photos", ["matt-code-2010", "matt-photo-2007"]]], "Matt albums must preserve separate newest-first Profile Pictures and Photos histories");
   assert.deepEqual(mattAlbums.flatMap(album => album.photos.map(photo => [album.id, photo.mediaId, photo.storyId, photo.timestamp, photo.caption])), [["matt-profile-pictures", "matt-profile-current", "matt-profile-current-update", "2010-10-02T21:18:00-07:00", undefined], ["matt-profile-pictures", "matt-profile-2007", "matt-profile-2007-update", "2007-08-18T20:10:00-07:00", undefined], ["matt-photos", "matt-code-2010", "matt-code-photo-2010", "2010-10-15T23:03:00-07:00", undefined], ["matt-photos", "matt-photo-2007", "matt-photo-2007", "2007-09-25T21:14:00-07:00", undefined]], "Matt photo records must preserve exact timestamps and no captions");
   for (const mediaId of ["matt-code-2010", "matt-photo-2007"]) {

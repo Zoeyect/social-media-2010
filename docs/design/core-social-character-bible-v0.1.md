@@ -69,7 +69,7 @@ Katie should feel comfortable sending a message that assumes shared context. Exi
 
 Matt's existing Twitter DM role remains canonical. Technical content should sound ordinary and specific, not like polished product marketing.
 
-Matt's full name is `Matteo Lee Ricci`, while everyday Facebook and cross-app display remains `Matt`. His current Facebook profile image is `Matt03.JPG` from October 2, 2010; `Matt01.JPG` is the 2007 historical Profile Picture. A sparse `Photos` history contains uncaptioned `Matt02.JPG` and the October 15 Last.fm code experiment screenshot. A small Facebook-local coder circle comments in brief period-informed language, while Matt answers once and remains quieter on Facebook than Twitter. His bass identity continues through Jay's band context rather than turning this Profile into a music archive.
+Matt's full name is `Matteo Lee Ricci`, while everyday Facebook and cross-app display remains `Matt`. His current Facebook profile image is `Matt03.JPG` from October 2, 2010; `Matt01.JPG` is the 2007 historical Profile Picture. A sparse `Photos` history contains uncaptioned `Matt02.JPG` and the October 15 Last.fm code experiment screenshot. A small Facebook-local coder circle comments in brief period-informed language, while Matt answers once and remains quieter on Facebook than Twitter. His bass identity continues through Jay's band context rather than turning this Profile into a music archive; June's two `10/18` show photos where he is visibly playing bass contribute to `Photos of Matt` without becoming Matt-owned uploads.
 
 ## 6. Alex
 
@@ -261,3 +261,7 @@ June Park is 18, born June 6, and lives in Los Angeles. Her October 2010 life st
 June's Facebook engagement level is HIGH because she is popular within a real social circle. This does not make her a celebrity, public figure, or influencer; interaction remains varied by ordinary, social, and milestone content.
 
 June may appear through structured tags in photos owned by Sophie; those photos do not become June-owned uploads.
+
+Tagged-photo presence is asymmetric: June has HIGH incidental tagged presence, Jack has VERY HIGH tagging potential while self-owned/self-tagged uploads remain owned photos, and Matt combines LOW self-posting with an unexpectedly rich tagged history through Jack-owned photographs from 2007–2010.
+
+Z.tokyo remains a Facebook-local `AUTHOR_EASTER_EGG`, outside `CORE_SOCIAL_CHARACTERS`. Her keyboard-player presence may surface subtly through `Photos of Z.tokyo` when June-owned show media structurally tags the existing author actor; this does not create a canonical character or Z-owned show album.

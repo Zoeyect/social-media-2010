@@ -1,7 +1,8 @@
 import type { CoreSocialCharacterId } from "./coreSocialFriends";
-import type { FacebookAuthorEasterEggId } from "./facebookActors";
+import type { FacebookAuthorEasterEggId, FacebookEphemeralFriendOfFriendId } from "./facebookActors";
 import type { FacebookStoryMediaId } from "./facebookStoryMedia";
 import type { CanonicalVenueId } from "./canonicalVenues";
+import { getFacebookStoryMedia } from "./facebookStoryMedia";
 
 export const FACEBOOK_ALBUM_IDS = Object.freeze([
   "z-tokyo-profile-pictures",
@@ -35,7 +36,7 @@ export type FacebookAlbumId = typeof FACEBOOK_ALBUM_IDS[number];
 
 export type FacebookAlbumActor =
   | { kind: "canonical"; characterId: CoreSocialCharacterId; displayName: string }
-  | { kind: "ephemeral-friend-of-friend"; ephemeralId: string; displayName: string; classification: "EPHEMERAL_FRIEND_OF_FRIEND" }
+  | { kind: "ephemeral-friend-of-friend"; ephemeralId: FacebookEphemeralFriendOfFriendId; displayName: string; classification: "EPHEMERAL_FRIEND_OF_FRIEND" }
   | { kind: "session-user"; displayName: string }
   | { kind: "author-easter-egg"; authorId: FacebookAuthorEasterEggId; displayName: string };
 
@@ -56,7 +57,17 @@ export type FacebookAlbumPhoto = {
   caption?: string;
   venueId?: CanonicalVenueId;
   taggedCharacterIds?: readonly CoreSocialCharacterId[];
+  taggedActors?: readonly FacebookPhotoTagActor[];
   classification: "CURATED";
+};
+
+export type FacebookPhotoTagActor =
+  | { kind: "canonical"; characterId: CoreSocialCharacterId }
+  | { kind: "author-easter-egg"; authorId: FacebookAuthorEasterEggId };
+
+export type FacebookTaggedPhotoRecord = {
+  album: FacebookAlbum;
+  photo: FacebookAlbumPhoto;
 };
 
 export const LUCA_PICKUP_BASKETBALL_MEDIA_IDS = Object.freeze([
@@ -92,7 +103,17 @@ export const FACEBOOK_ALBUMS: readonly FacebookAlbum[] = Object.freeze([
   defineFacebookAlbum({ id: "z-tokyo-profile-pictures", ownerActor: Object.freeze({ kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const, displayName: "Z.tokyo" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "z-tokyo-profile-picture" as const, storyId: "z-tokyo-profile-picture-update", timestamp: "2010-10-18T20:52:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "sophie-photos", ownerActor: Object.freeze({ kind: "ephemeral-friend-of-friend" as const, ephemeralId: "facebook-ephemeral-sophie", displayName: "Sophie Miller", classification: "EPHEMERAL_FRIEND_OF_FRIEND" as const }), title: "Photos", photos: Object.freeze([{ mediaId: "sophie-june-club-photo" as const, storyId: "sophie-june-club-photo-story", timestamp: "2010-10-16T02:57:00-07:00", caption: "bestie ♥ @June", taggedCharacterIds: Object.freeze(["june"] as const), classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "june-facebook-profile-picture" as const, storyId: "june-profile-picture-update", timestamp: "2010-10-10T16:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
-  defineFacebookAlbum({ id: "june-show-10-18", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "10/18", photos: Object.freeze(JUNE_SHOW_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "june-show-photos-oct19", timestamp: "2010-10-19T23:51:00-07:00", classification: "CURATED" as const }))), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "june-show-10-18", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "10/18", photos: Object.freeze(JUNE_SHOW_MEDIA_IDS.map(mediaId => Object.freeze({
+    mediaId,
+    storyId: "june-show-photos-oct19",
+    timestamp: "2010-10-19T23:51:00-07:00",
+    ...(mediaId === "june-fb-10-18-01"
+      ? { taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "matt" as const }]) }
+      : mediaId === "june-fb-10-18-02"
+        ? { taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "matt" as const }, { kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const }]) }
+        : {}),
+    classification: "CURATED" as const,
+  }))), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-18th-birthday", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "18th Birthday", photos: Object.freeze(JUNE_BIRTHDAY_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: JUNE_BIRTHDAY_PHOTO_STORY_IDS[mediaId], uploadStoryId: "june-18th-birthday-photos", timestamp: "2010-06-06T21:08:00-07:00", ...(mediaId === "june-birthday-main" ? { caption: "happy 18th, June ♥ 생일 축하해" } : {}), classification: "CURATED" as const }))), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-girls", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Girls ♥", photos: Object.freeze([{ mediaId: "june-sophie-girls" as const, storyId: "june-sophie-photo", timestamp: "2010-08-14T22:30:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "june-senior-year", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "Senior Year", photos: Object.freeze([{ mediaId: "june-family-graduation" as const, storyId: "june-graduation-photo", timestamp: "2010-06-12T17:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
@@ -190,4 +211,42 @@ export function getFacebookAlbumByStoryId(storyId: string) {
 
 export function getFacebookAlbumPhoto(album: FacebookAlbum, mediaId: FacebookStoryMediaId) {
   return album.photos.find(photo => photo.mediaId === mediaId);
+}
+
+function photoTagActors(photo: FacebookAlbumPhoto): FacebookPhotoTagActor[] {
+  const legacyCanonicalTags = photo.taggedCharacterIds?.map(characterId => ({ kind: "canonical" as const, characterId })) ?? [];
+  return [...legacyCanonicalTags, ...(photo.taggedActors ?? [])].filter((actor, index, actors) => actors.findIndex(candidate =>
+    candidate.kind === actor.kind &&
+    (actor.kind === "canonical"
+      ? candidate.kind === "canonical" && candidate.characterId === actor.characterId
+      : candidate.kind === "author-easter-egg" && candidate.authorId === actor.authorId)) === index);
+}
+
+function ownerMatchesTagActor(owner: FacebookAlbumActor, actor: FacebookPhotoTagActor) {
+  if (owner.kind === "canonical" && actor.kind === "canonical") return owner.characterId === actor.characterId;
+  if (owner.kind === "author-easter-egg" && actor.kind === "author-easter-egg") return owner.authorId === actor.authorId;
+  return false;
+}
+
+function tagActorsMatch(left: FacebookPhotoTagActor, right: FacebookPhotoTagActor) {
+  if (left.kind === "canonical" && right.kind === "canonical") return left.characterId === right.characterId;
+  if (left.kind === "author-easter-egg" && right.kind === "author-easter-egg") return left.authorId === right.authorId;
+  return false;
+}
+
+export function getFacebookPhotoTagActors(photo: FacebookAlbumPhoto) {
+  return photoTagActors(photo);
+}
+
+export function getFacebookPhotosOfActor(actor: FacebookPhotoTagActor): FacebookTaggedPhotoRecord[] {
+  return FACEBOOK_ALBUMS.flatMap(album => album.photos.map(photo => ({ album, photo })))
+    .filter(({ album, photo }) =>
+      photoTagActors(photo).some(taggedActor => tagActorsMatch(taggedActor, actor)) &&
+      !ownerMatchesTagActor(album.ownerActor, actor) &&
+      getFacebookStoryMedia(photo.mediaId) !== undefined)
+    .sort((left, right) => right.photo.timestamp.localeCompare(left.photo.timestamp));
+}
+
+export function getFacebookPhotosOfCharacter(characterId: CoreSocialCharacterId): FacebookTaggedPhotoRecord[] {
+  return getFacebookPhotosOfActor({ kind: "canonical", characterId });
 }

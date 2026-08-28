@@ -14,6 +14,7 @@ import {
   selectFacebookPeopleSearchResults,
   selectFacebookRequestCount,
   selectFacebookThreadMessages,
+  selectFacebookChatMessages,
   selectFacebookVisibleChatRoster,
   resolveFacebookCommentActor,
   selectFacebookProfileWall,
@@ -179,10 +180,11 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     {state.currentView === "taggedPhotos" && state.selectedTaggedActor && <FacebookTaggedPhotoGallery actor={state.selectedTaggedActor} records={selectedTaggedPhotos} dispatch={dispatch} />}
     {state.currentView === "photoDetail" && selectedAlbum && selectedPhoto && <FacebookPhotoDetail album={selectedAlbum} media={selectedPhoto} state={state} currentUserName={sessionIdentity.name} elapsedSeconds={elapsedSeconds} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
     {state.currentView === "chat" && <div className="facebook-chat-roster" aria-label="Facebook Chat">
-      {selectFacebookVisibleChatRoster(state).map(person => <button key={person.characterId} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: person.displayName })}>
+      {selectFacebookVisibleChatRoster(state).map(person => <button key={person.characterId} type="button" disabled={person.presence !== "online"} onClick={() => dispatch({ type: "OPEN_CHAT_CONVERSATION", peerId: person.characterId })}>
         <span className={`facebook-presence is-${person.presence}`} aria-label={person.presence} /><strong>{person.displayName}</strong><small>{person.presence}</small>
       </button>)}
     </div>}
+    {state.currentView === "chatConversation" && state.selectedChatPeerId && <FacebookChatConversation state={state} displayName={sessionIdentity.name} currentDeviceTime={currentDeviceTime} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
     {state.currentView === "notifications" && <div className="facebook-notification-list" aria-label="Notifications">
       {notifications.length === 0 && <p>No new notifications.</p>}
       {notifications.map(notification => <button key={notification.id} type="button" className={notification.unread ? "is-unread" : undefined} onClick={() => dispatch({ type: "OPEN_NOTIFICATION", notificationId: notification.id })}>
@@ -204,12 +206,39 @@ function FacebookNavigationHeader({ state, displayName, dispatch }: { state: Fac
     <button type="button" className="facebook-shortcut-control" disabled aria-label="Shortcut customization HOLD">+</button>
   </header>;
   const nested = state.navigationStack.length > 2;
+  const chatPeerName = state.selectedChatPeerId === null ? null : selectFacebookVisibleChatRoster(state).find(person => person.characterId === state.selectedChatPeerId)?.displayName;
   return <header className="facebook-navigation-bar">
     <button type="button" className="facebook-back-control" onClick={() => dispatch(nested ? { type: "GO_BACK" } : { type: "SHOW_HOME" })}>{nested ? "Back" : "Home"}</button>
-    <strong>{state.currentView === "feed" || state.currentView === "friends" ? "facebook" : viewTitle(state.currentView)}</strong>
+    <strong>{state.currentView === "chatConversation" ? chatPeerName ?? "Chat" : state.currentView === "feed" || state.currentView === "friends" ? "facebook" : viewTitle(state.currentView)}</strong>
     {state.currentView === "feed" && <span className="facebook-navigation-context">Live Feed</span>}
     {state.currentView === "friends" && <button type="button" className="facebook-navigation-context" disabled data-provenance-status="HOLD">Sync</button>}
   </header>;
+}
+
+function FacebookChatConversation({ state, displayName, currentDeviceTime, simulatedNowMs, dispatch }: { state: FacebookState; displayName: string; currentDeviceTime: string; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
+  const peerId = state.selectedChatPeerId;
+  const peer = peerId === null ? null : selectFacebookVisibleChatRoster(state).find(person => person.characterId === peerId) ?? null;
+  const messages = peerId === null ? [] : selectFacebookChatMessages(state, peerId);
+  const transcriptRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!transcriptRef.current) return;
+    transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+  }, [peerId, messages.length]);
+
+  if (!peer || peer.presence !== "online") return null;
+  return <article className="facebook-chat-conversation" aria-label={`Chat with ${peer.displayName}`}>
+    <div className="facebook-chat-transcript" ref={transcriptRef} aria-label={`${peer.displayName} Chat transcript`}>
+      {messages.length === 0 && <p className="facebook-chat-empty">No messages yet.</p>}
+      {messages.map(message => <section className={`facebook-chat-message is-${message.direction}`} key={message.id}>
+        <strong>{message.author}</strong><p>{message.text}</p><time>{message.timestamp}</time>
+      </section>)}
+    </div>
+    <form className="facebook-chat-composer" onSubmit={event => { event.preventDefault(); dispatch({ type: "SUBMIT_CHAT_MESSAGE", displayName, timestamp: currentDeviceTime, createdAt: new Date(simulatedNowMs).toISOString() }); }}>
+      <input aria-label={`Chat message to ${peer.displayName}`} value={state.chatDraft} onChange={event => dispatch({ type: "EDIT_CHAT_DRAFT", value: event.currentTarget.value })} />
+      <button type="submit" disabled={!state.chatDraft.trim()}>Send</button>
+    </form>
+  </article>;
 }
 
 function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, notificationUnreadCount, dispatch }: { state: FacebookState; displayName: string; requestCount: number; inboxUnreadCount: number; notificationUnreadCount: number; dispatch: Dispatch<FacebookEvent> }) {
@@ -562,6 +591,7 @@ function viewTitle(view: FacebookState["currentView"]): string {
     case "taggedPhotos": return "Photos";
     case "photoDetail": return "Photo";
     case "chat": return "Chat";
+    case "chatConversation": return "Chat";
     case "notifications": return "Notifications";
     case "account": return "Account";
   }

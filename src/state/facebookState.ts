@@ -13,7 +13,7 @@ import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 import { SESSION_START_ISO } from "./deviceMachine";
 export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
-export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "notifications" | "account";
+export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
 type FacebookProfileReturnState = {
   view: FacebookView;
@@ -75,6 +75,26 @@ export const FACEBOOK_CHAT_ROSTER = Object.freeze([
   Object.freeze({ characterId: "jay" as const, displayName: "Jay", presence: "offline" as const }),
   Object.freeze({ characterId: "jack" as const, displayName: "Jack", presence: "offline" as const }),
 ]);
+
+export type FacebookChatPeerId = typeof FACEBOOK_CHAT_ROSTER[number]["characterId"];
+
+export type FacebookChatMessage = {
+  id: string;
+  peerId: FacebookChatPeerId;
+  authorType: "session-user";
+  author: string;
+  text: string;
+  createdAt: string;
+  timestamp: string;
+  direction: "outgoing";
+  origin: "user";
+};
+
+export type FacebookChatThreads = Record<FacebookChatPeerId, FacebookChatMessage[]>;
+
+function createInitialFacebookChatThreads(): FacebookChatThreads {
+  return { katie: [], chris: [], matt: [], june: [], jay: [], jack: [] };
+}
 
 export type FacebookFriend = {
   id: CoreSocialCharacterId;
@@ -218,6 +238,9 @@ export type FacebookState = {
   selectedMessageId: string | null;
   threadMessages: FacebookThreadMessage[];
   messageReplyDraft: string;
+  chatThreads: FacebookChatThreads;
+  selectedChatPeerId: FacebookChatPeerId | null;
+  chatDraft: string;
   comments: FacebookComment[];
   commentComposerItemId: string | null;
   commentDraft: string;
@@ -231,6 +254,10 @@ export type FacebookState = {
 export function selectFacebookVisibleChatRoster(state: FacebookState) {
   const friendIds = new Set(state.friends.map(friend => friend.id));
   return FACEBOOK_CHAT_ROSTER.filter(person => friendIds.has(person.characterId));
+}
+
+export function selectFacebookChatMessages(state: FacebookState, peerId: FacebookChatPeerId) {
+  return state.chatThreads[peerId];
 }
 
 export type FacebookEvent =
@@ -260,6 +287,9 @@ export type FacebookEvent =
   | { type: "OPEN_TAGGED_PHOTO"; actor: FacebookPhotoTagActor; mediaId: FacebookStoryMediaId }
   | { type: "OPEN_PHOTO"; mediaId: FacebookStoryMediaId }
   | { type: "SHOW_CHAT" }
+  | { type: "OPEN_CHAT_CONVERSATION"; peerId: FacebookChatPeerId }
+  | { type: "EDIT_CHAT_DRAFT"; value: string }
+  | { type: "SUBMIT_CHAT_MESSAGE"; displayName: string; timestamp: string; createdAt: string }
   | { type: "SHOW_NOTIFICATIONS" }
   | { type: "OPEN_NOTIFICATION"; notificationId: FacebookNotification["id"] }
   | { type: "SHOW_ACCOUNT"; profileName: string }
@@ -335,6 +365,9 @@ export function createInitialFacebookState(displayName: string): FacebookState {
       origin: message.origin,
     })),
     messageReplyDraft: "",
+    chatThreads: createInitialFacebookChatThreads(),
+    selectedChatPeerId: null,
+    chatDraft: "",
     comments: SESSION_SEED_CONTENT.facebook.comments.map(comment => ({
       id: comment.id,
       itemId: comment.itemId,
@@ -539,7 +572,33 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       return { ...state, currentView: "photoDetail", navigationStack: [...state.navigationStack, "photoDetail"], selectedAlbumId: album.id, selectedPhotoMediaId: event.mediaId };
     }
     case "SHOW_CHAT":
-      return { ...state, currentView: "chat", navigationStack: ["home", "chat"] };
+      return { ...state, currentView: "chat", navigationStack: ["home", "chat"], selectedChatPeerId: null, chatDraft: "" };
+    case "OPEN_CHAT_CONVERSATION": {
+      const peer = selectFacebookVisibleChatRoster(state).find(person => person.characterId === event.peerId);
+      if (state.currentView !== "chat" || peer?.presence !== "online") return state;
+      return { ...state, currentView: "chatConversation", navigationStack: [...state.navigationStack, "chatConversation"], selectedChatPeerId: peer.characterId, chatDraft: "" };
+    }
+    case "EDIT_CHAT_DRAFT":
+      return state.currentView === "chatConversation" && state.selectedChatPeerId !== null ? { ...state, chatDraft: event.value } : state;
+    case "SUBMIT_CHAT_MESSAGE": {
+      const peerId = state.selectedChatPeerId;
+      const text = state.chatDraft.trim();
+      const peer = peerId === null ? undefined : selectFacebookVisibleChatRoster(state).find(person => person.characterId === peerId);
+      if (state.currentView !== "chatConversation" || peerId === null || peer?.presence !== "online" || !text || !Number.isFinite(Date.parse(event.createdAt))) return state;
+      const messages = state.chatThreads[peerId];
+      const message: FacebookChatMessage = {
+        id: `facebook-chat-${peerId}-user-${messages.length + 1}`,
+        peerId,
+        authorType: "session-user",
+        author: event.displayName,
+        text,
+        createdAt: event.createdAt,
+        timestamp: event.timestamp,
+        direction: "outgoing",
+        origin: "user",
+      };
+      return { ...state, chatThreads: { ...state.chatThreads, [peerId]: [...messages, message] }, chatDraft: "" };
+    }
     case "SHOW_NOTIFICATIONS":
       return { ...state, currentView: "notifications", navigationStack: ["home", "notifications"] };
     case "OPEN_NOTIFICATION": {

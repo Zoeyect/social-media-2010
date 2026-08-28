@@ -1037,6 +1037,31 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(facebook.selectFacebookVisibleChatRoster(acceptedJackChatState).map(person => [person.characterId, person.presence]), [["katie", "online"], ["chris", "online"], ["matt", "online"], ["june", "online"], ["jay", "offline"], ["jack", "offline"]], "accepted Jack must become visible in Chat while remaining offline");
   assert.deepEqual(acceptedJackChatState.inboxThreads, pendingJackChatState.inboxThreads, "accepting Jack must not create or mutate Messages threads");
   assert.deepEqual(acceptedJackChatState.threadMessages, pendingJackChatState.threadMessages, "accepting Jack must not create Chat or Message content");
+  for (const peerId of ["katie", "chris", "matt", "june"]) {
+    const rosterState = facebook.facebookStateTransition(initialChatState, { type: "SHOW_CHAT" });
+    const conversationState = facebook.facebookStateTransition(rosterState, { type: "OPEN_CHAT_CONVERSATION", peerId });
+    assert.deepEqual([conversationState.currentView, conversationState.selectedChatPeerId, conversationState.navigationStack], ["chatConversation", peerId, ["home", "chat", "chatConversation"]], `${peerId} online row must open its generic Chat conversation`);
+  }
+  const chatRosterState = facebook.facebookStateTransition(initialChatState, { type: "SHOW_CHAT" });
+  assert.equal(facebook.facebookStateTransition(chatRosterState, { type: "OPEN_CHAT_CONVERSATION", peerId: "jay" }), chatRosterState, "offline Jay must not open an active Chat conversation");
+  const acceptedJackRosterState = facebook.facebookStateTransition(acceptedJackChatState, { type: "SHOW_CHAT" });
+  assert.equal(facebook.facebookStateTransition(acceptedJackRosterState, { type: "OPEN_CHAT_CONVERSATION", peerId: "jack" }), acceptedJackRosterState, "offline accepted Jack must not open an active Chat conversation");
+  const katieConversation = facebook.facebookStateTransition(chatRosterState, { type: "OPEN_CHAT_CONVERSATION", peerId: "katie" });
+  const emptyKatieDraft = facebook.facebookStateTransition(katieConversation, { type: "EDIT_CHAT_DRAFT", value: "   " });
+  assert.equal(facebook.facebookStateTransition(emptyKatieDraft, { type: "SUBMIT_CHAT_MESSAGE", displayName: "Zoey", timestamp: "12:09 AM", createdAt: "2010-10-20T07:09:00.000Z" }), emptyKatieDraft, "whitespace-only Chat messages must be a no-op");
+  const typedKatieChat = facebook.facebookStateTransition(katieConversation, { type: "EDIT_CHAT_DRAFT", value: "  hey  " });
+  const messagesBeforeChatSend = { inboxThreads: typedKatieChat.inboxThreads, threadMessages: typedKatieChat.threadMessages, unreadCount: facebook.selectFacebookInboxUnreadCount(typedKatieChat) };
+  const sentKatieChat = facebook.facebookStateTransition(typedKatieChat, { type: "SUBMIT_CHAT_MESSAGE", displayName: "Zoey", timestamp: "12:09 AM", createdAt: "2010-10-20T07:09:00.000Z" });
+  assert.deepEqual(facebook.selectFacebookChatMessages(sentKatieChat, "katie"), [{ id: "facebook-chat-katie-user-1", peerId: "katie", authorType: "session-user", author: "Zoey", text: "hey", createdAt: "2010-10-20T07:09:00.000Z", timestamp: "12:09 AM", direction: "outgoing", origin: "user" }], "Chat send must create one trimmed session-local outgoing message at simulated time");
+  assert.equal(sentKatieChat.chatDraft, "", "successful Chat send must clear the composer");
+  assert.equal(facebook.selectFacebookChatMessages(sentKatieChat, "matt").length, 0, "Chat threads must remain isolated by canonical peer ID");
+  assert.deepEqual({ inboxThreads: sentKatieChat.inboxThreads, threadMessages: sentKatieChat.threadMessages, unreadCount: facebook.selectFacebookInboxUnreadCount(sentKatieChat) }, messagesBeforeChatSend, "Chat send must not mutate Messages storage or unread state");
+  const returnedChatRoster = facebook.facebookStateTransition(sentKatieChat, { type: "GO_BACK" });
+  assert.equal(returnedChatRoster.currentView, "chat", "Chat conversation Back must return to the roster");
+  const reopenedKatieChat = facebook.facebookStateTransition(returnedChatRoster, { type: "OPEN_CHAT_CONVERSATION", peerId: "katie" });
+  assert.equal(facebook.selectFacebookChatMessages(reopenedKatieChat, "katie").length, 1, "sent Chat message must persist after Back and reopen in the same session");
+  const resetChatState = facebook.facebookStateTransition(reopenedKatieChat, { type: "RESET", displayName: "Zoey" });
+  assert.equal(Object.values(resetChatState.chatThreads).flat().length, 0, "new simulated-phone session must clear all Chat messages");
   assert.deepEqual(facebookMedia.FACEBOOK_MEDIA_IDS, ["z-tokyo-profile-picture", "facebook-default-avatar", "facebook-avatar-00", "facebook-avatar-02", "facebook-avatar-03", "facebook-avatar-05", "facebook-avatar-06", "facebook-avatar-07", "facebook-sophie-avatar"], "Facebook-local media must centralize the author portrait and approved actor avatars");
   assert.deepEqual([facebookMedia.getFacebookMedia("facebook-default-avatar")?.originalFilename, facebookMedia.getFacebookMedia("facebook-default-avatar")?.classification], ["01.png", "CURATED / FACEBOOK_DEFAULT"]);
 

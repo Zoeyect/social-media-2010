@@ -645,10 +645,23 @@ button, input { font: inherit; }
 .facebook-album-gallery > div img { width: 100%; height: 100%; object-fit: cover; }
 .facebook-profile-photo-entry { flex: 1 1 auto; min-height: 0; padding: 12px; display: flex; align-items: flex-start; gap: 9px; color: #3b5998; border: 0; background: #fff; font-weight: bold; }
 .facebook-chat-roster > button { width: 100%; min-height: 54px; padding: 7px 12px; display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
+.facebook-chat-roster > button:disabled { opacity: 1; color: #777; }
 .facebook-chat-roster strong { color: #3b5998; font-size: 14px; }
+.facebook-chat-roster > button:disabled strong { color: #777; }
 .facebook-chat-roster small { color: #777; font-size: 10px; }
 .facebook-presence { width: 8px; height: 8px; border-radius: 50%; background: #999; }
 .facebook-presence.is-online { background: #54a23c; }
+.facebook-chat-conversation { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #f2f2f2; }
+.facebook-chat-transcript { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
+.facebook-chat-empty { margin: 0; padding: 18px 12px; color: #777; font-size: 12px; text-align: center; }
+.facebook-chat-message { padding: 8px 12px; border-bottom: 1px solid #d4d4d4; background: #edf2fa; text-align: right; }
+.facebook-chat-message strong { color: #3b5998; font-size: 12px; }
+.facebook-chat-message p { margin: 3px 0; color: #222; font-size: 13px; overflow-wrap: anywhere; }
+.facebook-chat-message time { color: #777; font-size: 10px; }
+.facebook-chat-composer { flex: 0 0 auto; padding: 6px; display: grid; grid-template-columns: 1fr auto; gap: 5px; border-top: 1px solid #aaa; background: #d8d8d8; }
+.facebook-chat-composer input { min-width: 0; height: 30px; box-sizing: border-box; border: 1px solid #999; border-radius: 3px; font: inherit; }
+.facebook-chat-composer button { min-width: 52px; color: #fff; border: 1px solid #294576; border-radius: 4px; background: #3b5998; font-weight: bold; }
+.facebook-chat-composer button:disabled { color: #ddd; background: #7989a5; }
 .facebook-notification-list > button { position: relative; width: 100%; min-height: 56px; padding: 9px 28px 9px 12px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; font-size: 13px; text-align: left; }
 .facebook-notification-list > button.is-unread { background: #edf2fa; }
 .facebook-notification-list i { position: absolute; right: 12px; top: 24px; width: 8px; height: 8px; border-radius: 50%; background: #3b5998; }

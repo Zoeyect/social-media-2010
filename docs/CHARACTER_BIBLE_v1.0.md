@@ -265,6 +265,10 @@ The user is both observer and participant. There are no affection meters, romanc
 
 ### Canonical Timeline
 
+- March 14, 2009 low-key music-listening post establishes an existing taste in older rock and 2000s alternative/indie.
+- June 27, 2009 two-photo rehearsal establishes ordinary band practice and music-circle familiarity.
+- August 22, 2009 CD purchase remains a casual, low-information music-life moment.
+- November 7, 2009 guitar-learning post establishes working songs out by ear.
 - May 2010 guitar continuity is canonical.
 - October 18 performance and October 19 Facebook upload are canonical.
 - Feed implementation/debug history is not character canon.

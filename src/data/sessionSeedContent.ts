@@ -21,6 +21,22 @@ const JAY_BAND_SEED_LIKES = Object.freeze(JAY_BAND_LIKE_DISPLAY_NAMES.map((displ
   origin: "seed" as const,
 })));
 
+function createJayHistoricalSeedLikes(itemId: string, idPrefix: string, count: number) {
+  return Object.freeze(JAY_BAND_LIKE_DISPLAY_NAMES.slice(0, count).map((displayName, index) => Object.freeze({
+    id: `${idPrefix}-${String(index + 1).padStart(2, "0")}`,
+    itemId,
+    displayName,
+    ephemeralId: `${idPrefix}-contact-${String(index + 1).padStart(2, "0")}`,
+    classification: "EPHEMERAL_FACEBOOK_CONTACT" as const,
+    origin: "seed" as const,
+  })));
+}
+
+const JAY_2009_MARCH_LIKES = createJayHistoricalSeedLikes("jay-music-bedroom-2009-03-14", "jay-2009-march-like", 8);
+const JAY_2009_JUNE_LIKES = createJayHistoricalSeedLikes("jay-rehearsal-2009-06-27", "jay-2009-june-like", 14);
+const JAY_2009_AUGUST_LIKES = createJayHistoricalSeedLikes("jay-cd-haul-2009-08-22", "jay-2009-august-like", 6);
+const JAY_2009_NOVEMBER_LIKES = createJayHistoricalSeedLikes("jay-learning-by-ear-2009-11-07", "jay-2009-november-like", 11);
+
 const JUNE_SHOW_LIKES_DISPLAY_NAMES = Object.freeze(JAY_BAND_LIKE_DISPLAY_NAMES.slice(0, 40));
 
 const JUNE_SHOW_POST_LIKES = Object.freeze([
@@ -283,6 +299,10 @@ Object.freeze({ id: "jack-profile-picture-update", friendId: CORE_SOCIAL_CHARACT
       Object.freeze({ id: "jay-guitar-photo", friendId: CORE_SOCIAL_CHARACTERS.jay.id, author: CORE_SOCIAL_CHARACTERS.jay.displayName, text: "added a new photo.", timestamp: "9:12 PM", createdAt: "2010-10-17T21:12:00-07:00", kind: "photo" as const, visibility: "friends" as const, mediaId: "jay-guitar" as const, tagUiStatus: "HOLD" as const, origin: "seed" as const }),
       Object.freeze({ id: "z-tokyo-profile-picture-update", actor: Object.freeze({ kind: "author-easter-egg" as const, authorId: FACEBOOK_AUTHOR_EASTER_EGG_ID }), author: FACEBOOK_AUTHOR_EASTER_EGGS[FACEBOOK_AUTHOR_EASTER_EGG_ID].displayName, text: "updated her profile picture.", timestamp: "8:52 PM", kind: "photo" as const, visibility: "everyone" as const, createdAt: "2010-10-18T20:52:00-07:00", mediaId: FACEBOOK_AUTHOR_EASTER_EGGS[FACEBOOK_AUTHOR_EASTER_EGG_ID].profileMediaId, origin: "seed" as const }),
       Object.freeze({ id: "jay-may-guitar-photo", friendId: CORE_SOCIAL_CHARACTERS.jay.id, author: CORE_SOCIAL_CHARACTERS.jay.displayName, text: "hey baby", timestamp: "May 15", createdAt: "2010-05-15T18:00:00-07:00", kind: "photo" as const, visibility: "friends" as const, mediaId: "jay-guitar-may" as const, tagUiStatus: "HOLD" as const, origin: "seed" as const }),
+      Object.freeze({ id: "jay-learning-by-ear-2009-11-07", friendId: CORE_SOCIAL_CHARACTERS.jay.id, author: CORE_SOCIAL_CHARACTERS.jay.displayName, text: "trying to figure this one out", timestamp: "Nov 7", createdAt: "2009-11-07T23:08:00-08:00", kind: "photo" as const, visibility: "friends" as const, mediaId: "jay-learning-by-ear-2009-11-07" as const, profileWallEligible: true, origin: "seed" as const }),
+      Object.freeze({ id: "jay-cd-haul-2009-08-22", friendId: CORE_SOCIAL_CHARACTERS.jay.id, author: CORE_SOCIAL_CHARACTERS.jay.displayName, text: "good day", timestamp: "Aug 22", createdAt: "2009-08-22T15:22:00-07:00", kind: "photo" as const, visibility: "friends" as const, mediaId: "jay-cd-haul-2009-08-22" as const, profileWallEligible: true, origin: "seed" as const }),
+      Object.freeze({ id: "jay-rehearsal-2009-06-27", friendId: CORE_SOCIAL_CHARACTERS.jay.id, author: CORE_SOCIAL_CHARACTERS.jay.displayName, text: "not terrible today", timestamp: "Jun 27", createdAt: "2009-06-27T20:46:00-07:00", kind: "album" as const, visibility: "friends" as const, mediaId: "jay-rehearsal-2009-06-27-01" as const, mediaIds: Object.freeze(["jay-rehearsal-2009-06-27-01", "jay-rehearsal-2009-06-27-02"] as const), albumTitle: "Music", photoCount: 2, relatedCharacterIds: Object.freeze([CORE_SOCIAL_CHARACTERS.matt.id]), profileWallEligible: true, origin: "seed" as const }),
+      Object.freeze({ id: "jay-music-bedroom-2009-03-14", friendId: CORE_SOCIAL_CHARACTERS.jay.id, author: CORE_SOCIAL_CHARACTERS.jay.displayName, text: "been playing this all week", timestamp: "Mar 14", createdAt: "2009-03-14T22:18:00-07:00", kind: "photo" as const, visibility: "friends" as const, mediaId: "jay-music-bedroom-2009-03-14" as const, profileWallEligible: true, origin: "seed" as const }),
       Object.freeze({ id: "katie-profile-picture-update", friendId: CORE_SOCIAL_CHARACTERS.katie.id, author: CORE_SOCIAL_CHARACTERS.katie.displayName, text: "updated her profile picture.", timestamp: "Oct 10", createdAt: "2010-10-10T16:00:00-07:00", kind: "photo" as const, visibility: "custom" as const, customAudienceIncludesUser: false, mediaId: "katie-profile-picture" as const, origin: "seed" as const }),
       Object.freeze({ id: "katie-selfie-september-2010", friendId: CORE_SOCIAL_CHARACTERS.katie.id, author: CORE_SOCIAL_CHARACTERS.katie.displayName, text: "added a new photo.", timestamp: "Sep 11", createdAt: "2010-09-11T14:00:00-07:00", kind: "photo" as const, visibility: "custom" as const, customAudienceIncludesUser: false, mediaId: "katie-selfie-september-2010" as const, origin: "seed" as const }),
       Object.freeze({ id: "katie-selfie-july-2010", friendId: CORE_SOCIAL_CHARACTERS.katie.id, author: CORE_SOCIAL_CHARACTERS.katie.displayName, text: "added a new photo.", timestamp: "Jul 17", createdAt: "2010-07-17T15:00:00-07:00", kind: "photo" as const, visibility: "custom" as const, customAudienceIncludesUser: false, mediaId: "katie-selfie-july-2010" as const, origin: "seed" as const }),
@@ -355,6 +375,10 @@ Object.freeze({ id: "jack-profile-picture-update", friendId: CORE_SOCIAL_CHARACT
       ...JACK_BIRTHDAY_MATT_LIKES,
       ...JACK_BIRTHDAY_THANKS_LIKES,
       ...JAY_BAND_SEED_LIKES,
+      ...JAY_2009_MARCH_LIKES,
+      ...JAY_2009_JUNE_LIKES,
+      ...JAY_2009_AUGUST_LIKES,
+      ...JAY_2009_NOVEMBER_LIKES,
     ]),
     comments: Object.freeze([
       Object.freeze({ id: "alex-party-comment-jay", itemId: "alex-jacks-party-friday", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jay.id, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, classification: "CURATED" as const }), text: "yeah probably", origin: "seed" as const }),
@@ -389,6 +413,22 @@ Object.freeze({ id: "jack-profile-picture-update", friendId: CORE_SOCIAL_CHARACT
       Object.freeze({ id: "jay-band-comment-rachel", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_RACHEL_ID] }), text: "so good", origin: "seed" as const }),
       Object.freeze({ id: "jay-band-comment-frank", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_FRANK_ID] }), text: "nice set lol", origin: "seed" as const }),
       Object.freeze({ id: "jay-band-comment-ryan", itemId: "jay-band-performance-photo", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID] }), text: "looks awesome", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-march-comment-luca", itemId: "jay-music-bedroom-2009-03-14", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.luca.id, displayName: CORE_SOCIAL_CHARACTERS.luca.displayName, classification: "CURATED" as const }), text: "again??", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-march-comment-jay", itemId: "jay-music-bedroom-2009-03-14", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jay.id, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, classification: "CURATED" as const }), text: "yeah", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-march-comment-sarah", itemId: "jay-music-bedroom-2009-03-14", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_SARAH_ID] }), text: "good album", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-june-comment-matt", itemId: "jay-rehearsal-2009-06-27", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.matt.id, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName, classification: "CURATED" as const }), text: "speak for yourself", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-june-comment-jay", itemId: "jay-rehearsal-2009-06-27", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jay.id, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, classification: "CURATED" as const }), text: "shut up ricci", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-june-comment-z-tokyo", itemId: "jay-rehearsal-2009-06-27", author: Object.freeze({ type: "author-easter-egg" as const, authorId: FACEBOOK_AUTHOR_EASTER_EGG_ID, displayName: FACEBOOK_AUTHOR_EASTER_EGGS[FACEBOOK_AUTHOR_EASTER_EGG_ID].displayName }), text: "lol", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-june-comment-mike", itemId: "jay-rehearsal-2009-06-27", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_MIKE_ID] }), text: "sounds better", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-june-comment-kevin", itemId: "jay-rehearsal-2009-06-27", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_KEVIN_ID] }), text: "finally lol", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-august-comment-matt", itemId: "jay-cd-haul-2009-08-22", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.matt.id, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName, classification: "CURATED" as const }), text: "you bought that one finally", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-august-comment-jay-1", itemId: "jay-cd-haul-2009-08-22", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jay.id, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, classification: "CURATED" as const }), text: "yeah", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-august-comment-emily", itemId: "jay-cd-haul-2009-08-22", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_EMILY_ID] }), text: "worth it?", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-august-comment-jay-2", itemId: "jay-cd-haul-2009-08-22", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jay.id, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, classification: "CURATED" as const }), text: "definitely", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-november-comment-matt-1", itemId: "jay-learning-by-ear-2009-11-07", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.matt.id, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName, classification: "CURATED" as const }), text: "you're playing it wrong", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-november-comment-jay", itemId: "jay-learning-by-ear-2009-11-07", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.jay.id, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, classification: "CURATED" as const }), text: "come over then", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-november-comment-matt-2", itemId: "jay-learning-by-ear-2009-11-07", author: Object.freeze({ type: "canonical" as const, characterId: CORE_SOCIAL_CHARACTERS.matt.id, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName, classification: "CURATED" as const }), text: "no", origin: "seed" as const }),
+      Object.freeze({ id: "jay-2009-november-comment-frank", itemId: "jay-learning-by-ear-2009-11-07", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_FRANK_ID] }), text: "lol", origin: "seed" as const }),
       Object.freeze({ id: "matt-code-comment-eric-jsonp", itemId: "matt-code-photo-2010", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_ERIC_ID] }), classification: "PERIOD-EVIDENCE-INFORMED / CURATED" as const, text: "jsonp? lol", origin: "seed" as const }),
       Object.freeze({ id: "matt-code-comment-daniel-callback", itemId: "matt-code-photo-2010", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_DANIEL_ID] }), classification: "PERIOD-EVIDENCE-INFORMED / CURATED" as const, text: "yeah callback=? should work", origin: "seed" as const }),
       Object.freeze({ id: "matt-code-comment-sam-jquery", itemId: "matt-code-photo-2010", author: Object.freeze({ type: "ephemeral" as const, ...FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[FACEBOOK_EPHEMERAL_SAM_ID] }), classification: "PERIOD-EVIDENCE-INFORMED / CURATED" as const, text: "still on 1.4.2. not touching rc2 yet", origin: "seed" as const }),

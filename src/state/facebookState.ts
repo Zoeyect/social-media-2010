@@ -327,6 +327,8 @@ export function createInitialFacebookState(displayName: string): FacebookState {
             characterId: comment.author.characterId,
             classification: "classification" in comment ? comment.classification : comment.author.classification,
           }
+        : comment.author.type === "author-easter-egg"
+          ? { authorEasterEggId: comment.author.authorId }
         : {
             ephemeralAuthor: { id: comment.author.id, displayName: comment.author.displayName, classification: comment.author.classification },
             ...("classification" in comment ? { classification: comment.classification } : {}),

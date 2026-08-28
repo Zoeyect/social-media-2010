@@ -207,6 +207,11 @@ defineFacebookAlbum({ id: "jack-photos", ownerActor: Object.freeze({ kind: "cano
     ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "jay" as const, displayName: "Jay" }),
     title: "Music",
     photos: Object.freeze([
+      { mediaId: "jay-music-bedroom-2009-03-14" as const, storyId: "jay-music-bedroom-2009-03-14", timestamp: "2009-03-14T22:18:00-07:00", caption: "been playing this all week", classification: "CURATED" as const },
+      { mediaId: "jay-rehearsal-2009-06-27-01" as const, storyId: "jay-rehearsal-2009-06-27", uploadStoryId: "jay-rehearsal-2009-06-27", timestamp: "2009-06-27T20:46:00-07:00", caption: "not terrible today", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "matt" as const }, { kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const }]), classification: "CURATED" as const },
+      { mediaId: "jay-rehearsal-2009-06-27-02" as const, storyId: "jay-rehearsal-2009-06-27", uploadStoryId: "jay-rehearsal-2009-06-27", timestamp: "2009-06-27T20:46:00-07:00", caption: "not terrible today", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "matt" as const }, { kind: "author-easter-egg" as const, authorId: "author-z-tokyo" as const }]), classification: "CURATED" as const },
+      { mediaId: "jay-cd-haul-2009-08-22" as const, storyId: "jay-cd-haul-2009-08-22", timestamp: "2009-08-22T15:22:00-07:00", caption: "good day", classification: "CURATED" as const },
+      { mediaId: "jay-learning-by-ear-2009-11-07" as const, storyId: "jay-learning-by-ear-2009-11-07", timestamp: "2009-11-07T23:08:00-08:00", caption: "trying to figure this one out", classification: "CURATED" as const },
       { mediaId: "jay-guitar-may" as const, storyId: "jay-may-guitar-photo", timestamp: "2010-05-15T18:00:00-07:00", caption: "hey baby", classification: "CURATED" as const },
       { mediaId: "jay-guitar" as const, storyId: "jay-guitar-photo", timestamp: "2010-10-17T21:12:00-07:00", classification: "CURATED" as const },
       { mediaId: "jay-band-performance" as const, storyId: "jay-band-performance-photo", timestamp: "2010-10-19T22:00:00-07:00", caption: "last night was awesome. thx @Matt @Z.tokyo @Anil", classification: "CURATED" as const },

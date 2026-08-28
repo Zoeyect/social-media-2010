@@ -25,6 +25,7 @@ import {
   selectFacebookVisibleFeed,
   formatFacebookCommentCount,
   formatFacebookLikeCount,
+  isFacebookHomeHorizontalSwipe,
 } from "../state/facebookState";
 import { useSessionIdentity } from "../state/sessionIdentity";
 import { FACEBOOK_AUTHOR_EASTER_EGGS, getFacebookAuthorEasterEggByDisplayName } from "../data/facebookActors";
@@ -249,7 +250,8 @@ function FacebookChatConversation({ state, displayName, currentDeviceTime, simul
 
 function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, eventInviteUnseenCount, notificationUnreadCount, dispatch }: { state: FacebookState; displayName: string; requestCount: number; inboxUnreadCount: number; eventInviteUnseenCount: number; notificationUnreadCount: number; dispatch: Dispatch<FacebookEvent> }) {
   const searchResults = selectFacebookPeopleSearchResults(state.homeSearchQuery);
-  const dragStart = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const dragStart = useRef<{ pointerId: number; x: number; y: number; dragging: boolean } | null>(null);
+  const suppressLauncherClick = useRef(false);
   const destinationCounts: Partial<Record<FacebookHomeLauncherDestinationId, number>> = {
     inbox: inboxUnreadCount,
     requests: requestCount,
@@ -284,21 +286,38 @@ function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, even
     </div> : <div
       className={`facebook-home-grid${state.homeLauncherPage === 1 ? " facebook-home-secondary-page" : ""}`}
       aria-label={`Launcher page ${state.homeLauncherPage + 1}`}
+      onClickCapture={event => {
+        if (!suppressLauncherClick.current) return;
+        suppressLauncherClick.current = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       onPointerDown={event => {
         if (!event.isPrimary) return;
-        dragStart.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+        suppressLauncherClick.current = false;
+        dragStart.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, dragging: false };
+      }}
+      onPointerMove={event => {
+        const start = dragStart.current;
+        if (!start || start.pointerId !== event.pointerId || start.dragging) return;
+        if (!isFacebookHomeHorizontalSwipe(start.x, start.y, event.clientX, event.clientY)) return;
+        start.dragging = true;
+        suppressLauncherClick.current = true;
         event.currentTarget.setPointerCapture(event.pointerId);
       }}
-      onPointerCancel={() => { dragStart.current = null; }}
+      onPointerCancel={() => {
+        dragStart.current = null;
+        suppressLauncherClick.current = false;
+      }}
       onPointerUp={event => {
         const start = dragStart.current;
         dragStart.current = null;
         if (!start || start.pointerId !== event.pointerId) return;
+        if (!start.dragging) return;
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
         const nextPage = resolveFacebookHomeSwipePage(state.homeLauncherPage, start.x, start.y, event.clientX, event.clientY);
-        if (nextPage === state.homeLauncherPage) return;
         event.preventDefault();
-        dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: nextPage });
+        if (nextPage !== state.homeLauncherPage) dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: nextPage });
       }}
     >
       {FACEBOOK_HOME_LAUNCHER_PAGES[state.homeLauncherPage].map(destination => <HomeDestination key={destination.id} iconLabel={destination.iconLabel} label={destination.label} count={destinationCounts[destination.id]} onClick={() => openDestination(destination.id)} />)}

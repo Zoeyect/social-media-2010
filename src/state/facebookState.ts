@@ -65,10 +65,15 @@ export const FACEBOOK_HOME_LAUNCHER_PAGES = Object.freeze([
 export type FacebookHomeLauncherDestinationId = typeof FACEBOOK_HOME_LAUNCHER_PAGES[number][number]["id"];
 export const FACEBOOK_HOME_SWIPE_THRESHOLD_PX = 40;
 
-export function resolveFacebookHomeSwipePage(currentPage: 0 | 1, startX: number, startY: number, endX: number, endY: number): 0 | 1 {
+export function isFacebookHomeHorizontalSwipe(startX: number, startY: number, endX: number, endY: number): boolean {
   const dx = endX - startX;
   const dy = endY - startY;
-  if (Math.abs(dx) < FACEBOOK_HOME_SWIPE_THRESHOLD_PX || Math.abs(dx) <= Math.abs(dy)) return currentPage;
+  return Math.abs(dx) >= FACEBOOK_HOME_SWIPE_THRESHOLD_PX && Math.abs(dx) > Math.abs(dy);
+}
+
+export function resolveFacebookHomeSwipePage(currentPage: 0 | 1, startX: number, startY: number, endX: number, endY: number): 0 | 1 {
+  const dx = endX - startX;
+  if (!isFacebookHomeHorizontalSwipe(startX, startY, endX, endY)) return currentPage;
   return dx < 0 ? 1 : 0;
 }
 

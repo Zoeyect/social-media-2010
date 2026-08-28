@@ -885,6 +885,17 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   ], "Facebook Home must preserve the exact October 20 two-page launcher IA");
   assert.equal(facebook.FACEBOOK_HOME_LAUNCHER_PAGES[0].length, 9, "Facebook Home page 1 must contain no empty launcher slot");
   assert.equal(facebook.FACEBOOK_HOME_LAUNCHER_PAGES.flat().some(destination => destination.label === "Messages" || destination.label === "Groups"), false, "Home launcher must expose Inbox and omit Groups");
+  const initialHomeBadgeState = facebook.createInitialFacebookState("Zoey");
+  assert.deepEqual([
+    facebook.selectFacebookInboxUnreadCount(initialHomeBadgeState),
+    facebook.selectFacebookRequestCount(initialHomeBadgeState),
+    facebook.selectFacebookEventInviteUnseenCount(initialHomeBadgeState),
+    facebook.selectFacebookNotificationUnreadCount(initialHomeBadgeState),
+  ], [0, 0, 0, 0], "fresh-session Home badges must reflect the canonical pre-delivery state rather than hardcoded prompts");
+  const requestBadgeState = facebook.facebookStateTransition(initialHomeBadgeState, { type: "DELIVER_JACK_REQUEST" });
+  assert.deepEqual([facebook.selectFacebookRequestCount(requestBadgeState), facebook.selectFacebookNotificationUnreadCount(requestBadgeState)], [1, 1], "Jack request delivery must drive independent Requests and Notifications counts");
+  const acceptedRequestBadgeState = facebook.facebookStateTransition(requestBadgeState, { type: "ACCEPT_JACK" });
+  assert.deepEqual([facebook.selectFacebookRequestCount(acceptedRequestBadgeState), facebook.selectFacebookNotificationUnreadCount(acceptedRequestBadgeState)], [0, 0], "accepting Jack must clear the pending request badge without a hardcoded count");
   let notesNavigation = facebook.facebookStateTransition(facebook.createInitialFacebookState("Zoey"), { type: "SET_HOME_LAUNCHER_PAGE", page: 1 });
   notesNavigation = facebook.facebookStateTransition(notesNavigation, { type: "SHOW_NOTES" });
   assert.deepEqual([notesNavigation.currentView, notesNavigation.navigationStack, notesNavigation.homeLauncherPage], ["notes", ["home", "notes"], 1], "Notes must open from Home page 2 without losing its page snapshot");
@@ -895,6 +906,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(facebook.resolveFacebookHomeSwipePage(1, 220, 120, 160, 116), 1, "left swipe on Home page 2 must not wrap");
   assert.equal(facebook.resolveFacebookHomeSwipePage(0, 100, 120, 155, 124), 0, "right swipe on Home page 1 must not wrap");
   assert.equal(facebook.resolveFacebookHomeSwipePage(0, 100, 100, 110, 180), 0, "mostly vertical gesture must not switch launcher pages");
+  assert.equal(facebook.isFacebookHomeHorizontalSwipe(100, 100, 104, 102), false, "ordinary launcher tap movement must not be classified as a drag");
+  assert.equal(facebook.isFacebookHomeHorizontalSwipe(220, 120, 160, 116), true, "meaningful horizontal movement must be classified as launcher paging");
   assert.equal(facebookA.inboxThreads.filter(thread => thread.id === "june-live-message").length, 1, "June live message must deliver once");
   assert.ok(facebookA.feed.every(item => item.origin === "seed"), "older Facebook feed content must remain seed content");
   assert.ok(facebookA.inboxThreads.filter(thread => thread.id !== "june-live-message").every(thread => thread.origin === "seed"), "older Facebook inbox content must survive live delivery");
@@ -2315,6 +2328,10 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(facebookContainerSource, /facebook-home-empty-slot/, "Facebook Home page 1 must no longer contain an empty launcher slot");
   assert.match(facebookContainerSource, /FACEBOOK_HOME_LAUNCHER_PAGES\[state\.homeLauncherPage\]/, "Facebook Home must render both pages from one canonical launcher definition");
   assert.match(facebookContainerSource, /onPointerDown[\s\S]+onPointerUp/, "Facebook launcher paging must use one pointer path for touch and desktop drag gestures");
+  assert.doesNotMatch(facebookContainerSource, /onPointerDown=\{event => \{[\s\S]{0,300}setPointerCapture/, "launcher paging must not capture an ordinary button tap on pointerdown");
+  assert.match(facebookContainerSource, /onPointerMove=\{event => \{[\s\S]+isFacebookHomeHorizontalSwipe[\s\S]+setPointerCapture/, "launcher paging may capture the pointer only after a real horizontal drag");
+  assert.match(facebookContainerSource, /onClick=\{\(\) => openDestination\(destination\.id\)\}/, "launcher destination buttons must retain their normal click route");
+  assert.match(facebookContainerSource, /facebook-home-notifications[^\n]+SHOW_NOTIFICATIONS/, "the bottom Notifications control must retain its click route");
   assert.match(deviceCssSource, /\.facebook-home-grid \{[^}]*grid-template-rows: repeat\(3,minmax\(73px,1fr\)\);[^}]*touch-action: pan-y;/, "both Home pages must share one fixed 3-row launcher geometry and scoped gesture handling");
   assert.doesNotMatch(deviceCssSource, /\.facebook-home-secondary-page \{[^}]*(?:place-items|align-content|justify-content): center/, "the sparse Notes page must never vertically center its launcher item");
   assert.match(facebookContainerSource, /facebook-notes-empty[\s\S]+No notes\./, "Notes must expose a functional biography-free empty state");

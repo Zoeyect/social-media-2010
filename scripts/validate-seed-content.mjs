@@ -976,7 +976,40 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(facebookPlaces.userCheckIn, null, "Facebook Places must not seed a user location");
   facebookPlaces = facebook.facebookStateTransition(facebookPlaces, { type: "CHECK_IN", venueId: "downtown-coffee", displayName: "Zoey", timestamp: "12:10 AM" });
   assert.deepEqual(facebookPlaces.userCheckIn, { venueId: "downtown-coffee", venueName: "Downtown Coffee", author: "Zoey", timestamp: "12:10 AM", origin: "user" });
-  assert.deepEqual(facebook.FACEBOOK_FRIEND_CHECK_INS.map(checkIn => checkIn.characterId), ["ben", "chris", "luca"]);
+  assert.deepEqual(facebook.FACEBOOK_PLACE_OPTIONS.map(venue => [venue.id, venue.name]), [
+    ["downtown-coffee", "Downtown Coffee"],
+    ["community-courts", "Community Courts"],
+    ["main-street-diner", "Main Street Diner"],
+    ["riverside-park", "Riverside Park"],
+    ["westside-library", "Westside Library"],
+    ["gelato-roma", "Gelato Roma"],
+  ], "Facebook Places must use one exact canonical identity per venue");
+  assert.deepEqual(facebook.FACEBOOK_FRIEND_CHECK_INS.map(checkIn => [checkIn.id, checkIn.characterId, checkIn.venueId, checkIn.venueName, checkIn.createdAt]), [
+    ["ben-coffee-checkin", "ben", "downtown-coffee", "Downtown Coffee", "2010-10-19T23:12:00-07:00"],
+    ["luca-diner-checkin", "luca", "main-street-diner", "Main Street Diner", "2010-10-19T22:44:00-07:00"],
+    ["chris-courts-checkin", "chris", "community-courts", "Community Courts", "2010-10-19T22:18:00-07:00"],
+    ["alex-riverside-park-checkin", "alex", "riverside-park", "Riverside Park", "2010-10-19T21:36:00-07:00"],
+    ["katie-westside-library-checkin", "katie", "westside-library", "Westside Library", "2010-10-19T20:14:00-07:00"],
+    ["matt-gelato-roma-checkin", "matt", "gelato-roma", "Gelato Roma", "2010-10-19T19:22:00-07:00"],
+  ], "Recent Check-ins must preserve the exact character/venue baseline newest-first");
+  assert.equal(facebook.FACEBOOK_FRIEND_CHECK_INS.every((checkIn, index, checkIns) => index === 0 || Date.parse(checkIns[index - 1].createdAt) > Date.parse(checkIn.createdAt)), true, "Recent Check-ins must derive strict newest-first order from canonical timestamps");
+  assert.equal(new Set(facebook.FACEBOOK_PLACE_OPTIONS.map(venue => venue.id)).size, facebook.FACEBOOK_PLACE_OPTIONS.length, "Facebook canonical venue IDs must be unique");
+  assert.equal(new Set(facebook.FACEBOOK_PLACE_OPTIONS.map(venue => venue.name)).size, facebook.FACEBOOK_PLACE_OPTIONS.length, "Facebook canonical venue names must be unique");
+  const alignedPlacesState = facebook.createInitialFacebookState("Zoey");
+  const newPlaceStoryIds = ["alex-riverside-park-checkin", "katie-westside-library-checkin", "matt-gelato-roma-checkin"];
+  const newPlaceStories = newPlaceStoryIds.map(storyId => alignedPlacesState.feed.find(story => story.id === storyId));
+  assert.deepEqual(newPlaceStories.map(story => [story?.id, story?.friendId, story?.venueId, story?.createdAt, story?.kind, story?.visibility]), [
+    ["alex-riverside-park-checkin", "alex", "riverside-park", "2010-10-19T21:36:00-07:00", "checkin", "friends"],
+    ["katie-westside-library-checkin", "katie", "westside-library", "2010-10-19T20:14:00-07:00", "checkin", "friends"],
+    ["matt-gelato-roma-checkin", "matt", "gelato-roma", "2010-10-19T19:22:00-07:00", "checkin", "friends"],
+  ], "Alex, Katie, and Matt must each receive exactly one aligned Facebook Places story");
+  assert.equal(newPlaceStories.every(story => story && story.createdAt.startsWith("2010-") && Date.parse(story.createdAt) <= facebookSessionStartMs), true, "new Places stories must be valid non-future 2010 records");
+  assert.equal(newPlaceStories.every(story => story && facebook.isFacebookNewsFeedEligible(alignedPlacesState, story, facebookSessionStartMs)), true, "new Places stories must remain eligible only through the centralized News Feed selector");
+  assert.equal(newPlaceStoryIds.every(storyId => facebook.selectFacebookVisibleFeed(alignedPlacesState).some(story => story.id === storyId)), true, "eligible aligned Places stories must resolve through the final visible Feed");
+  const canonicalCheckInStories = alignedPlacesState.feed.filter(story => story.kind === "checkin");
+  for (const characterId of ["alex", "katie", "matt"]) assert.equal(canonicalCheckInStories.filter(story => story.friendId === characterId).length, 1, `${characterId} must have exactly one Facebook check-in story`);
+  for (const characterId of ["jay", "june", "jack"]) assert.equal(canonicalCheckInStories.filter(story => story.friendId === characterId).length, 0, `${characterId} must receive no new Facebook check-in`);
+  assert.deepEqual(seed.foursquare.venues.map(venue => [venue.id, venue.name]), [["night-owl", "Night Owl Cafe"], ["main-street-diner", "Main Street Diner"], ["cedar-books", "Cedar Books"], ["riverside-park", "Riverside Park"]], "Facebook Places alignment must not modify Foursquare venue state");
   assert.equal(facebook.FACEBOOK_CHAT_ROSTER.some(person => person.characterId === "anil"), false);
   assert.deepEqual(facebookMedia.FACEBOOK_MEDIA_IDS, ["z-tokyo-profile-picture", "facebook-default-avatar", "facebook-avatar-00", "facebook-avatar-02", "facebook-avatar-03", "facebook-avatar-05", "facebook-avatar-06", "facebook-avatar-07", "facebook-sophie-avatar"], "Facebook-local media must centralize the author portrait and approved actor avatars");
   assert.deepEqual([facebookMedia.getFacebookMedia("facebook-default-avatar")?.originalFilename, facebookMedia.getFacebookMedia("facebook-default-avatar")?.classification], ["01.png", "CURATED / FACEBOOK_DEFAULT"]);

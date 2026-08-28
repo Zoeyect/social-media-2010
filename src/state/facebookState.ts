@@ -5,7 +5,8 @@ import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
 import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS } from "../data/facebookActors";
 import type { FacebookEphemeralFriendOfFriendId, FacebookFeedActor, FacebookPeripheralActorClassification } from "../data/facebookActors";
 import type { FacebookAuthorEasterEggId } from "../data/facebookActors";
-import { MAIN_STREET_DINER_VENUE } from "../data/canonicalVenues";
+import { COMMUNITY_COURTS_VENUE, DOWNTOWN_COFFEE_VENUE, GELATO_ROMA_VENUE, MAIN_STREET_DINER_VENUE, RIVERSIDE_PARK_VENUE, WESTSIDE_LIBRARY_VENUE } from "../data/canonicalVenues";
+import type { CanonicalVenueId } from "../data/canonicalVenues";
 import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumForMediaId, getFacebookPhotosOfActor } from "../data/facebookAlbums";
 import type { FacebookAlbumId, FacebookPhotoTagActor } from "../data/facebookAlbums";
 import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
@@ -45,16 +46,26 @@ export const FACEBOOK_EPHEMERAL_GOSSIP_POST_ID = "facebook-june-jack-gossip-ryan
 export const FACEBOOK_BASELINE_FRIEND_IDS = Object.freeze(["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"] as const);
 
 export const FACEBOOK_PLACE_OPTIONS = Object.freeze([
-  Object.freeze({ id: "downtown-coffee", name: "Downtown Coffee", classification: "CURATED/HOLD" as const }),
-  Object.freeze({ id: "community-courts", name: "Community Courts", classification: "CURATED/HOLD" as const }),
+  Object.freeze({ ...DOWNTOWN_COFFEE_VENUE, classification: "CURATED/HOLD" as const }),
+  Object.freeze({ ...COMMUNITY_COURTS_VENUE, classification: "CURATED/HOLD" as const }),
   Object.freeze({ ...MAIN_STREET_DINER_VENUE, classification: "CURATED/HOLD" as const }),
+  Object.freeze({ ...RIVERSIDE_PARK_VENUE, classification: "CURATED/HOLD" as const }),
+  Object.freeze({ ...WESTSIDE_LIBRARY_VENUE, classification: "CURATED/HOLD" as const }),
+  Object.freeze({ ...GELATO_ROMA_VENUE, classification: "CURATED/HOLD" as const }),
 ]);
 
-export const FACEBOOK_FRIEND_CHECK_INS = Object.freeze([
-  Object.freeze({ id: "ben-coffee-checkin", characterId: "ben" as const, displayName: "Ben", venueName: "Downtown Coffee", classification: "CURATED" as const }),
-  Object.freeze({ id: "chris-courts-checkin", characterId: "chris" as const, displayName: "Chris", venueName: "Community Courts", classification: "CURATED" as const }),
-  Object.freeze({ id: "luca-diner-checkin", characterId: "luca" as const, displayName: "Luca", venueId: MAIN_STREET_DINER_VENUE.id, venueName: MAIN_STREET_DINER_VENUE.name, classification: "CURATED" as const }),
+const FACEBOOK_FRIEND_CHECK_IN_RECORDS = Object.freeze([
+  Object.freeze({ id: "ben-coffee-checkin", characterId: "ben" as const, displayName: "Ben", venueId: DOWNTOWN_COFFEE_VENUE.id, venueName: DOWNTOWN_COFFEE_VENUE.name, createdAt: "2010-10-19T23:12:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "luca-diner-checkin", characterId: "luca" as const, displayName: "Luca", venueId: MAIN_STREET_DINER_VENUE.id, venueName: MAIN_STREET_DINER_VENUE.name, createdAt: "2010-10-19T22:44:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "chris-courts-checkin", characterId: "chris" as const, displayName: "Chris", venueId: COMMUNITY_COURTS_VENUE.id, venueName: COMMUNITY_COURTS_VENUE.name, createdAt: "2010-10-19T22:18:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "alex-riverside-park-checkin", characterId: "alex" as const, displayName: "Alex", venueId: RIVERSIDE_PARK_VENUE.id, venueName: RIVERSIDE_PARK_VENUE.name, createdAt: "2010-10-19T21:36:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "katie-westside-library-checkin", characterId: "katie" as const, displayName: "Katie", venueId: WESTSIDE_LIBRARY_VENUE.id, venueName: WESTSIDE_LIBRARY_VENUE.name, createdAt: "2010-10-19T20:14:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "matt-gelato-roma-checkin", characterId: "matt" as const, displayName: "Matt", venueId: GELATO_ROMA_VENUE.id, venueName: GELATO_ROMA_VENUE.name, createdAt: "2010-10-19T19:22:00-07:00", classification: "CURATED" as const }),
 ]);
+
+export const FACEBOOK_FRIEND_CHECK_INS = Object.freeze(
+  [...FACEBOOK_FRIEND_CHECK_IN_RECORDS].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)),
+);
 
 export const FACEBOOK_CHAT_ROSTER = Object.freeze([
   Object.freeze({ characterId: "katie" as const, displayName: "Katie", presence: "online" as const }),
@@ -99,6 +110,7 @@ export type FacebookFeedItem = {
   relatedCharacterIds?: readonly CoreSocialCharacterId[];
   taggedCharacterIds?: readonly CoreSocialCharacterId[];
   offlineSubjectIds?: readonly FacebookOfflinePersonId[];
+  venueId?: CanonicalVenueId;
   tagUiStatus?: "HOLD";
   contentStatus: "HOLD-fictional" | "USER-GENERATED";
   origin: ContentOrigin | "user";

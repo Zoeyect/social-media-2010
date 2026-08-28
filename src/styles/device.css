@@ -565,13 +565,13 @@ button, input { font: inherit; }
 .facebook-home-search,.facebook-friends-search { margin: 6px 8px 4px; display: flex; align-items: center; border: 1px solid #a2a8b0; border-radius: 10px; background: #fff; box-shadow: inset 0 1px 2px rgba(0,0,0,.2); }
 .facebook-home-search input,.facebook-friends-search input { box-sizing: border-box; width: 100%; height: 24px; padding: 1px 8px; border: 0; outline: 0; border-radius: 10px; background: transparent; font: 13px/22px "Helvetica Neue",Helvetica,Arial,sans-serif; text-align: center; }
 .facebook-search-glyph { width: 11px; height: 11px; margin-left: 9px; border: 2px solid #89919d; border-radius: 50%; }
-.facebook-home-grid { padding: 7px 12px 1px; grid-auto-rows: minmax(73px,1fr); gap: 0 5px; }
+.facebook-home-grid { padding: 7px 12px 1px; grid-template-rows: repeat(3,minmax(73px,1fr)); gap: 0 5px; touch-action: pan-y; }
 .facebook-home-destination { padding: 3px 2px; gap: 3px; }
 .facebook-home-destination strong { font-size: 11px; line-height: 13px; }
 .facebook-home-icon-hold { width: 43px; height: 43px; display: grid; place-items: center; color: #fff; border: 1px solid #52698f; border-radius: 7px; background: linear-gradient(#91a2bd,#526d99 52%,#395786); box-shadow: inset 0 1px rgba(255,255,255,.55),0 1px 1px rgba(0,0,0,.18); font-size: 11px; font-weight: bold; letter-spacing: .04em; text-shadow: 0 -1px rgba(0,0,0,.65); }
-.facebook-home-empty-slot { min-height: 64px; }
-.facebook-home-secondary-page,.facebook-people-search-results { min-height: 0; overflow-y: auto; background: rgba(255,255,255,.65); }
-.facebook-home-secondary-page { display: grid; place-items: center; color: #7d8490; font-size: 12px; }
+.facebook-home-secondary-page,.facebook-people-search-results { min-height: 0; background: rgba(255,255,255,.65); }
+.facebook-home-secondary-page { color: #7d8490; font-size: 12px; }
+.facebook-people-search-results { overflow-y: auto; }
 .facebook-people-search-results button { width: 100%; min-height: 45px; padding: 0 13px; color: #28477f; border: 0; border-bottom: 1px solid #b7bdc6; background: #fff; font-size: 14px; font-weight: bold; text-align: left; }
 .facebook-people-search-results p { margin: 24px 0; color: #777; font-size: 12px; text-align: center; }
 .facebook-home-page-dots { display: flex; align-items: center; justify-content: center; gap: 7px; }
@@ -579,6 +579,9 @@ button, input { font: inherit; }
 .facebook-home-page-dots button[aria-current="page"] { background: #3b5998; }
 .facebook-home-notifications { height: 38px; padding: 0 12px; display: flex; align-items: center; justify-content: center; gap: 7px; color: #29477c; border: 0; border-top: 1px solid #9da6b3; background: linear-gradient(#f7f8fa,#d6dae1); font-size: 12px; font-weight: bold; }
 .facebook-home-notifications b { min-width: 17px; height: 17px; padding: 0 4px; color: #fff; border-radius: 9px; background: #b42b2b; font: bold 11px/17px "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.facebook-notes-empty { flex: 1 1 auto; min-height: 0; display: grid; place-content: start center; gap: 8px; padding-top: 32px; color: #777; background: #fff; font-size: 12px; text-align: center; }
+.facebook-notes-empty strong { color: #333; font-size: 15px; }
+.facebook-notes-empty p { margin: 0; }
 .facebook-internal-count { top: 1px; right: 8px; }
 .facebook-feed-composer-strip { flex: 0 0 38px; display: grid; grid-template-columns: repeat(3,1fr); border-bottom: 1px solid #a7a7a7; background: #f0f1f3; }
 .facebook-feed-composer-strip button { color: #314f82; border: 0; border-right: 1px solid #b8b8b8; background: linear-gradient(#fff,#e0e0e0); font-size: 11px; font-weight: bold; }

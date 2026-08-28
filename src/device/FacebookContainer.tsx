@@ -1,12 +1,15 @@
 import { Dispatch, useLayoutEffect, useRef, type ReactNode } from "react";
 import {
   FACEBOOK_FRIEND_CHECK_INS,
+  FACEBOOK_HOME_LAUNCHER_PAGES,
   FACEBOOK_PLACE_OPTIONS,
   FacebookEvent,
   FacebookFeedItem,
+  FacebookHomeLauncherDestinationId,
   FacebookNavigableActor,
   FacebookState,
   selectFacebookInboxUnreadCount,
+  selectFacebookEventInviteUnseenCount,
   selectFacebookComments,
   selectFacebookLikes,
   selectFacebookNotifications,
@@ -17,6 +20,7 @@ import {
   selectFacebookChatMessages,
   selectFacebookVisibleChatRoster,
   resolveFacebookCommentActor,
+  resolveFacebookHomeSwipePage,
   selectFacebookProfileWall,
   selectFacebookVisibleFeed,
   formatFacebookCommentCount,
@@ -61,6 +65,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   const selectedThreadMessages = selectedMessage ? selectFacebookThreadMessages(state, selectedMessage.id) : [];
   const requestCount = selectFacebookRequestCount(state);
   const inboxUnreadCount = selectFacebookInboxUnreadCount(state);
+  const eventInviteUnseenCount = selectFacebookEventInviteUnseenCount(state);
   const notifications = selectFacebookNotifications(state);
   const notificationUnreadCount = selectFacebookNotificationUnreadCount(state);
   const selectedProfileName = state.selectedProfileName ?? sessionIdentity.name;
@@ -92,7 +97,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   return <section className="facebook-container" aria-label="Facebook" data-chrome-status="HOLD">
     <FacebookNavigationHeader state={state} displayName={sessionIdentity.name} dispatch={dispatch} />
 
-    {state.currentView === "home" && <FacebookHome state={state} displayName={sessionIdentity.name} requestCount={requestCount} inboxUnreadCount={inboxUnreadCount} notificationUnreadCount={notificationUnreadCount} dispatch={dispatch} />}
+    {state.currentView === "home" && <FacebookHome state={state} displayName={sessionIdentity.name} requestCount={requestCount} inboxUnreadCount={inboxUnreadCount} eventInviteUnseenCount={eventInviteUnseenCount} notificationUnreadCount={notificationUnreadCount} dispatch={dispatch} />}
 
     {state.currentView === "feed" && <>
       <nav className="facebook-feed-composer-strip" aria-label="Create">
@@ -185,6 +190,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
       </button>)}
     </div>}
     {state.currentView === "chatConversation" && state.selectedChatPeerId && <FacebookChatConversation state={state} displayName={sessionIdentity.name} currentDeviceTime={currentDeviceTime} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
+    {state.currentView === "notes" && <section className="facebook-notes-empty" aria-label="Notes"><strong>Notes</strong><p>No notes.</p></section>}
     {state.currentView === "notifications" && <div className="facebook-notification-list" aria-label="Notifications">
       {notifications.length === 0 && <p>No new notifications.</p>}
       {notifications.map(notification => <button key={notification.id} type="button" className={notification.unread ? "is-unread" : undefined} onClick={() => dispatch({ type: "OPEN_NOTIFICATION", notificationId: notification.id })}>
@@ -208,7 +214,7 @@ function FacebookNavigationHeader({ state, displayName, dispatch }: { state: Fac
   const nested = state.navigationStack.length > 2;
   const chatPeerName = state.selectedChatPeerId === null ? null : selectFacebookVisibleChatRoster(state).find(person => person.characterId === state.selectedChatPeerId)?.displayName;
   return <header className="facebook-navigation-bar">
-    <button type="button" className="facebook-back-control" onClick={() => dispatch(nested ? { type: "GO_BACK" } : { type: "SHOW_HOME" })}>{nested ? "Back" : "Home"}</button>
+    <button type="button" className="facebook-back-control" onClick={() => dispatch({ type: "GO_BACK" })}>{nested ? "Back" : "Home"}</button>
     <strong>{state.currentView === "chatConversation" ? chatPeerName ?? "Chat" : state.currentView === "feed" || state.currentView === "friends" ? "facebook" : viewTitle(state.currentView)}</strong>
     {state.currentView === "feed" && <span className="facebook-navigation-context">Live Feed</span>}
     {state.currentView === "friends" && <button type="button" className="facebook-navigation-context" disabled data-provenance-status="HOLD">Sync</button>}
@@ -241,26 +247,62 @@ function FacebookChatConversation({ state, displayName, currentDeviceTime, simul
   </article>;
 }
 
-function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, notificationUnreadCount, dispatch }: { state: FacebookState; displayName: string; requestCount: number; inboxUnreadCount: number; notificationUnreadCount: number; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, eventInviteUnseenCount, notificationUnreadCount, dispatch }: { state: FacebookState; displayName: string; requestCount: number; inboxUnreadCount: number; eventInviteUnseenCount: number; notificationUnreadCount: number; dispatch: Dispatch<FacebookEvent> }) {
   const searchResults = selectFacebookPeopleSearchResults(state.homeSearchQuery);
-  return <div className="facebook-home" aria-label="Facebook Home" data-layout-evidence="PERIOD-EVIDENCE">
+  const dragStart = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const destinationCounts: Partial<Record<FacebookHomeLauncherDestinationId, number>> = {
+    inbox: inboxUnreadCount,
+    requests: requestCount,
+    events: eventInviteUnseenCount,
+  };
+  const openDestination = (destinationId: FacebookHomeLauncherDestinationId) => {
+    switch (destinationId) {
+      case "feed": dispatch({ type: "SHOW_FEED" }); break;
+      case "profile": dispatch({ type: "SHOW_PROFILE", profileName: displayName }); break;
+      case "friends": dispatch({ type: "SHOW_FRIENDS" }); break;
+      case "inbox": dispatch({ type: "SHOW_INBOX" }); break;
+      case "places": dispatch({ type: "SHOW_PLACES" }); break;
+      case "requests": dispatch({ type: "SHOW_REQUESTS" }); break;
+      case "events": dispatch({ type: "SHOW_EVENTS" }); break;
+      case "photos": dispatch({ type: "SHOW_PHOTOS" }); break;
+      case "chat": dispatch({ type: "SHOW_CHAT" }); break;
+      case "notes": dispatch({ type: "SHOW_NOTES" }); break;
+    }
+  };
+  return <div
+    className="facebook-home"
+    aria-label="Facebook Home"
+    data-layout-evidence="PERIOD-EVIDENCE"
+    data-launcher-page={state.homeLauncherPage + 1}
+  >
     <label className="facebook-home-search"><span className="facebook-search-glyph" aria-hidden="true" />
       <input aria-label="Search Facebook people" placeholder="Search" value={state.homeSearchQuery} onChange={event => dispatch({ type: "EDIT_HOME_SEARCH", value: event.currentTarget.value })} />
     </label>
     {state.homeSearchQuery.trim() ? <div className="facebook-people-search-results">
       {searchResults.length === 0 && <p>No people found.</p>}
       {searchResults.map(result => <button key={result.kind === "canonical" ? result.characterId : result.authorId} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: result.displayName })}>{result.displayName}</button>)}
-    </div> : state.homeLauncherPage === 0 ? <div className="facebook-home-grid">
-      <HomeDestination iconLabel="NF" label="News Feed" onClick={() => dispatch({ type: "SHOW_FEED" })} />
-      <HomeDestination iconLabel="PR" label="Profile" onClick={() => dispatch({ type: "SHOW_PROFILE", profileName: displayName })} />
-      <HomeDestination iconLabel="FR" label="Friends" onClick={() => dispatch({ type: "SHOW_FRIENDS" })} />
-      <HomeDestination iconLabel="MS" label="Messages" count={inboxUnreadCount} onClick={() => dispatch({ type: "SHOW_INBOX" })} />
-      <HomeDestination iconLabel="PL" label="Places" onClick={() => dispatch({ type: "SHOW_PLACES" })} />
-      <span className="facebook-home-empty-slot" data-provenance-status="REJECTED-FOR-TARGET-DATE" aria-label="Empty launcher position" />
-      <HomeDestination iconLabel="EV" label="Events" onClick={() => dispatch({ type: "SHOW_EVENTS" })} />
-      <HomeDestination iconLabel="PH" label="Photos" onClick={() => dispatch({ type: "SHOW_PHOTOS" })} />
-      <HomeDestination iconLabel="CH" label="Chat" onClick={() => dispatch({ type: "SHOW_CHAT" })} />
-    </div> : <div className="facebook-home-secondary-page" data-provenance-status="HOLD"><p>No shortcuts added.</p></div>}
+    </div> : <div
+      className={`facebook-home-grid${state.homeLauncherPage === 1 ? " facebook-home-secondary-page" : ""}`}
+      aria-label={`Launcher page ${state.homeLauncherPage + 1}`}
+      onPointerDown={event => {
+        if (!event.isPrimary) return;
+        dragStart.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerCancel={() => { dragStart.current = null; }}
+      onPointerUp={event => {
+        const start = dragStart.current;
+        dragStart.current = null;
+        if (!start || start.pointerId !== event.pointerId) return;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+        const nextPage = resolveFacebookHomeSwipePage(state.homeLauncherPage, start.x, start.y, event.clientX, event.clientY);
+        if (nextPage === state.homeLauncherPage) return;
+        event.preventDefault();
+        dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: nextPage });
+      }}
+    >
+      {FACEBOOK_HOME_LAUNCHER_PAGES[state.homeLauncherPage].map(destination => <HomeDestination key={destination.id} iconLabel={destination.iconLabel} label={destination.label} count={destinationCounts[destination.id]} onClick={() => openDestination(destination.id)} />)}
+    </div>}
     <nav className="facebook-home-page-dots" aria-label="Launcher pages">
       <button type="button" aria-current={state.homeLauncherPage === 0 ? "page" : undefined} aria-label="Launcher page 1" onClick={() => dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: 0 })} />
       <button type="button" aria-current={state.homeLauncherPage === 1 ? "page" : undefined} aria-label="Launcher page 2" onClick={() => dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: 1 })} />
@@ -592,6 +634,7 @@ function viewTitle(view: FacebookState["currentView"]): string {
     case "photoDetail": return "Photo";
     case "chat": return "Chat";
     case "chatConversation": return "Chat";
+    case "notes": return "Notes";
     case "notifications": return "Notifications";
     case "account": return "Account";
   }

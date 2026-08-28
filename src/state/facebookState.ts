@@ -13,7 +13,7 @@ import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 import { SESSION_START_ISO } from "./deviceMachine";
 export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
-export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notifications" | "account";
+export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notes" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
 type FacebookProfileReturnState = {
   view: FacebookView;
@@ -44,6 +44,33 @@ export const FACEBOOK_KATIE_GOSSIP_MESSAGE_ID = "facebook-katie-jack-gossip-mess
 export const FACEBOOK_EPHEMERAL_GOSSIP_POST_ID = "facebook-june-jack-gossip-ryan-standalone";
 
 export const FACEBOOK_BASELINE_FRIEND_IDS = Object.freeze(["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"] as const);
+
+export const FACEBOOK_HOME_LAUNCHER_PAGES = Object.freeze([
+  Object.freeze([
+    Object.freeze({ id: "feed" as const, label: "News Feed", iconLabel: "NF" }),
+    Object.freeze({ id: "profile" as const, label: "Profile", iconLabel: "PR" }),
+    Object.freeze({ id: "friends" as const, label: "Friends", iconLabel: "FR" }),
+    Object.freeze({ id: "inbox" as const, label: "Inbox", iconLabel: "MS" }),
+    Object.freeze({ id: "places" as const, label: "Places", iconLabel: "PL" }),
+    Object.freeze({ id: "requests" as const, label: "Requests", iconLabel: "RQ" }),
+    Object.freeze({ id: "events" as const, label: "Events", iconLabel: "EV" }),
+    Object.freeze({ id: "photos" as const, label: "Photos", iconLabel: "PH" }),
+    Object.freeze({ id: "chat" as const, label: "Chat", iconLabel: "CH" }),
+  ]),
+  Object.freeze([
+    Object.freeze({ id: "notes" as const, label: "Notes", iconLabel: "NT" }),
+  ]),
+]);
+
+export type FacebookHomeLauncherDestinationId = typeof FACEBOOK_HOME_LAUNCHER_PAGES[number][number]["id"];
+export const FACEBOOK_HOME_SWIPE_THRESHOLD_PX = 40;
+
+export function resolveFacebookHomeSwipePage(currentPage: 0 | 1, startX: number, startY: number, endX: number, endY: number): 0 | 1 {
+  const dx = endX - startX;
+  const dy = endY - startY;
+  if (Math.abs(dx) < FACEBOOK_HOME_SWIPE_THRESHOLD_PX || Math.abs(dx) <= Math.abs(dy)) return currentPage;
+  return dx < 0 ? 1 : 0;
+}
 
 export const FACEBOOK_PLACE_OPTIONS = Object.freeze([
   Object.freeze({ ...DOWNTOWN_COFFEE_VENUE, classification: "CURATED/HOLD" as const }),
@@ -249,6 +276,7 @@ export type FacebookState = {
   selectedTaggedActor: FacebookPhotoTagActor | null;
   userCheckIn: FacebookUserCheckIn | null;
   readNotificationIds: string[];
+  seenEventInviteIds: string[];
 };
 
 export function selectFacebookVisibleChatRoster(state: FacebookState) {
@@ -276,6 +304,7 @@ export type FacebookEvent =
   | { type: "SHOW_REQUESTS" }
   | { type: "SHOW_INBOX" }
   | { type: "SHOW_EVENTS" }
+  | { type: "SHOW_NOTES" }
   | { type: "OPEN_PARTY_EVENT" }
   | { type: "SET_PARTY_RSVP"; value: Exclude<FacebookPartyRsvp, null> }
   | { type: "SHOW_PLACES" }
@@ -394,6 +423,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     selectedTaggedActor: null,
     userCheckIn: null,
     readNotificationIds: [],
+    seenEventInviteIds: [],
   };
 }
 
@@ -512,7 +542,16 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "SHOW_MESSAGES":
       return { ...state, currentView: "inbox", navigationStack: ["home", "inbox"], selectedFeedItemId: null };
     case "SHOW_EVENTS":
-      return { ...state, currentView: "events", navigationStack: ["home", "events"] };
+      return {
+        ...state,
+        currentView: "events",
+        navigationStack: ["home", "events"],
+        seenEventInviteIds: selectFacebookEventInviteUnseenCount(state) > 0
+          ? [...state.seenEventInviteIds, FACEBOOK_PARTY_INVITE_EVENT_ID]
+          : state.seenEventInviteIds,
+      };
+    case "SHOW_NOTES":
+      return { ...state, currentView: "notes", navigationStack: ["home", "notes"] };
     case "OPEN_PARTY_EVENT":
       if (state.partyInviteState !== "delivered" && state.partyInviteState !== "opened" && state.partyInviteState !== "dismissed") return state;
       return {
@@ -520,6 +559,9 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         currentView: "eventDetail",
         navigationStack: [...state.navigationStack, "eventDetail"],
         partyInviteState: state.partyInviteState === "delivered" ? "opened" : state.partyInviteState,
+        seenEventInviteIds: state.seenEventInviteIds.includes(FACEBOOK_PARTY_INVITE_EVENT_ID)
+          ? state.seenEventInviteIds
+          : [...state.seenEventInviteIds, FACEBOOK_PARTY_INVITE_EVENT_ID],
         readNotificationIds: state.readNotificationIds.includes("facebook-notification-party-event")
           ? state.readNotificationIds
           : [...state.readNotificationIds, "facebook-notification-party-event"],
@@ -918,6 +960,11 @@ export function selectFacebookInboxUnreadCount(state: FacebookState): number {
   return state.inboxThreads.filter(thread => thread.status === "unread").length;
 }
 
+export function selectFacebookEventInviteUnseenCount(state: FacebookState): number {
+  const delivered = state.partyInviteState === "delivered" || state.partyInviteState === "opened" || state.partyInviteState === "dismissed";
+  return delivered && !state.seenEventInviteIds.includes(FACEBOOK_PARTY_INVITE_EVENT_ID) ? 1 : 0;
+}
+
 export function selectFacebookPeopleSearchResults(query: string): FacebookSearchIdentity[] {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) return [];
@@ -962,7 +1009,7 @@ export function selectFacebookNotifications(state: FacebookState): FacebookNotif
   if (partyMessage && (state.partyInviteState === "delivered" || state.partyInviteState === "opened" || state.partyInviteState === "dismissed")) {
     notifications.push({
       id: "facebook-notification-party-event",
-      text: "June invited you to Jack's Party.",
+      text: "Jack invited you to Jack's Party.",
       target: "event",
       unread: partyMessage.status === "unread" && !state.readNotificationIds.includes("facebook-notification-party-event"),
     });

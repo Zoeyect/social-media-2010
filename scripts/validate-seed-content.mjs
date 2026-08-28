@@ -879,6 +879,22 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(facebook.selectFacebookRequestCount(facebookA), 1, "Requests count must derive from pending state");
   assert.equal(facebook.selectFacebookInboxUnreadCount(facebookA), 1, "Inbox count must derive from unread threads");
   assert.equal(facebook.selectFacebookNotificationUnreadCount(facebookA), 2, "Notifications must derive Jack and June unread activity from shared state");
+  assert.deepEqual(facebook.FACEBOOK_HOME_LAUNCHER_PAGES.map(page => page.map(destination => destination.label)), [
+    ["News Feed", "Profile", "Friends", "Inbox", "Places", "Requests", "Events", "Photos", "Chat"],
+    ["Notes"],
+  ], "Facebook Home must preserve the exact October 20 two-page launcher IA");
+  assert.equal(facebook.FACEBOOK_HOME_LAUNCHER_PAGES[0].length, 9, "Facebook Home page 1 must contain no empty launcher slot");
+  assert.equal(facebook.FACEBOOK_HOME_LAUNCHER_PAGES.flat().some(destination => destination.label === "Messages" || destination.label === "Groups"), false, "Home launcher must expose Inbox and omit Groups");
+  let notesNavigation = facebook.facebookStateTransition(facebook.createInitialFacebookState("Zoey"), { type: "SET_HOME_LAUNCHER_PAGE", page: 1 });
+  notesNavigation = facebook.facebookStateTransition(notesNavigation, { type: "SHOW_NOTES" });
+  assert.deepEqual([notesNavigation.currentView, notesNavigation.navigationStack, notesNavigation.homeLauncherPage], ["notes", ["home", "notes"], 1], "Notes must open from Home page 2 without losing its page snapshot");
+  notesNavigation = facebook.facebookStateTransition(notesNavigation, { type: "GO_BACK" });
+  assert.deepEqual([notesNavigation.currentView, notesNavigation.homeLauncherPage], ["home", 1], "Notes Back must return to Home page 2");
+  assert.equal(facebook.resolveFacebookHomeSwipePage(0, 220, 120, 160, 116), 1, "left horizontal swipe must move Home page 1 to page 2");
+  assert.equal(facebook.resolveFacebookHomeSwipePage(1, 100, 120, 155, 124), 0, "right horizontal swipe must move Home page 2 to page 1");
+  assert.equal(facebook.resolveFacebookHomeSwipePage(1, 220, 120, 160, 116), 1, "left swipe on Home page 2 must not wrap");
+  assert.equal(facebook.resolveFacebookHomeSwipePage(0, 100, 120, 155, 124), 0, "right swipe on Home page 1 must not wrap");
+  assert.equal(facebook.resolveFacebookHomeSwipePage(0, 100, 100, 110, 180), 0, "mostly vertical gesture must not switch launcher pages");
   assert.equal(facebookA.inboxThreads.filter(thread => thread.id === "june-live-message").length, 1, "June live message must deliver once");
   assert.ok(facebookA.feed.every(item => item.origin === "seed"), "older Facebook feed content must remain seed content");
   assert.ok(facebookA.inboxThreads.filter(thread => thread.id !== "june-live-message").every(thread => thread.origin === "seed"), "older Facebook inbox content must survive live delivery");
@@ -930,10 +946,15 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   sharedPartyState = facebook.facebookStateTransition(sharedPartyState, { type: "DELIVER_PARTY_INVITE", timestamp: "12:08 AM" });
   sharedPartyState = facebook.facebookStateTransition(sharedPartyState, { type: "DELIVER_PARTY_INVITE", timestamp: "12:09 AM" });
   assert.equal(sharedPartyState.partyInviteState, "delivered");
+  assert.equal(facebook.selectFacebookEventInviteUnseenCount(sharedPartyState), 1, "one delivered unseen event invite must drive the Events launcher badge");
   assert.equal(sharedPartyState.inboxThreads.filter(thread => thread.id === facebook.FACEBOOK_PARTY_INVITE_EVENT_ID).length, 1, "party invitation must be delivered at most once");
   assert.equal(sharedPartyState.inboxThreads.find(thread => thread.id === facebook.FACEBOOK_PARTY_INVITE_EVENT_ID)?.status, "unread");
-  assert.equal(facebook.selectFacebookNotifications(sharedPartyState).find(notification => notification.target === "event")?.unread, true, "delivered party invite must drive one unread Events notification");
+  assert.deepEqual(facebook.selectFacebookNotifications(sharedPartyState).filter(notification => notification.target === "event"), [{ id: "facebook-notification-party-event", text: "Jack invited you to Jack's Party.", target: "event", unread: true }], "delivered party invite must drive exactly one unread event notification");
   let partyEventState = facebook.facebookStateTransition(sharedPartyState, { type: "SHOW_EVENTS" });
+  assert.equal(facebook.selectFacebookEventInviteUnseenCount(partyEventState), 0, "opening Events must acknowledge the launcher badge");
+  assert.equal(partyEventState.partyInviteState, "delivered", "opening the Events list must retain the event without opening detail");
+  assert.equal(partyEventState.partyRsvp, null, "opening Events must not auto-RSVP");
+  assert.equal(facebook.selectFacebookNotifications(partyEventState).find(notification => notification.target === "event")?.unread, true, "Events acknowledgement must remain independent from Notifications unread state");
   partyEventState = facebook.facebookStateTransition(partyEventState, { type: "OPEN_PARTY_EVENT" });
   assert.equal(partyEventState.partyInviteState, "opened", "Events must expose the same shared party invitation state");
   assert.equal(partyEventState.inboxThreads.find(thread => thread.id === facebook.FACEBOOK_PARTY_INVITE_EVENT_ID)?.status, "read");
@@ -2291,7 +2312,12 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(facebookContainerSource, /OPEN_COMMENT_AUTHOR/, "inline mentions must reuse the existing Facebook actor/profile router");
   assert.doesNotMatch(facebookContainerSource, /match\([^)]*@|split\([^)]*@|@\[A-Za-z/, "Facebook mentions must not auto-link arbitrary @name text through naive parsing");
   assert.doesNotMatch(facebookContainerSource, /HomeDestination[^\n]+label="Groups"/, "Groups must not appear as an October 20 launcher destination");
-  assert.match(facebookContainerSource, /facebook-home-empty-slot[^\n]+REJECTED-FOR-TARGET-DATE/, "the post-November Groups position must remain intentionally empty");
+  assert.doesNotMatch(facebookContainerSource, /facebook-home-empty-slot/, "Facebook Home page 1 must no longer contain an empty launcher slot");
+  assert.match(facebookContainerSource, /FACEBOOK_HOME_LAUNCHER_PAGES\[state\.homeLauncherPage\]/, "Facebook Home must render both pages from one canonical launcher definition");
+  assert.match(facebookContainerSource, /onPointerDown[\s\S]+onPointerUp/, "Facebook launcher paging must use one pointer path for touch and desktop drag gestures");
+  assert.match(deviceCssSource, /\.facebook-home-grid \{[^}]*grid-template-rows: repeat\(3,minmax\(73px,1fr\)\);[^}]*touch-action: pan-y;/, "both Home pages must share one fixed 3-row launcher geometry and scoped gesture handling");
+  assert.doesNotMatch(deviceCssSource, /\.facebook-home-secondary-page \{[^}]*(?:place-items|align-content|justify-content): center/, "the sparse Notes page must never vertically center its launcher item");
+  assert.match(facebookContainerSource, /facebook-notes-empty[\s\S]+No notes\./, "Notes must expose a functional biography-free empty state");
   assert.ok(["Timeline", "Mentions", "Messages", "Search", "More"].every(label => twitterContainerSource.includes(`"${label}"`)), "Twitter must expose the five period tab destinations");
   assert.match(twitterContainerSource, /twitter-tweet-action-row/, "Twitter must render the swipe-revealed action row");
   assert.match(twitterContainerSource, /twitter-avatar-fixture/, "Twitter cells must not leave the avatar column visually empty");

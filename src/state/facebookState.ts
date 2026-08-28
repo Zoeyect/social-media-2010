@@ -70,7 +70,10 @@ export const FACEBOOK_FRIEND_CHECK_INS = Object.freeze(
 export const FACEBOOK_CHAT_ROSTER = Object.freeze([
   Object.freeze({ characterId: "katie" as const, displayName: "Katie", presence: "online" as const }),
   Object.freeze({ characterId: "chris" as const, displayName: "Chris", presence: "online" as const }),
+  Object.freeze({ characterId: "matt" as const, displayName: "Matt", presence: "online" as const }),
+  Object.freeze({ characterId: "june" as const, displayName: "June", presence: "online" as const }),
   Object.freeze({ characterId: "jay" as const, displayName: "Jay", presence: "offline" as const }),
+  Object.freeze({ characterId: "jack" as const, displayName: "Jack", presence: "offline" as const }),
 ]);
 
 export type FacebookFriend = {
@@ -224,6 +227,11 @@ export type FacebookState = {
   userCheckIn: FacebookUserCheckIn | null;
   readNotificationIds: string[];
 };
+
+export function selectFacebookVisibleChatRoster(state: FacebookState) {
+  const friendIds = new Set(state.friends.map(friend => friend.id));
+  return FACEBOOK_CHAT_ROSTER.filter(person => friendIds.has(person.characterId));
+}
 
 export type FacebookEvent =
   | { type: "SHOW_HOME" }

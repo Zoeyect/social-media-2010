@@ -1,6 +1,5 @@
 import { Dispatch, useLayoutEffect, useRef, type ReactNode } from "react";
 import {
-  FACEBOOK_CHAT_ROSTER,
   FACEBOOK_FRIEND_CHECK_INS,
   FACEBOOK_PLACE_OPTIONS,
   FacebookEvent,
@@ -15,6 +14,7 @@ import {
   selectFacebookPeopleSearchResults,
   selectFacebookRequestCount,
   selectFacebookThreadMessages,
+  selectFacebookVisibleChatRoster,
   resolveFacebookCommentActor,
   selectFacebookProfileWall,
   selectFacebookVisibleFeed,
@@ -179,7 +179,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     {state.currentView === "taggedPhotos" && state.selectedTaggedActor && <FacebookTaggedPhotoGallery actor={state.selectedTaggedActor} records={selectedTaggedPhotos} dispatch={dispatch} />}
     {state.currentView === "photoDetail" && selectedAlbum && selectedPhoto && <FacebookPhotoDetail album={selectedAlbum} media={selectedPhoto} state={state} currentUserName={sessionIdentity.name} elapsedSeconds={elapsedSeconds} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
     {state.currentView === "chat" && <div className="facebook-chat-roster" aria-label="Facebook Chat">
-      {FACEBOOK_CHAT_ROSTER.map(person => <button key={person.characterId} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: person.displayName })}>
+      {selectFacebookVisibleChatRoster(state).map(person => <button key={person.characterId} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: person.displayName })}>
         <span className={`facebook-presence is-${person.presence}`} aria-label={person.presence} /><strong>{person.displayName}</strong><small>{person.presence}</small>
       </button>)}
     </div>}

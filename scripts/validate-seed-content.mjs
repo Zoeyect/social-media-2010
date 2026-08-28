@@ -1010,7 +1010,33 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   for (const characterId of ["alex", "katie", "matt"]) assert.equal(canonicalCheckInStories.filter(story => story.friendId === characterId).length, 1, `${characterId} must have exactly one Facebook check-in story`);
   for (const characterId of ["jay", "june", "jack"]) assert.equal(canonicalCheckInStories.filter(story => story.friendId === characterId).length, 0, `${characterId} must receive no new Facebook check-in`);
   assert.deepEqual(seed.foursquare.venues.map(venue => [venue.id, venue.name]), [["night-owl", "Night Owl Cafe"], ["main-street-diner", "Main Street Diner"], ["cedar-books", "Cedar Books"], ["riverside-park", "Riverside Park"]], "Facebook Places alignment must not modify Foursquare venue state");
-  assert.equal(facebook.FACEBOOK_CHAT_ROSTER.some(person => person.characterId === "anil"), false);
+  assert.deepEqual(facebook.FACEBOOK_CHAT_ROSTER.map(person => [person.characterId, person.displayName, person.presence]), [
+    ["katie", "Katie", "online"],
+    ["chris", "Chris", "online"],
+    ["matt", "Matt", "online"],
+    ["june", "June", "online"],
+    ["jay", "Jay", "offline"],
+    ["jack", "Jack", "offline"],
+  ], "Facebook Chat candidate presence records must preserve exact online-first canonical order");
+  assert.deepEqual(facebook.FACEBOOK_CHAT_ROSTER.filter(person => person.presence === "online").map(person => person.characterId), ["katie", "chris", "matt", "june"], "Facebook Chat candidate online set must remain exact");
+  assert.deepEqual(facebook.FACEBOOK_CHAT_ROSTER.filter(person => person.presence === "offline").map(person => person.characterId), ["jay", "jack"], "Facebook Chat candidate offline set must remain exact");
+  for (const excludedIdentity of ["ben", "luca", "alex", "sophie", "author-z-tokyo", "anil"]) {
+    assert.equal(facebook.FACEBOOK_CHAT_ROSTER.some(person => person.characterId === excludedIdentity), false, `${excludedIdentity} must remain outside the Facebook Chat roster`);
+  }
+  const initialChatState = facebook.createInitialFacebookState("Zoey");
+  assert.deepEqual(facebook.selectFacebookVisibleChatRoster(initialChatState).map(person => [person.characterId, person.presence]), [["katie", "online"], ["chris", "online"], ["matt", "online"], ["june", "online"], ["jay", "offline"]], "session-start Chat must expose only existing Facebook friends");
+  const pendingJackChatState = facebook.facebookStateTransition(initialChatState, { type: "DELIVER_JACK_REQUEST" });
+  assert.equal(pendingJackChatState.friendRequestState, "pending", "Jack request must use the existing pending friendship state");
+  assert.equal(facebook.selectFacebookVisibleChatRoster(pendingJackChatState).some(person => person.characterId === "jack"), false, "pending Jack request must not expose Chat presence");
+  const ignoredJackChatState = facebook.facebookStateTransition(pendingJackChatState, { type: "IGNORE_JACK" });
+  assert.equal(ignoredJackChatState.friendRequestState, "ignored");
+  assert.equal(facebook.selectFacebookVisibleChatRoster(ignoredJackChatState).some(person => person.characterId === "jack"), false, "ignored Jack request must not expose Chat presence");
+  const acceptedJackChatState = facebook.facebookStateTransition(pendingJackChatState, { type: "ACCEPT_JACK" });
+  assert.equal(acceptedJackChatState.friendRequestState, "accepted");
+  assert.equal(acceptedJackChatState.friends.some(friend => friend.id === "jack"), true, "acceptance must update the canonical Facebook friends collection");
+  assert.deepEqual(facebook.selectFacebookVisibleChatRoster(acceptedJackChatState).map(person => [person.characterId, person.presence]), [["katie", "online"], ["chris", "online"], ["matt", "online"], ["june", "online"], ["jay", "offline"], ["jack", "offline"]], "accepted Jack must become visible in Chat while remaining offline");
+  assert.deepEqual(acceptedJackChatState.inboxThreads, pendingJackChatState.inboxThreads, "accepting Jack must not create or mutate Messages threads");
+  assert.deepEqual(acceptedJackChatState.threadMessages, pendingJackChatState.threadMessages, "accepting Jack must not create Chat or Message content");
   assert.deepEqual(facebookMedia.FACEBOOK_MEDIA_IDS, ["z-tokyo-profile-picture", "facebook-default-avatar", "facebook-avatar-00", "facebook-avatar-02", "facebook-avatar-03", "facebook-avatar-05", "facebook-avatar-06", "facebook-avatar-07", "facebook-sophie-avatar"], "Facebook-local media must centralize the author portrait and approved actor avatars");
   assert.deepEqual([facebookMedia.getFacebookMedia("facebook-default-avatar")?.originalFilename, facebookMedia.getFacebookMedia("facebook-default-avatar")?.classification], ["01.png", "CURATED / FACEBOOK_DEFAULT"]);
 

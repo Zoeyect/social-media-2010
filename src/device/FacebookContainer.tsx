@@ -553,7 +553,6 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
 function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, simulatedNowMs, dispatch }: { profileName: string; currentUserName: string; state: FacebookState; elapsedSeconds: number; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
   const wallRef = useRef<HTMLDivElement>(null);
   const isCurrentUser = profileName === currentUserName;
-  const isFriend = state.friends.some(friend => friend.name === profileName);
   const wallItems = selectFacebookProfileWall(state, profileName);
   const authorIdentity = getFacebookAuthorEasterEggByDisplayName(profileName);
   const canonicalCharacter = Object.values(CORE_SOCIAL_CHARACTERS).find(character => character.displayName === profileName);
@@ -582,9 +581,12 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
   });
 
   return <section className="facebook-profile" aria-label={`${profileName} Profile`} data-identity-kind={state.selectedProfileActor?.kind ?? "name-route"}>
-    <header className="facebook-profile-header">{profileMedia
-      ? <img className="facebook-profile-photo" src={profileMedia.src} alt={`${profileName} profile`} />
-      : <span className="facebook-profile-photo-hold" aria-hidden="true" />}<div><strong>{profileName}</strong>{!isCurrentUser && isFriend && <span>Friend</span>}</div></header>
+    <header className="facebook-profile-header" data-profile-identity-source="actor-media">
+      <div className="facebook-profile-identity-media">{profileMedia
+        ? <img className="facebook-profile-photo" src={profileMedia.src} alt={`${profileName} profile`} />
+        : <span className="facebook-profile-photo-hold" aria-hidden="true" />}</div>
+      <div className="facebook-profile-identity-copy"><strong>{profileName}</strong></div>
+    </header>
     <nav className="facebook-profile-sections" aria-label="Profile sections">
       {(["wall", "info", "photos", "friends"] as const).map(section => <button key={section} type="button" aria-current={state.profileSection === section ? "page" : undefined} onClick={() => dispatch({ type: "SET_PROFILE_SECTION", section })}>{section[0].toUpperCase() + section.slice(1)}</button>)}
     </nav>

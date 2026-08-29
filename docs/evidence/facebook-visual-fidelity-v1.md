@@ -296,6 +296,57 @@ The exact Page set is High School Festival, Main Street Diner, and Gelato Roma. 
 
 Page search is local, deterministic, case-insensitive, and filters only these three Page records. Opening a row uses a Page-specific detail route with name, category, neutral avatar placeholder, sparse Wall, and session-local fan state. Reset restores the initial non-fan baseline.
 
+## Profile Exact Geometry v1.0
+
+The Profile remains the existing compact pre-Timeline structure: shared Facebook navigation chrome, one square identity image, a dense name/friend block, Wall / Info / Photos / Friends section controls, and one authoritative Wall scroll node. No cover photo, circular hero avatar, Timeline layout, modern pills, action cluster, biography field, story, or route was added.
+
+| Element | Previous geometry | Adjusted geometry | Evidence status |
+| --- | --- | --- | --- |
+| Profile navigation chrome | Shared 44px bar | Shared 44px geometry retained; Profile adjacency adds only border/highlight isolation | PERIOD-EVIDENCE |
+| Profile header | 74px minimum; 8px × 10px padding | 68px minimum; 6px × 8px padding; compact gray identity unit | VISUAL-CROSSCHECK |
+| Profile picture | 58px square without explicit frame | 54px square with 1px frame, white inset, and square crop | PERIOD-EVIDENCE / VISUAL-CROSSCHECK |
+| Name block | 17px name with 4px gap | 16px name, 3px gap, bounded single-line identity hierarchy | VISUAL-CROSSCHECK |
+| Section navigation | 33px four-column strip | 31px beveled four-column strip with inset selected state | PERIOD-EVIDENCE |
+| Wall density | Shared story geometry | 34px avatar, 6px × 8px rows, 10px timestamp, Profile-only 88% single-photo preview | VISUAL-CROSSCHECK |
+| Info rows | Unstyled definition list | 82px label column, 34px compact divided rows, white value cells | PERIOD-EVIDENCE / VISUAL-CROSSCHECK |
+| Photos entry | 70px global rows and 58px × 54px thumbnails | Profile-only 62px rows, 48px square thumbnails, count hierarchy, disclosure indicator | VISUAL-CROSSCHECK |
+| Friends entry | 58px global text rows | Profile-only 44px compact text rows; global Friends UI is not duplicated | HOLD / VISUAL-CROSSCHECK |
+
+The Profile Wall retains `facebook-profile-wall` as its sole vertical scroll container and preserves the existing snapshot/Back restoration events. Its media sizing is explicitly independent of the frozen News Feed 68% token. June and Jack continue using dense canonical history; Matt retains distinct owned/tagged media semantics; Chris remains intentionally sparse; Ben's long Wall remains data-identical. Detailed Album fidelity and Generic Post Detail remain separate HOLD surfaces.
+
+All new selectors are limited to `.facebook-profile`, `.facebook-profile-wall`, or the navigation bar immediately followed by `.facebook-profile`. Feed, Comments, Photo Detail, Friends/Pages, Inbox, Chat, Home, scheduler, relationships, content, and canonical interaction state are unchanged.
+
+## Profile Historical Structure + Identity Block v1.0
+
+The Profile Exact Geometry v1.0 pass remains `COMPLETED`. Its blue navigation treatment, Profile-scoped typography, Wall density, section spacing, Info rows, Photos rows, Friends entry, and authoritative Wall scroll behavior remain valid. Only its implicit identity/header assumptions are `PARTIALLY SUPERSEDED` by this structural restoration.
+
+The former anonymous header grouping and any resulting name-only blank-region presentation are `SUPERSEDED`. Profile identity is now represented by explicit `facebook-profile-identity-media` and `facebook-profile-identity-copy` regions within one compact header. The media region consumes only the existing actor-derived `profileMediaId`, resolved through `getFacebookStoryMedia`; it never consults album, owned-photo, or tagged-photo collections. A neutral explicit placeholder remains available for the current user or any Facebook-local identity without approved profile media.
+
+| Element | Status |
+| --- | --- |
+| Pre-Timeline Profile structure | PERIOD-EVIDENCE |
+| Visible square profile picture | PERIOD-EVIDENCE / VISUAL-CROSSCHECK |
+| Display name associated directly with avatar | PERIOD-EVIDENCE / VISUAL-CROSSCHECK |
+| Compact identity block | PERIOD-EVIDENCE / VISUAL-CROSSCHECK |
+| Exact avatar/name placement | HOLD pending target screenshot comparison |
+| Wall / Info / Photos / Friends functional order | PERIOD-EVIDENCE |
+| Exact section-navigation chrome | HOLD / VISUAL-CROSSCHECK |
+| Top title wording `Profile` | HOLD; unchanged in this pass |
+| Name-only blank hero region | SUPERSEDED |
+| Profile Exact Geometry v1.0 | COMPLETED / identity-header assumptions partially superseded |
+
+The v1.0 68px header, 54px square avatar frame, 16px name, 31px section strip, Profile Wall media boundary, and all non-header section geometry were retained through the structural restoration for comparison. Profile Identity + Wall Geometry v1.1 then refines only the evidence-sensitive identity dimensions and Wall single-photo scale described below.
+
+## Profile Identity + Wall Geometry v1.1
+
+The passive `Friend` label on an already-friended Profile is `NOT_EVIDENCED / REMOVED`. Friendship remains entirely state-driven and unchanged; accepting Jack still updates the canonical friends graph, Chat visibility, and party eligibility without adding a permanent relationship-status subtitle. The existing runtime has no Profile-local `Add as Friend` action, so this pass does not invent one or move the established Requests workflow. `Add as Friend` as a historical non-friend action remains `PERIOD-EVIDENCE / HOLD` for a separately scoped implementation decision.
+
+The identity block remains the v1.0 explicit actor-media + display-name structure, refined from a 68px header with a 54px avatar to a 64px header with a 52px avatar. Padding remains 6px vertically and 8px horizontally; the avatar/name gap becomes 9px. The single 16px display name is left-aligned and vertically centered against the avatar without an empty subtitle line. Exact avatar/name placement remains `HOLD / VISUAL-CROSSCHECK`.
+
+Wall / Info / Photos / Friends order remains `PERIOD-EVIDENCE`, while exact section-tab chrome remains `HOLD / VISUAL-CROSSCHECK`; the existing 31px strip and selected state are unchanged. Profile Wall single-photo media changes from 88% / 226px maximum to 82% / 212px maximum as `VISUAL-CROSSCHECK`. It remains larger than the visually frozen News Feed 68% preview, preserves intrinsic aspect ratio, and applies equally to profile-picture updates and other single-photo Wall stories without orientation analysis or media special cases.
+
+All v1.0 Wall density, avatar typography, timestamp, Like / Comment presentation, separators, multi-photo geometry, Info rows, Photos rows, Friends entry, actor-media resolution, scroll snapshots, and Back navigation remain unchanged. No friendship state, request transition, Feed audience, Chat roster rule, Event eligibility, content, media, scheduler, or global time is altered.
+
 ## Feed / Detail Media Scale Boundary v1.2.3
 
 News Feed compact-media and interaction selectors are rooted under `.facebook-feed`. The shared `.facebook-feed-row` retains the earlier Wall-compatible geometry, while direct Feed rows receive the v1.1 density overrides through `.facebook-feed > .facebook-feed-row`.

@@ -2294,6 +2294,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.screen-off-surface\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*100;[^}]*inset:\s*0;[^}]*background:\s*#000;/, "display-off surface must be an opaque full-screen top layer");
   const timelineCellSource = twitterContainerSource.match(/function TimelineTweet[\s\S]*?function TweetDetail/)?.[0] ?? "";
   const facebookProfileSource = facebookContainerSource.match(/function FacebookProfile[\s\S]*?function FacebookCommentRow/)?.[0] ?? "";
+  const facebookProfileIdentitySource = facebookProfileSource.match(/<header className="facebook-profile-header"[\s\S]*?<\/header>/)?.[0] ?? "";
   assert.doesNotMatch(seedSource, /DeviceAudio|deviceEventScheduler|smsNotification/, "seed definitions must not depend on delivery systems");
   assert.doesNotMatch(`${seedSource}\n${coreSocialSource}\n${instagramStateSource}`, /juneph[o]to/, "runtime/data must contain no superseded June Instagram handle");
   assert.doesNotMatch(instagramStateSource, /Math\.random|followerDrift|liveFollowerDrift/, "ordinary fictional June must not receive render-time randomization or celebrity follower drift");
@@ -2317,6 +2318,21 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(facebookContainerSource, /assets\/facebook\/characters|assets\/characters/, "Facebook UI components must not import character image files directly");
   assert.match(facebookProfileSource, /const profileMediaId = authorIdentity\?\.profileMediaId \?\? \(canonicalCharacter \? getFacebookCanonicalProfileMediaId\(canonicalCharacter\.id\) : null\) \?\? ephemeralProfileMediaId/, "Facebook Profile media ID must derive from author, canonical, or ephemeral actor-media mapping");
   assert.match(facebookProfileSource, /const profileMedia = profileMediaId \? getFacebookStoryMedia\(profileMediaId\) : null/, "Facebook Profile must resolve its actor-derived media ID through the shared story-media resolver");
+  assert.match(facebookProfileIdentitySource, /data-profile-identity-source="actor-media"[\s\S]+facebook-profile-identity-media[\s\S]+profileMedia[\s\S]+facebook-profile-photo[\s\S]+facebook-profile-photo-hold[\s\S]+facebook-profile-identity-copy[\s\S]+profileName/, "Profile must bind canonical media and display name into one explicit identity block with a placeholder fallback");
+  assert.doesNotMatch(facebookProfileIdentitySource, /<span>Friend<\/span>/, "already-friended Profiles must not render an unsupported passive Friend label");
+  assert.doesNotMatch(facebookProfileIdentitySource, /getFacebookPhotosOfActor|getFacebookAlbumPhoto|taggedPhotos|cover|timeline/i, "Profile identity must not source arbitrary, tagged, cover, or Timeline media");
+  assert.doesNotMatch(facebookProfileIdentitySource, /birthday|location|school|employer|relationship|interests/i, "Profile identity must not invent user biography fields");
+  const profileSectionDefinition = facebookProfileSource.match(/\(\[([^\]]+)\] as const\)\.map\(section =>/)?.[1] ?? "";
+  const profileSectionOrder = [...profileSectionDefinition.matchAll(/"([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(profileSectionOrder, ["wall", "info", "photos", "friends"], "Profile must preserve the exact locked Wall, Info, Photos, Friends section order");
+  assert.doesNotMatch(facebookProfileSource, /cover-photo|timeline|profile-actions/i, "Profile must remain pre-Timeline without modern cover or action UI");
+  assert.equal(deviceCssSource.split("\n").some(line => line.includes(".facebook-profile") && line.includes(".is-feed")), false, "Feed-only media selectors must not leak into Profile geometry");
+  assert.match(deviceCssSource, /\.facebook-profile-wall \.facebook-story-photo-media \{[^}]*width:/, "Profile Wall single-photo scale must remain explicitly Profile-scoped");
+  assert.match(deviceCssSource, /\.facebook-feed \.facebook-story-view\.is-feed \.facebook-story-photo-media \{[^}]*width: 68%;/, "the frozen News Feed single-photo scale must remain unchanged");
+  for (const [characterId, mapping] of Object.entries(facebookActorMedia.FACEBOOK_CANONICAL_ACTOR_MEDIA)) {
+    assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId(characterId), mapping.profileMediaId, `${characterId} Profile must retain its canonical actor-media mapping`);
+    assert.ok(facebookStoryMedia.getFacebookStoryMedia(mapping.profileMediaId), `${characterId} canonical Profile media must resolve without placeholder fallback`);
+  }
   assert.doesNotMatch(facebookContainerSource, /Reply unavailable in v0\.2/, "all open Facebook message threads must expose the shared reply composer");
   assert.match(facebookContainerSource, /SUBMIT_MESSAGE_REPLY/, "Facebook Messages must use the shared thread reply mechanism");
   assert.match(facebookContainerSource, /OPEN_COMMENT_AUTHOR/, "Facebook comment author names must route through the shared actor-profile event");

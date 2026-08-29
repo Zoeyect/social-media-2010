@@ -96,7 +96,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   });
 
   return <section className="facebook-container" aria-label="Facebook" data-chrome-status="HOLD">
-    <FacebookNavigationHeader state={state} displayName={sessionIdentity.name} dispatch={dispatch} />
+    <FacebookNavigationHeader state={state} displayName={sessionIdentity.name} selectedItem={selectedItem} dispatch={dispatch} />
 
     {state.currentView === "home" && <FacebookHome state={state} displayName={sessionIdentity.name} requestCount={requestCount} inboxUnreadCount={inboxUnreadCount} eventInviteUnseenCount={eventInviteUnseenCount} notificationUnreadCount={notificationUnreadCount} dispatch={dispatch} />}
 
@@ -121,15 +121,12 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
           liked={state.likedItemIds.includes(item.id)}
           onOpenProfile={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition })}
           onOpenActor={actor => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition })}
-          onOpen={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition })}
+          onBeforeMediaNavigate={() => dispatch({ type: "SET_SCROLL_POSITION", scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition })}
           commentCount={selectFacebookComments(state, item.id).length}
           likeCount={selectFacebookLikes(state, item.id, elapsedSeconds).length}
           storyTime={formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp })}
           onToggleLike={() => dispatch({ type: "TOGGLE_LIKE", itemId: item.id, displayName: sessionIdentity.name })}
-          onComment={() => {
-            dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition });
-            dispatch({ type: "BEGIN_COMMENT", itemId: item.id });
-          }}
+          onComment={() => dispatch({ type: "OPEN_COMMENTS", itemId: item.id, scrollPosition: feedRef.current?.scrollTop ?? state.scrollPosition })}
           dispatch={dispatch}
         />)}
       </div>
@@ -154,6 +151,31 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
         <div><button type="button" onClick={() => dispatch({ type: "CANCEL_COMMENT" })}>Cancel</button><button type="submit" disabled={!state.commentDraft.trim()}>Post</button></div>
       </form>}
     </article>}
+
+    {state.currentView === "commentsDetail" && selectedItem && <section className="facebook-comments-detail" aria-label={`${selectedItem.author} comments`}>
+      <div className="facebook-comments-scroll">
+        <FacebookCommentsOriginalStory item={selectedItem} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />
+        {selectFacebookLikes(state, selectedItem.id, elapsedSeconds).length > 0 && <div className="facebook-comments-like-summary">
+          {formatFacebookLikeCount(selectFacebookLikes(state, selectedItem.id, elapsedSeconds).length)}
+        </div>}
+        <div className="facebook-comments-list">
+          {selectFacebookComments(state, selectedItem.id).map(comment => <FacebookCommentsRow key={comment.id} comment={comment} sessionUserName={sessionIdentity.name} dispatch={dispatch} />)}
+        </div>
+      </div>
+      <form className={`facebook-comments-composer${state.commentComposerItemId === selectedItem.id ? " is-editing" : ""}`} onSubmit={event => {
+        event.preventDefault();
+        dispatch({ type: "SUBMIT_COMMENT", displayName: sessionIdentity.name });
+      }}>
+        <input
+          aria-label="Write a comment"
+          placeholder="Write a comment..."
+          value={state.commentComposerItemId === selectedItem.id ? state.commentDraft : ""}
+          onFocus={() => dispatch({ type: "BEGIN_COMMENT", itemId: selectedItem.id })}
+          onChange={event => dispatch({ type: "EDIT_COMMENT", value: event.currentTarget.value })}
+        />
+        {state.commentComposerItemId === selectedItem.id && <button type="submit" disabled={!state.commentDraft.trim()}>Post</button>}
+      </form>
+    </section>}
 
     {state.currentView === "profile" && <FacebookProfile profileName={selectedProfileName} currentUserName={sessionIdentity.name} state={state} elapsedSeconds={elapsedSeconds} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
 
@@ -206,7 +228,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   </section>;
 }
 
-function FacebookNavigationHeader({ state, displayName, dispatch }: { state: FacebookState; displayName: string; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookNavigationHeader({ state, displayName, selectedItem, dispatch }: { state: FacebookState; displayName: string; selectedItem: FacebookFeedItem | null; dispatch: Dispatch<FacebookEvent> }) {
   if (state.currentView === "home") return <header className="facebook-navigation-bar is-home">
     <button type="button" className="facebook-account-control" onClick={() => dispatch({ type: "SHOW_ACCOUNT", profileName: displayName })}>Account</button>
     <strong>facebook</strong>
@@ -219,6 +241,7 @@ function FacebookNavigationHeader({ state, displayName, dispatch }: { state: Fac
     <strong>{state.currentView === "chatConversation" ? chatPeerName ?? "Chat" : state.currentView === "feed" || state.currentView === "friends" ? "facebook" : viewTitle(state.currentView)}</strong>
     {state.currentView === "feed" && <span className="facebook-navigation-context">Live Feed</span>}
     {state.currentView === "friends" && <button type="button" className="facebook-navigation-context" disabled data-provenance-status="HOLD">Sync</button>}
+    {state.currentView === "commentsDetail" && selectedItem && <button type="button" className="facebook-comments-like-control" aria-pressed={state.likedItemIds.includes(selectedItem.id)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: selectedItem.id, displayName })}>{state.likedItemIds.includes(selectedItem.id) ? "Unlike" : "Like"}</button>}
   </header>;
 }
 
@@ -571,7 +594,50 @@ function FacebookCommentRow({ comment, sessionUserName, dispatch }: { comment: F
   </article>;
 }
 
-function FacebookStoryView({ surface, item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpenActor, onBeforeMediaNavigate, onOpen, onToggleLike, onComment, dispatch }: { surface: "feed" | "wall"; item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpenActor?: (actor: FacebookNavigableActor) => void; onBeforeMediaNavigate?: () => void; onOpen: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookCommentsOriginalStory({ item, simulatedNowMs, dispatch }: { item: FacebookFeedItem; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
+  const actorProfileMediaId = item.actor?.kind === "author-easter-egg"
+    ? item.mediaId
+    : item.actor?.kind === "ephemeral-friend-of-friend"
+      ? getFacebookEphemeralProfileMediaId(item.actor.ephemeralId)
+      : item.friendId
+        ? getFacebookCanonicalProfileMediaId(item.friendId)
+        : null;
+  const avatarMedia = actorProfileMediaId ? getFacebookStoryMedia(actorProfileMediaId) : null;
+  return <article className="facebook-comments-original-story">
+    <button type="button" className="facebook-comments-story-avatar" aria-label={`${item.author} Profile`} onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author })}>{avatarMedia
+      ? <img src={avatarMedia.src} alt="" aria-hidden="true" />
+      : <span aria-hidden="true" />}</button>
+    <div className="facebook-comments-story-content">
+      <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author })}>{item.author}</button>
+      <p><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} /></p>
+      <FacebookStoryMedia item={item} dispatch={dispatch} />
+      <time>{formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp, surface: "detail" })}</time>
+    </div>
+  </article>;
+}
+
+function FacebookCommentsRow({ comment, sessionUserName, dispatch }: { comment: FacebookState["comments"][number]; sessionUserName: string; dispatch: Dispatch<FacebookEvent> }) {
+  const actor = resolveFacebookCommentActor(comment, sessionUserName);
+  const avatarMediaId = actor?.kind === "canonical"
+    ? getFacebookCanonicalProfileMediaId(actor.characterId)
+    : actor?.kind === "ephemeral-friend-of-friend"
+      ? getFacebookEphemeralProfileMediaId(actor.ephemeralId)
+      : null;
+  const avatarMedia = avatarMediaId ? getFacebookStoryMedia(avatarMediaId) : null;
+  return <article className="facebook-comment is-comments-detail">
+    {avatarMedia
+      ? <img className="facebook-comment-avatar" src={avatarMedia.src} alt="" aria-hidden="true" />
+      : <span className="facebook-comment-avatar is-placeholder" aria-hidden="true" />}
+    <div className="facebook-comments-comment-copy">
+      {actor
+        ? <button type="button" className="facebook-comment-author" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor })}>{actor.displayName}</button>
+        : <strong>{comment.author}</strong>}{" "}
+      <FacebookInlineEntityText text={comment.text} mentions={comment.mentions} dispatch={dispatch} />
+    </div>
+  </article>;
+}
+
+function FacebookStoryView({ surface, item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpenActor, onBeforeMediaNavigate, onOpen, onToggleLike, onComment, dispatch }: { surface: "feed" | "wall"; item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpenActor?: (actor: FacebookNavigableActor) => void; onBeforeMediaNavigate?: () => void; onOpen?: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
   const actorProfileMediaId = item.actor?.kind === "author-easter-egg"
     ? item.mediaId
     : item.actor?.kind === "ephemeral-friend-of-friend"
@@ -586,7 +652,7 @@ function FacebookStoryView({ surface, item, liked, commentCount, likeCount, stor
       : <span className="facebook-avatar-hold" aria-hidden="true" />}</button>
     <span className="facebook-feed-copy">
       <button type="button" className="facebook-author-link" onClick={onOpenProfile}>{item.author}</button>
-      <span className="facebook-story-link" role="button" tabIndex={0} onClick={onOpen} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen(); }}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} onOpenActor={onOpenActor} /></span>
+      <span className="facebook-story-link" role={surface === "wall" ? "button" : undefined} tabIndex={surface === "wall" ? 0 : undefined} onClick={surface === "wall" ? onOpen : undefined} onKeyDown={surface === "wall" ? event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen?.(); } : undefined}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} onOpenActor={onOpenActor} /></span>
       <FacebookStoryMedia item={item} dispatch={dispatch} onBeforeNavigate={onBeforeMediaNavigate} />
       <time>{storyTime}</time>
       {surface === "feed" ? (commentCount > 0 || likeCount > 0) && <span className="facebook-feed-interaction-footer"><FacebookStoryCounts surface={surface} commentCount={commentCount} likeCount={likeCount} /></span> : <>
@@ -610,14 +676,20 @@ function FacebookStoryMedia({ item, dispatch, onBeforeNavigate }: { item: Facebo
   if (media.length === 0) return null;
   const album = getFacebookAlbumByStoryId(item.id);
   const albumSizeClass = media.length === 2 ? " is-two-photo" : media.length >= 3 ? " is-three-photo" : "";
-  return <button type="button" disabled={!album} onClick={() => {
-    if (!album) return;
+  const openPhoto = (mediaId: FacebookFeedItem["mediaId"]) => {
+    if (!mediaId) return;
     onBeforeNavigate?.();
-    dispatch(item.kind === "album" ? { type: "OPEN_ALBUM", albumId: album.id } : { type: "OPEN_ALBUM_PHOTO", albumId: album.id, mediaId: mediaIds[0] });
-  }} className={item.kind === "album" ? `facebook-story-album-media${albumSizeClass}` : "facebook-story-photo-media"} aria-label={item.albumTitle ?? `${item.author} photo`}>
-    {media.map(record => <img key={record.id} src={record.src} alt="" />)}
-    {item.kind === "album" && item.albumTitle && <span>{item.albumTitle}{media.length ? ` · ${media.length} photos` : ""}</span>}
+    dispatch(album
+      ? { type: "OPEN_ALBUM_PHOTO", albumId: album.id, mediaId }
+      : { type: "OPEN_PHOTO", mediaId });
+  };
+  if (media.length === 1) return <button type="button" onClick={() => openPhoto(media[0].id)} className="facebook-story-photo-media" aria-label={`${item.author} photo`}>
+    <img src={media[0].src} alt="" />
   </button>;
+  return <div className={`facebook-story-album-media${albumSizeClass}`} aria-label={item.albumTitle ?? `${item.author} photos`}>
+    {media.map(record => <button key={record.id} type="button" onClick={() => openPhoto(record.id)} aria-label={`Open ${item.author} photo`}><img src={record.src} alt="" /></button>)}
+    {item.albumTitle && <span>{item.albumTitle} · {media.length} photos</span>}
+  </div>;
 }
 
 function FacebookInlineEntityText({ text, mentions, dispatch, onOpenActor }: { text: string; mentions?: FacebookFeedItem["mentions"]; dispatch: Dispatch<FacebookEvent>; onOpenActor?: (actor: FacebookNavigableActor) => void }) {
@@ -650,6 +722,7 @@ function viewTitle(view: FacebookState["currentView"]): string {
     case "home": return "facebook";
     case "feed": return "News Feed";
     case "feedDetail": return "Post";
+    case "commentsDetail": return "Comments";
     case "profile": return "Profile";
     case "friends": return "Friends";
     case "inbox": return "Messages";

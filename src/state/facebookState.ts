@@ -13,7 +13,7 @@ import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 import { SESSION_START_ISO } from "./deviceMachine";
 export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
-export type FacebookView = "home" | "feed" | "feedDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notes" | "notifications" | "account";
+export type FacebookView = "home" | "feed" | "feedDetail" | "commentsDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notes" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
 type FacebookProfileReturnState = {
   view: FacebookView;
@@ -333,6 +333,7 @@ export type FacebookEvent =
   | { type: "SUBMIT_STATUS"; displayName: string; timestamp: string; createdAt: string }
   | { type: "GO_BACK" }
   | { type: "OPEN_FEED_ITEM"; itemId: string; scrollPosition: number; origin?: "feed" | "profileWall"; profileName?: string }
+  | { type: "OPEN_COMMENTS"; itemId: string; scrollPosition: number; origin?: "feed" | "profileWall"; profileName?: string }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
   | { type: "TOGGLE_LIKE"; itemId: string; displayName?: string }
   | { type: "SHOW_FRIEND_REQUESTS" }
@@ -725,6 +726,20 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         currentView: "feedDetail",
         navigationStack: [...state.navigationStack, "feedDetail"],
         selectedFeedItemId: event.itemId,
+        scrollPosition: event.origin === "profileWall" ? state.scrollPosition : Math.max(0, event.scrollPosition),
+        profileWallScrollPositions: event.origin === "profileWall" && event.profileName
+          ? { ...state.profileWallScrollPositions, [event.profileName]: Math.max(0, event.scrollPosition) }
+          : state.profileWallScrollPositions,
+      };
+    case "OPEN_COMMENTS":
+      if (!state.feed.some(item => item.id === event.itemId)) return state;
+      return {
+        ...state,
+        currentView: "commentsDetail",
+        navigationStack: [...state.navigationStack, "commentsDetail"],
+        selectedFeedItemId: event.itemId,
+        commentComposerItemId: null,
+        commentDraft: "",
         scrollPosition: event.origin === "profileWall" ? state.scrollPosition : Math.max(0, event.scrollPosition),
         profileWallScrollPositions: event.origin === "profileWall" && event.profileName
           ? { ...state.profileWallScrollPositions, [event.profileName]: Math.max(0, event.scrollPosition) }

@@ -178,6 +178,36 @@ The plus control is a conservative CSS reconstruction using the existing period 
 
 Exact plus artwork: PERIOD-EVIDENCE / CSS RECONSTRUCTION
 
+## Comments Detail historical structure v1.3
+
+The News Feed `Comment` action opens a dedicated `Comments` surface rather than the generic `Post` detail route. Other Post Detail entry paths remain unchanged.
+
+- The centered title is `Comments`, with Back on the left and the canonical Like/Unlike action on the right.
+- The original story is compact at the top and resolves the same canonical story and media as Feed.
+- Likes use a separate compact summary above the discussion rather than combined engagement metadata.
+- Comments use dense pale rows with the existing actor resolver, avatars, and inline copy. No modern per-comment Like or Reply controls were added.
+- A single-line `Write a comment...` composer is docked below the one authoritative comment scroll area and submits through the existing Facebook comment state.
+- Existing comment records do not contain trustworthy per-comment timestamps, so this pass does not fabricate visible time metadata.
+
+This restoration changes visual hierarchy and navigation structure only. Story order, media identity, Like state, comment state, Feed eligibility, and Facebook content remain frozen.
+
+## Historical News Feed Route Map v1.4
+
+The 2010 News Feed primary routes are locked as follows:
+
+- Actor avatar or name -> Profile: READY / PERIOD-EVIDENCE
+- Structured mention -> mentioned actor Profile: READY / PERIOD-EVIDENCE
+- `+` -> reveal the existing Like and Comment controls: PERIOD-EVIDENCE
+- Comment -> dedicated Comments screen: PERIOD-EVIDENCE
+- Single-photo preview -> canonical Photo Detail: PERIOD-EVIDENCE
+- Individual multi-photo thumbnail -> that exact canonical media item in Photo Detail: PERIOD-EVIDENCE
+- Generic Feed story body -> no primary action: HOLD
+- News Feed photo -> Generic Post Detail: REJECTED as a primary route
+
+Generic Post Detail remains available as a non-primary fallback. Profile Wall story-body navigation is retained as LEGACY / HOLD for compatibility, while the Event Wall's direct Alex story link remains an INTERNAL_FALLBACK. No broad Post Detail cleanup is part of this pass.
+
+Feed media navigation captures the existing Feed scroll position before opening Photo Detail. Single-photo, album-thumbnail, Profile Wall, Album, and tagged-photo entry paths continue resolving the same canonical media and story interaction identity. No duplicate media or derivative asset was introduced.
+
 ## Feed / Detail Media Scale Boundary v1.2.3
 
 News Feed compact-media and interaction selectors are rooted under `.facebook-feed`. The shared `.facebook-feed-row` retains the earlier Wall-compatible geometry, while direct Feed rows receive the v1.1 density overrides through `.facebook-feed > .facebook-feed-row`.

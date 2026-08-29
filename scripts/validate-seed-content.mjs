@@ -2328,6 +2328,14 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(facebookProfileSource, /cover-photo|timeline|profile-actions/i, "Profile must remain pre-Timeline without modern cover or action UI");
   assert.equal(deviceCssSource.split("\n").some(line => line.includes(".facebook-profile") && line.includes(".is-feed")), false, "Feed-only media selectors must not leak into Profile geometry");
   assert.match(deviceCssSource, /\.facebook-profile-wall \.facebook-story-photo-media \{[^}]*width:/, "Profile Wall single-photo scale must remain explicitly Profile-scoped");
+  assert.match(deviceCssSource, /\.facebook-profile-wall \.facebook-story-photo-media \{ width: 82%; max-width: 212px;/, "Profile Wall single photos must retain the approved 82-percent, 212-pixel ceiling");
+  assert.match(deviceCssSource, /\.facebook-profile-wall \.facebook-story-album-media \{ width: 80%; max-width: 212px;/, "Profile Wall multi-photo previews must retain their Wall-scoped compact width");
+  assert.match(deviceCssSource, /\.facebook-profile-wall \.facebook-story-album-media img \{[^}]*height: auto;[^}]*aspect-ratio: auto;[^}]*object-fit: contain;/, "Profile Wall multi-photo previews must preserve intrinsic image aspect ratios without cover cropping");
+  assert.match(deviceCssSource, /\.facebook-profile-wall \{ --facebook-wall-avatar-size: 36px;/, "Profile Wall must keep its compact Wall-specific avatar token");
+  assert.match(deviceCssSource, /\.facebook-profile-header \{[^}]*min-height: 64px;[^}]*padding: 6px 8px;[^}]*grid-template-columns: 52px minmax\(0,1fr\);/, "Profile identity header geometry must remain frozen");
+  assert.match(deviceCssSource, /\.facebook-profile-photo-hold,\.facebook-profile-photo \{[^}]*width: 52px; height: 52px;/, "Profile identity media must remain at the frozen 52-pixel size");
+  assert.match(facebookProfileSource, /onToggleLike=\{\(\) => dispatch\(\{ type: "TOGGLE_LIKE", itemId: item\.id, displayName: currentUserName \}\)\}/, "Wall Like must retain the canonical handler");
+  assert.match(facebookProfileSource, /onComment=\{\(\) => \{[\s\S]*type: "OPEN_FEED_ITEM"[\s\S]*type: "BEGIN_COMMENT", itemId: item\.id/, "Wall Comment must retain its legacy route and canonical comment handler");
   assert.match(deviceCssSource, /\.facebook-feed \.facebook-story-view\.is-feed \.facebook-story-photo-media \{[^}]*width: 68%;/, "the frozen News Feed single-photo scale must remain unchanged");
   for (const [characterId, mapping] of Object.entries(facebookActorMedia.FACEBOOK_CANONICAL_ACTOR_MEDIA)) {
     assert.equal(facebookActorMedia.getFacebookCanonicalProfileMediaId(characterId), mapping.profileMediaId, `${characterId} Profile must retain its canonical actor-media mapping`);

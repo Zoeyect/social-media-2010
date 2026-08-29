@@ -236,6 +236,36 @@ Generic Post Detail remains limited to Profile Wall story body as `LEGACY / HOLD
 
 These surfaces may be reopened only for a confirmed A-level runtime blocker, B-level functional regression, or strong newly discovered historical evidence that directly contradicts the frozen implementation. Subjective polish is not sufficient grounds to reopen them.
 
+## Profile Wall Historical Fidelity v1.2
+
+The Profile Wall remains a continuous, compact stack rather than a collection of cards. Its story renderer, actor/media resolution, timestamps, Likes, comments, and navigation handlers remain canonical and unchanged. Only selectors scoped below `.facebook-profile-wall` define the Wall presentation.
+
+### Feed / Wall audit and decisions
+
+| Element | Frozen News Feed | Profile Wall v1.2 | Decision |
+|---|---|---|---|
+| Avatar size | 36px | 36px Wall token | SHARE_WITH_FEED |
+| Avatar/content gap | 7px | 7px | SHARE_WITH_FEED |
+| Actor font | 13px / 16px | 13px / 16px | SHARE_WITH_FEED |
+| Body font | 13px / 16px | 13px / 16px | SHARE_WITH_FEED |
+| Timestamp font | 11px / 13px, gray | 11px / 13px, gray | SHARE_WITH_FEED |
+| Story padding | 6px 8px | 6px 8px | SHARE_WITH_FEED |
+| Separator | 1px `#b8bcc3` | 1px `#b8bcc3` | SHARE_WITH_FEED |
+| Single-photo width | 68% | 82%, max 212px | WALL_SPECIFIC |
+| Multi-photo width | 74–76% | 80%, max 212px | WALL_SPECIFIC |
+| Engagement summary | compact, comments then people | compact, likes then comments | WALL_SPECIFIC |
+| Like / Comment actions | `+` disclosure | persistent low-weight text links | HOLD |
+| Comment preview | pale compact row | pale compact row rule retained | SHARE_WITH_FEED |
+| Photo frame | 2px inset, thin gray frame | 2px inset, thin gray frame | SHARE_WITH_FEED |
+
+Compact stacked stories, square compact Wall avatars, and the Wall avatar/body hierarchy are `PERIOD-EVIDENCE / VISUAL-CROSSCHECK`. The dense Wall typography hierarchy is `VISUAL-CROSSCHECK`. Profile Wall media being smaller than Detail but larger than Feed is `VISUAL-CROSSCHECK`; the 82% and 80% values are conservative implementation targets, not claimed historical measurements. Wall single-photo media, including profile-picture updates, uses the same 82% / 212px ceiling with intrinsic height and no crop. Multi-photo previews use an 80% / 212px ceiling, small gaps, a thin frame, a compact caption strip, and intrinsic image ratios rather than the inherited square cover crop.
+
+Exact Profile Wall Like / Comment chrome is `HOLD`: available evidence does not justify copying the frozen Feed `+` disclosure. The existing canonical handlers and persistent labels remain, with reduced visual weight only. The compact pale comment-preview treatment is `PERIOD-EVIDENCE / VISUAL-CROSSCHECK`; no threading, comment Likes, or fabricated metadata is introduced.
+
+Profile Wall photo controls already resolve canonical single media or exact album photos into Photo Detail, so no route change is required. Generic Profile Wall story-body navigation to Post Detail remains `LEGACY / HOLD`.
+
+The Profile identity block, section tabs, News Feed selectors and 68% Feed media rule, Comments Detail, Photo Detail, data, chronology, ownership, tags, and interaction state remain unchanged.
+
 ## Friends / Pages Shared List v1.1
 
 - Friends contact-style list: PERIOD-EVIDENCE

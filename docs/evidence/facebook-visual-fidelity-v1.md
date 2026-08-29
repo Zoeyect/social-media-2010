@@ -136,7 +136,7 @@ Status: PERIOD-EVIDENCE / VISUAL-CROSSCHECK
 
 ### Composer boundary
 
-The existing `Photo | Status | Check In` structure and labels are unchanged. Only height, typography, borders, separators, padding, and gradient were adjusted.
+The former `Photo | Status | Check In` Feed strip is `SUPERSEDED / REJECTED` for the target composer. The News Feed now uses the `PERIOD-EVIDENCE` camera + `What's on your mind?` row, while Facebook Places / Check In remains `PERIOD-EVIDENCE` and reachable through its existing Home launcher. The exact Facebook camera glyph remains `HOLD`; the current control is a conservative CSS reconstruction rather than a borrowed or fabricated production asset. Navigation-title centering and left-aligned field/content text remain `PERIOD-EVIDENCE / VISUAL-CROSSCHECK` rules, with no global alignment override.
 
 Status: HOLD — requires Facebook 3.2 exact evidence
 
@@ -207,6 +207,94 @@ The 2010 News Feed primary routes are locked as follows:
 Generic Post Detail remains available as a non-primary fallback. Profile Wall story-body navigation is retained as LEGACY / HOLD for compatibility, while the Event Wall's direct Alex story link remains an INTERNAL_FALLBACK. No broad Post Detail cleanup is part of this pass.
 
 Feed media navigation captures the existing Feed scroll position before opening Photo Detail. Single-photo, album-thumbnail, Profile Wall, Album, and tagged-photo entry paths continue resolving the same canonical media and story interaction identity. No duplicate media or derivative asset was introduced.
+
+## Facebook Visual Freeze — News Feed / Comments / Photo Routing v1.0
+
+**Status: VISUAL-FROZEN**
+
+The following surfaces are visually frozen after manual and structural confirmation:
+
+- News Feed: VISUAL-FROZEN
+- Comments Detail: VISUAL-FROZEN
+- News Feed -> Photo Detail routing: VISUAL-FROZEN
+
+The frozen boundary includes News Feed geometry, avatar sizing, typography hierarchy, media preview scale, engagement summaries, the `+` disclosure, expanded Like / Comment controls, scrolling, chronology, eligibility, Comments chrome and row geometry, the docked composer, exact thumbnail routing, canonical media identity, Back restoration, and intrinsic image aspect preservation.
+
+Locked historical route map:
+
+```text
+Actor / avatar -> Profile
+Structured mention -> Profile
++ -> Like / Comment controls
+Comment -> Comments
+Single photo -> Photo Detail
+Multi-photo thumbnail -> exact Photo Detail
+Feed story body -> HOLD
+```
+
+Generic Post Detail remains limited to Profile Wall story body as `LEGACY / HOLD` and the Event Wall Alex story link as `INTERNAL_FALLBACK`.
+
+These surfaces may be reopened only for a confirmed A-level runtime blocker, B-level functional regression, or strong newly discovered historical evidence that directly contradicts the frozen implementation. Subjective polish is not sufficient grounds to reopen them.
+
+## Friends / Pages Shared List v1.1
+
+- Friends contact-style list: PERIOD-EVIDENCE
+- Friends display-name alphabetical sorting: PERIOD-EVIDENCE
+- Populated alphabetical section headers: PERIOD-EVIDENCE / VISUAL-CROSSCHECK
+- Fixed right-side search, A–Z, and `#` index: PERIOD-EVIDENCE / VISUAL-CROSSCHECK
+- Alphabet index section jumping: ACTIVE
+- Phone affordance where canonical contact data exists: PERIOD-EVIDENCE
+- Current phone affordance: OMITTED because no canonical friend phone metadata exists
+- Exact historical phone glyph: HOLD
+- Pages as a shared simple-list tab: PERIOD-EVIDENCE
+- Current canonical Pages dataset: three strict Facebook-local Page records
+- Pages alphabet rail: OMITTED because the dataset is empty
+- Modern Pages management UI: REJECTED
+- Exact Friends / Pages / Requests tab composition on October 20, 2010: HOLD
+- Sync control: HOLD / unchanged
+
+Friends and Pages share the same header, compact search placement, bounded list region, separator language, and period-style bottom segments. Friends uses 50-pixel contact rows, 42-pixel square canonical avatars, populated section headers, and a fixed index outside its authoritative scroll node. Pages retains the same list shell with the tab-specific `Search Pages` placeholder and three alphabetically sorted lightweight records.
+
+### Search Surface Audit v0.1
+
+Search remains surface-specific rather than a global Facebook control. Home Search and Friends Search are `PERIOD-EVIDENCE`; Pages search capability is `PERIOD-EVIDENCE`. Their shared white rounded field, gray border, subtle inner shadow, CSS magnifier, and left-aligned placeholder are `PERIOD-EVIDENCE / VISUAL-CROSSCHECK`. The magnifier is a conservative CSS reconstruction already used by Home, not an SF Symbol, icon-library glyph, generated asset, or screenshot crop.
+
+| Surface | Current Search | Historical evidence | Decision |
+| --- | --- | --- | --- |
+| Home | `Search` | Confirmed period surface | REQUIRED |
+| News Feed | None | Frozen target has composer, not Search | REJECTED |
+| Profile | None | No confirmed target-version evidence in the current evidence set | NOT_EVIDENCED |
+| Friends | `Search Friends` | Confirmed period surface | REQUIRED |
+| Pages | `Search Pages` | Page search capability supported in the target-era app | SUPPORTED |
+| Page Detail | None | No confirmed detail-surface Search evidence | NOT_EVIDENCED |
+| Requests | None | No confirmed target-version evidence in the current evidence set | NOT_EVIDENCED |
+| Inbox | None | Search placement is not established by current evidence | HOLD |
+| Chat | None | Roster search is plausible but not established for the locked target version | HOLD |
+| Chat Conversation | None | No conversation-local Search evidence | NOT_EVIDENCED |
+| Places | None | Place-search geometry is not established by current evidence | HOLD |
+| Events | None | No confirmed target-version evidence in the current evidence set | NOT_EVIDENCED |
+| Photos | None | No confirmed Photos-root Search evidence | NOT_EVIDENCED |
+| Notes | None | No confirmed target-version evidence in the current evidence set | NOT_EVIDENCED |
+| Notifications | None | No confirmed target-version evidence in the current evidence set | NOT_EVIDENCED |
+| Comments | None | Frozen Comments structure has no Search | REJECTED |
+| Photo Detail | None | Frozen image-focused route has no Search | REJECTED |
+| Generic Post Detail | None | No confirmed detail-local Search evidence | NOT_EVIDENCED |
+
+This pass changes only Home, Friends, and Pages field alignment and magnifier consistency. It does not add Search to any other route, and it introduces no Search selector under `.facebook-feed`.
+
+The initial Friends graph also includes exactly three existing Facebook-local peripheral actors: Emily, Mike, and Ryan. They retain their established ephemeral IDs, fixed avatars, sparse Facebook-local Profiles, and `EPHEMERAL_FRIEND_OF_FRIEND` classification. This list inclusion does not promote them into the canonical core cast or establish new relationship canon. Their names participate in the same display-name sorting and naturally expose the `E`, `M`, and `R` list positions.
+
+### Pages Minimal Functional Seed v1.2
+
+- Pages searchable and viewable: PERIOD-EVIDENCE
+- `Become a Fan`: PERIOD-EVIDENCE
+- Page administration: PERIOD-EVIDENCE / OUT-OF-SCOPE
+- Home Page shortcuts: PERIOD-EVIDENCE / FROZEN-IA
+- Exact October 2010 Page-detail chrome: HOLD / VISUAL-CROSSCHECK
+
+The exact Page set is High School Festival, Main Street Diner, and Gelato Roma. Main Street Diner and Gelato Roma reference their existing canonical venue IDs rather than creating duplicate businesses. None has an approved Page logo, so all three use the existing neutral placeholder treatment. Page records contain no human actor identity, biography, fabricated timeline, News Feed injection, administration role, or inferred user preference.
+
+Page search is local, deterministic, case-insensitive, and filters only these three Page records. Opening a row uses a Page-specific detail route with name, category, neutral avatar placeholder, sparse Wall, and session-local fan state. Reset restores the initial non-fan baseline.
 
 ## Feed / Detail Media Scale Boundary v1.2.3
 

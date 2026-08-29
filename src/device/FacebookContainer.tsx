@@ -19,6 +19,7 @@ import {
   selectFacebookThreadMessages,
   selectFacebookChatMessages,
   selectFacebookVisibleChatRoster,
+  selectFacebookVisiblePages,
   resolveFacebookCommentActor,
   resolveFacebookHomeSwipePage,
   selectFacebookProfileWall,
@@ -39,6 +40,7 @@ import { getFacebookStoryMedia } from "../data/facebookStoryMedia";
 import { formatFacebookStoryTime } from "../data/facebookStoryTime";
 import { getCanonicalVenue } from "../data/canonicalVenues";
 import { SESSION_START_ISO } from "../state/deviceMachine";
+import { getFacebookPage } from "../data/facebookPages";
 
 type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number };
 
@@ -73,6 +75,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   const selectedAlbum = state.selectedAlbumId ? getFacebookAlbum(state.selectedAlbumId) : null;
   const selectedPhoto = state.selectedPhotoMediaId ? getFacebookStoryMedia(state.selectedPhotoMediaId) : null;
   const selectedTaggedPhotos = state.selectedTaggedActor ? getFacebookPhotosOfActor(state.selectedTaggedActor) : [];
+  const selectedPage = state.selectedPageId ? getFacebookPage(state.selectedPageId) : null;
   const elapsedSeconds = Math.floor(elapsedMs / 1_000);
   const simulatedNowMs = Date.parse(SESSION_START_ISO) + elapsedMs;
   const visibleFeed = selectFacebookVisibleFeed(state, simulatedNowMs);
@@ -101,11 +104,12 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     {state.currentView === "home" && <FacebookHome state={state} displayName={sessionIdentity.name} requestCount={requestCount} inboxUnreadCount={inboxUnreadCount} eventInviteUnseenCount={eventInviteUnseenCount} notificationUnreadCount={notificationUnreadCount} dispatch={dispatch} />}
 
     {state.currentView === "feed" && <>
-      <nav className="facebook-feed-composer-strip" aria-label="Create">
-        <button type="button" disabled data-provenance-status="HOLD">Photo</button>
-        <button type="button" aria-expanded={state.statusComposerOpen} onClick={() => dispatch({ type: "OPEN_STATUS_COMPOSER" })}>Status</button>
-        <button type="button" onClick={() => dispatch({ type: "SHOW_PLACES" })}>Check In</button>
-      </nav>
+      <div className="facebook-feed-composer-strip" aria-label="Create">
+        <button className="facebook-feed-camera-control" type="button" disabled aria-label="Camera" data-provenance-status="HOLD">
+          <span aria-hidden="true" />
+        </button>
+        <button className="facebook-feed-status-control" type="button" aria-expanded={state.statusComposerOpen} onClick={() => dispatch({ type: "OPEN_STATUS_COMPOSER" })}>What's on your mind?</button>
+      </div>
       {state.statusComposerOpen && <form className="facebook-status-composer" onSubmit={event => {
         event.preventDefault();
         dispatch({ type: "SUBMIT_STATUS", displayName: sessionIdentity.name, timestamp: currentDeviceTime, createdAt: new Date(simulatedNowMs).toISOString() });
@@ -180,6 +184,8 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     {state.currentView === "profile" && <FacebookProfile profileName={selectedProfileName} currentUserName={sessionIdentity.name} state={state} elapsedSeconds={elapsedSeconds} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
 
     {state.currentView === "friends" && <FacebookFriends state={state} requestCount={requestCount} dispatch={dispatch} />}
+
+    {state.currentView === "pageDetail" && selectedPage && <FacebookPageDetail page={selectedPage} isFan={state.pageFanIds.includes(selectedPage.id)} dispatch={dispatch} />}
 
     {state.currentView === "inbox" && <div className="facebook-message-list" aria-label="Inbox">
       {state.inboxThreads.map(message => <button key={message.id} type="button" onClick={() => dispatch({ type: "OPEN_MESSAGE", messageId: message.id })}>
@@ -365,14 +371,51 @@ function FacebookFriends({ state, requestCount, dispatch }: { state: FacebookSta
   const visibleFriends = state.friends
     .filter(friend => !normalizedQuery || friend.name.toLowerCase().includes(normalizedQuery))
     .sort((left, right) => left.name.localeCompare(right.name));
+  const friendSections = visibleFriends.reduce<Array<{ letter: string; friends: typeof visibleFriends }>>((sections, friend) => {
+    const letter = friend.name.slice(0, 1).toUpperCase();
+    const currentSection = sections[sections.length - 1];
+    if (currentSection?.letter === letter) currentSection.friends.push(friend);
+    else sections.push({ letter, friends: [friend] });
+    return sections;
+  }, []);
+  const availableLetters = new Set(friendSections.map(section => section.letter));
+  const alphabet = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"];
+  const visiblePages = selectFacebookVisiblePages(state);
   return <section className="facebook-friends-screen">
-    <label className="facebook-friends-search"><input aria-label="Search Friends" placeholder="Search Friends" value={state.friendSearchQuery} onChange={event => dispatch({ type: "EDIT_FRIEND_SEARCH", value: event.currentTarget.value })} /></label>
+    <label className="facebook-friends-search"><span className="facebook-search-glyph" aria-hidden="true" /><input aria-label={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} placeholder={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} value={state.friendSearchQuery} onChange={event => dispatch({ type: "EDIT_FRIEND_SEARCH", value: event.currentTarget.value })} /></label>
     <div className="facebook-friends-content">
-      {state.friendsSection === "friends" && <div className="facebook-friend-list" aria-label="Friends">
-        {visibleFriends.map(friend => <button key={friend.id} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: friend.name })}><span className="facebook-avatar-hold" aria-hidden="true" /><strong>{friend.name}</strong></button>)}
-        <span className="facebook-alphabet-index" aria-hidden="true">A B C J K L M</span>
+      {state.friendsSection === "friends" && <>
+        <div className="facebook-friend-list" aria-label="Friends">
+          {friendSections.map(section => <section className="facebook-friend-section" id={`facebook-friends-${section.letter}`} key={section.letter}>
+            <h2>{section.letter}</h2>
+            {section.friends.map(friend => {
+              const profileMediaId = friend.actor.kind === "canonical"
+                ? getFacebookCanonicalProfileMediaId(friend.actor.characterId)
+                : getFacebookEphemeralProfileMediaId(friend.actor.ephemeralId);
+              const profileMedia = profileMediaId ? getFacebookStoryMedia(profileMediaId) : null;
+              return <div className="facebook-friend-row" key={friend.id}>
+                <button type="button" className="facebook-friend-identity" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: friend.actor })}>
+                  {profileMedia
+                    ? <img className="facebook-friend-avatar" src={profileMedia.src} alt="" aria-hidden="true" />
+                    : <span className="facebook-friend-avatar is-placeholder" aria-hidden="true" />}
+                  <strong>{friend.name}</strong>
+                </button>
+              </div>;
+            })}
+          </section>)}
+        </div>
+        <nav className="facebook-alphabet-index" aria-label="Friend list index">
+          <span className="facebook-alphabet-search-mark" aria-hidden="true" />
+          {alphabet.map(letter => <button key={letter} type="button" disabled={!availableLetters.has(letter)} onClick={() => document.getElementById(`facebook-friends-${letter}`)?.scrollIntoView({ block: "start" })}>{letter}</button>)}
+        </nav>
+      </>}
+      {state.friendsSection === "pages" && <div className="facebook-page-list" aria-label="Pages">
+        {visiblePages.map(page => <button className="facebook-page-row" key={page.id} type="button" onClick={() => dispatch({ type: "OPEN_PAGE", pageId: page.id })}>
+          <span className="facebook-page-avatar is-placeholder" aria-hidden="true" />
+          <span><strong>{page.name}</strong><small>{page.category}</small></span>
+        </button>)}
+        {visiblePages.length === 0 && <div className="facebook-shared-list-empty">No Pages found.</div>}
       </div>}
-      {state.friendsSection === "pages" && <div className="facebook-empty-list" data-provenance-status="HOLD">No Pages.</div>}
       {state.friendsSection === "requests" && <div className="facebook-request-list">
         {state.friendRequestState !== "pending" && <div className="facebook-empty-list">No pending requests.</div>}
         {state.friendRequestState === "pending" && <section className="facebook-request-row">
@@ -384,6 +427,17 @@ function FacebookFriends({ state, requestCount, dispatch }: { state: FacebookSta
     <nav className="facebook-friends-segments" aria-label="Friends sections">
       {(["friends", "pages", "requests"] as const).map(section => <button key={section} type="button" aria-current={state.friendsSection === section ? "page" : undefined} onClick={() => dispatch({ type: "SET_FRIENDS_SECTION", section })}>{section[0].toUpperCase() + section.slice(1)}{section === "requests" && requestCount > 0 ? ` ${requestCount}` : ""}</button>)}
     </nav>
+  </section>;
+}
+
+function FacebookPageDetail({ page, isFan, dispatch }: { page: NonNullable<ReturnType<typeof getFacebookPage>>; isFan: boolean; dispatch: Dispatch<FacebookEvent> }) {
+  return <section className="facebook-page-detail" aria-label={`${page.name} Page`}>
+    <header>
+      <span className="facebook-page-detail-avatar is-placeholder" aria-hidden="true" />
+      <div><strong>{page.name}</strong><span>{page.category}</span></div>
+    </header>
+    <button type="button" className="facebook-page-fan-control" aria-pressed={isFan} disabled={isFan} onClick={() => dispatch({ type: "BECOME_PAGE_FAN", pageId: page.id })}>{isFan ? "Fan" : "Become a Fan"}</button>
+    <div className="facebook-page-wall" aria-label={`${page.name} Wall`} />
   </section>;
 }
 
@@ -570,7 +624,7 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
       : <div className="facebook-profile-empty" data-provenance-status="HOLD" aria-label="Profile Info unavailable" />)}
     {state.profileSection === "photos" && <FacebookAlbumList actor={albumActor} dispatch={dispatch} />}
     {state.profileSection === "friends" && <div className="facebook-friend-list" aria-label={`${profileName} Friends`}>
-      {isCurrentUser && state.friends.map(friend => <button key={friend.id} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: friend.name })}><strong>{friend.name}</strong></button>)}
+      {isCurrentUser && state.friends.map(friend => <button key={friend.id} type="button" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: friend.actor })}><strong>{friend.name}</strong></button>)}
     </div>}
   </section>;
 }
@@ -725,6 +779,7 @@ function viewTitle(view: FacebookState["currentView"]): string {
     case "commentsDetail": return "Comments";
     case "profile": return "Profile";
     case "friends": return "Friends";
+    case "pageDetail": return "Page";
     case "inbox": return "Messages";
     case "messageDetail": return "Message";
     case "events": return "Events";

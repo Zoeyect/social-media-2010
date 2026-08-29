@@ -2,7 +2,7 @@ import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
-import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS } from "../data/facebookActors";
+import { FACEBOOK_AUTHOR_EASTER_EGG_ID, FACEBOOK_AUTHOR_EASTER_EGGS, FACEBOOK_EPHEMERAL_EMILY_ID, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID, FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS, FACEBOOK_EPHEMERAL_MIKE_ID } from "../data/facebookActors";
 import type { FacebookEphemeralFriendOfFriendId, FacebookFeedActor, FacebookPeripheralActorClassification } from "../data/facebookActors";
 import type { FacebookAuthorEasterEggId } from "../data/facebookActors";
 import { COMMUNITY_COURTS_VENUE, DOWNTOWN_COFFEE_VENUE, GELATO_ROMA_VENUE, MAIN_STREET_DINER_VENUE, RIVERSIDE_PARK_VENUE, WESTSIDE_LIBRARY_VENUE } from "../data/canonicalVenues";
@@ -10,10 +10,12 @@ import type { CanonicalVenueId } from "../data/canonicalVenues";
 import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumForMediaId, getFacebookPhotosOfActor } from "../data/facebookAlbums";
 import type { FacebookAlbumId, FacebookPhotoTagActor } from "../data/facebookAlbums";
 import type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
+import { FACEBOOK_PAGES } from "../data/facebookPages";
+import type { FacebookPageId } from "../data/facebookPages";
 import { SESSION_START_ISO } from "./deviceMachine";
 export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
-export type FacebookView = "home" | "feed" | "feedDetail" | "commentsDetail" | "profile" | "friends" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notes" | "notifications" | "account";
+export type FacebookView = "home" | "feed" | "feedDetail" | "commentsDetail" | "profile" | "friends" | "pageDetail" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notes" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
 type FacebookProfileReturnState = {
   view: FacebookView;
@@ -44,6 +46,7 @@ export const FACEBOOK_KATIE_GOSSIP_MESSAGE_ID = "facebook-katie-jack-gossip-mess
 export const FACEBOOK_EPHEMERAL_GOSSIP_POST_ID = "facebook-june-jack-gossip-ryan-standalone";
 
 export const FACEBOOK_BASELINE_FRIEND_IDS = Object.freeze(["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"] as const);
+export const FACEBOOK_INITIAL_PERIPHERAL_FRIEND_IDS = Object.freeze([FACEBOOK_EPHEMERAL_EMILY_ID, FACEBOOK_EPHEMERAL_MIKE_ID, FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID] as const);
 
 export const FACEBOOK_HOME_LAUNCHER_PAGES = Object.freeze([
   Object.freeze([
@@ -129,8 +132,9 @@ function createInitialFacebookChatThreads(): FacebookChatThreads {
 }
 
 export type FacebookFriend = {
-  id: CoreSocialCharacterId;
+  id: CoreSocialCharacterId | FacebookEphemeralFriendOfFriendId;
   name: string;
+  actor: Extract<FacebookNavigableActor, { kind: "canonical" | "ephemeral-friend-of-friend" }>;
 };
 
 export type FacebookThreadMessage = {
@@ -260,6 +264,8 @@ export type FacebookState = {
   friends: FacebookFriend[];
   friendsSection: FacebookFriendsSection;
   friendSearchQuery: string;
+  selectedPageId: FacebookPageId | null;
+  pageFanIds: FacebookPageId[];
   statusComposerOpen: boolean;
   statusDraft: string;
   partyInviteState: FacebookPartyInviteState;
@@ -289,6 +295,13 @@ export function selectFacebookVisibleChatRoster(state: FacebookState) {
   return FACEBOOK_CHAT_ROSTER.filter(person => friendIds.has(person.characterId));
 }
 
+export function selectFacebookVisiblePages(state: FacebookState) {
+  const normalizedQuery = state.friendSearchQuery.trim().toLowerCase();
+  return FACEBOOK_PAGES
+    .filter(page => !normalizedQuery || page.name.toLowerCase().includes(normalizedQuery))
+    .sort((left, right) => left.name.localeCompare(right.name));
+}
+
 export function selectFacebookChatMessages(state: FacebookState, peerId: FacebookChatPeerId) {
   return state.chatThreads[peerId];
 }
@@ -306,6 +319,8 @@ export type FacebookEvent =
   | { type: "SHOW_FRIENDS" }
   | { type: "SET_FRIENDS_SECTION"; section: FacebookFriendsSection }
   | { type: "EDIT_FRIEND_SEARCH"; value: string }
+  | { type: "OPEN_PAGE"; pageId: FacebookPageId }
+  | { type: "BECOME_PAGE_FAN"; pageId: FacebookPageId }
   | { type: "SHOW_REQUESTS" }
   | { type: "SHOW_INBOX" }
   | { type: "SHOW_EVENTS" }
@@ -378,9 +393,17 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     likedItemIds: [],
     likes: SESSION_SEED_CONTENT.facebook.likes.map(like => ({ ...like })),
     friendRequestState: "none",
-    friends: FACEBOOK_BASELINE_FRIEND_IDS.map(id => ({ id, name: CORE_SOCIAL_CHARACTERS[id].displayName })),
+    friends: [
+      ...FACEBOOK_BASELINE_FRIEND_IDS.map(id => ({ id, name: CORE_SOCIAL_CHARACTERS[id].displayName, actor: { kind: "canonical" as const, characterId: id, displayName: CORE_SOCIAL_CHARACTERS[id].displayName } })),
+      ...FACEBOOK_INITIAL_PERIPHERAL_FRIEND_IDS.map(id => {
+        const actor = FACEBOOK_EPHEMERAL_FRIENDS_OF_FRIENDS[id];
+        return { id, name: actor.displayName, actor: { kind: "ephemeral-friend-of-friend" as const, ephemeralId: id, displayName: actor.displayName, classification: actor.classification } };
+      }),
+    ],
     friendsSection: "friends",
     friendSearchQuery: "",
+    selectedPageId: null,
+    pageFanIds: [],
     statusComposerOpen: false,
     statusDraft: "",
     partyInviteState: "none",
@@ -532,6 +555,12 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       };
     case "EDIT_FRIEND_SEARCH":
       return state.currentView === "friends" ? { ...state, friendSearchQuery: event.value } : state;
+    case "OPEN_PAGE":
+      if (!FACEBOOK_PAGES.some(page => page.id === event.pageId)) return state;
+      return { ...state, currentView: "pageDetail", navigationStack: [...state.navigationStack, "pageDetail"], selectedPageId: event.pageId };
+    case "BECOME_PAGE_FAN":
+      if (state.currentView !== "pageDetail" || state.selectedPageId !== event.pageId || state.pageFanIds.includes(event.pageId)) return state;
+      return { ...state, pageFanIds: [...state.pageFanIds, event.pageId] };
     case "SHOW_REQUESTS":
     case "SHOW_FRIEND_REQUESTS":
       return {
@@ -772,7 +801,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         partyInviteState: state.partyInviteState === "none" ? "eligible" : state.partyInviteState,
         friends: state.friends.some(friend => friend.id === "jack")
           ? state.friends
-          : [...state.friends, { id: "jack", name: "Jack" }],
+          : [...state.friends, { id: "jack", name: "Jack", actor: { kind: "canonical", characterId: "jack", displayName: "Jack" } }],
         readNotificationIds: state.readNotificationIds.includes("facebook-notification-jack-request")
           ? state.readNotificationIds
           : [...state.readNotificationIds, "facebook-notification-jack-request"],

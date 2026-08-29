@@ -26,6 +26,7 @@ try {
   const facebookStoryMedia = await vite.ssrLoadModule("/src/data/facebookStoryMedia.ts");
   const facebookStoryTime = await vite.ssrLoadModule("/src/data/facebookStoryTime.ts");
   const facebookActorMedia = await vite.ssrLoadModule("/src/data/facebookActorMedia.ts");
+  const facebookPages = await vite.ssrLoadModule("/src/data/facebookPages.ts");
   const sharedCharacterMedia = await vite.ssrLoadModule("/src/data/sharedCharacterMedia.ts");
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
@@ -33,6 +34,11 @@ try {
 
   const seed = seedContent.SESSION_SEED_CONTENT;
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_CHARACTER_IDS, ["katie", "matt", "alex", "chris", "jay", "june", "jack", "ben", "luca"]);
+  assert.deepEqual(facebookPages.FACEBOOK_PAGES.map(page => [page.id, page.name, page.category, page.venueId ?? null, page.avatarMediaId, page.posts.length]), [
+    ["facebook-page-high-school-festival", "High School Festival", "School / Event", null, null, 0],
+    ["facebook-page-main-street-diner", "Main Street Diner", "Local Business / Restaurant", "main-street-diner", null, 0],
+    ["facebook-page-gelato-roma", "Gelato Roma", "Local Business / Food & Drink", "gelato-roma", null, 0],
+  ], "Facebook Pages must remain an exact three-record sparse local dataset");
   assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS["author-z-tokyo"], undefined, "author easter egg must not enter the canonical character registry");
   assert.deepEqual(
     facebookActors.FACEBOOK_AUTHOR_EASTER_EGGS[facebookActors.FACEBOOK_AUTHOR_EASTER_EGG_ID],
@@ -827,7 +833,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const facebookB = facebook.createInitialFacebookState("Alex");
   assert.equal(facebookA.currentView, "home", "Facebook must launch into the audited Home hub");
   assert.deepEqual(facebookA.navigationStack, ["home"]);
-  assert.deepEqual(facebookA.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"], "Friends must begin with the canonical Facebook social circle except pending Jack");
+  assert.deepEqual(facebookA.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca", "facebook-ephemeral-emily", "facebook-ephemeral-mike", "fof-ryan-001"], "Friends must begin with the canonical Facebook social circle plus exactly three existing peripheral friends, excluding pending Jack");
+  assert.deepEqual(facebookA.friends.slice(-3).map(friend => [friend.name, friend.actor.kind]), [["Emily", "ephemeral-friend-of-friend"], ["Mike", "ephemeral-friend-of-friend"], ["Ryan", "ephemeral-friend-of-friend"]], "Emily, Mike, and Ryan must reuse Facebook-local peripheral actor routing");
+  assert.equal(facebookA.friends.slice(-3).every(friend => coreSocialFriends.CORE_SOCIAL_CHARACTERS[friend.id] === undefined), true, "peripheral Friends must remain outside the canonical core registry");
   assert.deepEqual(facebook.selectFacebookPeopleSearchResults("june"), [{ kind: "canonical", characterId: "june", displayName: "June" }]);
   assert.deepEqual(facebook.selectFacebookPeopleSearchResults("Z.tokyo"), [{ kind: "author-easter-egg", authorId: "author-z-tokyo", displayName: "Z.tokyo" }]);
   assert.deepEqual(facebook.selectFacebookPeopleSearchResults("Anil"), [], "offline Anil must not become a searchable Facebook account");
@@ -1108,19 +1116,19 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
 
   let facebookAccept = facebook.facebookStateTransition(facebookA, { type: "ACCEPT_JACK" });
   assert.equal(facebookAccept.friendRequestState, "accepted");
-  assert.deepEqual(facebookAccept.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca", "jack"], "accepting Jack must append one session-local friend to the baseline circle");
+  assert.deepEqual(facebookAccept.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca", "facebook-ephemeral-emily", "facebook-ephemeral-mike", "fof-ryan-001", "jack"], "accepting Jack must append one session-local friend to the expanded baseline circle");
   facebookAccept = facebook.facebookStateTransition(facebookAccept, { type: "SHOW_FRIENDS" });
   assert.equal(facebookAccept.currentView, "friends");
   assert.equal(facebookAccept.friends.some(friend => friend.id === "jack"), true, "accepted Jack must be available from Friends");
   assert.equal(facebook.selectFacebookRequestCount(facebookAccept), 0, "accepted request must leave no pending count");
   facebookAccept = facebook.facebookStateTransition(facebookAccept, { type: "DELIVER_JACK_REQUEST" });
-  assert.equal(facebookAccept.friends.length, 9, "Jack request must not recreate or duplicate after acceptance");
+  assert.equal(facebookAccept.friends.length, 12, "Jack request must not recreate or duplicate after acceptance");
   let facebookIgnore = facebook.facebookStateTransition(
     facebook.facebookStateTransition(facebook.createInitialFacebookState("Zoey"), { type: "DELIVER_JACK_REQUEST" }),
     { type: "IGNORE_JACK" },
   );
   assert.equal(facebookIgnore.friendRequestState, "ignored");
-  assert.deepEqual(facebookIgnore.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"], "ignoring Jack must not add him to baseline Friends");
+  assert.deepEqual(facebookIgnore.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca", "facebook-ephemeral-emily", "facebook-ephemeral-mike", "fof-ryan-001"], "ignoring Jack must not add him to baseline Friends");
   facebookIgnore = facebook.facebookStateTransition(facebookIgnore, { type: "DELIVER_JACK_REQUEST" });
   assert.equal(facebookIgnore.friendRequestState, "ignored", "ignored request must not be recreated");
 
@@ -1139,7 +1147,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(facebook.selectFacebookComments(facebookPlayability, "alex-jacks-party-friday").map(comment => [comment.author, comment.origin]), [["Jay", "seed"], ["Ryan", "seed"]], "Alex's baseline discussion must remain exactly Jay and Ryan regardless of unrelated story comments");
   assert.deepEqual(facebookPlayability.likedItemIds, ["jack-movie"]);
   assert.equal(facebook.selectFacebookJuneMessageState(facebookPlayability), "replied", "Feed interaction must not mutate June state");
-  assert.deepEqual(facebookPlayability.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"], "Feed and message interaction must not mutate Friends state");
+  assert.deepEqual(facebookPlayability.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca", "facebook-ephemeral-emily", "facebook-ephemeral-mike", "fof-ryan-001"], "Feed and message interaction must not mutate Friends state");
   assert.equal(facebookPlayability.scrollPosition, 96, "Facebook playability mutations must preserve feed scroll state");
 
   const twitterSeed = seed.twitter;
@@ -2212,7 +2220,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const instagramAlex = instagram.instagramStateTransition(instagramState, { type: "RESET" });
   assert.deepEqual(facebookAlex.likedItemIds, []);
   assert.equal(facebookAlex.friendRequestState, "none");
-  assert.deepEqual(facebookAlex.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca"]);
+  assert.deepEqual(facebookAlex.friends.map(friend => friend.id), ["katie", "matt", "alex", "chris", "jay", "june", "ben", "luca", "facebook-ephemeral-emily", "facebook-ephemeral-mike", "fof-ryan-001"]);
   assert.deepEqual([facebookAlex.statusDraft, facebookAlex.statusComposerOpen, facebookAlex.partyRsvp, facebookAlex.userCheckIn, facebookAlex.readNotificationIds], ["", false, null, null, []], "new session must clear Facebook v0.3 user actions and notification reads");
   assert.equal(facebook.selectFacebookJuneMessageState(facebookAlex), "none");
   assert.equal(facebookAlex.threadMessages.some(message => message.origin === "user"), false);
@@ -2360,6 +2368,44 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(facebookStoryMediaSource, /media\.map\(record => <button[\s\S]+openPhoto\(record\.id\)/, "each multi-photo thumbnail must open its exact canonical media ID");
   assert.doesNotMatch(facebookStoryMediaSource, /type: "OPEN_FEED_ITEM"|item\.kind === "album" \? \{ type: "OPEN_ALBUM"/, "Feed media must never route through Generic Post Detail or an album-wide primary action");
   assert.match(deviceCssSource, /\.facebook-story-album-media > button \{[^}]*overflow: hidden;[^}]*border: 0;/, "multi-photo previews must expose independent compact thumbnail controls");
+  assert.match(facebookContainerSource, /visibleFriends[\s\S]+sort\(\(left, right\) => left\.name\.localeCompare\(right\.name\)\)[\s\S]+friendSections = visibleFriends\.reduce/, "Friends must use deterministic display-name sorting and populated alphabetical sections");
+  assert.match(facebookContainerSource, /facebook-home-search[\s\S]+facebook-search-glyph[\s\S]+placeholder="Search"/, "Home Search must retain the shared left magnifier");
+  assert.match(facebookContainerSource, /facebook-friends-search[\s\S]+facebook-search-glyph[\s\S]+Search Friends[\s\S]+Search Pages/, "Friends and Pages Search must retain the shared left magnifier and surface-specific labels");
+  assert.match(deviceCssSource, /\.facebook-home-search input,\.facebook-friends-search input \{[^}]*text-align: left;/, "confirmed Search fields must left-align their placeholder and content");
+  const frozenFeedViewStart = facebookContainerSource.indexOf('{state.currentView === "feed" && <>');
+  const frozenFeedViewEnd = facebookContainerSource.indexOf('{state.currentView === "feedDetail"', frozenFeedViewStart);
+  assert.ok(frozenFeedViewStart >= 0 && frozenFeedViewEnd > frozenFeedViewStart, "the frozen News Feed source boundary must remain identifiable");
+  const frozenFeedViewSource = facebookContainerSource.slice(frozenFeedViewStart, frozenFeedViewEnd);
+  assert.doesNotMatch(frozenFeedViewSource, /facebook-(?:home|friends)-search|placeholder="Search(?: Facebook| Friends| Pages)?"/, "News Feed must not gain a Search field");
+  assert.match(frozenFeedViewSource, /facebook-feed-composer-strip[\s\S]+facebook-feed-camera-control[\s\S]+What's on your mind\?/, "the frozen News Feed composer structure must remain intact");
+  assert.equal(deviceCssSource.split("\n").some(line => line.includes(".facebook-feed") && /search/i.test(line)), false, "no Search-specific CSS may target the frozen News Feed");
+  assert.match(facebookContainerSource, /friend\.actor\.kind === "canonical"[\s\S]+getFacebookCanonicalProfileMediaId\(friend\.actor\.characterId\)[\s\S]+getFacebookEphemeralProfileMediaId\(friend\.actor\.ephemeralId\)[\s\S]+profileMediaId \? getFacebookStoryMedia\(profileMediaId\) : null[\s\S]+facebook-friend-avatar[\s\S]+facebook-friend-avatar is-placeholder/, "Friends rows must narrow their typed actor and resolve avatars through the centralized actor-media and story-media paths");
+  const canonicalFriendMediaIds = facebookA.friends
+    .filter(friend => friend.actor.kind === "canonical")
+    .map(friend => {
+      const actorMediaId = facebookActorMedia.getFacebookCanonicalProfileMediaId(friend.actor.characterId);
+      assert.equal(actorMediaId, facebookActorMedia.FACEBOOK_CANONICAL_ACTOR_MEDIA[friend.actor.characterId]?.profileMediaId ?? null, `${friend.name} must use the canonical actor-media mapping`);
+      assert.ok(actorMediaId, `${friend.name} must not fall back to a placeholder avatar`);
+      assert.ok(facebookStoryMedia.getFacebookStoryMedia(actorMediaId), `${friend.name} profile media must resolve through the canonical story-media registry`);
+      return actorMediaId;
+    });
+  assert.equal(new Set(canonicalFriendMediaIds).size, canonicalFriendMediaIds.length, "canonical Friends must not accidentally share duplicate profile-media mappings");
+  assert.match(facebookContainerSource, /facebook-friend-list[\s\S]+<nav className="facebook-alphabet-index"/, "the Friends alphabet rail must sit beside rather than inside the authoritative list scroll node");
+  assert.match(facebookContainerSource, /state\.friendsSection === "pages"[\s\S]+Search Pages[\s\S]+facebook-page-list[\s\S]+OPEN_PAGE/, "Pages must reuse the shared searchable list shell and open a Page-specific route");
+  assert.match(deviceCssSource, /--facebook-contact-row-height: 50px;[^}]*--facebook-contact-avatar-size: 42px;/, "Friends and Pages must use compact 50-pixel rows and 42-pixel square avatars");
+  assert.match(deviceCssSource, /\.facebook-alphabet-index \{[^}]*position: absolute;[^}]*top: 2px;[^}]*bottom: 2px;/, "the A-Z rail must remain fixed to the Friends list region while content scrolls independently");
+  let pageState = facebook.facebookStateTransition(facebook.createInitialFacebookState("Zoey"), { type: "SHOW_FRIENDS" });
+  pageState = facebook.facebookStateTransition(pageState, { type: "SET_FRIENDS_SECTION", section: "pages" });
+  assert.deepEqual(facebook.selectFacebookVisiblePages(pageState).map(page => page.name), ["Gelato Roma", "High School Festival", "Main Street Diner"], "empty Page search must return all Pages alphabetically");
+  pageState = facebook.facebookStateTransition(pageState, { type: "EDIT_FRIEND_SEARCH", value: "DINER" });
+  assert.deepEqual(facebook.selectFacebookVisiblePages(pageState).map(page => page.id), ["facebook-page-main-street-diner"], "Search Pages must filter real Page records case-insensitively");
+  const friendsBeforePage = pageState.friends.map(friend => friend.id);
+  const feedCountBeforePage = pageState.feed.length;
+  pageState = facebook.facebookStateTransition(pageState, { type: "OPEN_PAGE", pageId: "facebook-page-main-street-diner" });
+  assert.deepEqual([pageState.currentView, pageState.selectedPageId, pageState.pageFanIds], ["pageDetail", "facebook-page-main-street-diner", []], "Page rows must open Page identity rather than a Profile actor");
+  pageState = facebook.facebookStateTransition(pageState, { type: "BECOME_PAGE_FAN", pageId: "facebook-page-main-street-diner" });
+  assert.deepEqual([pageState.pageFanIds, pageState.friends.map(friend => friend.id), pageState.feed.length], [["facebook-page-main-street-diner"], friendsBeforePage, feedCountBeforePage], "Become a Fan must update only session-local Page fan state");
+  assert.deepEqual(facebook.facebookStateTransition(pageState, { type: "RESET", displayName: "Zoey" }).pageFanIds, [], "session reset must restore the non-fan Page baseline");
   assert.doesNotMatch(facebookContainerSource, /HomeDestination[^\n]+label="Groups"/, "Groups must not appear as an October 20 launcher destination");
   assert.doesNotMatch(facebookContainerSource, /facebook-home-empty-slot/, "Facebook Home page 1 must no longer contain an empty launcher slot");
   assert.match(facebookContainerSource, /FACEBOOK_HOME_LAUNCHER_PAGES\[state\.homeLauncherPage\]/, "Facebook Home must render both pages from one canonical launcher definition");

@@ -589,9 +589,15 @@ function FacebookStoryView({ surface, item, liked, commentCount, likeCount, stor
       <span className="facebook-story-link" role="button" tabIndex={0} onClick={onOpen} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen(); }}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} onOpenActor={onOpenActor} /></span>
       <FacebookStoryMedia item={item} dispatch={dispatch} onBeforeNavigate={onBeforeMediaNavigate} />
       <time>{storyTime}</time>
-      <FacebookStoryCounts commentCount={commentCount} likeCount={likeCount} />
-      <span className="facebook-feed-actions"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
+      {surface === "feed" ? (commentCount > 0 || likeCount > 0) && <span className="facebook-feed-interaction-footer"><FacebookStoryCounts surface={surface} commentCount={commentCount} likeCount={likeCount} /></span> : <>
+        <FacebookStoryCounts surface={surface} commentCount={commentCount} likeCount={likeCount} />
+        <span className="facebook-feed-actions"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
+      </>}
     </span>
+    {surface === "feed" && <details className="facebook-feed-action-disclosure">
+      <summary aria-label="Show Like and Comment actions">+</summary>
+      <span className="facebook-feed-actions facebook-feed-actions-expanded"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
+    </details>}
   </article>;
 }
 
@@ -603,11 +609,12 @@ function FacebookStoryMedia({ item, dispatch, onBeforeNavigate }: { item: Facebo
   });
   if (media.length === 0) return null;
   const album = getFacebookAlbumByStoryId(item.id);
+  const albumSizeClass = media.length === 2 ? " is-two-photo" : media.length >= 3 ? " is-three-photo" : "";
   return <button type="button" disabled={!album} onClick={() => {
     if (!album) return;
     onBeforeNavigate?.();
     dispatch(item.kind === "album" ? { type: "OPEN_ALBUM", albumId: album.id } : { type: "OPEN_ALBUM_PHOTO", albumId: album.id, mediaId: mediaIds[0] });
-  }} className={item.kind === "album" ? "facebook-story-album-media" : "facebook-story-photo-media"} aria-label={item.albumTitle ?? `${item.author} photo`}>
+  }} className={item.kind === "album" ? `facebook-story-album-media${albumSizeClass}` : "facebook-story-photo-media"} aria-label={item.albumTitle ?? `${item.author} photo`}>
     {media.map(record => <img key={record.id} src={record.src} alt="" />)}
     {item.kind === "album" && item.albumTitle && <span>{item.albumTitle}{media.length ? ` · ${media.length} photos` : ""}</span>}
   </button>;
@@ -628,11 +635,14 @@ function FacebookInlineEntityText({ text, mentions, dispatch, onOpenActor }: { t
   return <>{pieces}</>;
 }
 
-function FacebookStoryCounts({ commentCount, likeCount }: { commentCount: number; likeCount: number }) {
+function FacebookStoryCounts({ surface, commentCount, likeCount }: { surface?: "feed" | "wall"; commentCount: number; likeCount: number }) {
   const commentLabel = formatFacebookCommentCount(commentCount);
-  const likeLabel = formatFacebookLikeCount(likeCount);
+  const likeLabel = surface === "feed"
+    ? likeCount > 0 ? `${likeCount} ${likeCount === 1 ? "person" : "people"}` : null
+    : formatFacebookLikeCount(likeCount);
   if (!commentLabel && !likeLabel) return null;
-  return <span className="facebook-story-counts">{likeLabel && <span>{likeLabel}</span>}{commentLabel && <span>{commentLabel}</span>}</span>;
+  const labels = surface === "feed" ? [commentLabel, likeLabel] : [likeLabel, commentLabel];
+  return <span className={`facebook-story-counts is-${surface ?? "detail"}`}>{labels.map((label, index) => label && <span key={`${index}-${label}`}>{label}</span>)}</span>;
 }
 
 function viewTitle(view: FacebookState["currentView"]): string {

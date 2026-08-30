@@ -14,12 +14,22 @@ export const FACEBOOK_CANONICAL_ACTOR_MEDIA: Readonly<Partial<Record<CoreSocialC
   jack: Object.freeze({ profileMediaId: "jack-profile-picture" as const }),
 });
 
-export type FacebookCanonicalProfileInfo = Readonly<{ fullName: string; age?: number; birthday?: string; location?: string; lifeStage?: string; activity?: string; background?: string; interests?: readonly string[]; classification: "CURATED" }>;
+export type FacebookProfileInfo = Readonly<{ fullName: string; formalCanonicalName?: string; canonicalDateOfBirth?: string; age?: number; birthday?: string; location?: string; lifeStage?: string; work?: string; activity?: string; interests?: readonly string[]; classification: "CURATED" }>;
 
-export const FACEBOOK_CANONICAL_PROFILE_INFO: Readonly<Partial<Record<CoreSocialCharacterId, FacebookCanonicalProfileInfo>>> = Object.freeze({
-  june: Object.freeze({ fullName: "June Park", age: 18, birthday: "June 6, 1992", location: "Los Angeles", lifeStage: "Recent high-school graduate", interests: Object.freeze(["Starbucks", "The Hills", "Gossip Girl", "beach", "shopping", "photography", "music"]), classification: "CURATED" as const }),
-  matt: Object.freeze({ fullName: "Matteo Lee Ricci", classification: "CURATED" as const }),
-  jack: Object.freeze({ fullName: "Jack Keller", age: 18, birthday: "August 2, 1992", location: "Los Angeles", activity: "Football team captain", background: "German-American", classification: "CURATED" as const }),
+export const FACEBOOK_CANONICAL_PROFILE_INFO: Readonly<Record<CoreSocialCharacterId, FacebookProfileInfo>> = Object.freeze({
+  katie: Object.freeze({ fullName: "Katie Dawson", age: 14, location: "Los Angeles", lifeStage: "High school student", interests: Object.freeze(["music", "photography", "movies", "shopping", "dogs"]), classification: "CURATED" as const }),
+  matt: Object.freeze({ fullName: "Matt Ricci", formalCanonicalName: "Matteo Lee Ricci", age: 18, location: "Los Angeles", activity: "Bass", interests: Object.freeze(["computers", "music", "bass", "movies"]), classification: "CURATED" as const }),
+  alex: Object.freeze({ fullName: "Alex Wong", age: 21, location: "Los Angeles", lifeStage: "College student", interests: Object.freeze(["coffee", "dogs", "photography", "movies", "food"]), classification: "CURATED" as const }),
+  chris: Object.freeze({ fullName: "Chris Morgan", age: 19, location: "Los Angeles", lifeStage: "College student", interests: Object.freeze(["basketball", "Lakers", "movies", "music"]), classification: "CURATED" as const }),
+  jay: Object.freeze({ fullName: "Jay Diaz", age: 18, location: "Los Angeles", lifeStage: "Recent high-school graduate", interests: Object.freeze(["guitar", "Led Zeppelin", "Interpol", "The Strokes", "live music", "records"]), classification: "CURATED" as const }),
+  june: Object.freeze({ fullName: "June Park", canonicalDateOfBirth: "1992-06-06", age: 18, birthday: "June 6", location: "Los Angeles", lifeStage: "Recent high-school graduate", interests: Object.freeze(["Starbucks", "Gossip Girl", "photography", "shopping", "music"]), classification: "CURATED" as const }),
+  jack: Object.freeze({ fullName: "Jack Keller", canonicalDateOfBirth: "1992-08-02", age: 18, birthday: "August 2", location: "Los Angeles", activity: "Football team captain", interests: Object.freeze(["football", "Lakers", "movies", "music"]), classification: "CURATED" as const }),
+  ben: Object.freeze({ fullName: "Ben Dawson", age: 23, location: "Los Angeles", lifeStage: "College graduate", work: "Finance", interests: Object.freeze(["coffee", "cars", "Lakers", "movies", "road trips"]), classification: "CURATED" as const }),
+  luca: Object.freeze({ fullName: "Luca Bennett", age: 20, location: "Los Angeles", work: "Main Street Diner", interests: Object.freeze(["basketball", "Lakers", "hip-hop", "movies", "sneakers"]), classification: "CURATED" as const }),
+});
+
+export const FACEBOOK_EPHEMERAL_PROFILE_INFO: Readonly<Partial<Record<FacebookEphemeralFriendOfFriendId, FacebookProfileInfo>>> = Object.freeze({
+  "facebook-ephemeral-sophie": Object.freeze({ fullName: "Sophie Miller", age: 18, location: "Los Angeles", lifeStage: "Recent high-school graduate", interests: Object.freeze(["fashion", "The Hills", "photography", "beach", "music"]), classification: "CURATED" as const }),
 });
 
 export const FACEBOOK_EPHEMERAL_ACTOR_MEDIA: Readonly<Partial<Record<FacebookEphemeralFriendOfFriendId, Readonly<{ profileMediaId: FacebookStoryMediaId }>>>> = Object.freeze({
@@ -50,5 +60,9 @@ export function getFacebookEphemeralProfileMediaId(ephemeralId: FacebookEphemera
 }
 
 export function getFacebookCanonicalProfileInfo(characterId: CoreSocialCharacterId) {
-  return FACEBOOK_CANONICAL_PROFILE_INFO[characterId] ?? null;
+  return FACEBOOK_CANONICAL_PROFILE_INFO[characterId];
+}
+
+export function getFacebookEphemeralProfileInfo(ephemeralId: FacebookEphemeralFriendOfFriendId) {
+  return FACEBOOK_EPHEMERAL_PROFILE_INFO[ephemeralId] ?? null;
 }

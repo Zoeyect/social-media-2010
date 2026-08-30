@@ -369,7 +369,7 @@ export function createInitialTwitterState(sessionDisplayName: string): TwitterSt
     ownerProfileStats: {
       ...OWNER_PROFILE_BASELINE,
     },
-    mentions: SESSION_SEED_CONTENT.twitterMentions.map(mention => ({ id: mention.id, friendId: mention.friendId, tweetId: `tweet-${mention.id}`, unread: mention.unread, homeTimelineEligible: mention.sender === "Alex", origin: mention.origin, provenance: mention.provenance })),
+    mentions: SESSION_SEED_CONTENT.twitterMentions.map(mention => ({ id: mention.id, friendId: mention.friendId, tweetId: `tweet-${mention.id}`, unread: mention.unread, homeTimelineEligible: mention.friendId === "alex", origin: mention.origin, provenance: mention.provenance })),
     mentionTweets: SESSION_SEED_CONTENT.twitterMentions.map(mention => ({
       id: `tweet-${mention.id}`,
       friendId: mention.friendId,

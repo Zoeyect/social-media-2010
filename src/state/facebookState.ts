@@ -90,12 +90,12 @@ export const FACEBOOK_PLACE_OPTIONS = Object.freeze([
 ]);
 
 const FACEBOOK_FRIEND_CHECK_IN_RECORDS = Object.freeze([
-  Object.freeze({ id: "ben-coffee-checkin", characterId: "ben" as const, displayName: "Ben", venueId: DOWNTOWN_COFFEE_VENUE.id, venueName: DOWNTOWN_COFFEE_VENUE.name, createdAt: "2010-10-19T23:12:00-07:00", classification: "CURATED" as const }),
-  Object.freeze({ id: "luca-diner-checkin", characterId: "luca" as const, displayName: "Luca", venueId: MAIN_STREET_DINER_VENUE.id, venueName: MAIN_STREET_DINER_VENUE.name, createdAt: "2010-10-19T22:44:00-07:00", classification: "CURATED" as const }),
-  Object.freeze({ id: "chris-courts-checkin", characterId: "chris" as const, displayName: "Chris", venueId: COMMUNITY_COURTS_VENUE.id, venueName: COMMUNITY_COURTS_VENUE.name, createdAt: "2010-10-19T22:18:00-07:00", classification: "CURATED" as const }),
-  Object.freeze({ id: "alex-riverside-park-checkin", characterId: "alex" as const, displayName: "Alex", venueId: RIVERSIDE_PARK_VENUE.id, venueName: RIVERSIDE_PARK_VENUE.name, createdAt: "2010-10-19T21:36:00-07:00", classification: "CURATED" as const }),
-  Object.freeze({ id: "katie-westside-library-checkin", characterId: "katie" as const, displayName: "Katie", venueId: WESTSIDE_LIBRARY_VENUE.id, venueName: WESTSIDE_LIBRARY_VENUE.name, createdAt: "2010-10-19T20:14:00-07:00", classification: "CURATED" as const }),
-  Object.freeze({ id: "matt-gelato-roma-checkin", characterId: "matt" as const, displayName: "Matt", venueId: GELATO_ROMA_VENUE.id, venueName: GELATO_ROMA_VENUE.name, createdAt: "2010-10-19T19:22:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "ben-coffee-checkin", characterId: "ben" as const, displayName: CORE_SOCIAL_CHARACTERS.ben.displayName, venueId: DOWNTOWN_COFFEE_VENUE.id, venueName: DOWNTOWN_COFFEE_VENUE.name, createdAt: "2010-10-19T23:12:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "luca-diner-checkin", characterId: "luca" as const, displayName: CORE_SOCIAL_CHARACTERS.luca.displayName, venueId: MAIN_STREET_DINER_VENUE.id, venueName: MAIN_STREET_DINER_VENUE.name, createdAt: "2010-10-19T22:44:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "chris-courts-checkin", characterId: "chris" as const, displayName: CORE_SOCIAL_CHARACTERS.chris.displayName, venueId: COMMUNITY_COURTS_VENUE.id, venueName: COMMUNITY_COURTS_VENUE.name, createdAt: "2010-10-19T22:18:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "alex-riverside-park-checkin", characterId: "alex" as const, displayName: CORE_SOCIAL_CHARACTERS.alex.displayName, venueId: RIVERSIDE_PARK_VENUE.id, venueName: RIVERSIDE_PARK_VENUE.name, createdAt: "2010-10-19T21:36:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "katie-westside-library-checkin", characterId: "katie" as const, displayName: CORE_SOCIAL_CHARACTERS.katie.displayName, venueId: WESTSIDE_LIBRARY_VENUE.id, venueName: WESTSIDE_LIBRARY_VENUE.name, createdAt: "2010-10-19T20:14:00-07:00", classification: "CURATED" as const }),
+  Object.freeze({ id: "matt-gelato-roma-checkin", characterId: "matt" as const, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName, venueId: GELATO_ROMA_VENUE.id, venueName: GELATO_ROMA_VENUE.name, createdAt: "2010-10-19T19:22:00-07:00", classification: "CURATED" as const }),
 ]);
 
 export const FACEBOOK_FRIEND_CHECK_INS = Object.freeze(
@@ -103,12 +103,12 @@ export const FACEBOOK_FRIEND_CHECK_INS = Object.freeze(
 );
 
 export const FACEBOOK_CHAT_ROSTER = Object.freeze([
-  Object.freeze({ characterId: "katie" as const, displayName: "Katie", presence: "online" as const }),
-  Object.freeze({ characterId: "chris" as const, displayName: "Chris", presence: "online" as const }),
-  Object.freeze({ characterId: "matt" as const, displayName: "Matt", presence: "online" as const }),
-  Object.freeze({ characterId: "june" as const, displayName: "June", presence: "online" as const }),
-  Object.freeze({ characterId: "jay" as const, displayName: "Jay", presence: "offline" as const }),
-  Object.freeze({ characterId: "jack" as const, displayName: "Jack", presence: "offline" as const }),
+  Object.freeze({ characterId: "katie" as const, displayName: CORE_SOCIAL_CHARACTERS.katie.displayName, presence: "online" as const }),
+  Object.freeze({ characterId: "chris" as const, displayName: CORE_SOCIAL_CHARACTERS.chris.displayName, presence: "online" as const }),
+  Object.freeze({ characterId: "matt" as const, displayName: CORE_SOCIAL_CHARACTERS.matt.displayName, presence: "online" as const }),
+  Object.freeze({ characterId: "june" as const, displayName: CORE_SOCIAL_CHARACTERS.june.displayName, presence: "online" as const }),
+  Object.freeze({ characterId: "jay" as const, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, presence: "offline" as const }),
+  Object.freeze({ characterId: "jack" as const, displayName: CORE_SOCIAL_CHARACTERS.jack.displayName, presence: "offline" as const }),
 ]);
 
 export type FacebookChatPeerId = typeof FACEBOOK_CHAT_ROSTER[number]["characterId"];
@@ -914,7 +914,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
         partyInviteState: state.partyInviteState === "none" ? "eligible" : state.partyInviteState,
         friends: state.friends.some(friend => friend.id === "jack")
           ? state.friends
-          : [...state.friends, { id: "jack", name: "Jack", actor: { kind: "canonical", characterId: "jack", displayName: "Jack" } }],
+          : [...state.friends, { id: "jack", name: CORE_SOCIAL_CHARACTERS.jack.displayName, actor: { kind: "canonical", characterId: "jack", displayName: CORE_SOCIAL_CHARACTERS.jack.displayName } }],
         readNotificationIds: state.readNotificationIds.includes("facebook-notification-jack-request")
           ? state.readNotificationIds
           : [...state.readNotificationIds, "facebook-notification-jack-request"],
@@ -1003,7 +1003,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       return selectFacebookJuneMessageState(state) === "none" ? {
         ...state,
         inboxThreads: [{ id: "june-live-message", sender: "June", preview: "Hey, are you online?", timestamp: "12:06 AM", status: "unread", origin: "live" }, ...state.inboxThreads],
-        threadMessages: [...state.threadMessages, { id: "june-live-message-incoming", threadId: "june-live-message", authorType: "character", characterId: "june", author: "June", body: "Hey, are you online?", timestamp: "12:06 AM", origin: "live" }],
+        threadMessages: [...state.threadMessages, { id: "june-live-message-incoming", threadId: "june-live-message", authorType: "character", characterId: "june", author: CORE_SOCIAL_CHARACTERS.june.displayName, body: "Hey, are you online?", timestamp: "12:06 AM", origin: "live" }],
       } : state;
     case "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT":
       return state.feed.some(item => item.id === FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID) ? state : {
@@ -1066,7 +1066,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
           status: "unread",
           origin: "live",
         }, ...state.inboxThreads],
-        threadMessages: [...state.threadMessages, { id: `${FACEBOOK_KATIE_GOSSIP_MESSAGE_ID}-incoming`, threadId: FACEBOOK_KATIE_GOSSIP_MESSAGE_ID, authorType: "character", characterId: "katie", author: "Katie", body: "Do you know Jack????", timestamp: event.timestamp, origin: "live" }],
+        threadMessages: [...state.threadMessages, { id: `${FACEBOOK_KATIE_GOSSIP_MESSAGE_ID}-incoming`, threadId: FACEBOOK_KATIE_GOSSIP_MESSAGE_ID, authorType: "character", characterId: "katie", author: CORE_SOCIAL_CHARACTERS.katie.displayName, body: "Do you know Jack????", timestamp: event.timestamp, origin: "live" }],
       };
     case "DELIVER_SOPHIE_JUNE_COMMENT": {
       const expectedText = event.commentId === "facebook-sophie-june-instagram-comment-1" ? "what are you doing???" : "Jack????";
@@ -1103,7 +1103,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
             }, ...state.inboxThreads],
         threadMessages: state.threadMessages.some(message => message.id === `${FACEBOOK_PARTY_INVITE_EVENT_ID}-incoming`)
           ? state.threadMessages
-          : [...state.threadMessages, { id: `${FACEBOOK_PARTY_INVITE_EVENT_ID}-incoming`, threadId: FACEBOOK_PARTY_INVITE_EVENT_ID, authorType: "character", characterId: "june", author: "June", body: "Party at Jack's Friday. You coming?", timestamp: event.timestamp, origin: "live" }],
+          : [...state.threadMessages, { id: `${FACEBOOK_PARTY_INVITE_EVENT_ID}-incoming`, threadId: FACEBOOK_PARTY_INVITE_EVENT_ID, authorType: "character", characterId: "june", author: CORE_SOCIAL_CHARACTERS.june.displayName, body: "Party at Jack's Friday. You coming?", timestamp: event.timestamp, origin: "live" }],
       };
     case "RESET":
       return createInitialFacebookState(event.displayName ?? "");
@@ -1219,14 +1219,14 @@ export function resolveFacebookCommentActor(comment: FacebookComment, sessionUse
 }
 
 export const FACEBOOK_JUNE_LIKE_GROWTH: readonly FacebookLike[] = Object.freeze([
-  Object.freeze({ id: "june-instagram-like-jay", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Jay", characterId: "jay", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 60 }),
-  Object.freeze({ id: "june-instagram-like-alex", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Alex", characterId: "alex", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 82 }),
+  Object.freeze({ id: "june-instagram-like-jay", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: CORE_SOCIAL_CHARACTERS.jay.displayName, characterId: "jay", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 60 }),
+  Object.freeze({ id: "june-instagram-like-alex", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: CORE_SOCIAL_CHARACTERS.alex.displayName, characterId: "alex", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 82 }),
   Object.freeze({ id: "june-instagram-like-nina", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Nina", ephemeralId: "facebook-contact-nina", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 94 }),
-  Object.freeze({ id: "june-instagram-like-katie", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Katie", characterId: "katie", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 94 }),
-  Object.freeze({ id: "june-instagram-like-chris", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Chris", characterId: "chris", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 113 }),
-  Object.freeze({ id: "june-instagram-like-ben", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Ben", characterId: "ben", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 136 }),
+  Object.freeze({ id: "june-instagram-like-katie", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: CORE_SOCIAL_CHARACTERS.katie.displayName, characterId: "katie", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 94 }),
+  Object.freeze({ id: "june-instagram-like-chris", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: CORE_SOCIAL_CHARACTERS.chris.displayName, characterId: "chris", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 113 }),
+  Object.freeze({ id: "june-instagram-like-ben", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: CORE_SOCIAL_CHARACTERS.ben.displayName, characterId: "ben", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 136 }),
   Object.freeze({ id: "june-instagram-like-mia", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Mia", ephemeralId: "facebook-contact-mia", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 136 }),
-  Object.freeze({ id: "june-instagram-like-luca", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Luca", characterId: "luca", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 164 }),
+  Object.freeze({ id: "june-instagram-like-luca", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: CORE_SOCIAL_CHARACTERS.luca.displayName, characterId: "luca", origin: "live", classification: "CURATED", availableAtElapsedSeconds: 164 }),
   Object.freeze({ id: "june-instagram-like-erin", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Erin", ephemeralId: "facebook-contact-erin", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 190 }),
   Object.freeze({ id: "june-instagram-like-zoe", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Zoe", ephemeralId: "facebook-contact-zoe", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 190 }),
   Object.freeze({ id: "june-instagram-like-noah", itemId: FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID, displayName: "Noah", ephemeralId: "facebook-contact-noah", origin: "live", classification: "EPHEMERAL_FACEBOOK_CONTACT", availableAtElapsedSeconds: 225 }),

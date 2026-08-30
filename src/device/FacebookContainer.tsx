@@ -33,7 +33,7 @@ import { FACEBOOK_AUTHOR_EASTER_EGGS, getFacebookAuthorEasterEggByDisplayName } 
 import { getFacebookMedia } from "../data/facebookMedia";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
-import { getFacebookCanonicalProfileInfo, getFacebookCanonicalProfileMediaId, getFacebookEphemeralProfileMediaId } from "../data/facebookActorMedia";
+import { getFacebookCanonicalProfileInfo, getFacebookCanonicalProfileMediaId, getFacebookEphemeralProfileInfo, getFacebookEphemeralProfileMediaId } from "../data/facebookActorMedia";
 import { getFacebookAlbum, getFacebookAlbumByStoryId, getFacebookAlbumPhoto, getFacebookAlbumsForActor, getFacebookPhotosOfActor, getFacebookPhotoTagActors } from "../data/facebookAlbums";
 import type { FacebookAlbum, FacebookAlbumActor, FacebookPhotoTagActor, FacebookTaggedPhotoRecord } from "../data/facebookAlbums";
 import { getFacebookStoryMedia } from "../data/facebookStoryMedia";
@@ -458,7 +458,7 @@ function FacebookFriends({ state, requestCount, dispatch }: { state: FacebookSta
       {state.friendsSection === "requests" && <div className="facebook-request-list">
         {state.friendRequestState !== "pending" && <div className="facebook-empty-list">No pending requests.</div>}
         {state.friendRequestState === "pending" && <section className="facebook-request-row">
-          <button type="button" className="facebook-request-person" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: "Jack" })}>Jack</button>
+          <button type="button" className="facebook-request-person" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: CORE_SOCIAL_CHARACTERS.jack.displayName })}>{CORE_SOCIAL_CHARACTERS.jack.displayName}</button>
           <div><button type="button" onClick={() => dispatch({ type: "ACCEPT_JACK" })}>Accept</button><button type="button" onClick={() => dispatch({ type: "IGNORE_JACK" })}>Ignore</button></div>
         </section>}
       </div>}
@@ -491,7 +491,7 @@ function FacebookEvents({ state, dispatch }: { state: FacebookState; dispatch: D
 function FacebookPartyEvent({ state, dispatch }: { state: FacebookState; dispatch: Dispatch<FacebookEvent> }) {
   const alexPost = state.feed.find(item => item.id === "alex-jacks-party-friday");
   return <section className="facebook-event-detail">
-    <header><strong>Jack's Party</strong><span>Friday</span><small>Hosted by <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: "Jack" })}>Jack</button> · Location HOLD</small></header>
+    <header><strong>Jack's Party</strong><span>Friday</span><small>Hosted by <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: CORE_SOCIAL_CHARACTERS.jack.displayName })}>{CORE_SOCIAL_CHARACTERS.jack.displayName}</button> · Location HOLD</small></header>
     <fieldset><legend>RSVP</legend>{(["yes", "maybe", "no"] as const).map(value => <button key={value} type="button" aria-pressed={state.partyRsvp === value} onClick={() => dispatch({ type: "SET_PARTY_RSVP", value })}>{value === "yes" ? "Yes" : value[0].toUpperCase() + value.slice(1)}</button>)}</fieldset>
     <section className="facebook-event-wall"><h2>Event Wall</h2>{alexPost && <button type="button" onClick={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: alexPost.id, scrollPosition: state.scrollPosition })}><strong>{alexPost.author}</strong><span>{alexPost.text}</span></button>}</section>
   </section>;
@@ -661,7 +661,11 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
   const wallItems = selectFacebookProfileWall(state, profileName);
   const authorIdentity = getFacebookAuthorEasterEggByDisplayName(profileName);
   const canonicalCharacter = Object.values(CORE_SOCIAL_CHARACTERS).find(character => character.displayName === profileName);
-  const profileInfo = canonicalCharacter ? getFacebookCanonicalProfileInfo(canonicalCharacter.id) : null;
+  const profileInfo = canonicalCharacter
+    ? getFacebookCanonicalProfileInfo(canonicalCharacter.id)
+    : state.selectedProfileActor?.kind === "ephemeral-friend-of-friend"
+      ? getFacebookEphemeralProfileInfo(state.selectedProfileActor.ephemeralId)
+      : null;
   const ephemeralProfileMediaId = state.selectedProfileActor?.kind === "ephemeral-friend-of-friend" ? getFacebookEphemeralProfileMediaId(state.selectedProfileActor.ephemeralId) : null;
   const profileMediaId = authorIdentity?.profileMediaId ?? (canonicalCharacter ? getFacebookCanonicalProfileMediaId(canonicalCharacter.id) : null) ?? ephemeralProfileMediaId;
   const profileMedia = profileMediaId ? getFacebookStoryMedia(profileMediaId) : null;
@@ -727,7 +731,7 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
       />)}
     </div>}
     {state.profileSection === "info" && (profileInfo
-      ? <div className="facebook-profile-info"><dl><dt>Full Name</dt><dd>{profileInfo.fullName}</dd>{profileInfo.age !== undefined && <><dt>Age</dt><dd>{profileInfo.age}</dd></>}{profileInfo.birthday && <><dt>Birthday</dt><dd>{profileInfo.birthday}</dd></>}{profileInfo.location && <><dt>Location</dt><dd>{profileInfo.location}</dd></>}{profileInfo.lifeStage && <><dt>Education</dt><dd>{profileInfo.lifeStage}</dd></>}{profileInfo.activity && <><dt>Activities</dt><dd>{profileInfo.activity}</dd></>}{profileInfo.interests?.length && <><dt>Interests</dt><dd>{profileInfo.interests.join(", ")}</dd></>}</dl></div>
+      ? <div className="facebook-profile-info"><dl><dt>Full Name</dt><dd>{profileInfo.fullName}</dd>{profileInfo.age !== undefined && <><dt>Age</dt><dd>{profileInfo.age}</dd></>}{profileInfo.birthday && <><dt>Birthday</dt><dd>{profileInfo.birthday}</dd></>}{profileInfo.location && <><dt>Location</dt><dd>{profileInfo.location}</dd></>}{profileInfo.lifeStage && <><dt>Education</dt><dd>{profileInfo.lifeStage}</dd></>}{profileInfo.work && <><dt>Work</dt><dd>{profileInfo.work}</dd></>}{profileInfo.activity && <><dt>Activities</dt><dd>{profileInfo.activity}</dd></>}{profileInfo.interests?.length && <><dt>Interests</dt><dd>{profileInfo.interests.join(", ")}</dd></>}</dl></div>
       : <div className="facebook-profile-empty" data-provenance-status="HOLD" aria-label="Profile Info unavailable" />)}
     {state.profileSection === "photos" && <FacebookAlbumList actor={albumActor} dispatch={dispatch} />}
   </section>;

@@ -21,7 +21,7 @@ Content should present situations and choices rather than conclusions about the 
 
 | Entity set | Members | Classification | Identity rule |
 | --- | --- | --- | --- |
-| Canonical social characters | Katie, Matt, Alex, Chris, Jay, June, Jack, Ben, Luca | `CORE_SOCIAL_CHARACTER` | Use `CoreSocialCharacterId` where a field references the canonical social world |
+| Canonical social characters | Katie Dawson, Matt Ricci, Alex Wong, Chris Morgan, Jay Diaz, June Park, Jack Keller, Ben Dawson, Luca Bennett | `CORE_SOCIAL_CHARACTER` | Use stable `CoreSocialCharacterId` values where a field references the canonical social world; surnames never create new IDs |
 | Recurring secondary character | Sophie Miller | `RECURRING_SECONDARY_CHARACTER` | Stable Facebook-local ID and route compatibility; never add to `CORE_SOCIAL_CHARACTERS` |
 | Author identity | Z.tokyo | `AUTHOR_EASTER_EGG` | Facebook-local/meta identity; never add to `CORE_SOCIAL_CHARACTERS` |
 | Offline character | Anil | `OFFLINE_SOCIAL_CHARACTER` | May appear only through offline evidence; has no SNS account or direct social action |
@@ -30,6 +30,10 @@ Content should present situations and choices rather than conclusions about the 
 Z.tokyo is a subtle Facebook author cameo and keyboard player in the established band/live-performance context. This role must remain peripheral and unexplained in UI.
 
 Anil is the band's Indian drummer and does not use SNS. Do not create a Twitter account, Facebook profile, DM identity, comment identity, mention identity, or other account-owned activity for him unless future canon explicitly changes this rule.
+
+### Facebook Info sparsity
+
+Facebook Info is supporting evidence, not exhaustive character exposition. Do not normalize actors to an equal field count or expose internal design traits as profile text. Relative completion should remain: June/Jack/Jay more complete; Ben/Alex/Luca/Sophie medium; Katie/Matt sparse; Chris intentionally very sparse. Missing birthdays, specific colleges, employer names, neighborhoods, relationship statuses, contact details, and belief fields remain absent. Character understanding must continue to accumulate across Wall, Photos, tags, comments, other people's posts, and other apps.
 
 ## 4. Relationship map
 

@@ -82,11 +82,34 @@ The phone belongs to the user. Characters may naturally ask `you coming?`, `wher
 
 The user is both observer and participant. There are no affection meters, romance routes, jealousy mechanics, correct love interests, forced confessions, or required emotional outcomes.
 
-## 6. Katie
+### Facebook Info content principle
+
+> Facebook Info is evidence about a character, not a complete explanation of the character.
+
+Info completion is intentionally uneven. June, Jack, and Jay may be relatively complete; Ben, Alex, Luca, and Sophie are medium; Katie and Matt are sparse; Chris is intentionally very sparse. Missing birthdays, schools, employers, relationship statuses, and biographical details remain missing unless separately locked. Internal vocabulary such as `popular`, `introverted`, `interaction-first`, `code nerd`, best-friend dynamics, and narrative ambiguity belongs in this Bible, not in Facebook Info.
+
+The canonical Facebook Info values are:
+
+| Facebook display | Approved Info |
+| --- | --- |
+| Luca Bennett | Age 20; Los Angeles; Work: Main Street Diner; basketball, Lakers, hip-hop, movies, sneakers |
+| Ben Dawson | Age 23; Los Angeles; College graduate; Work: Finance; coffee, cars, Lakers, movies, road trips |
+| Katie Dawson | Age 14; Los Angeles; High school student; music, photography, movies, shopping, dogs |
+| Alex Wong | Age 21; Los Angeles; College student; coffee, dogs, photography, movies, food |
+| Jay Diaz | Age 18; Los Angeles; Recent high-school graduate; guitar, Led Zeppelin, Interpol, The Strokes, live music, records |
+| Chris Morgan | Age 19; Los Angeles; College student; basketball, Lakers, movies, music |
+| Sophie Miller | Age 18; Los Angeles; Recent high-school graduate; fashion, The Hills, photography, beach, music |
+| June Park | Age 18; Birthday: June 6; Los Angeles; Recent high-school graduate; Starbucks, Gossip Girl, photography, shopping, music |
+| Jack Keller | Age 18; Birthday: August 2; Los Angeles; Activities: Football team captain; football, Lakers, movies, music |
+| Matt Ricci | Age 18; Los Angeles; Activities: Bass; computers, music, bass, movies |
+
+Matt's formal canonical name remains Matteo Lee Ricci. June's canonical DOB remains 1992-06-06 and Jack's remains 1992-08-02; Facebook Info uses the compact birthday display above. No Relationship Status is exposed for June or Jack.
+
+## 6. Katie Dawson
 
 ### Canonical Facts
 
-- Display name: Katie.
+- Display name: Katie Dawson.
 - Age: 14.
 - Los Angeles-area student; brunette; girl-next-door presence.
 - Ben is her older brother.
@@ -126,7 +149,7 @@ The user is both observer and participant. There are no affection meters, romanc
 
 ### Canonical Facts
 
-- Full name: Matteo Lee Ricci; everyday name: Matt Ricci.
+- Full name: Matteo Lee Ricci; everyday and Facebook display name: Matt Ricci; age 18.
 - Asian and Italian mixed background; approximately 180 cm; slim.
 - Student-age code nerd and technically confident computer user.
 - Bass player in the Jay/Matt/Z.tokyo/Anil band.
@@ -201,11 +224,11 @@ The user is both observer and participant. There are no affection meters, romanc
 - Historical dog media remains in Alex's `Dogs` album and outside the current Feed.
 - Dog chronology communicates continuity without explanatory exposition.
 
-## 9. Chris
+## 9. Chris Morgan
 
 ### Canonical Facts
 
-- Display name: Chris; approximately 19; approximately 185 cm.
+- Display name: Chris Morgan; age 19; approximately 185 cm.
 - College-age, outgoing, socially attractive, ordinary school/team basketball player.
 - Not a celebrity athlete, sports prospect, bully, or school king.
 
@@ -237,11 +260,11 @@ The user is both observer and participant. There are no affection meters, romanc
 - Generic Chris Photos remain intentionally empty.
 - Deleted `Chris-Luca*` media must remain deleted; Luca retains ownership of basketball media.
 
-## 10. Jay
+## 10. Jay Diaz
 
 ### Canonical Facts
 
-- Display name: Jay; approximately 18-20; exact school/occupation intentionally unspecified.
+- Display name: Jay Diaz; age 18; recent high-school graduate; occupation intentionally unspecified.
 - Music/guitar character and guitarist in the Jay/Matt/Z.tokyo/Anil band.
 - Show/performance orientation and wider music-circle presence are canonical.
 
@@ -287,7 +310,7 @@ The user is both observer and participant. There are no affection meters, romanc
 - DOB: 1992-06-06; age 18 in October 2010.
 - Korean-American, Los Angeles, recently graduated from high school.
 - Socially central and an early Instagram adopter.
-- Interests: Starbucks, The Hills, Gossip Girl, beach, shopping, photography, music.
+- Facebook Info interests: Starbucks, Gossip Girl, photography, shopping, music. The Hills and beach remain valid world behavior but are deliberately omitted from Info.
 - Existing six-person family structure remains secondary context, not her defining identity.
 
 ### Personality / Behavior
@@ -361,11 +384,11 @@ The user is both observer and participant. There are no affection meters, romanc
 - Jack-owned albums and friend-owned `Photos of Jack` remain distinct.
 - Current derived tagged presence is high (14 in the consolidation audit), but the qualitative `VERY HIGH` rule is authoritative.
 
-## 13. Ben
+## 13. Ben Dawson
 
 ### Canonical Facts
 
-- Display name: Ben; age 23; brunette; black-frame glasses.
+- Display name: Ben Dawson; age 23; brunette; black-frame glasses.
 - Katie's older brother.
 - Approximately one year into work at a small finance company.
 - Coffee-heavy routine; Los Angeles-area working life.
@@ -397,14 +420,14 @@ The user is both observer and participant. There are no affection meters, romanc
 - Distinct stories may reuse one physical source without merging interaction identity.
 - `Katie-Ben.JPG` is explicitly deleted/deprecated and must not be restored.
 
-## 14. Luca
+## 14. Luca Bennett
 
 ### Canonical Facts
 
-- Display name: Luca.
+- Display name: Luca Bennett; age 20.
 - Restaurant server at canonical venue `Main Street Diner`.
 - Basketball player and Chris's friend.
-- Exact age, surname, and biography remain unlocked.
+- Education, birthday, and broader biography remain unlocked.
 
 ### Personality / Behavior
 

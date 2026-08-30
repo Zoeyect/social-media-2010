@@ -1,4 +1,4 @@
-import type { CoreSocialCharacterId } from "./coreSocialFriends";
+import { CORE_SOCIAL_CHARACTERS, type CoreSocialCharacterId } from "./coreSocialFriends";
 import type { FacebookAuthorEasterEggId, FacebookEphemeralFriendOfFriendId, FacebookPeripheralActorClassification } from "./facebookActors";
 import type { FacebookStoryMediaId } from "./facebookStoryMedia";
 import type { CanonicalVenueId } from "./canonicalVenues";
@@ -106,10 +106,13 @@ type FacebookAlbumPhotoDefinition = Omit<FacebookAlbumPhoto, "albumId">;
 type FacebookAlbumDefinition = Omit<FacebookAlbum, "mediaIds" | "photos"> & { photos: readonly FacebookAlbumPhotoDefinition[] };
 
 function defineFacebookAlbum(definition: FacebookAlbumDefinition): FacebookAlbum {
+  const ownerActor = definition.ownerActor.kind === "canonical"
+    ? Object.freeze({ ...definition.ownerActor, displayName: CORE_SOCIAL_CHARACTERS[definition.ownerActor.characterId].displayName })
+    : definition.ownerActor;
   const photos = Object.freeze([...definition.photos]
     .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
     .map(photo => Object.freeze({ ...photo, albumId: definition.id })));
-  return Object.freeze({ ...definition, photos, mediaIds: Object.freeze(photos.map(photo => photo.mediaId)) });
+  return Object.freeze({ ...definition, ownerActor, photos, mediaIds: Object.freeze(photos.map(photo => photo.mediaId)) });
 }
 
 export const FACEBOOK_ALBUMS: readonly FacebookAlbum[] = Object.freeze([

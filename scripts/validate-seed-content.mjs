@@ -2302,6 +2302,18 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
   const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
   const facebookHomeIconsSource = await readFile(resolve(projectRoot, "src/device/FacebookHomeIcons.tsx"), "utf8");
+  const recoveredFacebookHomeIconHashes = Object.freeze({
+    feed: ["feedButton@2x.png", "be9c0efbb91846ccb38e63bd8c9063978e56387a69ef28c1ffcb0985cb09a518"],
+    profile: ["profileButton@2x.png", "23f332b8588e553a7105cd5f5f330f8d8f7b73b86a56834a9b6f5d02cf2873a0"],
+    friends: ["friendsButton@2x.png", "5abffa3dd1b1beba1e0d995128df525d9800a73041cc9a472269288d407c0224"],
+    inbox: ["inboxButton@2x.png", "bb6d10f8adb8b74ed5ebc09ad186fa350ebd8be21d0d1de0d0fa6000a6dd3702"],
+    places: ["placesButton@2x.png", "f5a2416d27876957ffffe2b2d83610229fbb53888d65ae1125eacdeef712c01b"],
+    requests: ["requestsButton@2x.png", "bd0397ecdfbe24181f34824f8b109598ec9242c8735ceeae9f7002b44274d124"],
+    events: ["eventsButton@2x.png", "809d937f1af919b40d600461f6e36ceb30af45f8709c6e60f5169e1424460620"],
+    photos: ["photosButton@2x.png", "46dc3e661acc0ef980d7da7ab5d43673e4c361001cf098fc24abf1af4d3b2c59"],
+    chat: ["chatButton@2x.png", "8c723f7036a66a43df09ae348cea9e3e8ed7804a49ccf151b6ad41113f3c6b54"],
+    notes: ["notesButton@2x.png", "d56e198df052abdccf8a9a77731aff9086441bfff15f6df734c94b131c1dfc36"],
+  });
   const facebookStateSource = await readFile(resolve(projectRoot, "src/state/facebookState.ts"), "utf8");
   const facebookStoryTimeSource = await readFile(resolve(projectRoot, "src/data/facebookStoryTime.ts"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
@@ -2495,11 +2507,20 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(facebookContainerSource, /<FacebookHomeIcon destinationId=\{destinationId\} \/>/, "Home destinations must render through the centralized historical icon registry");
   assert.doesNotMatch(facebookContainerSource, /facebook-home-icon-hold|\{iconLabel\}/, "rendered Home destinations must not fall back to letter-tile placeholders");
   assert.match(facebookHomeIconsSource, /satisfies Record<FacebookHomeLauncherDestinationId,/, "the Home icon registry must be exhaustive over the frozen launcher destination type");
-  assert.match(facebookHomeIconsSource, /sourceType: FacebookHomeIconSourceType;[\s\S]*confidence: FacebookHomeIconConfidence;[\s\S]*intrinsicSize: null;[\s\S]*displaySize: readonly \[64, 58\];[\s\S]*opticalOffset:/, "launcher provenance metadata must remain strict, non-UI reconstruction data");
-  for (const destinationId of ["feed", "profile", "friends", "inbox", "places", "requests", "events", "photos", "chat", "notes"]) {
+  assert.match(facebookHomeIconsSource, /sourceType: FacebookHomeIconSourceType;[\s\S]*confidence: FacebookHomeIconConfidence;[\s\S]*assetSrc: string;[\s\S]*originalFilename: string;[\s\S]*sourcePackage: "Facebook 3\.2\.1 \(3210\)";[\s\S]*intrinsicSize: readonly \[128, 128\];[\s\S]*displaySize: readonly \[64, 64\];[\s\S]*sha256: string;[\s\S]*opticalOffset:/, "launcher provenance metadata must retain package, filename, intrinsic size, display scale, checksum, confidence, and optical offset");
+  assert.equal((facebookHomeIconsSource.match(/assets\/facebook\/home\/3\.2\.1\/[a-zA-Z]+Button@2x\.png/g) ?? []).length, 10, "all ten launcher modules must import their named Facebook 3.2.1 Retina source");
+  for (const [destinationId, [filename, expectedHash]] of Object.entries(recoveredFacebookHomeIconHashes)) {
     assert.match(facebookHomeIconsSource, new RegExp(`^  ${destinationId}: Object\\.freeze`, "m"), `${destinationId} must have one centralized launcher icon registry entry`);
+    assert.match(facebookHomeIconsSource, new RegExp(`${destinationId}: Object\\.freeze\\(\\{[^\\n]+sourceType: "historical-asset"[^\\n]+originalFilename: "${filename.replace("@", "@")}"[^\\n]+intrinsicSize: FACEBOOK_HOME_ORIGINAL_INTRINSIC_SIZE[^\\n]+sha256: "${expectedHash}"`), `${destinationId} must register its verified original filename, size, and checksum`);
+    const recoveredAssetBytes = await readFile(resolve(projectRoot, "src/assets/facebook/home/3.2.1", filename));
+    assert.equal(recoveredAssetBytes.subarray(1, 4).toString("ascii"), "PNG", `${filename} must remain a PNG payload`);
+    assert.deepEqual([recoveredAssetBytes.readUInt32BE(16), recoveredAssetBytes.readUInt32BE(20)], [128, 128], `${filename} must remain the exact 128x128 Retina canvas`);
+    assert.equal(createHash("sha256").update(recoveredAssetBytes).digest("hex"), expectedHash, `${filename} must remain byte-identical to the recovered Facebook 3.2.1 resource`);
   }
-  assert.doesNotMatch(facebookHomeIconsSource, /<svg|<img|from ["'][^"']+\.(?:png|jpe?g|gif|webp|svg)["']/, "launcher reconstructions must not embed screenshots, modern library glyphs, or unregistered raster/vector assets");
+  assert.match(facebookHomeIconsSource, /<img className="facebook-home-icon__original"[\s\S]+onError=\{\(\) => setFailedAssetSrc\(icon\.assetSrc\)\}/, "verified originals must render through the registry with a scoped load-failure fallback");
+  assert.match(facebookHomeIconsSource, /function FacebookHomeIconFallback[\s\S]+facebook-home-icon__paper[\s\S]+facebook-home-icon__chat/, "the isolated CSS reconstructions must remain available only as load-failure fallbacks");
+  assert.doesNotMatch(facebookHomeIconsSource, /<svg|from ["'][^"']+\.(?:jpe?g|gif|webp|svg)["']|https?:\/\//, "launcher originals must not come from screenshots, modern libraries, vectors, or runtime external URLs");
+  assert.match(deviceCssSource, /\.facebook-home-icon\.is-historical-asset \{ filter: none; \}[\s\S]*\.facebook-home-icon__original \{[^}]*top: -3px;[^}]*width: 64px; height: 64px;/, "original Retina assets must render at 64x64 without adding reconstructed shadow treatment or changing launcher geometry");
   assert.doesNotMatch(deviceCssSource, /\.facebook-home-icon-hold/, "the unsupported uniform blue letter-tile treatment must remain removed");
   assert.match(facebookContainerSource, /onPointerDown[\s\S]+onPointerUp/, "Facebook launcher paging must use one pointer path for touch and desktop drag gestures");
   assert.doesNotMatch(facebookContainerSource, /onPointerDown=\{event => \{[\s\S]{0,300}setPointerCapture/, "launcher paging must not capture an ordinary button tap on pointerdown");

@@ -10,6 +10,31 @@
 
 Launcher information architecture, row/column occupancy, labels, routes, button hit areas, paging state, swipe handling, badges, Search, Account, `+`, notification presentation, and all non-Home surfaces remain frozen.
 
+## Original asset recovery v1.0 addendum
+
+This addendum supersedes only the asset-availability and production-source conclusions below. It preserves the earlier reconstruction record as an audit trail of what was known before the external archive search.
+
+A verified adjacent Facebook 3.2.1 (`3210`) iPhone package was recovered from [iOS Obscura](https://archive.org/details/iOSObscura). Its bundle identifier is `com.facebook.Facebook`; the archive passed ZIP integrity and checksum verification. The package contains individual named 1× and Retina Home launcher PNGs for every destination. The exact 3.2.2 target package remains `HOLD`.
+
+The nine Page 1 `*Button@2x.png` resources are now `CONFIRMED_ORIGINAL / SAME_ERA_CONFIRMED`: each is original package artwork, and each matches the motif shown in the target-near 2010-10-15 native Home capture. `notesButton@2x.png` is `PROBABLE_ORIGINAL / ADJACENT_VERSION_PROBABLE` because it is original package artwork but lacks a recovered target-week Page 2 comparison. All ten are 128 × 128 and display at 64 × 64 points.
+
+| Module / key | Adopted original | Current confidence | Production status |
+| --- | --- | --- | --- |
+| News Feed / `feed` | `feedButton@2x.png` | `SAME_ERA_CONFIRMED` | adopted |
+| Profile / `profile` | `profileButton@2x.png` | `SAME_ERA_CONFIRMED` | adopted |
+| Friends / `friends` | `friendsButton@2x.png` | `SAME_ERA_CONFIRMED` | adopted |
+| Inbox / `inbox` | `inboxButton@2x.png` | `SAME_ERA_CONFIRMED` | adopted |
+| Places / `places` | `placesButton@2x.png` | `SAME_ERA_CONFIRMED` | adopted |
+| Requests / `requests` | `requestsButton@2x.png` | `SAME_ERA_CONFIRMED` | adopted |
+| Events / `events` | `eventsButton@2x.png` | `SAME_ERA_CONFIRMED` | adopted |
+| Photos / `photos` | `photosButton@2x.png` | `SAME_ERA_CONFIRMED` | adopted |
+| Chat / `chat` | `chatButton@2x.png` | `SAME_ERA_CONFIRMED` | adopted |
+| Notes / `notes` | `notesButton@2x.png` | `ADJACENT_VERSION_PROBABLE` | adopted |
+
+The assets are stored byte-for-byte under `src/assets/facebook/home/3.2.1/` and registered centrally in `src/device/FacebookHomeIcons.tsx`. The prior CSS constructions remain load-failure fallbacks, not primary artwork. Geometry, optical offsets, and functional boundaries remain frozen.
+
+The same package produced evidence-only candidates for the notification bubble, camera, Search, comment, Like, phone, add-friend, tag-arrow, and blue-arrow roles. They are not adopted here because their exact target-screen semantics and states have not been confirmed. See `facebook-2010-original-icon-asset-recovery-v1.0.md` for package hashes, per-file checksums, dimensions, rejected candidates, and remaining uncertainty.
+
 ## Repository asset audit
 
 The repository contains no archived Facebook application bundle and no historically approved Facebook Home launcher icon payloads.

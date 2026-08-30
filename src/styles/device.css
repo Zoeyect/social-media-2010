@@ -673,6 +673,8 @@ button, input { font: inherit; }
 .facebook-home-destination:nth-child(3n+3) { --facebook-home-column-offset: 7px; }
 .facebook-home-destination strong { color: #303030; font-size: 13px; font-weight: 700; letter-spacing: -.15px; line-height: 15px; white-space: nowrap; transform: translateX(var(--facebook-home-column-offset)); }
 .facebook-home-icon { position: relative; width: 64px; height: 58px; display: block; color: #aebfda; filter: drop-shadow(0 1px 0 rgba(255,255,255,.72)); transform: translate(calc(var(--facebook-home-column-offset) + var(--facebook-home-icon-offset-x,0px)),var(--facebook-home-icon-offset-y,0px)); }
+.facebook-home-icon.is-historical-asset { filter: none; }
+.facebook-home-icon__original { position: absolute; left: 0; top: -3px; width: 64px; height: 64px; display: block; }
 .facebook-home-icon--news-feed .facebook-home-icon__paper { position: absolute; left: 4px; top: 6px; box-sizing: border-box; width: 56px; height: 42px; border: 1px solid #727d89; background: repeating-linear-gradient(to bottom,transparent 0 7px,#9da7b3 7px 8px),#f5f6f6; box-shadow: -4px 3px 0 -1px #f8f8f6,-4px 3px 0 #7d8792,-2px 2px 2px rgba(0,0,0,.25); }
 .facebook-home-icon--news-feed .facebook-home-icon__paper::before { position: absolute; left: 11px; right: 3px; top: 3px; height: 7px; content: ""; background: #c9d3e1; box-shadow: 0 10px #d6dce4,0 20px #d6dce4; }
 .facebook-home-icon--news-feed .facebook-home-icon__paper::after { position: absolute; left: 3px; top: 13px; width: 6px; height: 6px; content: ""; background: #8492a5; box-shadow: 0 10px #8492a5,0 20px #8492a5; }

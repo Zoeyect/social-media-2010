@@ -38,7 +38,7 @@ Supported characteristics retained or strengthened:
 - muted timestamp metadata
 - text-based Like and Comment actions
 - Profile header followed by Wall / Info / Photos / Friends sections
-- launcher search, page dots, and Notifications row
+- launcher search, page dots, and transient notification banner
 
 ## Changes
 
@@ -236,6 +236,45 @@ Generic Post Detail remains limited to Profile Wall story body as `LEGACY / HOLD
 
 These surfaces may be reopened only for a confirmed A-level runtime blocker, B-level functional regression, or strong newly discovered historical evidence that directly contradicts the frozen implementation. Subjective polish is not sufficient grounds to reopen them.
 
+## Home Transient Notification Banner v1.0
+
+Target: native Facebook iPhone application on iPhone 4 / iOS 4.1, 2010-10-20.
+
+| Presentation detail | Classification |
+|---|---|
+| Permanent Home Notifications footer | REJECTED / SUPERSEDED |
+| Transient bottom notification banner | PERIOD-EVIDENCE / CONFIRMED |
+| Banner copy from canonical notification | READY |
+| Exact banner timeout | RECONSTRUCTED |
+| Exact banner animation | UNKNOWN / KEEP MINIMAL |
+| Feature-phone Menu / Exit chrome | REJECTED for native iPhone |
+| Exact notification icon artwork | HOLD |
+
+Newly derived notification IDs trigger one UI-local banner at a time. Existing notifications present when Facebook mounts do not trigger it. A newly delivered notification replaces any currently presented banner, and the conservative reconstruction dismisses it after five seconds. No animation is fabricated.
+
+The banner renders only on Home, on either launcher page, and uses the exact canonical notification text. Its small red numeric badge is a CSS reconstruction because no approved period notification icon asset is available. Tapping dispatches the existing `OPEN_NOTIFICATION` event, which covers all current notification targets: Requests, June/Katie messages, and Jack's event invite. The existing target action retains its established read semantics; appearance and timeout never mark a record read.
+
+The dedicated Notifications view and reducer cases remain in place, but its unsupported permanent Home entry was the only direct list route. It is now dormant rather than replaced with an invented launcher icon. Canonical notification actions remain reachable through transient banners and the existing Requests, Inbox, and Events destinations.
+
+Banner visibility is component-local, not part of `FacebookState`, seed records, serialization, or reset data. Requests, Events, Inbox badges, delivery records, scheduler timing, launcher destinations, search, page dots, and paging remain unchanged.
+
+## Profile Section Architecture v1.2.1
+
+Target: native Facebook iPhone application on iPhone 4 / iOS 4.1, 2010-10-20.
+
+| Profile section | Decision |
+|---|---|
+| Wall | PERIOD-EVIDENCE |
+| Info | PERIOD-EVIDENCE |
+| Photos | PERIOD-EVIDENCE |
+| Profile-level Friends | REJECTED for the current reconstruction target |
+
+Contemporary native iPhone evidence and period reviews consistently describe Profile as `Wall | Info | Photos`. No current evidence establishes a Profile-level Friends tab before the target date, and desktop Profile architecture must not be transferred automatically into the native application.
+
+Historical confidence: `PROBABLE`. The decision remains revisable if stronger evidence specific to or before 2010-10-20 appears.
+
+This correction removes only the Profile-specific section. The global Home → Friends surface, Friends / Pages / Requests segments, search, alphabetical index, friendship state, and actor navigation remain separate and unchanged.
+
 ## Profile Wall Historical Fidelity v1.2
 
 The Profile Wall remains a continuous, compact stack rather than a collection of cards. Its story renderer, actor/media resolution, timestamps, Likes, comments, and navigation handlers remain canonical and unchanged. Only selectors scoped below `.facebook-profile-wall` define the Wall presentation.
@@ -253,18 +292,68 @@ The Profile Wall remains a continuous, compact stack rather than a collection of
 | Separator | 1px `#b8bcc3` | 1px `#b8bcc3` | SHARE_WITH_FEED |
 | Single-photo width | 68% | 82%, max 212px | WALL_SPECIFIC |
 | Multi-photo width | 74–76% | 80%, max 212px | WALL_SPECIFIC |
-| Engagement summary | compact, comments then people | compact, likes then comments | WALL_SPECIFIC |
-| Like / Comment actions | `+` disclosure | persistent low-weight text links | HOLD |
+| Engagement summary | compact, comments then people | compact, comments then people | SHARE_WITH_FEED |
+| Like / Comment actions | `+` disclosure | Wall-scoped `+` disclosure | SHARE_INTERACTION_LANGUAGE |
 | Comment preview | pale compact row | pale compact row rule retained | SHARE_WITH_FEED |
 | Photo frame | 2px inset, thin gray frame | 2px inset, thin gray frame | SHARE_WITH_FEED |
 
 Compact stacked stories, square compact Wall avatars, and the Wall avatar/body hierarchy are `PERIOD-EVIDENCE / VISUAL-CROSSCHECK`. The dense Wall typography hierarchy is `VISUAL-CROSSCHECK`. Profile Wall media being smaller than Detail but larger than Feed is `VISUAL-CROSSCHECK`; the 82% and 80% values are conservative implementation targets, not claimed historical measurements. Wall single-photo media, including profile-picture updates, uses the same 82% / 212px ceiling with intrinsic height and no crop. Multi-photo previews use an 80% / 212px ceiling, small gaps, a thin frame, a compact caption strip, and intrinsic image ratios rather than the inherited square cover crop.
 
-Exact Profile Wall Like / Comment chrome is `HOLD`: available evidence does not justify copying the frozen Feed `+` disclosure. The existing canonical handlers and persistent labels remain, with reduced visual weight only. The compact pale comment-preview treatment is `PERIOD-EVIDENCE / VISUAL-CROSSCHECK`; no threading, comment Likes, or fabricated metadata is introduced.
+Profile Wall interaction chrome is superseded by v1.2.2 below. The compact pale comment-preview treatment is `PERIOD-EVIDENCE / VISUAL-CROSSCHECK`; no threading, comment Likes, or fabricated metadata is introduced.
 
 Profile Wall photo controls already resolve canonical single media or exact album photos into Photo Detail, so no route change is required. Generic Profile Wall story-body navigation to Post Detail remains `LEGACY / HOLD`.
 
 The Profile identity block, section tabs, News Feed selectors and 68% Feed media rule, Comments Detail, Photo Detail, data, chronology, ownership, tags, and interaction state remain unchanged.
+
+## Profile Wall Interaction Restoration v1.2.2
+
+Historical confidence: `PROBABLE`. Contemporary Profile Wall captures show compact engagement summaries with a right-side action affordance, while contemporary Facebook 3.0 reporting establishes Like and Comment support on Profile Wall. No known evidence indicates a return to permanently exposed actions before 2010-10-20.
+
+| Interaction detail | Classification |
+|---|---|
+| Persistent naked Like / Comment | SUPERSEDED |
+| Compact engagement summary | PROBABLE |
+| Summary order: comments → people | PROBABLE / VISUAL-CROSSCHECK |
+| Right-side `+` affordance | PROBABLE |
+| `+` reveals Like / Comment | PROBABLE |
+| Exact plus artwork | PERIOD-EVIDENCE / CSS RECONSTRUCTION |
+| Exact expanded action-bar pixels | VISUAL-CROSSCHECK |
+
+Each Wall story uses a Wall-specific native `<details>` element. Disclosure defaults collapsed, toggles independently, and remains UI-local rather than entering Facebook state or session serialization. Non-zero summary segments derive from the existing comment and Like selectors; zero segments and empty summary containers are omitted. Expanded controls retain the existing Like/Unlike and Comment handler props in that order.
+
+The Wall Comment handler continues to open Generic Post Detail and then begin the canonical comment composer. That route remains `LEGACY / HOLD` and is not changed by this chrome-only pass.
+
+The Wall reconstruction shares token values and period interaction grammar with Feed, but uses separate `.facebook-profile-wall-*` markup and selectors. Frozen Feed markup/CSS, Profile identity and tabs, Wall media geometry, comments, story keys, data, and scroll architecture remain unchanged.
+
+## Albums / Photos Historical Fidelity v1.0
+
+### Structure audit
+
+| Structure | Current source | Decision |
+|---|---|---|
+| Profile Photos landing | `FacebookAlbumList` shared by Profile Photos and the Home Photos entry | ADAPT |
+| Owned album rows | `getFacebookAlbumsForActor`, in canonical registry order | KEEP |
+| Photos of actor | `getFacebookPhotosOfActor` virtual tagged collection | KEEP; visually distinguish |
+| Album cover | first ordered canonical album photo | KEEP |
+| Album count | `album.mediaIds.length` | KEEP |
+| Tagged count | selector result length | KEEP |
+| Album / tagged grids | shared three-column gallery structure | ADAPT |
+| Photo Detail | canonical album record plus centrally resolved media | ADAPT presentation |
+| Owner context | `album.ownerActor` independent of entry path | KEEP |
+| Back behavior | navigation stack restores Album or Photos-of view | KEEP / LEGACY scroll limitation |
+| Selected state | canonical album ID, media ID, and optional tagged actor | KEEP |
+
+The Photos landing presents compact 60-pixel list rows with 48-pixel square cover previews, a 13-pixel album title, a 10-pixel derived count, thin separators, and the existing disclosure indicator. Owned albums remain under `Albums`; a separate `Tagged Photos` section contains the canonical `Photos of [Name]` virtual collection. This reinforces ownership without creating an album ID or changing selector semantics.
+
+Compact album lists and square row thumbnails are `PERIOD-EVIDENCE / VISUAL-CROSSCHECK`. The album and tagged-photo collections share a dense three-column square-preview grid with three-pixel gaps and thin borders: `PERIOD-EVIDENCE / VISUAL-CROSSCHECK`. Square crop is limited to list/grid thumbnails.
+
+Photo Detail supersedes the black near-fullscreen presentation with a white, margin-bounded surface and a thin gray, two-pixel-inset frame. The main image uses the exact canonical media source with `height: auto` and `object-fit: contain`; source aspect preservation is `READY`. Owner is blue/bold, caption is dark, and album/time/tags remain muted secondary text. Exact Photo Detail chrome is `HOLD / VISUAL-CROSSCHECK`.
+
+Photo Detail retains its existing canonical Like/Unlike and Comment handlers. Their exact historical chrome remains `HOLD`; this pass only reduces the oversized action row within the Photo Detail scope. Comments continue sharing the underlying photo story state.
+
+Navigation state preserves the collection kind, selected album, selected photo, and tagged actor. Exact deep-scroll restoration is `LEGACY / HOLD`: no album/tagged scroll offset currently exists in canonical state, and this visual pass does not change navigation architecture.
+
+Album membership, ordering, media IDs, owner/story relationships, tag selectors, Feed 68% media, and Profile Wall 82% media remain frozen.
 
 ## Friends / Pages Shared List v1.1
 

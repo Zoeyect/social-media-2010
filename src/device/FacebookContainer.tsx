@@ -1,4 +1,4 @@
-import { Dispatch, useLayoutEffect, useRef, type ReactNode } from "react";
+import { Dispatch, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   FACEBOOK_FRIEND_CHECK_INS,
   FACEBOOK_HOME_LAUNCHER_PAGES,
@@ -7,13 +7,13 @@ import {
   FacebookFeedItem,
   FacebookHomeLauncherDestinationId,
   FacebookNavigableActor,
+  FacebookNotification,
   FacebookState,
   selectFacebookInboxUnreadCount,
   selectFacebookEventInviteUnseenCount,
   selectFacebookComments,
   selectFacebookLikes,
   selectFacebookNotifications,
-  selectFacebookNotificationUnreadCount,
   selectFacebookPeopleSearchResults,
   selectFacebookRequestCount,
   selectFacebookThreadMessages,
@@ -46,6 +46,8 @@ type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<Faceboo
 
 type FacebookFeedAnchor = { storyId: string; viewportOffset: number };
 
+const FACEBOOK_HOME_NOTIFICATION_BANNER_DURATION_MS = 5_000;
+
 function captureFacebookFeedAnchor(feed: HTMLDivElement): FacebookFeedAnchor | null {
   const rows = feed.querySelectorAll<HTMLElement>("[data-facebook-feed-story-id]");
   for (const row of rows) {
@@ -70,7 +72,8 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   const inboxUnreadCount = selectFacebookInboxUnreadCount(state);
   const eventInviteUnseenCount = selectFacebookEventInviteUnseenCount(state);
   const notifications = selectFacebookNotifications(state);
-  const notificationUnreadCount = selectFacebookNotificationUnreadCount(state);
+  const knownNotificationIdsRef = useRef(new Set(notifications.map(notification => notification.id)));
+  const [activeHomeNotificationBannerId, setActiveHomeNotificationBannerId] = useState<FacebookNotification["id"] | null>(null);
   const selectedProfileName = state.selectedProfileName ?? sessionIdentity.name;
   const selectedAlbum = state.selectedAlbumId ? getFacebookAlbum(state.selectedAlbumId) : null;
   const selectedPhoto = state.selectedPhotoMediaId ? getFacebookStoryMedia(state.selectedPhotoMediaId) : null;
@@ -79,6 +82,27 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   const elapsedSeconds = Math.floor(elapsedMs / 1_000);
   const simulatedNowMs = Date.parse(SESSION_START_ISO) + elapsedMs;
   const visibleFeed = selectFacebookVisibleFeed(state, simulatedNowMs);
+  const activeHomeNotificationBanner = activeHomeNotificationBannerId
+    ? notifications.find(notification => notification.id === activeHomeNotificationBannerId) ?? null
+    : null;
+
+  useEffect(() => {
+    const knownNotificationIds = knownNotificationIdsRef.current;
+    const newlyDelivered = notifications.filter(notification => !knownNotificationIds.has(notification.id));
+    knownNotificationIdsRef.current = new Set(notifications.map(notification => notification.id));
+    if (notifications.length === 0) {
+      setActiveHomeNotificationBannerId(null);
+      return;
+    }
+    const latestNotification = newlyDelivered[newlyDelivered.length - 1];
+    if (latestNotification) setActiveHomeNotificationBannerId(latestNotification.id);
+  }, [notifications]);
+
+  useEffect(() => {
+    if (!activeHomeNotificationBannerId) return;
+    const timeoutId = window.setTimeout(() => setActiveHomeNotificationBannerId(null), FACEBOOK_HOME_NOTIFICATION_BANNER_DURATION_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeHomeNotificationBannerId]);
 
   useLayoutEffect(() => {
     if (state.currentView !== "feed" || !feedRef.current) return;
@@ -101,7 +125,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   return <section className="facebook-container" aria-label="Facebook" data-chrome-status="HOLD">
     <FacebookNavigationHeader state={state} displayName={sessionIdentity.name} selectedItem={selectedItem} dispatch={dispatch} />
 
-    {state.currentView === "home" && <FacebookHome state={state} displayName={sessionIdentity.name} requestCount={requestCount} inboxUnreadCount={inboxUnreadCount} eventInviteUnseenCount={eventInviteUnseenCount} notificationUnreadCount={notificationUnreadCount} dispatch={dispatch} />}
+    {state.currentView === "home" && <FacebookHome state={state} displayName={sessionIdentity.name} requestCount={requestCount} inboxUnreadCount={inboxUnreadCount} eventInviteUnseenCount={eventInviteUnseenCount} activeNotification={activeHomeNotificationBanner} onDismissNotification={() => setActiveHomeNotificationBannerId(null)} dispatch={dispatch} />}
 
     {state.currentView === "feed" && <>
       <div className="facebook-feed-composer-strip" aria-label="Create">
@@ -277,7 +301,7 @@ function FacebookChatConversation({ state, displayName, currentDeviceTime, simul
   </article>;
 }
 
-function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, eventInviteUnseenCount, notificationUnreadCount, dispatch }: { state: FacebookState; displayName: string; requestCount: number; inboxUnreadCount: number; eventInviteUnseenCount: number; notificationUnreadCount: number; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, eventInviteUnseenCount, activeNotification, onDismissNotification, dispatch }: { state: FacebookState; displayName: string; requestCount: number; inboxUnreadCount: number; eventInviteUnseenCount: number; activeNotification: FacebookNotification | null; onDismissNotification: () => void; dispatch: Dispatch<FacebookEvent> }) {
   const searchResults = selectFacebookPeopleSearchResults(state.homeSearchQuery);
   const dragStart = useRef<{ pointerId: number; x: number; y: number; dragging: boolean } | null>(null);
   const suppressLauncherClick = useRef(false);
@@ -301,7 +325,7 @@ function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, even
     }
   };
   return <div
-    className="facebook-home"
+    className={`facebook-home${activeNotification ? " has-notification-banner" : ""}`}
     aria-label="Facebook Home"
     data-layout-evidence="PERIOD-EVIDENCE"
     data-launcher-page={state.homeLauncherPage + 1}
@@ -355,7 +379,9 @@ function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, even
       <button type="button" aria-current={state.homeLauncherPage === 0 ? "page" : undefined} aria-label="Launcher page 1" onClick={() => dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: 0 })} />
       <button type="button" aria-current={state.homeLauncherPage === 1 ? "page" : undefined} aria-label="Launcher page 2" onClick={() => dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: 1 })} />
     </nav>
-    <button type="button" className="facebook-home-notifications" onClick={() => dispatch({ type: "SHOW_NOTIFICATIONS" })}><span>Notifications</span>{notificationUnreadCount > 0 && <b>{notificationUnreadCount}</b>}</button>
+    {activeNotification && <button type="button" className="facebook-home-notification-banner" onClick={() => { onDismissNotification(); dispatch({ type: "OPEN_NOTIFICATION", notificationId: activeNotification.id }); }}>
+      <b aria-hidden="true">1</b><span>{activeNotification.text}</span>
+    </button>}
   </div>;
 }
 
@@ -488,7 +514,8 @@ function FacebookAlbumList({ actor, dispatch }: { actor: FacebookAlbumActor | nu
       const cover = getFacebookStoryMedia(album.photos[0].mediaId);
       return <button key={album.id} type="button" onClick={() => dispatch({ type: "OPEN_ALBUM", albumId: album.id })}>{cover && <img src={cover.src} alt="" />}<span><strong>{album.title}</strong><small>{album.mediaIds.length} photo{album.mediaIds.length === 1 ? "" : "s"}</small></span></button>;
     })}
-    {taggedActor && taggedDisplayName && taggedPhotos.length > 0 && <button type="button" onClick={() => dispatch({ type: "OPEN_TAGGED_PHOTOS", actor: taggedActor })}>
+    {taggedActor && taggedDisplayName && taggedPhotos.length > 0 && <h2>Tagged Photos</h2>}
+    {taggedActor && taggedDisplayName && taggedPhotos.length > 0 && <button className="is-tagged-collection" type="button" onClick={() => dispatch({ type: "OPEN_TAGGED_PHOTOS", actor: taggedActor })}>
       <img src={getFacebookStoryMedia(taggedPhotos[0].photo.mediaId)?.src} alt="" />
       <span><strong>Photos of {taggedDisplayName}</strong><small>{taggedPhotos.length} photo{taggedPhotos.length === 1 ? "" : "s"}</small></span>
     </button>}
@@ -531,7 +558,7 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
   const venue = photo.venueId ? getCanonicalVenue(photo.venueId) : null;
   const taggedActors = getFacebookPhotoTagActors(photo).map(resolveFacebookPhotoTagActor);
   return <article className="facebook-photo-viewer">
-    <img src={media.src} alt={`${album.ownerActor.displayName} photo`} />
+    <img className="facebook-photo-viewer-image" src={media.src} alt={`${album.ownerActor.displayName} photo`} />
     <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: album.ownerActor })}>{album.ownerActor.displayName}</button>
     <span>{album.title} · {formatFacebookStoryTime({ storyId: photo.storyId, storyTimestamp: photo.timestamp, simulatedNowMs, storyType: "photo", sourceApp: story?.sourceApp, surface: "detail" })}</span>
     {venue && <span>{venue.name}</span>}
@@ -588,7 +615,7 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
       <div className="facebook-profile-identity-copy"><strong>{profileName}</strong></div>
     </header>
     <nav className="facebook-profile-sections" aria-label="Profile sections">
-      {(["wall", "info", "photos", "friends"] as const).map(section => <button key={section} type="button" aria-current={state.profileSection === section ? "page" : undefined} onClick={() => dispatch({ type: "SET_PROFILE_SECTION", section })}>{section[0].toUpperCase() + section.slice(1)}</button>)}
+      {(["wall", "info", "photos"] as const).map(section => <button key={section} type="button" aria-current={state.profileSection === section ? "page" : undefined} onClick={() => dispatch({ type: "SET_PROFILE_SECTION", section })}>{section[0].toUpperCase() + section.slice(1)}</button>)}
     </nav>
     {state.profileSection === "wall" && <div
       ref={wallRef}
@@ -625,9 +652,6 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
       ? <div className="facebook-profile-info"><dl><dt>Full Name</dt><dd>{profileInfo.fullName}</dd>{profileInfo.age !== undefined && <><dt>Age</dt><dd>{profileInfo.age}</dd></>}{profileInfo.birthday && <><dt>Birthday</dt><dd>{profileInfo.birthday}</dd></>}{profileInfo.location && <><dt>Location</dt><dd>{profileInfo.location}</dd></>}{profileInfo.lifeStage && <><dt>Education</dt><dd>{profileInfo.lifeStage}</dd></>}{profileInfo.activity && <><dt>Activities</dt><dd>{profileInfo.activity}</dd></>}{profileInfo.interests?.length && <><dt>Interests</dt><dd>{profileInfo.interests.join(", ")}</dd></>}</dl></div>
       : <div className="facebook-profile-empty" data-provenance-status="HOLD" aria-label="Profile Info unavailable" />)}
     {state.profileSection === "photos" && <FacebookAlbumList actor={albumActor} dispatch={dispatch} />}
-    {state.profileSection === "friends" && <div className="facebook-friend-list" aria-label={`${profileName} Friends`}>
-      {isCurrentUser && state.friends.map(friend => <button key={friend.id} type="button" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: friend.actor })}><strong>{friend.name}</strong></button>)}
-    </div>}
   </section>;
 }
 
@@ -711,14 +735,17 @@ function FacebookStoryView({ surface, item, liked, commentCount, likeCount, stor
       <span className="facebook-story-link" role={surface === "wall" ? "button" : undefined} tabIndex={surface === "wall" ? 0 : undefined} onClick={surface === "wall" ? onOpen : undefined} onKeyDown={surface === "wall" ? event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen?.(); } : undefined}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} onOpenActor={onOpenActor} /></span>
       <FacebookStoryMedia item={item} dispatch={dispatch} onBeforeNavigate={onBeforeMediaNavigate} />
       <time>{storyTime}</time>
-      {surface === "feed" ? (commentCount > 0 || likeCount > 0) && <span className="facebook-feed-interaction-footer"><FacebookStoryCounts surface={surface} commentCount={commentCount} likeCount={likeCount} /></span> : <>
-        <FacebookStoryCounts surface={surface} commentCount={commentCount} likeCount={likeCount} />
-        <span className="facebook-feed-actions"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
-      </>}
+      {surface === "feed"
+        ? (commentCount > 0 || likeCount > 0) && <span className="facebook-feed-interaction-footer"><FacebookStoryCounts surface={surface} commentCount={commentCount} likeCount={likeCount} /></span>
+        : (commentCount > 0 || likeCount > 0) && <span className="facebook-profile-wall-engagement-summary"><FacebookStoryCounts surface={surface} commentCount={commentCount} likeCount={likeCount} /></span>}
     </span>
     {surface === "feed" && <details className="facebook-feed-action-disclosure">
       <summary aria-label="Show Like and Comment actions">+</summary>
       <span className="facebook-feed-actions facebook-feed-actions-expanded"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
+    </details>}
+    {surface === "wall" && <details className="facebook-profile-wall-action-disclosure">
+      <summary aria-label="Show Like and Comment actions">+</summary>
+      <span className="facebook-profile-wall-actions-expanded"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
     </details>}
   </article>;
 }
@@ -765,11 +792,11 @@ function FacebookInlineEntityText({ text, mentions, dispatch, onOpenActor }: { t
 
 function FacebookStoryCounts({ surface, commentCount, likeCount }: { surface?: "feed" | "wall"; commentCount: number; likeCount: number }) {
   const commentLabel = formatFacebookCommentCount(commentCount);
-  const likeLabel = surface === "feed"
+  const likeLabel = surface === "feed" || surface === "wall"
     ? likeCount > 0 ? `${likeCount} ${likeCount === 1 ? "person" : "people"}` : null
     : formatFacebookLikeCount(likeCount);
   if (!commentLabel && !likeLabel) return null;
-  const labels = surface === "feed" ? [commentLabel, likeLabel] : [likeLabel, commentLabel];
+  const labels = surface === "feed" || surface === "wall" ? [commentLabel, likeLabel] : [likeLabel, commentLabel];
   return <span className={`facebook-story-counts is-${surface ?? "detail"}`}>{labels.map((label, index) => label && <span key={`${index}-${label}`}>{label}</span>)}</span>;
 }
 

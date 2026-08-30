@@ -16,7 +16,7 @@ import { SESSION_START_ISO } from "./deviceMachine";
 export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
 export type FacebookView = "home" | "feed" | "feedDetail" | "commentsDetail" | "profile" | "friends" | "pageDetail" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notes" | "notifications" | "account";
-export type FacebookProfileSection = "wall" | "info" | "photos" | "friends";
+export type FacebookProfileSection = "wall" | "info" | "photos";
 type FacebookProfileReturnState = {
   view: FacebookView;
   feedItemId: string | null;

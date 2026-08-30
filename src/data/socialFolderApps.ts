@@ -28,7 +28,7 @@ export const SOCIAL_FOLDER_APPS: readonly SocialFolderApp[] = [
     iconStatus: "HOLD",
     provenance: "Facebook 3.1.4 is period-correct; original Retina icon payload not recovered.",
     installState: { installed: true },
-    available: false,
+    available: true,
     launchTarget: "social-app-runtime",
   },
   {
@@ -37,7 +37,7 @@ export const SOCIAL_FOLDER_APPS: readonly SocialFolderApp[] = [
     iconStatus: "HOLD",
     provenance: "First-party Twitter for iPhone is period-correct; October 2010 icon payload not recovered.",
     installState: { installed: true },
-    available: false,
+    available: true,
     launchTarget: "social-app-runtime",
   },
   {
@@ -46,7 +46,7 @@ export const SOCIAL_FOLDER_APPS: readonly SocialFolderApp[] = [
     iconStatus: "HOLD",
     provenance: "Foursquare 2.0 is period-correct; original icon payload not recovered.",
     installState: { installed: true },
-    available: false,
+    available: true,
     launchTarget: "social-app-runtime",
   },
   {
@@ -55,7 +55,7 @@ export const SOCIAL_FOLDER_APPS: readonly SocialFolderApp[] = [
     iconStatus: "HOLD",
     provenance: "Tumblr 1.2 is period-correct; original icon payload not recovered.",
     installState: { installed: true },
-    available: false,
+    available: true,
     launchTarget: "social-app-runtime",
   },
   {
@@ -64,7 +64,7 @@ export const SOCIAL_FOLDER_APPS: readonly SocialFolderApp[] = [
     iconStatus: "HOLD",
     provenance: "Flickr 1.2 is period-correct and non-Retina; original 57x57 icon payload not recovered.",
     installState: { installed: true },
-    available: false,
+    available: true,
     launchTarget: "social-app-runtime",
   },
   {
@@ -73,7 +73,7 @@ export const SOCIAL_FOLDER_APPS: readonly SocialFolderApp[] = [
     iconStatus: "HOLD",
     provenance: "Instagram 1.0 is period-correct after its 2010-10-06 launch; original launch icon payload not recovered.",
     installState: { installed: true, photos: 0, followers: 0, following: 0 },
-    available: false,
+    available: true,
     launchTarget: "social-app-runtime",
   },
 ] as const;

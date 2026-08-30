@@ -2349,6 +2349,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const facebookStoryTimeSource = await readFile(resolve(projectRoot, "src/data/facebookStoryTime.ts"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
   const deviceCssSource = await readFile(resolve(projectRoot, "src/styles/device.css"), "utf8");
+  const springBoardSource = await readFile(resolve(projectRoot, "src/device/SpringBoard.tsx"), "utf8");
+  const socialFolderAppsSource = await readFile(resolve(projectRoot, "src/data/socialFolderApps.ts"), "utf8");
   const ios4KeyboardSource = await readFile(resolve(projectRoot, "src/device/IOS4KeyboardSystem.tsx"), "utf8");
   const mobileSmsContainerSource = await readFile(resolve(projectRoot, "src/device/MobileSMSContainer.tsx"), "utf8");
   const foursquareContainerSource = await readFile(resolve(projectRoot, "src/device/FoursquareContainer.tsx"), "utf8");
@@ -2378,6 +2380,60 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(deviceCssSource, /\.ios4-keyboard-row\.is-row-2\.is-ten-key-punctuation[^}]*flex-wrap/, "ten-key punctuation rows must not use a wrapping flex layout");
   assert.match(ios4KeyboardSource, /state\.mode === "numbers" \? "#\+=" : "123"/, "the 123 third row must continue to begin with the #+= control");
   assert.doesNotMatch(deviceCssSource, /\.(?:facebook|twitter|instagram|foursquare)-keyboard/, "apps must not gain independently themed keyboard implementations");
+
+  const pageOneSource = springBoardSource.match(/const PAGE_ONE_APPS[^=]*= \[([\s\S]*?)\n\] as const;/)?.[1];
+  const pageTwoSource = springBoardSource.match(/const PAGE_TWO_APPS[^=]*= \[([\s\S]*?)\n\] as const;/)?.[1];
+  const dockSource = springBoardSource.match(/const DOCK_APPS = \[([\s\S]*?)\n\] as const;/)?.[1];
+  assert.ok(pageOneSource && pageTwoSource && dockSource, "SpringBoard must retain explicit fixed page and dock registries");
+  const pageOneNames = [...pageOneSource.matchAll(/name: "([^"]+)"/g)].map(match => match[1]);
+  const pageTwoNames = [...pageTwoSource.matchAll(/name: "([^"]+)"/g)].map(match => match[1]);
+  const dockNames = [...dockSource.matchAll(/name: "([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(pageOneNames, ["Calendar", "Photos", "Stocks", "Utilities", "Maps", "Weather", "Notes", "iTunes", "App Store", "Game Center", "Settings"], "Page 1 must retain the canonical stock-app slot order");
+  assert.deepEqual(pageTwoNames, ["Social"], "Page 2 must preserve the project-canonical Social folder and no invented page apps");
+  assert.deepEqual(dockNames, ["Messages", "Safari", "Camera", "YouTube"], "the dock must contain exactly the four canonical apps in order");
+  assert.equal(pageOneNames.filter(name => dockNames.includes(name)).length, 0, "dock apps must not be duplicated on Page 1");
+  assert.match(springBoardSource, /const PAGE_ONE_APPS:[^=]+ = \[[\s\S]+undefined,\s*undefined,\s*undefined,\s*undefined,\s*undefined,\s*\] as const;/, "Page 1 must retain all sixteen explicit slots, including trailing empty slots");
+  assert.match(deviceCssSource, /\.springboard-icon-grid \{[^}]*left: 16px;[^}]*top: 36px;[^}]*grid-template-columns: repeat\(4,59px\);[^}]*grid-template-rows: repeat\(4,74px\);[^}]*column-gap: 17px;[^}]*row-gap: 14px;/, "SpringBoard pages must use the fixed 4x4 iPhone portrait slot geometry");
+  assert.doesNotMatch(deviceCssSource, /\.springboard-icon-grid[^}]*(?:space-around|space-between|auto-fit|auto-fill)/, "SpringBoard slot geometry must remain independent of item count");
+  assert.match(deviceCssSource, /\.springboard-page-indicator \{[^}]*bottom: 84px;/, "page-dot position must remain fixed independently of populated rows");
+  assert.match(deviceCssSource, /\.springboard-dock \{[^}]*height: 84px;[^}]*grid-template-columns: repeat\(4,59px\);[^}]*column-gap: 17px;/, "the dock must retain four fixed icon slots");
+  assert.match(springBoardSource, /name: "Utilities"[^\n]+kind: "folder"[^\n]+folderId: "utilities"[^\n]+folderApps: UTILITIES_APPS/, "Utilities must be a real folder entry using the shared folder runtime");
+  assert.deepEqual([...springBoardSource.matchAll(/\{ name: "(Clock|Calculator|Compass|Voice Memos)", iconSrc:/g)].map(match => match[1]), ["Clock", "Calculator", "Compass", "Voice Memos"], "Utilities must contain the four target-period stock utilities");
+  assert.match(springBoardSource, /name: "Game Center", iconSrc: gameCenterIconSrc/, "Game Center must remain present with its iOS 4.1 asset");
+  assert.match(springBoardSource, /SpringBoardFolderIcon[\s\S]+springboard-folder-mini-grid[\s\S]+miniatures\.slice\(0, 9\)/, "folder tiles must expose miniatures of their contained applications");
+  assert.match(springBoardSource, /const panelHeight = 125 \+ \(rows - 1\) \* 85;/, "folder tray height must follow the target-build row formula");
+  assert.match(socialFolderAppsSource, /id: "facebook"[\s\S]+id: "twitter"[\s\S]+id: "foursquare"[\s\S]+id: "tumblr"[\s\S]+id: "flickr"[\s\S]+id: "instagram"/, "the Social folder must preserve all six canonical social applications");
+  assert.match(deviceCssSource, /\.screen > \.springboard \{[^}]*DefaultWallpaper@2x~iphone\.png[^}]*320px 480px no-repeat;/, "the existing water-droplet wallpaper and crop must remain unchanged");
+  assert.match(appSource, /createStatusBarState\(\{[\s\S]+signalStrength: 5,[\s\S]+network: DEVICE_CARRIER_CONFIG\.networkType,[\s\S]+bluetoothEnabled: false,[\s\S]+charging: false,[\s\S]+carrier: DEVICE_CARRIER_CONFIG\.carrier/, "the established SpringBoard status-bar configuration must remain unchanged");
+  assert.doesNotMatch(springBoardSource, /iphone os 5|ios 5|newsstand|passbook|health|wallet|control center/i, "SpringBoard must not include post-iOS-4 applications or chrome");
+  assert.doesNotMatch(springBoardSource, /facebookState|twitterState|instagramState|foursquareState|messagesState|sessionSeedContent/, "SpringBoard placement must not couple to application data or reducers");
+
+  const springBoardOriginalIconHashes = Object.freeze({
+    "Calendar@2x.png": "1bbc4d9bd75edb5fe3cd3d7cb8ad8a669909117ddc36bfb7f9420cc7b412e042",
+    "Photos@2x.png": "8ee378887d5cd2415544f3588e1c2d823fdc934f7ad2707d7810f37b750bbede",
+    "Stocks@2x.png": "020e4f247290a859fb1bc459c9c7ed8b0259ef1d4bcc61a2eaf56677eafb382e",
+    "Maps@2x.png": "44895c61986aebf4e64f625382f31ea1454af3bc65ee31d03c4ef2ad0bb13a55",
+    "Weather@2x.png": "c41a834ec31239fdcc886e1cfc78a571144db914841792790440ba27612dcbed",
+    "Notes@2x.png": "48b87b32327dc974697d9c0989c77e06241fd7f562390c4a5ef591a0c08f7310",
+    "iTunes@2x.png": "1b1cfd7cc532fa48a0c9fda9c132ab52933d84fd0ee85a1e19aac60b25b663d6",
+    "AppStore@2x.png": "638b5d917401c91d19e6c040f5bfbc5c84a900cf6f6db8064a129304f06b63f4",
+    "GameCenter@2x.png": "189f1c065ae7932654a2815244cfa3682cc42d764a0d35b66d25fbca2348d534",
+    "Settings@2x.png": "fb9472654d75aab98cb940482a1b9ce15f82fc230902dbac7b7950644e5d5cc7",
+    "Clock@2x.png": "083f98c421c5c19b7ff2aa7f03915e0549414a0c5a238e6ad1e41837c05b7930",
+    "Calculator@2x.png": "a0abc743da2afd355c9de5778644184f2159d76aeaa99f5b4adf2425163a1c2b",
+    "Compass@2x.png": "44ccbc5fbfce28791fe146de23465559b398948a43fe0a4468b59645908150a3",
+    "VoiceMemos@2x.png": "b43bc46256e6f1b46c381266eac589db9e90313cfb34aa3f2d823b99ea4a4cc2",
+    "Messages@2x.png": "7de42ad9a1e2d876abc95a742724366dca8405e3f7bfec8e1469fc8ce2cbbc79",
+    "Safari@2x.png": "7d6a1fcbf071278778930ab0063f82d8f11f72aa6358266ffbdba6ba27a04709",
+    "Camera@2x.png": "fda38114fc4ce321595513927250414f5caed2d6a5a694a6a2580a5e562a790e",
+    "YouTube@2x.png": "81ef16bbb2d3e04e5a45c7cdf2c2800093126b4b54a5d42229183d014eb3d7b6",
+  });
+  for (const [filename, expectedHash] of Object.entries(springBoardOriginalIconHashes)) {
+    const originalBytes = await readFile(resolve(projectRoot, "src/assets/historical/ios4.1/springboard/apps", filename));
+    const browserBytes = await readFile(resolve(projectRoot, "src/assets/historical/ios4.1/springboard/apps", filename.replace(".png", ".browser.png")));
+    assert.equal(createHash("sha256").update(originalBytes).digest("hex"), expectedHash, `${filename} must remain byte-identical to its 8B117 source`);
+    assert.equal(browserBytes.indexOf(Buffer.from("CgBI")), -1, `${filename} must retain a browser-readable standard-PNG companion`);
+  }
   assert.match(facebookContainerSource, /import \{ IOS4Input, IOS4Textarea \} from "\.\/IOS4KeyboardSystem";/, "Facebook must consume the shared system inputs rather than own keyboard chrome");
   assert.match(facebookContainerSource, /keyboardInputId="facebook-home-search"[\s\S]+EDIT_HOME_SEARCH/, "Facebook Home Search must register with the shared keyboard and retain its handler");
   assert.match(facebookContainerSource, /keyboardInputId=\{`facebook-\$\{state\.friendsSection\}-search`\}[\s\S]+EDIT_FRIEND_SEARCH/, "Facebook Friends and Pages Search must share explicit keyboard ownership with existing live filtering");

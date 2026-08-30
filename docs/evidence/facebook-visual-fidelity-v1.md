@@ -293,7 +293,7 @@ The 2010 News Feed primary routes are locked as follows:
 - Generic Feed story body -> no primary action: HOLD
 - News Feed photo -> Generic Post Detail: REJECTED as a primary route
 
-Generic Post Detail remains available as a non-primary fallback. Profile Wall story-body navigation is retained as LEGACY / HOLD for compatibility, while the Event Wall's direct Alex story link remains an INTERNAL_FALLBACK. No broad Post Detail cleanup is part of this pass.
+At the time of v1.4, Generic Post Detail remained a non-primary fallback through Profile Wall and Event Wall compatibility callers. Generic Post Detail Legacy Route Audit v1.0 below supersedes those caller decisions and retires both normal UI paths.
 
 Feed media navigation captures the existing Feed scroll position before opening Photo Detail. Single-photo, album-thumbnail, Profile Wall, Album, and tagged-photo entry paths continue resolving the same canonical media and story interaction identity. No duplicate media or derivative asset was introduced.
 
@@ -321,9 +321,24 @@ Multi-photo thumbnail -> exact Photo Detail
 Feed story body -> HOLD
 ```
 
-Generic Post Detail remains limited to Profile Wall story body as `LEGACY / HOLD` and the Event Wall Alex story link as `INTERNAL_FALLBACK`.
+This freeze originally left Profile Wall story body as `LEGACY / HOLD` and the Event Wall Alex story link as `INTERNAL_FALLBACK`; Generic Post Detail Legacy Route Audit v1.0 below supersedes and retires both callers without reopening frozen Feed visuals.
 
 These surfaces may be reopened only for a confirmed A-level runtime blocker, B-level functional regression, or strong newly discovered historical evidence that directly contradicts the frozen implementation. Subjective polish is not sufficient grounds to reopen them.
+
+## Generic Post Detail Legacy Route Audit v1.0
+
+Generic Post Detail as a primary 2010 iPhone route is `NOT_EVIDENCED / REJECTED AS PRIMARY`. The earlier compatibility exceptions above are superseded by this audit:
+
+- Comment → Comments Detail: `PERIOD-EVIDENCE`
+- Photo or exact multi-photo thumbnail → Photo Detail: `PERIOD-EVIDENCE`
+- Actor / avatar / structured mention → Profile: `PERIOD-EVIDENCE`
+- Generic story body → Generic Post Detail: `HOLD / RETIRED`
+
+News Feed story bodies remain inert. Profile Wall generic story-body navigation is now `NO_ACTION`; its Comment control opens the restored Comments controller while retaining the originating Profile and exact Wall scroll snapshot. The Event Wall Alex story is also `NO_ACTION` because the old whole-story button exposed only the unsupported generic detail fallback and did not communicate Comment semantics.
+
+No normal Facebook UI dispatches `OPEN_FEED_ITEM`. Generic Post Detail is therefore `LEGACY_UNUSED` in normal navigation. Its render branch, CSS, state view, and explicitly deprecated `OPEN_FEED_ITEM` transition remain temporarily as an `INTERNAL_FALLBACK` for legacy validator-only scenarios; deletion is deferred to a separate dead-code cleanup. The complete inventory is recorded in `facebook-generic-post-detail-retirement-v1.0.md`.
+
+This retirement changes route access only. Feed and Wall scroll architecture, cross-profile Back restoration, Photo Detail Back, Comments Back, event navigation, story data, media, interaction state, notifications, scheduler, and global time remain unchanged.
 
 ## Home Transient Notification Banner v1.0
 
@@ -390,7 +405,7 @@ Compact stacked stories, square compact Wall avatars, and the Wall avatar/body h
 
 Profile Wall interaction chrome is superseded by v1.2.2 below. The compact pale comment-preview treatment is `PERIOD-EVIDENCE / VISUAL-CROSSCHECK`; no threading, comment Likes, or fabricated metadata is introduced.
 
-Profile Wall photo controls already resolve canonical single media or exact album photos into Photo Detail, so no route change is required. Generic Profile Wall story-body navigation to Post Detail remains `LEGACY / HOLD`.
+Profile Wall photo controls already resolve canonical single media or exact album photos into Photo Detail, so no photo route change is required. The later Generic Post Detail Legacy Route Audit v1.0 retires generic Profile Wall story-body navigation to `NO_ACTION`.
 
 The Profile identity block, section tabs, News Feed selectors and 68% Feed media rule, Comments Detail, Photo Detail, data, chronology, ownership, tags, and interaction state remain unchanged.
 
@@ -410,7 +425,7 @@ Historical confidence: `PROBABLE`. Contemporary Profile Wall captures show compa
 
 Each Wall story uses a Wall-specific native `<details>` element. Disclosure defaults collapsed, toggles independently, and remains UI-local rather than entering Facebook state or session serialization. Non-zero summary segments derive from the existing comment and Like selectors; zero segments and empty summary containers are omitted. Expanded controls retain the existing Like/Unlike and Comment handler props in that order.
 
-The Wall Comment handler continues to open Generic Post Detail and then begin the canonical comment composer. That route remains `LEGACY / HOLD` and is not changed by this chrome-only pass.
+This restoration originally retained a Wall Comment handler through Generic Post Detail. The later Generic Post Detail Legacy Route Audit v1.0 supersedes that compatibility path: Wall Comment now opens the dedicated Comments controller with Profile Wall restoration context.
 
 The Wall reconstruction shares token values and period interaction grammar with Feed, but uses separate `.facebook-profile-wall-*` markup and selectors. Frozen Feed markup/CSS, Profile identity and tabs, Wall media geometry, comments, story keys, data, and scroll architecture remain unchanged.
 

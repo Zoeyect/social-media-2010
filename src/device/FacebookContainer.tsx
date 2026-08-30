@@ -43,6 +43,7 @@ import type { CanonicalVenueId } from "../data/canonicalVenues";
 import { SESSION_START_ISO } from "../state/deviceMachine";
 import { getFacebookPage } from "../data/facebookPages";
 import { FacebookHomeIcon } from "./FacebookHomeIcons";
+import { Facebook2010BackButton, FacebookCameraArtwork, FacebookGridLauncherArtwork, FacebookMicroGlyph, FacebookNotificationActionBubble, FacebookStoryActionBubble, FacebookUnreadBadge } from "./FacebookMicroChrome";
 
 type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number };
 
@@ -134,7 +135,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     {state.currentView === "feed" && <>
       <div className="facebook-feed-composer-strip" aria-label="Create">
         <button className="facebook-feed-camera-control" type="button" disabled aria-label="Camera" data-provenance-status="HOLD">
-          <span aria-hidden="true" />
+          <FacebookCameraArtwork />
         </button>
         <button className="facebook-feed-status-control" type="button" aria-expanded={state.statusComposerOpen} onClick={() => dispatch({ type: "OPEN_STATUS_COMPOSER" })}>What's on your mind?</button>
       </div>
@@ -168,7 +169,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
       <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: selectedItem.author })}>{selectedItem.author}</button>
       <p><FacebookInlineEntityText text={selectedItem.text} mentions={selectedItem.mentions} dispatch={dispatch} /></p>
       <FacebookStoryMedia item={selectedItem} dispatch={dispatch} />
-      <time>{formatFacebookStoryTime({ storyId: selectedItem.id, storyTimestamp: selectedItem.createdAt ?? selectedItem.timestamp, simulatedNowMs, storyType: selectedItem.kind, sourceApp: selectedItem.sourceApp, surface: "detail" })}</time>
+      <time><FacebookDetailTimestampRow storyId={selectedItem.id} storyTimestamp={selectedItem.createdAt ?? selectedItem.timestamp} simulatedNowMs={simulatedNowMs} storyType={selectedItem.kind} sourceApp={selectedItem.sourceApp} /></time>
       <FacebookStoryCounts commentCount={selectFacebookComments(state, selectedItem.id).length} likeCount={selectFacebookLikes(state, selectedItem.id, elapsedSeconds).length} />
       <div className="facebook-detail-actions">
         <button type="button" aria-pressed={state.likedItemIds.includes(selectedItem.id)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: selectedItem.id, displayName: sessionIdentity.name })}>{state.likedItemIds.includes(selectedItem.id) ? "Unlike" : "Like"}</button>
@@ -187,11 +188,13 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     {state.currentView === "commentsDetail" && selectedItem && <section className="facebook-comments-detail" aria-label={`${selectedItem.author} comments`}>
       <div className="facebook-comments-scroll">
         <FacebookCommentsOriginalStory item={selectedItem} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />
-        {selectFacebookLikes(state, selectedItem.id, elapsedSeconds).length > 0 && <div className="facebook-comments-like-summary">
-          {formatFacebookLikeCount(selectFacebookLikes(state, selectedItem.id, elapsedSeconds).length)}
-        </div>}
-        <div className="facebook-comments-list">
-          {selectFacebookComments(state, selectedItem.id).map(comment => <FacebookCommentsRow key={comment.id} comment={comment} sessionUserName={sessionIdentity.name} dispatch={dispatch} />)}
+        <div className="facebook-comments-panel">
+          {selectFacebookLikes(state, selectedItem.id, elapsedSeconds).length > 0 && <div className="facebook-comments-like-summary">
+            <FacebookMicroGlyph name="like" />{formatFacebookLikeCount(selectFacebookLikes(state, selectedItem.id, elapsedSeconds).length)}
+          </div>}
+          <div className="facebook-comments-list">
+            {selectFacebookComments(state, selectedItem.id).map(comment => <FacebookCommentsRow key={comment.id} comment={comment} sessionUserName={sessionIdentity.name} dispatch={dispatch} />)}
+          </div>
         </div>
       </div>
       <form className={`facebook-comments-composer${state.commentComposerItemId === selectedItem.id ? " is-editing" : ""}`} onSubmit={event => {
@@ -269,9 +272,9 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
 function FacebookNavigationHeader({ state, displayName, selectedItem, dispatch }: { state: FacebookState; displayName: string; selectedItem: FacebookFeedItem | null; dispatch: Dispatch<FacebookEvent> }) {
   if (state.currentView === "home") return <div className="facebook-home-chrome" data-header-controls-status="HOLD">
     <header className="facebook-navigation-bar is-home">
-      <button type="button" className="facebook-account-control" onClick={() => dispatch({ type: "SHOW_ACCOUNT", profileName: displayName })}>Account</button>
+      <button type="button" className="facebook-account-control facebook-2010-nav-button is-normal is-left" onClick={() => dispatch({ type: "SHOW_ACCOUNT", profileName: displayName })}>Account</button>
       <strong>facebook</strong>
-      <button type="button" className="facebook-shortcut-control" disabled aria-label="Shortcut customization HOLD">+</button>
+      <button type="button" className="facebook-shortcut-control facebook-2010-nav-button is-icon is-right" disabled aria-label="Shortcut customization HOLD">+</button>
     </header>
     <div className="facebook-home-search-row">
       <label className="facebook-search-field facebook-home-search"><span className="facebook-search-glyph" aria-hidden="true" />
@@ -280,14 +283,25 @@ function FacebookNavigationHeader({ state, displayName, selectedItem, dispatch }
     </div>
   </div>;
   const nested = state.navigationStack.length > 2;
+  const previousView = state.navigationStack[state.navigationStack.length - 2] ?? null;
   const chatPeerName = state.selectedChatPeerId === null ? null : selectFacebookVisibleChatRoster(state).find(person => person.characterId === state.selectedChatPeerId)?.displayName;
   const placeName = state.selectedPlaceId === null ? null : getCanonicalVenue(state.selectedPlaceId)?.name;
+  const commentsSourceLabel = selectedItem?.author.trim().split(/\s+/)[0] || "Back";
+  const directionalBackLabel = state.currentView === "commentsDetail"
+    ? commentsSourceLabel
+    : state.currentView === "messageDetail"
+      ? previousView === "inbox" ? "Messages" : nested ? "Back" : "Home"
+      : state.currentView === "chatConversation"
+        ? "Chat"
+        : nested ? "Back" : "Home";
   return <header className="facebook-navigation-bar">
-    <button type="button" className="facebook-back-control" onClick={() => dispatch({ type: "GO_BACK" })}>{nested ? "Back" : "Home"}</button>
+    {state.currentView === "feed" || state.currentView === "friends"
+      ? <button type="button" className="facebook-back-control facebook-grid-launcher-control facebook-2010-nav-button is-grid is-left" aria-label="Facebook Home" onClick={() => dispatch({ type: "GO_BACK" })}><FacebookGridLauncherArtwork /></button>
+      : <Facebook2010BackButton label={directionalBackLabel} onClick={() => dispatch({ type: "GO_BACK" })} />}
     <strong>{state.currentView === "chatConversation" ? chatPeerName ?? "Chat" : state.currentView === "placeCheckIn" || state.currentView === "placeDetail" ? placeName ?? "Places" : state.currentView === "feed" || state.currentView === "friends" ? "facebook" : viewTitle(state.currentView)}</strong>
-    {state.currentView === "feed" && <span className="facebook-navigation-context">Live Feed</span>}
-    {state.currentView === "friends" && <button type="button" className="facebook-navigation-context" disabled data-provenance-status="HOLD">Sync</button>}
-    {state.currentView === "commentsDetail" && selectedItem && <button type="button" className="facebook-comments-like-control" aria-pressed={state.likedItemIds.includes(selectedItem.id)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: selectedItem.id, displayName })}>{state.likedItemIds.includes(selectedItem.id) ? "Unlike" : "Like"}</button>}
+    {state.currentView === "feed" && <span className="facebook-navigation-context facebook-2010-nav-button is-normal is-right is-static is-feed-context">News Feed</span>}
+    {state.currentView === "friends" && <button type="button" className="facebook-navigation-context facebook-2010-nav-button is-normal is-right" disabled data-provenance-status="HOLD">Sync</button>}
+    {state.currentView === "commentsDetail" && selectedItem && <button type="button" className="facebook-comments-like-control facebook-2010-nav-button is-normal is-right" aria-pressed={state.likedItemIds.includes(selectedItem.id)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: selectedItem.id, displayName })}>{state.likedItemIds.includes(selectedItem.id) ? "Unlike" : "Like"}</button>}
   </header>;
 }
 
@@ -393,7 +407,7 @@ function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, even
       <button type="button" aria-current={state.homeLauncherPage === 1 ? "page" : undefined} aria-label="Launcher page 2" onClick={() => dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: 1 })} />
     </nav>
     {activeNotification && <button type="button" className="facebook-home-notification-banner" onClick={() => { onDismissNotification(); dispatch({ type: "OPEN_NOTIFICATION", notificationId: activeNotification.id }); }}>
-      <b aria-hidden="true">1</b><span>{activeNotification.text}</span>
+      <FacebookNotificationActionBubble count={1} /><span>{activeNotification.text}</span>
     </button>}
   </div>;
 }
@@ -401,7 +415,7 @@ function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, even
 function HomeDestination({ destinationId, label, count = 0, onClick }: { destinationId: FacebookHomeLauncherDestinationId; label: string; count?: number; onClick: () => void }) {
   return <button type="button" className="facebook-home-destination" onClick={onClick}>
     <FacebookHomeIcon destinationId={destinationId} /><strong>{label}</strong>
-    {count > 0 && <span className="facebook-internal-count" aria-label={`${count} unread`}>{count}</span>}
+    {count > 0 && <FacebookUnreadBadge count={count} />}
   </button>;
 }
 
@@ -493,7 +507,7 @@ function FacebookPartyEvent({ state, dispatch }: { state: FacebookState; dispatc
   return <section className="facebook-event-detail">
     <header><strong>Jack's Party</strong><span>Friday</span><small>Hosted by <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: CORE_SOCIAL_CHARACTERS.jack.displayName })}>{CORE_SOCIAL_CHARACTERS.jack.displayName}</button> · Location HOLD</small></header>
     <fieldset><legend>RSVP</legend>{(["yes", "maybe", "no"] as const).map(value => <button key={value} type="button" aria-pressed={state.partyRsvp === value} onClick={() => dispatch({ type: "SET_PARTY_RSVP", value })}>{value === "yes" ? "Yes" : value[0].toUpperCase() + value.slice(1)}</button>)}</fieldset>
-    <section className="facebook-event-wall"><h2>Event Wall</h2>{alexPost && <button type="button" onClick={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: alexPost.id, scrollPosition: state.scrollPosition })}><strong>{alexPost.author}</strong><span>{alexPost.text}</span></button>}</section>
+    <section className="facebook-event-wall"><h2>Event Wall</h2>{alexPost && <article className="facebook-event-wall-story" data-route-classification="NO_ACTION"><strong>{alexPost.author}</strong><span>{alexPost.text}</span></article>}</section>
   </section>;
 }
 
@@ -638,7 +652,7 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
   return <article className="facebook-photo-viewer">
     <img className="facebook-photo-viewer-image" src={media.src} alt={`${album.ownerActor.displayName} photo`} />
     <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: album.ownerActor })}>{album.ownerActor.displayName}</button>
-    <span>{album.title} · {formatFacebookStoryTime({ storyId: photo.storyId, storyTimestamp: photo.timestamp, simulatedNowMs, storyType: "photo", sourceApp: story?.sourceApp, surface: "detail" })}</span>
+    <span>{album.title} · <FacebookDetailTimestampRow storyId={photo.storyId} storyTimestamp={photo.timestamp} simulatedNowMs={simulatedNowMs} storyType="photo" sourceApp={story?.sourceApp} /></span>
     {venue && <span>{venue.name}</span>}
     {photo.caption && <p><FacebookInlineEntityText text={photo.caption} mentions={story?.mentions} dispatch={dispatch} /></p>}
     {taggedActors.length > 0 && <span>With {taggedActors.map((taggedActor, index) => <span key={taggedActor.kind === "canonical" ? taggedActor.characterId : taggedActor.authorId}>{index > 0 ? ", " : ""}<button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_COMMENT_AUTHOR", actor: taggedActor })}>{taggedActor.displayName}</button></span>)}</span>}
@@ -721,12 +735,8 @@ function FacebookProfile({ profileName, currentUserName, state, elapsedSeconds, 
           dispatch({ type: "OPEN_COMMENT_AUTHOR", actor });
         }}
         onBeforeMediaNavigate={captureWallScroll}
-        onOpen={() => dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: wallRef.current?.scrollTop ?? state.profileWallScrollPositions[profileName] ?? 0, origin: "profileWall", profileName })}
         onToggleLike={() => dispatch({ type: "TOGGLE_LIKE", itemId: item.id, displayName: currentUserName })}
-        onComment={() => {
-          dispatch({ type: "OPEN_FEED_ITEM", itemId: item.id, scrollPosition: wallRef.current?.scrollTop ?? state.profileWallScrollPositions[profileName] ?? 0, origin: "profileWall", profileName });
-          dispatch({ type: "BEGIN_COMMENT", itemId: item.id });
-        }}
+        onComment={() => dispatch({ type: "OPEN_COMMENTS", itemId: item.id, scrollPosition: wallRef.current?.scrollTop ?? state.profileWallScrollPositions[profileName] ?? 0, origin: "profileWall", profileName })}
         dispatch={dispatch}
       />)}
     </div>}
@@ -756,6 +766,10 @@ function FacebookCommentRow({ comment, sessionUserName, dispatch }: { comment: F
   </article>;
 }
 
+function FacebookDetailTimestampRow({ storyId, storyTimestamp, simulatedNowMs, storyType, sourceApp }: { storyId: string; storyTimestamp: string; simulatedNowMs: number; storyType: FacebookFeedItem["kind"]; sourceApp?: string }) {
+  return <span className="facebook-detail-timestamp-row"><FacebookMicroGlyph name="mobile-source" /><span>{formatFacebookStoryTime({ storyId, storyTimestamp, simulatedNowMs, storyType, sourceApp, surface: "detail" })}</span></span>;
+}
+
 function FacebookCommentsOriginalStory({ item, simulatedNowMs, dispatch }: { item: FacebookFeedItem; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
   const actorProfileMediaId = item.actor?.kind === "author-easter-egg"
     ? item.mediaId
@@ -773,7 +787,7 @@ function FacebookCommentsOriginalStory({ item, simulatedNowMs, dispatch }: { ite
       <button type="button" className="facebook-author-link" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: item.author })}>{item.author}</button>
       <p><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} /></p>
       <FacebookStoryMedia item={item} dispatch={dispatch} />
-      <time>{formatFacebookStoryTime({ storyId: item.id, storyTimestamp: item.createdAt ?? item.timestamp, simulatedNowMs, storyType: item.kind, sourceApp: item.sourceApp, surface: "detail" })}</time>
+      <time className="facebook-comments-story-source-time"><FacebookDetailTimestampRow storyId={item.id} storyTimestamp={item.createdAt ?? item.timestamp} simulatedNowMs={simulatedNowMs} storyType={item.kind} sourceApp={item.sourceApp} /></time>
     </div>
   </article>;
 }
@@ -799,7 +813,7 @@ function FacebookCommentsRow({ comment, sessionUserName, dispatch }: { comment: 
   </article>;
 }
 
-function FacebookStoryView({ surface, item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpenActor, onBeforeMediaNavigate, onOpen, onToggleLike, onComment, dispatch }: { surface: "feed" | "wall"; item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpenActor?: (actor: FacebookNavigableActor) => void; onBeforeMediaNavigate?: () => void; onOpen?: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
+function FacebookStoryView({ surface, item, liked, commentCount, likeCount, storyTime, onOpenProfile, onOpenActor, onBeforeMediaNavigate, onToggleLike, onComment, dispatch }: { surface: "feed" | "wall"; item: FacebookFeedItem; liked: boolean; commentCount: number; likeCount: number; storyTime: string; onOpenProfile: () => void; onOpenActor?: (actor: FacebookNavigableActor) => void; onBeforeMediaNavigate?: () => void; onToggleLike: () => void; onComment: () => void; dispatch: Dispatch<FacebookEvent> }) {
   const actorProfileMediaId = item.actor?.kind === "author-easter-egg"
     ? item.mediaId
     : item.actor?.kind === "ephemeral-friend-of-friend"
@@ -814,19 +828,19 @@ function FacebookStoryView({ surface, item, liked, commentCount, likeCount, stor
       : <span className="facebook-avatar-hold" aria-hidden="true" />}</button>
     <span className="facebook-feed-copy">
       <button type="button" className="facebook-author-link" onClick={onOpenProfile}>{item.author}</button>
-      <span className="facebook-story-link" role={surface === "wall" ? "button" : undefined} tabIndex={surface === "wall" ? 0 : undefined} onClick={surface === "wall" ? onOpen : undefined} onKeyDown={surface === "wall" ? event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) onOpen?.(); } : undefined}><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} onOpenActor={onOpenActor} /></span>
+      <span className="facebook-story-link"><FacebookInlineEntityText text={item.text} mentions={item.mentions} dispatch={dispatch} onOpenActor={onOpenActor} /></span>
       <FacebookStoryMedia item={item} dispatch={dispatch} onBeforeNavigate={onBeforeMediaNavigate} />
-      <time>{storyTime}</time>
+      <time className="facebook-story-timestamp-row">{(item.kind === "photo" || item.kind === "album") && <FacebookMicroGlyph name="mobile-source" />}<span>{storyTime}</span></time>
       {surface === "feed"
         ? (commentCount > 0 || likeCount > 0) && <span className="facebook-feed-interaction-footer"><FacebookStoryCounts surface={surface} commentCount={commentCount} likeCount={likeCount} /></span>
         : (commentCount > 0 || likeCount > 0) && <span className="facebook-profile-wall-engagement-summary"><FacebookStoryCounts surface={surface} commentCount={commentCount} likeCount={likeCount} /></span>}
     </span>
     {surface === "feed" && <details className="facebook-feed-action-disclosure">
-      <summary aria-label="Show Like and Comment actions">+</summary>
+      <summary aria-label="Show Like and Comment actions"><FacebookStoryActionBubble /></summary>
       <span className="facebook-feed-actions facebook-feed-actions-expanded"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
     </details>}
     {surface === "wall" && <details className="facebook-profile-wall-action-disclosure">
-      <summary aria-label="Show Like and Comment actions">+</summary>
+      <summary aria-label="Show Like and Comment actions"><FacebookStoryActionBubble /></summary>
       <span className="facebook-profile-wall-actions-expanded"><button type="button" aria-pressed={liked} onClick={onToggleLike}>{liked ? "Unlike" : "Like"}</button><button type="button" onClick={onComment}>Comment</button></span>
     </details>}
   </article>;
@@ -878,8 +892,10 @@ function FacebookStoryCounts({ surface, commentCount, likeCount }: { surface?: "
     ? likeCount > 0 ? `${likeCount} ${likeCount === 1 ? "person" : "people"}` : null
     : formatFacebookLikeCount(likeCount);
   if (!commentLabel && !likeLabel) return null;
-  const labels = surface === "feed" || surface === "wall" ? [commentLabel, likeLabel] : [likeLabel, commentLabel];
-  return <span className={`facebook-story-counts is-${surface ?? "detail"}`}>{labels.map((label, index) => label && <span key={`${index}-${label}`}>{label}</span>)}</span>;
+  const segments = surface === "feed" || surface === "wall"
+    ? [{ glyph: "comment" as const, label: commentLabel }, { glyph: "like" as const, label: likeLabel }]
+    : [{ glyph: "like" as const, label: likeLabel }, { glyph: "comment" as const, label: commentLabel }];
+  return <span className={`facebook-story-counts is-${surface ?? "detail"}`}>{segments.map(segment => segment.label && <span className={`facebook-story-count is-${segment.glyph}`} key={`${segment.glyph}-${segment.label}`}><FacebookMicroGlyph name={segment.glyph} />{segment.label}</span>)}</span>;
 }
 
 function viewTitle(view: FacebookState["currentView"]): string {

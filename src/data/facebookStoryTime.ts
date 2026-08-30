@@ -46,6 +46,18 @@ function facebookCalendarDateKey(timestampMs: number) {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
+export function formatFacebookDetailTimestamp(storyTimestamp: string) {
+  const storyTimeMs = parseFacebookStoryTimestamp(storyTimestamp);
+  if (!Number.isFinite(storyTimeMs)) return storyTimestamp;
+  const storyYear = new Intl.DateTimeFormat("en-US", { year: "numeric", timeZone: FACEBOOK_TIME_ZONE }).format(storyTimeMs);
+  if (storyYear !== "2010") {
+    return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: FACEBOOK_TIME_ZONE }).format(storyTimeMs);
+  }
+  const parts = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: FACEBOOK_TIME_ZONE }).formatToParts(storyTimeMs);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(value => value.type === type)?.value ?? "";
+  return `${part("month")} ${part("day")} ${part("hour")}:${part("minute")} ${part("dayPeriod")}`;
+}
+
 export function isFacebookSeedStoryTimestampValid(storyTimestamp: string, sessionStartMs: number) {
   const storyTimeMs = parseFacebookStoryTimestamp(storyTimestamp);
   return Number.isFinite(storyTimeMs) && storyTimeMs < sessionStartMs;
@@ -56,8 +68,7 @@ export function formatFacebookStoryTime({ storyId, storyTimestamp, simulatedNowM
   if (!Number.isFinite(storyTimeMs)) return appendSource(storyTimestamp, sourceApp);
 
   if (surface === "detail") {
-    const detail = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: FACEBOOK_TIME_ZONE }).format(storyTimeMs);
-    return appendSource(detail, sourceApp);
+    return appendSource(formatFacebookDetailTimestamp(storyTimestamp), sourceApp);
   }
 
   const deltaMs = simulatedNowMs - storyTimeMs;

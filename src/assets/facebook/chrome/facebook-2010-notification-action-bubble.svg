@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="48" viewBox="0 0 23 24">
+  <defs>
+    <linearGradient id="notification-red" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ed6969"/><stop offset=".45" stop-color="#c93030"/><stop offset="1" stop-color="#8c1515"/></linearGradient>
+    <filter id="notification-soft" x="-18%" y="-12%" width="145%" height="145%"><feGaussianBlur in="SourceAlpha" stdDeviation=".22" result="a"/><feOffset in="a" dx=".25" dy=".65" result="b"/><feComponentTransfer in="b"><feFuncA type="linear" slope=".48"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <path d="M4 1.8h15c1.25 0 2.2.95 2.2 2.2v13.1c0 1.25-.95 2.2-2.2 2.2h-6.4l-3.7 3.2.35-3.2H4c-1.25 0-2.2-.95-2.2-2.2V4c0-1.25.95-2.2 2.2-2.2z" fill="url(#notification-red)" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" filter="url(#notification-soft)"/>
+  <path d="M4.1 3.4h14.8" fill="none" stroke="#f79a9a" stroke-width=".55" stroke-linecap="round" opacity=".78"/>
+</svg>

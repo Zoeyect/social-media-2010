@@ -394,6 +394,7 @@ export type FacebookEvent =
   | { type: "CANCEL_STATUS" }
   | { type: "SUBMIT_STATUS"; displayName: string; timestamp: string; createdAt: string }
   | { type: "GO_BACK" }
+  /** @deprecated Internal fallback only; Generic Post Detail has no normal user-facing caller. */
   | { type: "OPEN_FEED_ITEM"; itemId: string; scrollPosition: number; origin?: "feed" | "profileWall"; profileName?: string }
   | { type: "OPEN_COMMENTS"; itemId: string; scrollPosition: number; origin?: "feed" | "profileWall"; profileName?: string }
   | { type: "SET_SCROLL_POSITION"; scrollPosition: number }
@@ -861,6 +862,7 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
       }
       return { ...state, currentView, navigationStack };
     }
+    // Deprecated internal fallback retained until the legacy feedDetail state and markup can be deleted in a separate cleanup.
     case "OPEN_FEED_ITEM":
       if (!state.feed.some(item => item.id === event.itemId)) return state;
       return {

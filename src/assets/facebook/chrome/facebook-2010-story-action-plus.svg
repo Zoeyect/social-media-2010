@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="56" viewBox="0 0 23 28">
+  <defs>
+    <linearGradient id="story-action-blue" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#82a7dd"/><stop offset=".55" stop-color="#5b87c4"/><stop offset="1" stop-color="#3e6ca9"/></linearGradient>
+    <filter id="story-action-shadow" x="-18%" y="-14%" width="140%" height="140%"><feGaussianBlur in="SourceAlpha" stdDeviation=".25" result="a"/><feOffset in="a" dx=".25" dy=".65" result="b"/><feComponentTransfer in="b"><feFuncA type="linear" slope=".38"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <path d="M3.2 1.7h16.6c1.1 0 1.8.8 1.8 1.9v15.1c0 1.1-.7 1.9-1.8 1.9h-5.5l-2.8 5.8-2.8-5.8H3.2c-1.1 0-1.8-.8-1.8-1.9V3.6c0-1.1.7-1.9 1.8-1.9z" fill="url(#story-action-blue)" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" filter="url(#story-action-shadow)"/>
+  <path d="M11.5 7v9.4M6.8 11.7h9.4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="square"/>
+</svg>

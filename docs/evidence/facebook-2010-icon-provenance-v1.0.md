@@ -129,17 +129,24 @@ No SVG, icon font, SF Symbol, modern icon package, external image, screenshot cr
 - Apple SpringBoard and MobileSMS assets already in the repository: REJECTED — wrong product and semantic role.
 - Invented standalone location pin: REJECTED — the target-near Places icon visibly combines a pink pin with a folded map.
 
-## Common glyph backlog
+## Secondary glyph register — shared micro-chrome v1.0
 
-Documentation only; no implementation changes in this task:
+This register is separate from the adopted large Home launcher originals above. Exact Facebook production binaries remain HOLD; the controls below use dedicated project reconstructions documented in `facebook-2010-shared-micro-chrome-v1.0.md`.
 
-- exact Facebook navigation/back/account/shortcut raster glyphs
-- exact Feed camera glyph
-- exact notification badge/bubble glyph
-- exact search magnifier raster treatment
-- exact composer and engagement glyph binaries
+| Secondary role | Production source | Current implementation | Status |
+| --- | --- | --- | --- |
+| Feed camera | recovered package candidate not adopted | `facebook-2010-camera.svg` | RECONSTRUCTED |
+| story-action-plus | Ars Technica Facebook 3.0 native Feed capture, 2009-08-27; recovered package candidate not adopted | `facebook-2010-story-action-plus.svg`; 52 × 60 intrinsic, 26 × 30 display | CONFIRMED existence / PERIOD-EVIDENCE silhouette / RECONSTRUCTED output |
+| comment | recovered package candidate not adopted | `facebook-2010-comment-glyph.svg` | RECONSTRUCTED |
+| thumb / Like | recovered package candidate not adopted | `facebook-2010-like-glyph.svg` | RECONSTRUCTED |
+| Friends phone | recovered package candidate not adopted | `facebook-2010-phone.svg`, unused until canonical data exists | HOLD |
+| launcher badge | recovered package candidate not adopted | shared dynamic HTML/CSS badge with white halo | PROBABLE / RECONSTRUCTED |
+| notification bubble | recovered package candidate not adopted | distinct shared dynamic HTML/CSS speech bubble | RECONSTRUCTED |
+| media-source mark | recovered package candidate not adopted | `facebook-2010-mobile-source-mark.svg`, photo/album only | PROBABLE / RECONSTRUCTED |
 
-Each remains HOLD pending an archived app bundle or equivalent approved provenance.
+Exact Search magnifier and exact production navigation-button raster payloads remain HOLD. Shared navigation geometry now uses one evidence-bounded token family without changing route labels or semantics.
+
+The story-action-plus output is a clean-room SVG trace of measured silhouette, halo, plus, and shadow proportions. It contains no screenshot pixels. The exact Facebook production raster and exact target-build blue values remain HOLD.
 
 ## Freeze and regression boundary
 

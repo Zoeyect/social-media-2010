@@ -178,6 +178,30 @@ The plus control is a conservative CSS reconstruction using the existing period 
 
 Exact plus artwork: PERIOD-EVIDENCE / CSS RECONSTRUCTION
 
+## Facebook Places 2010 Check-In Flow v1.0
+
+The Places launcher now opens a friend-activity Home with one Check In entry. Venue selection is isolated in Nearby Places, followed by a venue-specific check-in form. The form reuses the canonical Facebook `CHECK_IN` reducer path, canonical venue IDs, current simulated time, and current Facebook friends collection; it does not create a second check-in store or bypass centralized News Feed eligibility.
+
+| Surface or behavior | Evidence status |
+| --- | --- |
+| Places Home friend / recent activity | PERIOD-EVIDENCE / CONFIRMED |
+| Single Places Home Check In entry | PERIOD-EVIDENCE / CONFIRMED |
+| Nearby Places screen | PERIOD-EVIDENCE / CONFIRMED |
+| Venue check-in form | PERIOD-EVIDENCE / CONFIRMED |
+| `What are you doing?` optional status | PERIOD-EVIDENCE |
+| `Tag Friends With You` | PERIOD-EVIDENCE |
+| Place `Here Now` | PERIOD-EVIDENCE |
+| Place `Recent Activity` | PERIOD-EVIDENCE |
+| Place `Activity | Info` shell | PERIOD-EVIDENCE |
+| Exact map geometry | HOLD / VISUAL-CROSSCHECK |
+| Venue ordering without distance metadata | RECONSTRUCTED |
+
+Nearby Places preserves the existing deterministic canonical venue order because the data model has no location or distance metadata. No distances, categories, addresses, hours, phone numbers, websites, ratings, or search behavior are invented. The small map region is an explicit HOLD placeholder and adds no mapping dependency. Add Place is OUT-OF-SCOPE because no safe creation mechanism exists.
+
+Tag selection begins empty and derives only from `state.friends`. Jack therefore appears only after the existing friendship acceptance transition, while Anil remains unavailable because he has no Facebook identity. Successful submission records one user check-in, replaces the stable user check-in Feed record rather than duplicating it, and returns to Place Detail. `Here Now` shows only the current user at the newly selected venue; historical check-in posts are not treated as live presence.
+
+Main Street Diner continues to use canonical venue ID `main-street-diner` across Facebook Places, Luca's work continuity, Facebook check-ins, Pages, and Foursquare. Foursquare gameplay and state remain separate and unchanged.
+
 ## Comments Detail historical structure v1.3
 
 The News Feed `Comment` action opens a dedicated `Comments` surface rather than the generic `Post` detail route. Other Post Detail entry paths remain unchanged.

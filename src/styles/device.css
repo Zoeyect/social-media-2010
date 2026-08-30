@@ -732,7 +732,7 @@ button, input { font: inherit; }
 .facebook-event-list,.facebook-places,.facebook-photo-albums,.facebook-chat-roster,.facebook-notification-list,.facebook-account-shell { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
 .facebook-event-list > p,.facebook-notification-list > p { margin: 0; padding: 28px 12px; color: #777; text-align: center; }
 .facebook-event-list > button { width: 100%; min-height: 64px; padding: 9px 13px; display: grid; gap: 3px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
-.facebook-event-list strong,.facebook-places strong,.facebook-photo-albums strong { color: #3b5998; font-size: 15px; }
+.facebook-event-list strong,.facebook-photo-albums strong { color: #3b5998; font-size: 15px; }
 .facebook-event-list span,.facebook-event-list small { color: #666; font-size: 11px; }
 .facebook-event-detail { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
 .facebook-event-detail > header { padding: 14px 13px; display: grid; gap: 4px; border-bottom: 1px solid #aaa; background: #eef1f6; }
@@ -743,14 +743,51 @@ button, input { font: inherit; }
 .facebook-event-detail legend { padding-top: 8px; color: #666; font-size: 11px; }
 .facebook-event-detail fieldset button { height: 30px; color: #3b5998; border: 1px solid #9ba1aa; border-radius: 4px; background: linear-gradient(#fff,#ddd); font-size: 11px; font-weight: bold; }
 .facebook-event-detail fieldset button[aria-pressed="true"] { color: #fff; border-color: #294576; background: #3b5998; }
-.facebook-event-wall h2,.facebook-places h2,.facebook-photo-albums h2 { margin: 0; padding: 7px 12px; color: #666; border-bottom: 1px solid #bbb; background: #eee; font-size: 11px; text-transform: uppercase; }
+.facebook-event-wall h2,.facebook-photo-albums h2 { margin: 0; padding: 7px 12px; color: #666; border-bottom: 1px solid #bbb; background: #eee; font-size: 11px; text-transform: uppercase; }
 .facebook-event-wall button { width: 100%; padding: 10px 12px; display: grid; gap: 3px; color: #222; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
 .facebook-event-wall strong { color: #3b5998; }
-.facebook-places article,.facebook-places > button { min-height: 49px; padding: 7px 12px; display: grid; align-content: center; gap: 2px; border: 0; border-bottom: 1px solid #bbb; background: #fff; text-align: left; }
-.facebook-places article span,.facebook-places > button span { color: #555; font-size: 12px; }
-.facebook-places > button { width: 100%; grid-template-columns: 1fr auto; align-items: center; }
-.facebook-places > button strong { font-size: 11px; }
-.facebook-checkin-confirmation { margin: 10px; padding: 9px; display: grid; gap: 3px; border: 1px solid #8da081; background: #edf4e9; font-size: 12px; }
+.facebook-places-home { flex: 1 1 auto; min-height: 0; display: grid; grid-template-rows: auto minmax(0,1fr); background: #fff; }
+.facebook-places-check-in-entry { padding: 7px 10px; border-bottom: 1px solid #9da4ae; background: linear-gradient(#eef1f5,#d7dce4); }
+.facebook-places-check-in-entry button,.facebook-place-submit { width: 100%; height: 31px; color: #fff; border: 1px solid #294576; border-radius: 4px; background: linear-gradient(#7186ad,#3b5998 52%,#304c80); box-shadow: inset 0 1px rgba(255,255,255,.3); font-size: 12px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.6); }
+.facebook-places-activity { min-height: 0; overflow-y: auto; background: #fff; }
+.facebook-places-activity h2,.facebook-place-detail-content h2 { margin: 0; padding: 5px 8px; color: #586579; border-top: 1px solid #f7f8fa; border-bottom: 1px solid #aeb7c4; background: linear-gradient(#edf1f6,#d5dce6); font-size: 10px; line-height: 13px; text-transform: uppercase; }
+.facebook-place-activity-row { box-sizing: border-box; width: 100%; min-height: 55px; padding: 5px 8px; display: grid; grid-template-columns: 38px minmax(0,1fr); align-items: start; gap: 7px; color: #222; border: 0; border-bottom: 1px solid #c4c8cf; background: #fff; text-align: left; }
+.facebook-place-activity-avatar { box-sizing: border-box; width: 38px; height: 38px; display: block; border: 1px solid #aeb4bd; background: #d8dde5; object-fit: cover; }
+.facebook-place-activity-avatar.is-placeholder { background: linear-gradient(#e9edf2,#cbd2dc); }
+.facebook-place-activity-row > span { min-width: 0; display: grid; gap: 1px; }
+.facebook-place-activity-row strong { overflow: hidden; color: #304f82; font-size: 12px; line-height: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.facebook-place-activity-row span span { color: #333; font-size: 11px; line-height: 13px; }
+.facebook-place-activity-row small,.facebook-place-activity-row time { color: #777; font-size: 9px; line-height: 11px; }
+.facebook-places-empty { margin: 0; padding: 16px 10px; color: #777; font-size: 11px; text-align: center; }
+.facebook-nearby-places { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
+.facebook-nearby-places > button { width: 100%; min-height: 47px; padding: 0 10px 0 12px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; color: #222; border: 0; border-bottom: 1px solid #bbbfc6; background: #fff; text-align: left; }
+.facebook-nearby-places > button strong { color: #304f82; font-size: 13px; }
+.facebook-nearby-places > button span { color: #8a9099; font-size: 20px; }
+.facebook-place-check-in { box-sizing: border-box; flex: 1 1 auto; min-height: 0; padding: 8px; display: grid; align-content: start; gap: 8px; overflow-y: auto; background: #eef1f5; }
+.facebook-place-map-hold { height: 68px; display: grid; place-content: center; gap: 2px; color: #667181; border: 1px solid #aeb4bd; background: repeating-linear-gradient(135deg,#e5e9ee 0,#e5e9ee 8px,#d9dee5 8px,#d9dee5 16px); text-align: center; text-shadow: 0 1px #fff; }
+.facebook-place-map-hold span { font-size: 12px; font-weight: bold; }
+.facebook-place-map-hold small { font-size: 9px; }
+.facebook-place-check-in-name { color: #29477c; font-size: 15px; }
+.facebook-place-check-in > label { display: grid; gap: 3px; color: #555; font-size: 10px; font-weight: bold; }
+.facebook-place-check-in textarea { box-sizing: border-box; width: 100%; height: 52px; padding: 5px; resize: none; color: #222; border: 1px solid #9ca3ad; border-radius: 0; background: #fff; font-size: 12px; }
+.facebook-place-tag-entry { min-height: 42px; padding: 0 8px; display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 6px; color: #304f82; border: 1px solid #abb1ba; border-radius: 0; background: linear-gradient(#fff,#e5e5e5); text-align: left; }
+.facebook-place-tag-entry span { font-size: 12px; font-weight: bold; }
+.facebook-place-tag-entry small { color: #777; font-size: 10px; }
+.facebook-place-tag-entry b { color: #8a9099; font-size: 18px; }
+.facebook-place-tag-friends { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
+.facebook-place-tag-friends label { min-height: 45px; padding: 0 10px; display: grid; grid-template-columns: 22px minmax(0,1fr); align-items: center; gap: 4px; border-bottom: 1px solid #c4c8cf; font-size: 12px; }
+.facebook-place-tag-friends input { width: 15px; height: 15px; margin: 0; }
+.facebook-place-detail { flex: 1 1 auto; min-height: 0; display: grid; grid-template-rows: 31px minmax(0,1fr); background: #fff; }
+.facebook-place-detail > nav { display: grid; grid-template-columns: repeat(2,1fr); border-bottom: 1px solid #9399a2; background: linear-gradient(#f4f5f7,#d4d7dc); }
+.facebook-place-detail > nav button { color: #304f82; border: 0; border-right: 1px solid #afb4bc; background: transparent; font-size: 10px; font-weight: bold; text-shadow: 0 1px #fff; }
+.facebook-place-detail > nav button:last-child { border-right: 0; }
+.facebook-place-detail > nav button[aria-current="page"] { color: #202020; background: linear-gradient(#c9cdd3,#e7e9ec); box-shadow: inset 0 1px 2px rgba(0,0,0,.2); }
+.facebook-place-detail-content { min-height: 0; overflow-y: auto; background: #fff; }
+.facebook-place-here-now { min-height: 49px; padding: 5px 8px; display: grid; grid-template-columns: 38px minmax(0,1fr); align-items: center; gap: 7px; border-bottom: 1px solid #c4c8cf; }
+.facebook-place-here-now strong { color: #304f82; font-size: 12px; }
+.facebook-place-info { padding: 13px 11px; display: grid; gap: 5px; }
+.facebook-place-info strong { color: #29477c; font-size: 15px; }
+.facebook-place-info p { margin: 0; color: #777; font-size: 11px; }
 .facebook-photo-albums > button { position: relative; width: 100%; min-height: 60px; padding: 6px 25px 6px 8px; display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 8px; align-items: center; color: #222; border: 0; border-bottom: 1px solid #b8bcc3; background: #fff; text-align: left; }
 .facebook-photo-albums > button::after { position: absolute; right: 9px; top: 50%; color: #8a9099; content: "›"; font-size: 20px; line-height: 20px; transform: translateY(-50%); }
 .facebook-photo-albums > button.is-tagged-collection { background: #f8f9fb; }

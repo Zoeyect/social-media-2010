@@ -1,6 +1,5 @@
 import { Dispatch, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
-  FACEBOOK_FRIEND_CHECK_INS,
   FACEBOOK_HOME_LAUNCHER_PAGES,
   FACEBOOK_PLACE_OPTIONS,
   FacebookEvent,
@@ -14,6 +13,7 @@ import {
   selectFacebookComments,
   selectFacebookLikes,
   selectFacebookNotifications,
+  selectFacebookPlacesActivity,
   selectFacebookPeopleSearchResults,
   selectFacebookRequestCount,
   selectFacebookThreadMessages,
@@ -39,12 +39,14 @@ import type { FacebookAlbum, FacebookAlbumActor, FacebookPhotoTagActor, Facebook
 import { getFacebookStoryMedia } from "../data/facebookStoryMedia";
 import { formatFacebookStoryTime } from "../data/facebookStoryTime";
 import { getCanonicalVenue } from "../data/canonicalVenues";
+import type { CanonicalVenueId } from "../data/canonicalVenues";
 import { SESSION_START_ISO } from "../state/deviceMachine";
 import { getFacebookPage } from "../data/facebookPages";
 
 type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number };
 
 type FacebookFeedAnchor = { storyId: string; viewportOffset: number };
+type FacebookPlacePresentation = { id: CanonicalVenueId; name: string };
 
 const FACEBOOK_HOME_NOTIFICATION_BANNER_DURATION_MS = 5_000;
 
@@ -79,6 +81,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
   const selectedPhoto = state.selectedPhotoMediaId ? getFacebookStoryMedia(state.selectedPhotoMediaId) : null;
   const selectedTaggedPhotos = state.selectedTaggedActor ? getFacebookPhotosOfActor(state.selectedTaggedActor) : [];
   const selectedPage = state.selectedPageId ? getFacebookPage(state.selectedPageId) : null;
+  const selectedPlace = state.selectedPlaceId ? getCanonicalVenue(state.selectedPlaceId) : null;
   const elapsedSeconds = Math.floor(elapsedMs / 1_000);
   const simulatedNowMs = Date.parse(SESSION_START_ISO) + elapsedMs;
   const visibleFeed = selectFacebookVisibleFeed(state, simulatedNowMs);
@@ -232,7 +235,11 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
 
     {state.currentView === "events" && <FacebookEvents state={state} dispatch={dispatch} />}
     {state.currentView === "eventDetail" && <FacebookPartyEvent state={state} dispatch={dispatch} />}
-    {state.currentView === "places" && <FacebookPlaces state={state} displayName={sessionIdentity.name} currentDeviceTime={currentDeviceTime} dispatch={dispatch} />}
+    {state.currentView === "places" && <FacebookPlacesHome state={state} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
+    {state.currentView === "nearbyPlaces" && <FacebookNearbyPlaces dispatch={dispatch} />}
+    {state.currentView === "placeCheckIn" && selectedPlace && <FacebookPlaceCheckIn venue={selectedPlace} state={state} displayName={sessionIdentity.name} currentDeviceTime={currentDeviceTime} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
+    {state.currentView === "placeTagFriends" && <FacebookPlaceTagFriends state={state} dispatch={dispatch} />}
+    {state.currentView === "placeDetail" && selectedPlace && <FacebookPlaceDetail venue={selectedPlace} state={state} simulatedNowMs={simulatedNowMs} dispatch={dispatch} />}
     {state.currentView === "photos" && <FacebookPhotos currentUserName={sessionIdentity.name} dispatch={dispatch} />}
     {state.currentView === "album" && selectedAlbum && <FacebookAlbumGallery album={selectedAlbum} dispatch={dispatch} />}
     {state.currentView === "taggedPhotos" && state.selectedTaggedActor && <FacebookTaggedPhotoGallery actor={state.selectedTaggedActor} records={selectedTaggedPhotos} dispatch={dispatch} />}
@@ -266,9 +273,10 @@ function FacebookNavigationHeader({ state, displayName, selectedItem, dispatch }
   </header>;
   const nested = state.navigationStack.length > 2;
   const chatPeerName = state.selectedChatPeerId === null ? null : selectFacebookVisibleChatRoster(state).find(person => person.characterId === state.selectedChatPeerId)?.displayName;
+  const placeName = state.selectedPlaceId === null ? null : getCanonicalVenue(state.selectedPlaceId)?.name;
   return <header className="facebook-navigation-bar">
     <button type="button" className="facebook-back-control" onClick={() => dispatch({ type: "GO_BACK" })}>{nested ? "Back" : "Home"}</button>
-    <strong>{state.currentView === "chatConversation" ? chatPeerName ?? "Chat" : state.currentView === "feed" || state.currentView === "friends" ? "facebook" : viewTitle(state.currentView)}</strong>
+    <strong>{state.currentView === "chatConversation" ? chatPeerName ?? "Chat" : state.currentView === "placeCheckIn" || state.currentView === "placeDetail" ? placeName ?? "Places" : state.currentView === "feed" || state.currentView === "friends" ? "facebook" : viewTitle(state.currentView)}</strong>
     {state.currentView === "feed" && <span className="facebook-navigation-context">Live Feed</span>}
     {state.currentView === "friends" && <button type="button" className="facebook-navigation-context" disabled data-provenance-status="HOLD">Sync</button>}
     {state.currentView === "commentsDetail" && selectedItem && <button type="button" className="facebook-comments-like-control" aria-pressed={state.likedItemIds.includes(selectedItem.id)} onClick={() => dispatch({ type: "TOGGLE_LIKE", itemId: selectedItem.id, displayName })}>{state.likedItemIds.includes(selectedItem.id) ? "Unlike" : "Like"}</button>}
@@ -484,13 +492,78 @@ function FacebookPartyEvent({ state, dispatch }: { state: FacebookState; dispatc
   </section>;
 }
 
-function FacebookPlaces({ state, displayName, currentDeviceTime, dispatch }: { state: FacebookState; displayName: string; currentDeviceTime: string; dispatch: Dispatch<FacebookEvent> }) {
-  return <section className="facebook-places">
-    <h2>Recent Check-Ins</h2>
-    {FACEBOOK_FRIEND_CHECK_INS.map(checkIn => <article key={checkIn.id}><strong>{checkIn.displayName}</strong><span>{checkIn.venueName}</span></article>)}
-    <h2>Check In</h2>
-    {FACEBOOK_PLACE_OPTIONS.map(venue => <button key={venue.id} type="button" onClick={() => dispatch({ type: "CHECK_IN", venueId: venue.id, displayName, timestamp: currentDeviceTime })}><span>{venue.name}</span><strong>Check In</strong></button>)}
-    {state.userCheckIn && <div className="facebook-checkin-confirmation"><strong>{state.userCheckIn.author}</strong><span>checked in at {state.userCheckIn.venueName} · {state.userCheckIn.timestamp}</span></div>}
+function FacebookPlacesHome({ state, simulatedNowMs, dispatch }: { state: FacebookState; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
+  const activity = selectFacebookPlacesActivity(state);
+  return <section className="facebook-places-home">
+    <div className="facebook-places-check-in-entry"><button type="button" onClick={() => dispatch({ type: "OPEN_NEARBY_PLACES" })}>Check In</button></div>
+    <div className="facebook-places-activity" aria-label="Recent Activity">
+      <h2>Recent Activity</h2>
+      {activity.length === 0 && <p className="facebook-places-empty">No recent activity.</p>}
+      {activity.map(checkIn => <button key={checkIn.id} type="button" className="facebook-place-activity-row" onClick={() => dispatch({ type: "OPEN_PLACE_DETAIL", venueId: checkIn.venueId })}>
+        <FacebookPlaceActivityAvatar characterId={checkIn.characterId} />
+        <span><strong>{checkIn.displayName}</strong><span>{checkIn.venueName}</span>{checkIn.status && <small>{checkIn.status}</small>}<time>{formatFacebookStoryTime({ storyId: checkIn.id, storyTimestamp: checkIn.createdAt, simulatedNowMs, storyType: "checkin" })}</time></span>
+      </button>)}
+    </div>
+  </section>;
+}
+
+function FacebookPlaceActivityAvatar({ characterId }: { characterId?: CoreSocialCharacterId }) {
+  const mediaId = characterId ? getFacebookCanonicalProfileMediaId(characterId) : null;
+  const media = mediaId ? getFacebookStoryMedia(mediaId) : null;
+  return media
+    ? <img className="facebook-place-activity-avatar" src={media.src} alt="" aria-hidden="true" />
+    : <span className="facebook-place-activity-avatar is-placeholder" aria-hidden="true" />;
+}
+
+function FacebookNearbyPlaces({ dispatch }: { dispatch: Dispatch<FacebookEvent> }) {
+  return <section className="facebook-nearby-places" aria-label="Nearby Places" data-ordering-status="RECONSTRUCTED">
+    {FACEBOOK_PLACE_OPTIONS.map(venue => <button key={venue.id} type="button" onClick={() => dispatch({ type: "SELECT_PLACE_FOR_CHECK_IN", venueId: venue.id })}>
+      <strong>{venue.name}</strong><span aria-hidden="true">›</span>
+    </button>)}
+  </section>;
+}
+
+function FacebookPlaceCheckIn({ venue, state, displayName, currentDeviceTime, simulatedNowMs, dispatch }: { venue: FacebookPlacePresentation; state: FacebookState; displayName: string; currentDeviceTime: string; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
+  return <form className="facebook-place-check-in" onSubmit={event => {
+    event.preventDefault();
+    dispatch({ type: "CHECK_IN", venueId: venue.id, displayName, timestamp: currentDeviceTime, createdAt: new Date(simulatedNowMs).toISOString() });
+  }}>
+    <div className="facebook-place-map-hold" data-provenance-status="HOLD"><span>Map</span><small>Location view unavailable</small></div>
+    <strong className="facebook-place-check-in-name">{venue.name}</strong>
+    <label><span>What are you doing?</span><textarea aria-label="What are you doing?" value={state.placeStatusDraft} onChange={event => dispatch({ type: "EDIT_PLACE_STATUS", value: event.currentTarget.value })} /></label>
+    <button type="button" className="facebook-place-tag-entry" onClick={() => dispatch({ type: "OPEN_PLACE_TAG_FRIENDS" })}><span>Tag Friends With You</span><small>{state.placeTaggedFriendIds.length > 0 ? `${state.placeTaggedFriendIds.length} selected` : "None"}</small><b aria-hidden="true">›</b></button>
+    <button type="submit" className="facebook-place-submit">Check In</button>
+  </form>;
+}
+
+function FacebookPlaceTagFriends({ state, dispatch }: { state: FacebookState; dispatch: Dispatch<FacebookEvent> }) {
+  return <div className="facebook-place-tag-friends" aria-label="Tag Friends With You">
+    {state.friends.map(friend => <label key={friend.id}>
+      <input type="checkbox" checked={state.placeTaggedFriendIds.includes(friend.id)} onChange={() => dispatch({ type: "TOGGLE_PLACE_TAGGED_FRIEND", friendId: friend.id })} />
+      <strong>{friend.name}</strong>
+    </label>)}
+  </div>;
+}
+
+function FacebookPlaceDetail({ venue, state, simulatedNowMs, dispatch }: { venue: FacebookPlacePresentation; state: FacebookState; simulatedNowMs: number; dispatch: Dispatch<FacebookEvent> }) {
+  const activity = selectFacebookPlacesActivity(state, venue.id);
+  const userHere = state.userCheckIn?.venueId === venue.id ? state.userCheckIn : null;
+  return <section className="facebook-place-detail">
+    <nav aria-label="Place sections">
+      {(["activity", "info"] as const).map(section => <button key={section} type="button" aria-current={state.placeDetailSection === section ? "page" : undefined} onClick={() => dispatch({ type: "SET_PLACE_DETAIL_SECTION", section })}>{section[0].toUpperCase() + section.slice(1)}</button>)}
+    </nav>
+    <div className="facebook-place-detail-content">
+      {state.placeDetailSection === "activity" ? <>
+        <h2>Here Now</h2>
+        {userHere ? <article className="facebook-place-here-now"><FacebookPlaceActivityAvatar /><strong>{userHere.author}</strong></article> : <p className="facebook-places-empty">No one here now.</p>}
+        <h2>Recent Activity</h2>
+        {activity.length === 0 && <p className="facebook-places-empty">No recent activity.</p>}
+        {activity.map(checkIn => <article key={checkIn.id} className="facebook-place-activity-row">
+          <FacebookPlaceActivityAvatar characterId={checkIn.characterId} />
+          <span><strong>{checkIn.displayName}</strong><span>checked in at {checkIn.venueName}</span>{checkIn.status && <small>{checkIn.status}</small>}<time>{formatFacebookStoryTime({ storyId: checkIn.id, storyTimestamp: checkIn.createdAt, simulatedNowMs, storyType: "checkin" })}</time></span>
+        </article>)}
+      </> : <div className="facebook-place-info"><strong>{venue.name}</strong><p>No additional information.</p></div>}
+    </div>
   </section>;
 }
 
@@ -814,6 +887,10 @@ function viewTitle(view: FacebookState["currentView"]): string {
     case "events": return "Events";
     case "eventDetail": return "Event";
     case "places": return "Places";
+    case "nearbyPlaces": return "Nearby Places";
+    case "placeCheckIn": return "Check In";
+    case "placeTagFriends": return "Tag Friends";
+    case "placeDetail": return "Place";
     case "photos": return "Photos";
     case "album": return "Album";
     case "taggedPhotos": return "Photos";

@@ -15,7 +15,7 @@ import type { FacebookPageId } from "../data/facebookPages";
 import { SESSION_START_ISO } from "./deviceMachine";
 export type { FacebookStoryMediaId } from "../data/facebookStoryMedia";
 
-export type FacebookView = "home" | "feed" | "feedDetail" | "commentsDetail" | "profile" | "friends" | "pageDetail" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notes" | "notifications" | "account";
+export type FacebookView = "home" | "feed" | "feedDetail" | "commentsDetail" | "profile" | "friends" | "pageDetail" | "inbox" | "messageDetail" | "events" | "eventDetail" | "places" | "nearbyPlaces" | "placeCheckIn" | "placeTagFriends" | "placeDetail" | "photos" | "album" | "taggedPhotos" | "photoDetail" | "chat" | "chatConversation" | "notes" | "notifications" | "account";
 export type FacebookProfileSection = "wall" | "info" | "photos";
 type FacebookProfileReturnState = {
   view: FacebookView;
@@ -227,11 +227,25 @@ export type FacebookNavigableActor =
   | { kind: "author-easter-egg"; authorId: FacebookAuthorEasterEggId; displayName: string };
 
 export type FacebookUserCheckIn = {
-  venueId: typeof FACEBOOK_PLACE_OPTIONS[number]["id"];
+  venueId: CanonicalVenueId;
   venueName: string;
   author: string;
   timestamp: string;
+  createdAt: string;
+  status: string | null;
+  taggedFriendIds: FacebookFriend["id"][];
   origin: "user";
+};
+
+export type FacebookPlacesActivity = {
+  id: string;
+  displayName: string;
+  venueId: CanonicalVenueId;
+  venueName: string;
+  createdAt: string;
+  characterId?: CoreSocialCharacterId;
+  status?: string | null;
+  origin: "seed" | "user";
 };
 
 export type FacebookNotification = {
@@ -285,6 +299,10 @@ export type FacebookState = {
   selectedAlbumId: FacebookAlbumId | null;
   selectedPhotoMediaId: FacebookStoryMediaId | null;
   selectedTaggedActor: FacebookPhotoTagActor | null;
+  selectedPlaceId: CanonicalVenueId | null;
+  placeStatusDraft: string;
+  placeTaggedFriendIds: FacebookFriend["id"][];
+  placeDetailSection: "activity" | "info";
   userCheckIn: FacebookUserCheckIn | null;
   readNotificationIds: string[];
   seenEventInviteIds: string[];
@@ -300,6 +318,28 @@ export function selectFacebookVisiblePages(state: FacebookState) {
   return FACEBOOK_PAGES
     .filter(page => !normalizedQuery || page.name.toLowerCase().includes(normalizedQuery))
     .sort((left, right) => left.name.localeCompare(right.name));
+}
+
+export function selectFacebookPlacesActivity(state: FacebookState, venueId?: CanonicalVenueId): FacebookPlacesActivity[] {
+  const activity: FacebookPlacesActivity[] = FACEBOOK_FRIEND_CHECK_INS.map(checkIn => ({
+    ...checkIn,
+    displayName: checkIn.displayName,
+    origin: "seed",
+  }));
+  if (state.userCheckIn) {
+    activity.push({
+      id: "facebook-user-checkin",
+      displayName: state.userCheckIn.author,
+      venueId: state.userCheckIn.venueId,
+      venueName: state.userCheckIn.venueName,
+      createdAt: state.userCheckIn.createdAt,
+      status: state.userCheckIn.status,
+      origin: "user",
+    });
+  }
+  return activity
+    .filter(checkIn => venueId === undefined || checkIn.venueId === venueId)
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt) || left.id.localeCompare(right.id));
 }
 
 export function selectFacebookChatMessages(state: FacebookState, peerId: FacebookChatPeerId) {
@@ -328,7 +368,14 @@ export type FacebookEvent =
   | { type: "OPEN_PARTY_EVENT" }
   | { type: "SET_PARTY_RSVP"; value: Exclude<FacebookPartyRsvp, null> }
   | { type: "SHOW_PLACES" }
-  | { type: "CHECK_IN"; venueId: FacebookUserCheckIn["venueId"]; displayName: string; timestamp: string }
+  | { type: "OPEN_NEARBY_PLACES" }
+  | { type: "SELECT_PLACE_FOR_CHECK_IN"; venueId: CanonicalVenueId }
+  | { type: "EDIT_PLACE_STATUS"; value: string }
+  | { type: "OPEN_PLACE_TAG_FRIENDS" }
+  | { type: "TOGGLE_PLACE_TAGGED_FRIEND"; friendId: FacebookFriend["id"] }
+  | { type: "OPEN_PLACE_DETAIL"; venueId: CanonicalVenueId }
+  | { type: "SET_PLACE_DETAIL_SECTION"; section: "activity" | "info" }
+  | { type: "CHECK_IN"; venueId: FacebookUserCheckIn["venueId"]; displayName: string; timestamp: string; createdAt: string }
   | { type: "SHOW_PHOTOS" }
   | { type: "OPEN_ALBUM"; albumId: FacebookAlbumId }
   | { type: "OPEN_ALBUM_PHOTO"; albumId: FacebookAlbumId; mediaId: FacebookStoryMediaId }
@@ -450,6 +497,10 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     selectedAlbumId: null,
     selectedPhotoMediaId: null,
     selectedTaggedActor: null,
+    selectedPlaceId: null,
+    placeStatusDraft: "",
+    placeTaggedFriendIds: [],
+    placeDetailSection: "activity",
     userCheckIn: null,
     readNotificationIds: [],
     seenEventInviteIds: [],
@@ -605,24 +656,86 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "SET_PARTY_RSVP":
       return state.currentView === "eventDetail" ? { ...state, partyRsvp: event.value } : state;
     case "SHOW_PLACES":
-      return { ...state, currentView: "places", navigationStack: ["home", "places"] };
-    case "CHECK_IN": {
-      const venue = FACEBOOK_PLACE_OPTIONS.find(option => option.id === event.venueId);
-      if (!venue) return state;
-      const userCheckIn = { venueId: venue.id, venueName: venue.name, author: event.displayName, timestamp: event.timestamp, origin: "user" as const };
       return {
         ...state,
+        currentView: "places",
+        navigationStack: ["home", "places"],
+        selectedPlaceId: null,
+        placeStatusDraft: "",
+        placeTaggedFriendIds: [],
+        placeDetailSection: "activity",
+      };
+    case "OPEN_NEARBY_PLACES":
+      return state.currentView === "places"
+        ? { ...state, currentView: "nearbyPlaces", navigationStack: [...state.navigationStack, "nearbyPlaces"], selectedPlaceId: null, placeStatusDraft: "", placeTaggedFriendIds: [] }
+        : state;
+    case "SELECT_PLACE_FOR_CHECK_IN":
+      if (state.currentView !== "nearbyPlaces" || !FACEBOOK_PLACE_OPTIONS.some(venue => venue.id === event.venueId)) return state;
+      return {
+        ...state,
+        currentView: "placeCheckIn",
+        navigationStack: [...state.navigationStack, "placeCheckIn"],
+        selectedPlaceId: event.venueId,
+        placeStatusDraft: "",
+        placeTaggedFriendIds: [],
+      };
+    case "EDIT_PLACE_STATUS":
+      return state.currentView === "placeCheckIn" ? { ...state, placeStatusDraft: event.value } : state;
+    case "OPEN_PLACE_TAG_FRIENDS":
+      return state.currentView === "placeCheckIn" && state.selectedPlaceId !== null
+        ? { ...state, currentView: "placeTagFriends", navigationStack: [...state.navigationStack, "placeTagFriends"] }
+        : state;
+    case "TOGGLE_PLACE_TAGGED_FRIEND": {
+      if (state.currentView !== "placeTagFriends" || !state.friends.some(friend => friend.id === event.friendId)) return state;
+      return {
+        ...state,
+        placeTaggedFriendIds: state.placeTaggedFriendIds.includes(event.friendId)
+          ? state.placeTaggedFriendIds.filter(friendId => friendId !== event.friendId)
+          : [...state.placeTaggedFriendIds, event.friendId],
+      };
+    }
+    case "OPEN_PLACE_DETAIL":
+      if (state.currentView !== "places" || !FACEBOOK_PLACE_OPTIONS.some(venue => venue.id === event.venueId)) return state;
+      return {
+        ...state,
+        currentView: "placeDetail",
+        navigationStack: [...state.navigationStack, "placeDetail"],
+        selectedPlaceId: event.venueId,
+        placeDetailSection: "activity",
+      };
+    case "SET_PLACE_DETAIL_SECTION":
+      return state.currentView === "placeDetail" ? { ...state, placeDetailSection: event.section } : state;
+    case "CHECK_IN": {
+      const venue = FACEBOOK_PLACE_OPTIONS.find(option => option.id === event.venueId);
+      if (state.currentView !== "placeCheckIn" || state.selectedPlaceId !== event.venueId || !venue || !Number.isFinite(Date.parse(event.createdAt))) return state;
+      const status = state.placeStatusDraft.trim() || null;
+      const currentFriendIds = new Set(state.friends.map(friend => friend.id));
+      const taggedFriendIds = state.placeTaggedFriendIds.filter(friendId => currentFriendIds.has(friendId));
+      const taggedCharacterIds = taggedFriendIds.filter((friendId): friendId is CoreSocialCharacterId => friendId in CORE_SOCIAL_CHARACTERS);
+      const userCheckIn = { venueId: venue.id, venueName: venue.name, author: event.displayName, timestamp: event.timestamp, createdAt: event.createdAt, status, taggedFriendIds, origin: "user" as const };
+      return {
+        ...state,
+        currentView: "placeDetail",
+        navigationStack: ["home", "places", "placeDetail"],
+        selectedPlaceId: venue.id,
+        placeStatusDraft: "",
+        placeTaggedFriendIds: [],
+        placeDetailSection: "activity",
         userCheckIn,
-        feed: [{
+        feed: [...state.feed.filter(item => item.id !== "facebook-user-checkin"), {
           id: "facebook-user-checkin",
           author: event.displayName,
-          text: `is at ${venue.name}.`,
+          text: `is at ${venue.name}.${status ? ` ${status}` : ""}`,
           timestamp: event.timestamp,
+          createdAt: event.createdAt,
           kind: "checkin",
           visibility: "friends",
+          venueId: venue.id,
+          taggedCharacterIds,
+          relatedCharacterIds: taggedCharacterIds,
           contentStatus: "USER-GENERATED",
           origin: "user",
-        }, ...state.feed.filter(item => item.id !== "facebook-user-checkin")],
+        }],
       };
     }
     case "SHOW_PHOTOS":

@@ -80,7 +80,7 @@ button, input { font: inherit; }
 .springboard-system-icon.is-app-store-artwork { left: 1px; top: 1px; width: 57px; height: 57px; border-radius: 10px; box-shadow: 0 1px 1px rgba(0,0,0,.45); }
 .springboard-system-icon.is-folder { height: 62px; }
 .springboard-icon-button { padding: 0; border: 0; color: inherit; background: transparent; cursor: pointer; }
-.springboard-icon-label { position: absolute; left: 50%; top: 62px; display: block; max-width: 76px; transform: translateX(-50%); overflow: hidden; color: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 10px; line-height: 14px; font-weight: normal; text-align: center; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 1px #000; }
+.springboard-icon-label { position: absolute; z-index: 3; left: 50%; top: 62px; display: block; max-width: 76px; transform: translateX(-50%); overflow: hidden; color: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 10px; line-height: 14px; font-weight: 600; text-align: center; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 1px rgba(0,0,0,.95),0 0 1px rgba(0,0,0,.78); }
 .springboard-calendar-date { position: absolute; z-index: 2; left: 1px; top: 1px; width: 57px; height: 57px; color: #111; text-align: center; pointer-events: none; }
 .springboard-calendar-date small { position: absolute; left: 0; top: 2px; width: 100%; color: #fff; font: bold 7px/10px "Helvetica Neue",Helvetica,Arial,sans-serif; text-shadow: 0 -1px rgba(90,0,0,.7); }
 .springboard-calendar-date b { position: absolute; left: 0; top: 15px; width: 100%; font: normal 31px/36px "Helvetica Neue",Helvetica,Arial,sans-serif; }
@@ -97,8 +97,11 @@ button, input { font: inherit; }
 .springboard-page-indicator { position: absolute; z-index: 1; left: 50%; bottom: 84px; height: 10px; display: flex; align-items: center; gap: 6px; transform: translateX(-50%); transition: transform 300ms ease-in-out, opacity 300ms ease-in-out; }
 .springboard-search-indicator { width: 10px; height: 10px; display: block; }
 .springboard-page-dot { width: 6px; height: 6px; display: block; }
-.springboard-dock { position: absolute; z-index: 1; left: 0; bottom: 0; width: 320px; height: 84px; padding: 8px 16px 0; display: grid; grid-template-columns: repeat(4,59px); column-gap: 17px; transition: transform 300ms ease-in-out, opacity 300ms ease-in-out; }
+.springboard-dock { position: absolute; z-index: 1; left: 0; bottom: 0; width: 320px; height: 84px; padding: 8px 16px 0; display: grid; grid-template-columns: repeat(4,59px); column-gap: 17px; overflow: hidden; transition: transform 300ms ease-in-out, opacity 300ms ease-in-out; }
 .springboard-dock-artwork { position: absolute; z-index: 0; left: 0; bottom: 0; width: 320px; height: 45px; display: block; }
+.springboard-dock-slot > .springboard-system-icon { z-index: 2; }
+.springboard-dock-icon-reflection { position: absolute; z-index: 1; left: 0; top: 60px; width: 59px; height: 16px; overflow: hidden; opacity: .28; -webkit-mask-image: linear-gradient(to bottom,rgba(0,0,0,.75),transparent); mask-image: linear-gradient(to bottom,rgba(0,0,0,.75),transparent); pointer-events: none; }
+.springboard-dock-icon-reflection > img { position: absolute; left: 0; top: 0; width: 59px; height: 60px; display: block; transform: scaleY(-1); }
 .springboard-folder-overlay { position: absolute; z-index: 10; inset: 0; }
 .springboard-folder-panel { position: absolute; left: 0; width: 320px; height: 295px; overflow: visible; }
 .springboard-folder-tray { position: absolute; inset: 0; overflow: hidden; }

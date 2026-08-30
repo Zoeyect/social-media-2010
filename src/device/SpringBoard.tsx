@@ -371,6 +371,9 @@ function SpringBoardIcon({ name, iconSrc, iconPresentation, kind, folderApps, so
   badgeCount?: number;
 }) {
   const content = <>
+    {dock && iconSrc && <span className="springboard-dock-icon-reflection" aria-hidden="true">
+      <img src={iconSrc} alt="" />
+    </span>}
     {kind === "folder" && iconSrc
       ? <SpringBoardFolderIcon iconSrc={iconSrc} miniatures={folderApps ?? []} />
       : socialAppId

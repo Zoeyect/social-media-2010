@@ -25,6 +25,10 @@ Target: SOCIAL MEDIA, 2010; iPhone 4; iOS 4.1; en-US portrait; 2010-10-20 U.S. P
 | Lock/sleep → unlock preserves open folder | PROBABLE / PERIOD-CONSISTENT | inferred from preserved SpringBoard state; no direct target-period lock/unlock capture found |
 | Row-dependent split distances | RECONSTRUCTED | fixed-grid geometry apportions the 111-point extra opening between upper/lower regions according to the source row |
 | Dock translates below the physical viewport | PERIOD-EVIDENCE / CONFIRMED | Macworld's June 21 hands-on explicitly describes the dock fading and sliding downward; the open-state dock now completes a full-height exit |
+| Dock icon reflections | PERIOD-EVIDENCE / VISUAL-CROSSCHECK | each dock icon mirrors its canonical artwork into the recovered glass shelf; labels and badges remain single, unreflected layers |
+| Reflection opacity and fade | RECONSTRUCTED | a shared low-opacity 16-point mirror uses a vertical alpha fade and dock-local clipping; exact Apple compositing values remain unknown |
+| White icon labels with strong dark shadow | PERIOD-EVIDENCE / VISUAL-CROSSCHECK | page, folder, and dock labels share compact white type with tight dark separation over the wallpaper and shelf |
+| Exact label shadow values | RECONSTRUCTED | two tight low-radius shadows approximate the period raster edge without a modern soft drop shadow |
 | Arbitrary lower-region child clipping | REJECTED | clipping the page at the closed-state dock boundary produces a malformed empty block and disconnected fragments |
 | Continuous lower SpringBoard composition | PERIOD-EVIDENCE / VISUAL-CROSSCHECK | the displaced rows remain visible down to the physical screen boundary beneath the tray |
 | Folder transition timing/easing | RECONSTRUCTED | synchronized 300ms `ease-in-out`, chosen as a conservative period-style mechanical transition pending frame-timed capture |
@@ -47,6 +51,7 @@ Target: SOCIAL MEDIA, 2010; iPhone 4; iOS 4.1; en-US portrait; 2010-10-20 U.S. P
 - Row origins: `36, 124, 212, 300`; centers: `73, 161, 249, 337`.
 - Page-dot control: fixed top 386 / center 391; independent of populated rows.
 - Dock layout region: 84 points at Y=396; exact 320×45 dock artwork remains bottom-aligned at Y=435.
+- Dock reflections: canonical 59×60 icon artwork mirrored at local Y=60, clipped/faded to a shared 16-point visible band; labels and badges are excluded.
 - Labels: local top 62, 14-point line box, compact Helvetica-family fallback and existing dark shadow.
 
 ## Placement

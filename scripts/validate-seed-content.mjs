@@ -2301,6 +2301,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const appSource = await readFile(resolve(projectRoot, "src/device/App.tsx"), "utf8");
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
   const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
+  const facebookHomeIconsSource = await readFile(resolve(projectRoot, "src/device/FacebookHomeIcons.tsx"), "utf8");
   const facebookStateSource = await readFile(resolve(projectRoot, "src/state/facebookState.ts"), "utf8");
   const facebookStoryTimeSource = await readFile(resolve(projectRoot, "src/data/facebookStoryTime.ts"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
@@ -2440,9 +2441,20 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(facebookStoryMediaSource, /type: "OPEN_FEED_ITEM"|item\.kind === "album" \? \{ type: "OPEN_ALBUM"/, "Feed media must never route through Generic Post Detail or an album-wide primary action");
   assert.match(deviceCssSource, /\.facebook-story-album-media > button \{[^}]*overflow: hidden;[^}]*border: 0;/, "multi-photo previews must expose independent compact thumbnail controls");
   assert.match(facebookContainerSource, /visibleFriends[\s\S]+sort\(\(left, right\) => left\.name\.localeCompare\(right\.name\)\)[\s\S]+friendSections = visibleFriends\.reduce/, "Friends must use deterministic display-name sorting and populated alphabetical sections");
-  assert.match(facebookContainerSource, /facebook-home-search[\s\S]+facebook-search-glyph[\s\S]+placeholder="Search"/, "Home Search must retain the shared left magnifier");
-  assert.match(facebookContainerSource, /facebook-friends-search[\s\S]+facebook-search-glyph[\s\S]+Search Friends[\s\S]+Search Pages/, "Friends and Pages Search must retain the shared left magnifier and surface-specific labels");
-  assert.match(deviceCssSource, /\.facebook-home-search input,\.facebook-friends-search input \{[^}]*text-align: left;/, "confirmed Search fields must left-align their placeholder and content");
+  const facebookNavigationHeaderSource = facebookContainerSource.match(/function FacebookNavigationHeader[\s\S]*?function FacebookChatConversation/)?.[0] ?? "";
+  const facebookHomeSource = facebookContainerSource.match(/function FacebookHome[\s\S]*?function HomeDestination/)?.[0] ?? "";
+  assert.match(facebookNavigationHeaderSource, /currentView === "home"[\s\S]*facebook-home-chrome[\s\S]*facebook-navigation-bar is-home[\s\S]*facebook-home-search-row[\s\S]*facebook-search-field facebook-home-search[\s\S]*placeholder="Search"/, "Home Search must be structurally inside the extended Home chrome beneath the Home navbar");
+  assert.match(facebookNavigationHeaderSource, /value=\{state\.homeSearchQuery\}[\s\S]*EDIT_HOME_SEARCH/, "Home Search must retain its canonical state and edit handler after the chrome move");
+  assert.doesNotMatch(facebookHomeSource, /facebook-home-search-row|facebook-home-search/, "the pale launcher body must begin below rather than contain Home Search");
+  assert.match(facebookContainerSource, /facebook-search-field facebook-friends-search[\s\S]+facebook-search-glyph[\s\S]+Search Friends[\s\S]+Search Pages[\s\S]+EDIT_FRIEND_SEARCH/, "Friends and Pages Search must retain the light list-header field and canonical handler");
+  assert.match(deviceCssSource, /\.facebook-search-field input \{[^}]*text-align: left;/, "shared Search field geometry must left-align placeholder and content without sharing container chrome");
+  const facebookHomeChromeCss = deviceCssSource.match(/\.facebook-home-chrome \{[^}]*\}/)?.[0] ?? "";
+  assert.match(facebookHomeChromeCss, /grid-template-rows: 44px 44px;[^}]*background: linear-gradient\(to bottom,/, "one continuous vertical Home parent gradient must own both rows");
+  assert.ok((facebookHomeChromeCss.match(/\d+%/g) ?? []).length >= 6, "the Home parent gradient must retain a visible multi-stop highlight, middle, Search-zone, and terminal-edge progression");
+  assert.match(facebookHomeChromeCss, /box-shadow: inset 0 -1px #1d365f;/, "the Home parent must own the sole outer bottom edge");
+  assert.match(deviceCssSource, /\.facebook-home-chrome > \.facebook-navigation-bar \{[^}]*border-bottom: 0;[^}]*background: transparent;[^}]*box-shadow: none;/, "the Home navbar must expose the shared parent background without an intermediate divider");
+  assert.match(deviceCssSource, /\.facebook-home-search-row \{[^}]*border-bottom: 0;[^}]*background: transparent;[^}]*box-shadow: none;/, "the Home Search row must expose the shared parent background without a second edge or gradient");
+  assert.doesNotMatch(deviceCssSource, /\.facebook-home-search-row[^\n]*facebook-friends-search|\.facebook-friends-search[^\n]*facebook-home-search-row/, "Friends and Pages Search must never inherit Home blue-row chrome");
   const frozenFeedViewStart = facebookContainerSource.indexOf('{state.currentView === "feed" && <>');
   const frozenFeedViewEnd = facebookContainerSource.indexOf('{state.currentView === "feedDetail"', frozenFeedViewStart);
   assert.ok(frozenFeedViewStart >= 0 && frozenFeedViewEnd > frozenFeedViewStart, "the frozen News Feed source boundary must remain identifiable");
@@ -2480,6 +2492,15 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(facebookContainerSource, /HomeDestination[^\n]+label="Groups"/, "Groups must not appear as an October 20 launcher destination");
   assert.doesNotMatch(facebookContainerSource, /facebook-home-empty-slot/, "Facebook Home page 1 must no longer contain an empty launcher slot");
   assert.match(facebookContainerSource, /FACEBOOK_HOME_LAUNCHER_PAGES\[state\.homeLauncherPage\]/, "Facebook Home must render both pages from one canonical launcher definition");
+  assert.match(facebookContainerSource, /<FacebookHomeIcon destinationId=\{destinationId\} \/>/, "Home destinations must render through the centralized historical icon registry");
+  assert.doesNotMatch(facebookContainerSource, /facebook-home-icon-hold|\{iconLabel\}/, "rendered Home destinations must not fall back to letter-tile placeholders");
+  assert.match(facebookHomeIconsSource, /satisfies Record<FacebookHomeLauncherDestinationId,/, "the Home icon registry must be exhaustive over the frozen launcher destination type");
+  assert.match(facebookHomeIconsSource, /sourceType: FacebookHomeIconSourceType;[\s\S]*confidence: FacebookHomeIconConfidence;[\s\S]*intrinsicSize: null;[\s\S]*displaySize: readonly \[64, 58\];[\s\S]*opticalOffset:/, "launcher provenance metadata must remain strict, non-UI reconstruction data");
+  for (const destinationId of ["feed", "profile", "friends", "inbox", "places", "requests", "events", "photos", "chat", "notes"]) {
+    assert.match(facebookHomeIconsSource, new RegExp(`^  ${destinationId}: Object\\.freeze`, "m"), `${destinationId} must have one centralized launcher icon registry entry`);
+  }
+  assert.doesNotMatch(facebookHomeIconsSource, /<svg|<img|from ["'][^"']+\.(?:png|jpe?g|gif|webp|svg)["']/, "launcher reconstructions must not embed screenshots, modern library glyphs, or unregistered raster/vector assets");
+  assert.doesNotMatch(deviceCssSource, /\.facebook-home-icon-hold/, "the unsupported uniform blue letter-tile treatment must remain removed");
   assert.match(facebookContainerSource, /onPointerDown[\s\S]+onPointerUp/, "Facebook launcher paging must use one pointer path for touch and desktop drag gestures");
   assert.doesNotMatch(facebookContainerSource, /onPointerDown=\{event => \{[\s\S]{0,300}setPointerCapture/, "launcher paging must not capture an ordinary button tap on pointerdown");
   assert.match(facebookContainerSource, /onPointerMove=\{event => \{[\s\S]+isFacebookHomeHorizontalSwipe[\s\S]+setPointerCapture/, "launcher paging may capture the pointer only after a real horizontal drag");
@@ -2494,9 +2515,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(facebookContainerSource, /facebook-home-page-dots[\s\S]*SET_HOME_LAUNCHER_PAGE[\s\S]*page: 0[\s\S]*page: 1/, "Home page dots and both paging targets must remain intact");
   assert.doesNotMatch(facebookContainerSource, />Menu<|>Exit<|className="facebook-(?:menu|exit)-/, "native Facebook Home must not gain feature-phone Menu or Exit chrome");
   assert.match(facebookStateSource, /case "SHOW_NOTIFICATIONS":[\s\S]*case "OPEN_NOTIFICATION":/, "the dedicated Notifications route and canonical target mapping must remain preserved even without a permanent Home footer");
-  assert.match(deviceCssSource, /\.facebook-home \{ grid-template-rows: 34px minmax\(0,1fr\) 16px;/, "normal Home must not reserve a permanent notification-footer row");
-  assert.match(deviceCssSource, /\.facebook-home\.has-notification-banner \{ grid-template-rows: 34px minmax\(0,1fr\) 16px 36px; \}/, "Home may add compact banner space only while transient presentation is visible");
-  assert.match(deviceCssSource, /\.facebook-home-grid \{[^}]*grid-template-rows: repeat\(3,minmax\(72px,1fr\)\);[^}]*touch-action: pan-y;/, "both Home pages must share one fixed 3-row launcher geometry and scoped gesture handling");
+  assert.match(deviceCssSource, /\.facebook-home \{ grid-template-rows: minmax\(0,1fr\) 16px;[^}]*background:/, "the pale launcher body must begin below Home Search and reserve no permanent notification-footer row");
+  assert.match(deviceCssSource, /\.facebook-home\.has-notification-banner \{ grid-template-rows: minmax\(0,1fr\) 16px 36px; \}/, "Home may add compact banner space only while transient presentation is visible");
+  assert.match(deviceCssSource, /\.facebook-home-grid \{[^}]*grid-template-rows: repeat\(3,103px\);[^}]*align-content: start;[^}]*touch-action: pan-y;/, "both Home pages must share the measured fixed 3-row launcher rhythm and scoped gesture handling");
+  assert.match(deviceCssSource, /\.facebook-home-destination strong \{[^}]*white-space: nowrap;/, "all canonical Home labels must remain on one centered line");
+  assert.match(deviceCssSource, /\.facebook-internal-count \{[^}]*left: calc\(50% \+ var\(--facebook-home-column-offset,0px\) \+ 21px\);/, "launcher badges must remain optically anchored to the visible icon artwork");
   assert.match(deviceCssSource, /\.facebook-home \{[^}]*background:/, "Facebook Home must own the shared launcher background surface");
   assert.match(deviceCssSource, /\.facebook-home-secondary-page \{[^}]*background: transparent;/, "the sparse Notes page must expose the shared Home launcher background");
   assert.doesNotMatch(deviceCssSource, /\.facebook-home-secondary-page,\.facebook-people-search-results/, "launcher Page 2 must not inherit the lighter people-search results fill");

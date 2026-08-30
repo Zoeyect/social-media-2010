@@ -42,6 +42,7 @@ import { getCanonicalVenue } from "../data/canonicalVenues";
 import type { CanonicalVenueId } from "../data/canonicalVenues";
 import { SESSION_START_ISO } from "../state/deviceMachine";
 import { getFacebookPage } from "../data/facebookPages";
+import { FacebookHomeIcon } from "./FacebookHomeIcons";
 
 type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number };
 
@@ -266,11 +267,18 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
 }
 
 function FacebookNavigationHeader({ state, displayName, selectedItem, dispatch }: { state: FacebookState; displayName: string; selectedItem: FacebookFeedItem | null; dispatch: Dispatch<FacebookEvent> }) {
-  if (state.currentView === "home") return <header className="facebook-navigation-bar is-home">
-    <button type="button" className="facebook-account-control" onClick={() => dispatch({ type: "SHOW_ACCOUNT", profileName: displayName })}>Account</button>
-    <strong>facebook</strong>
-    <button type="button" className="facebook-shortcut-control" disabled aria-label="Shortcut customization HOLD">+</button>
-  </header>;
+  if (state.currentView === "home") return <div className="facebook-home-chrome" data-header-controls-status="HOLD">
+    <header className="facebook-navigation-bar is-home">
+      <button type="button" className="facebook-account-control" onClick={() => dispatch({ type: "SHOW_ACCOUNT", profileName: displayName })}>Account</button>
+      <strong>facebook</strong>
+      <button type="button" className="facebook-shortcut-control" disabled aria-label="Shortcut customization HOLD">+</button>
+    </header>
+    <div className="facebook-home-search-row">
+      <label className="facebook-search-field facebook-home-search"><span className="facebook-search-glyph" aria-hidden="true" />
+        <input aria-label="Search Facebook people" placeholder="Search" value={state.homeSearchQuery} onChange={event => dispatch({ type: "EDIT_HOME_SEARCH", value: event.currentTarget.value })} />
+      </label>
+    </div>
+  </div>;
   const nested = state.navigationStack.length > 2;
   const chatPeerName = state.selectedChatPeerId === null ? null : selectFacebookVisibleChatRoster(state).find(person => person.characterId === state.selectedChatPeerId)?.displayName;
   const placeName = state.selectedPlaceId === null ? null : getCanonicalVenue(state.selectedPlaceId)?.name;
@@ -338,9 +346,6 @@ function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, even
     data-layout-evidence="PERIOD-EVIDENCE"
     data-launcher-page={state.homeLauncherPage + 1}
   >
-    <label className="facebook-home-search"><span className="facebook-search-glyph" aria-hidden="true" />
-      <input aria-label="Search Facebook people" placeholder="Search" value={state.homeSearchQuery} onChange={event => dispatch({ type: "EDIT_HOME_SEARCH", value: event.currentTarget.value })} />
-    </label>
     {state.homeSearchQuery.trim() ? <div className="facebook-people-search-results">
       {searchResults.length === 0 && <p>No people found.</p>}
       {searchResults.map(result => <button key={result.kind === "canonical" ? result.characterId : result.authorId} type="button" onClick={() => dispatch({ type: "OPEN_PROFILE", profileName: result.displayName })}>{result.displayName}</button>)}
@@ -381,7 +386,7 @@ function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, even
         if (nextPage !== state.homeLauncherPage) dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: nextPage });
       }}
     >
-      {FACEBOOK_HOME_LAUNCHER_PAGES[state.homeLauncherPage].map(destination => <HomeDestination key={destination.id} iconLabel={destination.iconLabel} label={destination.label} count={destinationCounts[destination.id]} onClick={() => openDestination(destination.id)} />)}
+      {FACEBOOK_HOME_LAUNCHER_PAGES[state.homeLauncherPage].map(destination => <HomeDestination key={destination.id} destinationId={destination.id} label={destination.label} count={destinationCounts[destination.id]} onClick={() => openDestination(destination.id)} />)}
     </div>}
     <nav className="facebook-home-page-dots" aria-label="Launcher pages">
       <button type="button" aria-current={state.homeLauncherPage === 0 ? "page" : undefined} aria-label="Launcher page 1" onClick={() => dispatch({ type: "SET_HOME_LAUNCHER_PAGE", page: 0 })} />
@@ -393,9 +398,9 @@ function FacebookHome({ state, displayName, requestCount, inboxUnreadCount, even
   </div>;
 }
 
-function HomeDestination({ iconLabel, label, count = 0, onClick }: { iconLabel: string; label: string; count?: number; onClick: () => void }) {
+function HomeDestination({ destinationId, label, count = 0, onClick }: { destinationId: FacebookHomeLauncherDestinationId; label: string; count?: number; onClick: () => void }) {
   return <button type="button" className="facebook-home-destination" onClick={onClick}>
-    <span className="facebook-home-icon-hold" aria-hidden="true">{iconLabel}</span><strong>{label}</strong>
+    <FacebookHomeIcon destinationId={destinationId} /><strong>{label}</strong>
     {count > 0 && <span className="facebook-internal-count" aria-label={`${count} unread`}>{count}</span>}
   </button>;
 }
@@ -416,7 +421,7 @@ function FacebookFriends({ state, requestCount, dispatch }: { state: FacebookSta
   const alphabet = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"];
   const visiblePages = selectFacebookVisiblePages(state);
   return <section className="facebook-friends-screen">
-    <label className="facebook-friends-search"><span className="facebook-search-glyph" aria-hidden="true" /><input aria-label={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} placeholder={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} value={state.friendSearchQuery} onChange={event => dispatch({ type: "EDIT_FRIEND_SEARCH", value: event.currentTarget.value })} /></label>
+    <label className="facebook-search-field facebook-friends-search"><span className="facebook-search-glyph" aria-hidden="true" /><input aria-label={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} placeholder={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} value={state.friendSearchQuery} onChange={event => dispatch({ type: "EDIT_FRIEND_SEARCH", value: event.currentTarget.value })} /></label>
     <div className="facebook-friends-content">
       {state.friendsSection === "friends" && <>
         <div className="facebook-friend-list" aria-label="Friends">

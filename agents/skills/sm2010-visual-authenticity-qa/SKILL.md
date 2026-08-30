@@ -410,6 +410,31 @@ When a cross-app dependency exists, explicitly list affected surfaces before cha
 
 Do not "fix" one app by creating a timeline contradiction in another.
 
+## Shared Historical Map Architecture
+
+For map-based surfaces in SOCIAL MEDIA, 2010:
+
+- Facebook Places and Foursquare may share canonical venue location metadata.
+- Shared location metadata may include:
+  - canonical venue ID
+  - coordinates
+  - map viewport preset
+  - optional address
+- A shared deterministic fake/static map renderer may be used when this avoids modern map-provider UI contamination.
+- Facebook Places and Foursquare must retain separate app-specific chrome, navigation, terminology, and interaction flows.
+- Do not make Facebook Places depend on Foursquare state, or vice versa.
+- Do not duplicate venue coordinates independently per app when they refer to the same canonical place.
+- Do not expose the shared map renderer in another app unless target-period evidence supports a map surface there.
+- Before implementing the shared map layer, audit the target-date Foursquare map/check-in UI separately.
+- Until that audit is complete, placeholders such as `Map / Location view unavailable` may remain HOLD rather than inventing a modern map.
+
+Implementation sequence:
+
+1. Validate and commit Facebook Places flow.
+2. Audit Foursquare circa-2010 map/check-in surfaces.
+3. Build `Shared 2010 Fake Map System v0.1`.
+4. Attach separate Facebook/Foursquare renderers to the shared canonical venue layer.
+
 ---
 
 # 12. Platform-Specific QA

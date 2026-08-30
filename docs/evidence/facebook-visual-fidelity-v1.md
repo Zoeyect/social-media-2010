@@ -65,14 +65,7 @@ Supported characteristics retained or strengthened:
 
 ## Asset audit
 
-No historically verified Facebook application icon set is currently stored in the repository. Existing Facebook assets are character/profile media, not audited application chrome.
-
-Therefore:
-
-- existing launcher letter placeholders remain in use
-- no fake icons were generated
-- no modern icon library was introduced
-- no character image was changed
+No historically verified Facebook application icon set is stored in the repository. Existing Facebook assets are character/profile media, not audited application chrome. The original v1 decision to retain launcher letter placeholders is superseded by the evidence-bounded Home Launcher Restoration v1.0 documented below. That pass uses scoped CSS reconstructions; it does not claim recovered production raster assets.
 
 ## HOLD boundaries
 
@@ -177,6 +170,78 @@ Exact summary glyphs: HOLD — historical asset provenance required
 The plus control is a conservative CSS reconstruction using the existing period Facebook blue gradient, one-pixel border, slight bevel, and a white text plus. No screenshot crop, modern icon library, SF Symbol, AI-generated icon, or invented decorative artwork is used.
 
 Exact plus artwork: PERIOD-EVIDENCE / CSS RECONSTRUCTION
+
+## Facebook 2010 Icon Asset Provenance + Home Launcher Restoration v1.0
+
+The Home launcher no longer renders the unsupported uniform blue `NF / PR / FR / MS / PL / RQ / EV / PH / CH / NT` tiles. All ten frozen launcher destinations resolve through `FACEBOOK_HOME_ICON_REGISTRY`. The visible 46-by-44-pixel artwork box replaces the former 43-by-43-pixel placeholder box without changing launcher buttons, grid tracks, labels, routes, badges, page occupancy, page dots, or swipe behavior.
+
+The registry uses CSS-drawn, free-standing motifs bounded by period screenshots. These are reconstructions, not extracted Facebook binaries. Exact production raster payloads, original filenames, and original pixel dimensions remain HOLD. Notes is classified `PROBABLE / RECONSTRUCTED` because its direct visual source is Facebook 3.0 from August 2009 rather than a target-week Page 2 capture. The target-near October 2010 capture confirms the other nine glyph families, including the folded-map and pink pin treatment for Places.
+
+Detailed evidence, per-icon status, rejected candidates, dimension audit, and HOLD boundaries: `facebook-2010-icon-provenance-v1.0.md`.
+
+Common glyph backlog is documentation-only in this pass: exact camera, notification, search, navigation, toolbar, and composer glyph binaries remain HOLD. No shared common glyph implementation changed.
+
+## Home Launcher Pixel Match v1.1
+
+The primary measurement source is the 642 × 928 JPEG embedded in Felix issue 1469 (2010-10-15), not a screenshot crop used as production art. Coordinate measurements were normalized to the approximately 320-point Facebook viewport. The capture is vertically cropped relative to a full iPhone 4 screen, so its absolute bottom edge is not treated as canonical.
+
+| Metric | v1.0 | v1.1 |
+| --- | ---: | ---: |
+| nominal icon box | 46 × 44px | 64 × 58px |
+| visible icon bounds | approximately 29–40 × 32–43px | approximately 48–64 × 42–58px, icon-specific |
+| label size / line height | 10px / 12px | 13px / 15px |
+| label weight | default `strong` | 700 |
+| label color | inherited `#273c68` | `#303030` |
+| canonical CSS icon-label gap | 3px | 6px |
+| row pitch | flexible: 120px normal / 108px with banner | fixed 103px |
+| column centers | approximately 60 / 160 / 260px | approximately 53 / 160 / 267px |
+| badge anchor | top 1px / right 8px from slot | top 5px / center + column offset + 21px from artwork |
+
+News Feed gains a heavier layered news-sheet silhouette; Profile and Friends use larger, more compact people silhouettes; Inbox becomes a pink tray plus white document rather than a Chat-like pair; Places retains its target-period folded map and pink pin; Requests gains stronger overlapping people and a larger green plus; Events uses a larger calendar/header/`31`; Photos gains deeper frame layering and a warmer portrait; Chat becomes two differentiated neutral/blue speech rectangles; and Notes gains the period red margin rule.
+
+The strict registry now records `sourceType`, `confidence`, intrinsic-size status, 64 × 58 display size, and 0–1px per-icon optical offsets. Exact Facebook production rasters remain HOLD. Launcher order, labels, slots, routes, paging, Notes placement, Search/header, background, page-dot behavior, badge selectors, notification behavior, Facebook state, News Feed, Profile, and Places flow remain unchanged.
+
+## Facebook Home Search Chrome Restoration v1.2
+
+The prior hierarchy placed Home Search as the first row of the pale `.facebook-home` launcher body, below a separate blue navbar. v1.2 moves the unchanged Search control into a Home-only `.facebook-home-chrome` wrapper:
+
+```text
+facebook-home-chrome
+├── 44px Home navigation row
+└── 44px blue Search row
+
+facebook-home
+├── pale launcher / search-results body
+├── page dots
+└── transient notification banner, when active
+```
+
+The lower Search row uses the existing Facebook toolbar color family and directly touches the Home navbar. The white rounded field retains its magnifier, gray border, inner shadow, 23px input geometry, left-aligned placeholder, `homeSearchQuery`, and `EDIT_HOME_SEARCH` handler. The pale launcher background now begins only after the blue Search row and is identical on launcher Pages 1 and 2.
+
+Search field geometry is shared through `.facebook-search-field`; container chrome is deliberately surface-specific. Friends and Pages keep `.facebook-friends-search` in the light 36px list header below their ordinary navbar. News Feed keeps its camera plus `What's on your mind?` composer and receives no Search styles.
+
+| Historical boundary | Status |
+| --- | --- |
+| Home Search inside extended blue Facebook chrome | PERIOD-EVIDENCE / CONFIRMED |
+| Friends Search below navbar on light list header | PERIOD-EVIDENCE / CONFIRMED |
+| News Feed camera/status composer separate from Search | PERIOD-EVIDENCE / CONFIRMED |
+| Home Account / `+` orientation and exact target-build wording | HOLD — target-build verification required |
+
+Launcher artwork, nominal icon size, label typography, 103px row pitch, column centers, badge geometry/logic, page dots, paging, routes, notification timing, state, and scheduler remain unchanged from v1.1.
+
+### Unified blue chrome correction v1.2.1
+
+The v1.2 implementation still produced an unintended seam because the 88px parent gradient changed abruptly at the row boundary while the Home navbar and Search row each retained independent borders, backgrounds, or shadows. v1.2.1 assigns one continuous gradient and one inset bottom edge to `.facebook-home-chrome`. The Home navbar and Search row are transparent, borderless at their junction, and shadowless, so both rows expose the same uninterrupted blue panel.
+
+The white Search field, row dimensions, header controls, pale launcher boundary, Friends/Pages list Search, News Feed composer, Home paging, icon grid, badges, page dots, and transient notification behavior are unchanged.
+
+### Continuous gradient restoration v1.2.2
+
+The Home navbar and Search row remain one continuous blue chrome owned by `.facebook-home-chrome` (**PERIOD-EVIDENCE**). Period-reference sampling and visual comparison show a continuous vertical tonal progression rather than a flat fill: a light top highlight descends through medium Facebook blue into the darker Search zone, then finishes at a dark terminal lower edge (**PERIOD-EVIDENCE / VISUAL-CROSSCHECK**).
+
+The parent gradient therefore uses reconstructed multi-stop values `#90a7c9 0%`, `#8298c1 10%`, `#6f89b8 24%`, `#466aa6 45%`, `#3d609b 58%`, `#3d619d 84%`, `#395992 96%`, and `#2f4364 100%` (**RECONSTRUCTED**). These RGB values and stop locations are implementation approximations derived from the supplied reference, not claims of canonical source constants.
+
+The Home navbar and Search row remain transparent, borderless at their junction, and shadowless. Any intermediate divider, child-owned gradient, or gradient restart between those rows is **REJECTED**. The parent retains the sole outer bottom edge below Search. Search internals, Account / `+`, wordmark, Friends, Pages, News Feed, launcher pages, paging, icons, labels, badges, Places, and transient notification state are unchanged.
 
 ## Facebook Places 2010 Check-In Flow v1.0
 

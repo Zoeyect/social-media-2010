@@ -62,13 +62,22 @@ button, input { font: inherit; }
 .unlock-track button:active { cursor: grabbing; }
 @keyframes slider-highlight { 0% { opacity: 0; -webkit-mask-position: -80px center; mask-position: -80px center; } 30% { opacity: .3; } 50% { opacity: .4; } 70% { opacity: 0; -webkit-mask-position: 205px center; mask-position: 205px center; } 100% { opacity: 0; -webkit-mask-position: 205px center; mask-position: 205px center; } }
 .screen > .springboard { position: relative; height: 100%; background: #000 url("../assets/historical/ios4.1/lockscreen/DefaultWallpaper@2x~iphone.png") center / 320px 480px no-repeat; }
-.springboard-pages { position: absolute; inset: 0 0 84px; overflow: hidden; touch-action: pan-y; }
+.springboard-folder-wallpaper-dim { position: absolute; z-index: 0; inset: 20px 0 0; background: rgba(8,11,16,.48); pointer-events: none; }
+.springboard-pages { position: absolute; z-index: 1; inset: 0 0 84px; overflow: hidden; touch-action: pan-y; }
+.springboard.is-folder-opening .springboard-pages,
+.springboard.is-folder-open .springboard-pages,
+.springboard.is-folder-closing .springboard-pages { overflow: visible; }
 .springboard-pages-track { width: 640px; height: 100%; display: flex; transition: transform 220ms ease-out; }
 .springboard-pages-track.is-dragging { transition: none; }
 .springboard-page { position: relative; flex: 0 0 320px; width: 320px; height: 100%; }
 .springboard-icon-grid { position: absolute; left: 16px; top: 36px; width: 287px; display: grid; grid-template-columns: repeat(4,59px); grid-template-rows: repeat(4,74px); column-gap: 17px; row-gap: 14px; }
+.springboard-page-split-region { --folder-region-offset: 0px; }
+.springboard-page-split-region.is-upper,
+.springboard-page-split-region.is-active-folder-anchor { --folder-region-offset: var(--folder-upper-offset); }
+.springboard-page-split-region.is-lower { --folder-region-offset: var(--folder-lower-offset); }
 .springboard-icon-slot, .springboard-dock-slot { position: relative; z-index: 1; width: 59px; height: 74px; display: block; justify-self: center; }
 .springboard-system-icon { position: absolute; left: 0; top: 0; width: 59px; height: 60px; display: block; }
+.springboard-system-icon.is-app-store-artwork { left: 1px; top: 1px; width: 57px; height: 57px; border-radius: 10px; box-shadow: 0 1px 1px rgba(0,0,0,.45); }
 .springboard-system-icon.is-folder { height: 62px; }
 .springboard-icon-button { padding: 0; border: 0; color: inherit; background: transparent; cursor: pointer; }
 .springboard-icon-label { position: absolute; left: 50%; top: 62px; display: block; max-width: 76px; transform: translateX(-50%); overflow: hidden; color: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 10px; line-height: 14px; font-weight: normal; text-align: center; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 1px #000; }
@@ -85,32 +94,56 @@ button, input { font: inherit; }
 .springboard-social-icon.is-tumblr { background: linear-gradient(#526d86,#243a50); }
 .springboard-social-icon.is-flickr { color: #e50078; background: #f5f5f5; font: bold 22px/1 "Helvetica Neue",Helvetica,Arial,sans-serif; letter-spacing: -5px; padding-right: 5px; text-shadow: -9px 0 #0063dc; }
 .springboard-social-icon.is-instagram { color: #eee2c6; background: linear-gradient(#8f735b 0 25%,#c6b18e 26% 100%); font: bold 30px/1 "Helvetica Neue",Helvetica,Arial,sans-serif; }
-.springboard-folder-mini-grid .springboard-social-icon { position: relative; left: auto; top: auto; width: 12px; height: 12px; border-width: .5px; border-radius: 2px; box-shadow: none; font-size: 8px; letter-spacing: 0; padding: 0; text-shadow: none; }
-.springboard-folder-mini-grid .springboard-social-icon.is-flickr { font-size: 5px; letter-spacing: -2px; padding-right: 2px; text-shadow: -3px 0 #0063dc; }
-.springboard-folder-mini-grid .springboard-social-icon.is-instagram { font-size: 7px; }
-.springboard-page-indicator { position: absolute; left: 50%; bottom: 84px; height: 10px; display: flex; align-items: center; gap: 6px; transform: translateX(-50%); }
+.springboard-page-indicator { position: absolute; z-index: 1; left: 50%; bottom: 84px; height: 10px; display: flex; align-items: center; gap: 6px; transform: translateX(-50%); transition: transform 300ms ease-in-out, opacity 300ms ease-in-out; }
 .springboard-search-indicator { width: 10px; height: 10px; display: block; }
 .springboard-page-dot { width: 6px; height: 6px; display: block; }
-.springboard-dock { position: absolute; left: 0; bottom: 0; width: 320px; height: 84px; padding: 8px 16px 0; display: grid; grid-template-columns: repeat(4,59px); column-gap: 17px; }
+.springboard-dock { position: absolute; z-index: 1; left: 0; bottom: 0; width: 320px; height: 84px; padding: 8px 16px 0; display: grid; grid-template-columns: repeat(4,59px); column-gap: 17px; transition: transform 300ms ease-in-out, opacity 300ms ease-in-out; }
 .springboard-dock-artwork { position: absolute; z-index: 0; left: 0; bottom: 0; width: 320px; height: 45px; display: block; }
 .springboard-folder-overlay { position: absolute; z-index: 10; inset: 0; }
-.springboard-folder-panel { position: absolute; left: 0; top: 110px; width: 320px; height: 295px; overflow: hidden; transform-origin: 45.5px 0; }
+.springboard-folder-panel { position: absolute; left: 0; width: 320px; height: 295px; overflow: visible; }
+.springboard-folder-tray { position: absolute; inset: 0; overflow: hidden; }
 .springboard-folder-linen { position: absolute; z-index: 0; left: 0; top: -30px; width: 320px; height: 360px; display: block; }
 .springboard-folder-shadow { position: absolute; z-index: 1; left: 0; width: 320px; display: block; background-repeat: repeat-x; }
 .springboard-folder-shadow.is-top { top: 0; height: 24px; background-size: 1px 24px; }
 .springboard-folder-shadow.is-bottom { bottom: 0; height: 27px; background-size: .5px 27px; }
-.springboard-folder-notch { position: absolute; z-index: 2; left: 33.5px; width: 24px; display: block; }
-.springboard-folder-notch.is-top { top: 0; height: 39px; }
-.springboard-folder-notch.is-bottom { bottom: 0; height: 40px; display: none; }
-.springboard-folder-title-layer { position: relative; z-index: 3; height: 34px; padding: 8px 16px 0; color: #fff; font: bold 13px/20px "Helvetica Neue",Helvetica,Arial,sans-serif; text-shadow: 0 -1px #000; }
+.springboard-folder-notch { position: absolute; z-index: 2; width: 24px; display: block; pointer-events: none; }
+.springboard-folder-notch.is-top { top: -12px; height: 12px; background-repeat: no-repeat; background-size: 320px 360px; clip-path: polygon(50% 0,100% 100%,0 100%); filter: drop-shadow(0 -1px 0 rgba(0,0,0,.72)); }
+.springboard-folder-title-layer { position: relative; z-index: 3; height: 34px; padding: 8px 16px 0; color: #fff; font: bold 16px/20px "Helvetica Neue",Helvetica,Arial,sans-serif; text-shadow: 0 -1px #000; }
 .springboard-folder-grid { position: absolute; z-index: 4; left: 16px; top: 41px; width: 287px; display: grid; grid-template-columns: repeat(4,59px); column-gap: 17px; row-gap: 11px; }
 .springboard-folder-grid.is-1-row { grid-template-rows: 74px; }
 .springboard-folder-grid.is-2-row { grid-template-rows: repeat(2,74px); }
 .springboard-folder-empty-slot { width: 59px; height: 74px; display: block; }
-.springboard-folder-overlay.is-opening .springboard-folder-panel { animation: springboard-folder-open 180ms ease-out both; }
-.springboard-folder-overlay.is-closing .springboard-folder-panel { animation: springboard-folder-close 160ms ease-in both; }
-@keyframes springboard-folder-open { from { opacity: 0; transform: scale(.194); } to { opacity: 1; transform: scale(1); } }
-@keyframes springboard-folder-close { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.194); } }
+.springboard.is-folder-opening .springboard-page-split-region:not(.is-active-folder-anchor) { animation: springboard-folder-region-open 300ms ease-in-out both; }
+.springboard.is-folder-opening .springboard-page-split-region.is-active-folder-anchor { animation: springboard-folder-anchor-open 300ms ease-in-out both; }
+.springboard.is-folder-open .springboard-page-split-region { transform: translateY(var(--folder-region-offset)); }
+.springboard.is-folder-open .springboard-page-split-region:not(.is-active-folder-anchor) { opacity: .46; filter: brightness(.58) saturate(.5); }
+.springboard.is-folder-closing .springboard-page-split-region:not(.is-active-folder-anchor) { animation: springboard-folder-region-close 300ms ease-in-out both; }
+.springboard.is-folder-closing .springboard-page-split-region.is-active-folder-anchor { animation: springboard-folder-anchor-close 300ms ease-in-out both; }
+.springboard.is-folder-opening .springboard-page-indicator,
+.springboard.is-folder-open .springboard-page-indicator { opacity: .34; transform: translate(-50%, var(--folder-lower-offset)); }
+.springboard.is-folder-opening .springboard-dock,
+.springboard.is-folder-open .springboard-dock { opacity: .28; transform: translateY(100%); }
+.springboard.is-folder-opening .springboard-page-split-region.is-active-folder-anchor .springboard-icon-label { animation: springboard-folder-label-hide 300ms ease-in-out both; }
+.springboard.is-folder-open .springboard-page-split-region.is-active-folder-anchor .springboard-icon-label { opacity: 0; }
+.springboard.is-folder-closing .springboard-page-split-region.is-active-folder-anchor .springboard-icon-label { animation: springboard-folder-label-show 300ms ease-in-out both; }
+.springboard.is-folder-opening .springboard-folder-wallpaper-dim { animation: springboard-folder-dim-open 300ms ease-in-out both; }
+.springboard.is-folder-closing .springboard-folder-wallpaper-dim { animation: springboard-folder-dim-close 300ms ease-in-out both; }
+.springboard-folder-overlay.is-opening .springboard-folder-panel { animation: springboard-folder-open 300ms ease-in-out both; }
+.springboard-folder-overlay.is-opening .springboard-folder-tray { animation: springboard-folder-tray-open 300ms ease-in-out both; }
+.springboard-folder-overlay.is-closing .springboard-folder-panel { animation: springboard-folder-close 300ms ease-in-out both; }
+.springboard-folder-overlay.is-closing .springboard-folder-tray { animation: springboard-folder-tray-close 300ms ease-in-out both; }
+@keyframes springboard-folder-region-open { from { opacity: 1; filter: none; transform: translateY(0); } to { opacity: .46; filter: brightness(.58) saturate(.5); transform: translateY(var(--folder-region-offset)); } }
+@keyframes springboard-folder-region-close { from { opacity: .46; filter: brightness(.58) saturate(.5); transform: translateY(var(--folder-region-offset)); } to { opacity: 1; filter: none; transform: translateY(0); } }
+@keyframes springboard-folder-anchor-open { from { transform: translateY(0); } to { transform: translateY(var(--folder-region-offset)); } }
+@keyframes springboard-folder-anchor-close { from { transform: translateY(var(--folder-region-offset)); } to { transform: translateY(0); } }
+@keyframes springboard-folder-label-hide { from { opacity: 1; } to { opacity: 0; } }
+@keyframes springboard-folder-label-show { from { opacity: 0; } to { opacity: 1; } }
+@keyframes springboard-folder-dim-open { from { opacity: 0; } to { opacity: 1; } }
+@keyframes springboard-folder-dim-close { from { opacity: 1; } to { opacity: 0; } }
+@keyframes springboard-folder-open { from { opacity: 0; } to { opacity: 1; } }
+@keyframes springboard-folder-close { from { opacity: 1; } to { opacity: 0; } }
+@keyframes springboard-folder-tray-open { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+@keyframes springboard-folder-tray-close { from { clip-path: inset(0); } to { clip-path: inset(0 0 100% 0); } }
 .app-launch-container { position: absolute; z-index: 20; inset: 0; width: 320px; height: 480px; overflow: hidden; background: #000; transform-origin: center; }
 .app-runtime-surface { position: absolute; inset: 20px 0 0; background: #000; }
 .ios4-keyboard-system { width: 320px; height: 460px; display: grid; grid-template-rows: minmax(0,1fr) 0; overflow: hidden; background: #000; transition: grid-template-rows 210ms ease-out; }

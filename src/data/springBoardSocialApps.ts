@@ -10,7 +10,7 @@ type InstagramLaunchState = InstalledSocialAppState & {
   following: 0;
 };
 
-export type SocialFolderApp = {
+export type SpringBoardSocialApp = {
   id: "facebook" | "twitter" | "foursquare" | "tumblr" | "flickr" | "instagram";
   name: "Facebook" | "Twitter" | "Foursquare" | "Tumblr" | "Flickr" | "Instagram";
   iconStatus: SocialAppIconStatus;
@@ -21,7 +21,7 @@ export type SocialFolderApp = {
   iconSrc?: string;
 };
 
-export const SOCIAL_FOLDER_APPS: readonly SocialFolderApp[] = [
+export const SPRINGBOARD_SOCIAL_APPS: readonly SpringBoardSocialApp[] = [
   {
     id: "facebook",
     name: "Facebook",
@@ -76,9 +76,4 @@ export const SOCIAL_FOLDER_APPS: readonly SocialFolderApp[] = [
     available: true,
     launchTarget: "social-app-runtime",
   },
-] as const;
-
-export const SOCIAL_FOLDER_SLOTS = [
-  ...SOCIAL_FOLDER_APPS,
-  ...Array.from({ length: 6 }, () => undefined),
 ] as const;

@@ -73,6 +73,7 @@ export function App() {
   const devAutoOpen = devAppId !== null && new URLSearchParams(window.location.search).get("autoOpen") === "1";
   const [springBoardPage, setSpringBoardPage] = useState<0 | 1>(0);
   const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
+  const [activeFolderSlotIndex, setActiveFolderSlotIndex] = useState(0);
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
   const [cameraRuntime, dispatchCameraRuntime] = useReducer(cameraRuntimeTransition, initialCameraRuntimeState);
   const [multitaskingBar, dispatchMultitaskingBar] = useReducer(multitaskingBarStateTransition, "closed");
@@ -411,6 +412,7 @@ export function App() {
     dispatchMultitaskingBar("RESET");
     dispatchFolderEvent("CLOSE");
     dispatchFolderEvent("ANIMATION_COMPLETE");
+    setActiveFolderSlotIndex(0);
     setUnlockReturnAppId(null);
     setSpringBoardPage(0);
     setActivityRevision(0);
@@ -694,6 +696,8 @@ export function App() {
           onPageChange={setSpringBoardPage}
           folderState={folderState}
           dispatchFolderEvent={dispatchFolderEvent}
+          activeFolderSlotIndex={activeFolderSlotIndex}
+          onActiveFolderSlotChange={setActiveFolderSlotIndex}
           messagesBadgeCount={messagesUnreadIds.length}
           onLaunchApp={launchSpringBoardApp}
         />}

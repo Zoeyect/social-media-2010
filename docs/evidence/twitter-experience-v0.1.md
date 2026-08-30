@@ -207,7 +207,7 @@ None found by compilation and code-path inspection.
 
 ## Preservation report
 
-- `socialFolderApps.ts` remains unchanged; Twitter stays unavailable with icon
+- The then-current social-app registry remained unchanged; later SpringBoard work moved it to `springBoardSocialApps.ts` without changing Twitter's stable app ID.
   status `HOLD`.
 - `activeLockNotification` and its replacement policy remain unchanged.
 - No SpringBoard, Folder, Messages, SMS, Camera, Audio, Battery, Status Bar, or

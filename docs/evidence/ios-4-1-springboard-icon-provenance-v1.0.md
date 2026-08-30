@@ -21,9 +21,13 @@ The original assets below were extracted byte-for-byte from the verified local f
 | Safari | `/Applications/MobileSafari.app/icon@2x.png` | build 8B117 | 118×120 | CONFIRMED_ORIGINAL | existing exact CgBI; browser derivative added |
 | Camera | `/Applications/MobileSlideShow.app/icon-Camera@2x.png` | 2010-07-19 | 118×120 | CONFIRMED_ORIGINAL | existing exact CgBI; browser derivative added |
 | YouTube | `/Applications/YouTube.app/icon@2x.png` | build 8B117 | 118×120 | CONFIRMED_ORIGINAL | existing exact CgBI; browser derivative added |
+| WhatsApp | Archived Apple App Store artwork: `a1.phobos.apple.com/.../mzl.wnjwwrzx.175x175-75.jpg`, listing ID `310633997` | 2010-07-26 archive capture | 175×175 | PROBABLE_ORIGINAL | exact archived Apple-CDN JPEG; CSS applies only the period SpringBoard corner mask |
+| Skype | Archived Apple App Store artwork: `a1.phobos.apple.com/.../mzl.iilecupo.175x175-75.jpg`, listing ID `304878510` | 2010-07-22 archive capture | 175×175 | PROBABLE_ORIGINAL | exact archived Apple-CDN JPEG; CSS applies only the period SpringBoard corner mask |
 
 Utilities contains the exact target-build Clock, Calculator, Compass, and Voice Memos icons from their respective application bundles. Those originals and browser derivatives are production assets for the expanded folder tray.
 
-The Social folder’s six third-party target-period icon payloads remain unrecovered. Its displayed identity marks are isolated `RECONSTRUCTED` placeholders and are labeled as such in source. They are not promoted to original icon provenance.
+The former Social folder’s six third-party target-period icon payloads remain unrecovered. Their directly exposed Page 1 identity marks remain isolated `RECONSTRUCTED` placeholders and are labeled as such in source. They are not promoted to original icon provenance.
+
+The WhatsApp and Skype files are not extracted IPA icon payloads, so they are not classified `CONFIRMED_ORIGINAL`. They are byte-identical copies of the dated artwork returned by the official Apple App Store pages preserved by the Internet Archive. The Web Design Museum WhatsApp captures were used only to corroborate the visible period identity; no museum screenshot pixels were cropped or shipped.
 
 The DeviantArt pack published in 2026 is `REJECTED` as historical-original provenance and was not imported. It remains suitable only as a modern visual cross-check.

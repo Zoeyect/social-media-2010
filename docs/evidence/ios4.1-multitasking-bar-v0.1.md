@@ -48,7 +48,7 @@ The bar uses no blur, screenshots, application cards, reflection, 3D transform, 
 
 ## Registry and icon rules
 
-The bar reads the existing app runtime and `socialFolderApps.ts`. An entry is eligible only when:
+The bar reads the existing app runtime and the social-app registry in `springBoardSocialApps.ts`. An entry is eligible only when:
 
 - it matches the currently running `activeAppId`;
 - runtime phase is `running`;

@@ -24,7 +24,7 @@ The state retains only `activeAppId` while an application is launching, running,
 
 ## Registry connection
 
-Each entry in `socialFolderApps.ts` now supplies:
+Each entry in the social-app registry, now maintained in `springBoardSocialApps.ts`, supplies:
 
 - stable application `id`;
 - application name;

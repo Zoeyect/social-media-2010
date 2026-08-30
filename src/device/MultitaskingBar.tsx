@@ -1,5 +1,5 @@
 import { Dispatch, PointerEvent, useEffect, useRef } from "react";
-import { SOCIAL_FOLDER_APPS, SocialFolderApp } from "../data/socialFolderApps";
+import { SPRINGBOARD_SOCIAL_APPS, SpringBoardSocialApp } from "../data/springBoardSocialApps";
 import { AppRuntimeState } from "../state/appRuntimeState";
 import { MultitaskingBarEvent, MultitaskingBarState } from "../state/multitaskingBarState";
 
@@ -25,8 +25,8 @@ export function MultitaskingBar({ state, appRuntime, dispatch, onSelectApp }: Mu
   ]);
   const visibleApps = appRuntime.recentAppIds
     .filter(appId => retainedIds.has(appId))
-    .map(appId => SOCIAL_FOLDER_APPS.find(app => app.id === appId))
-    .filter((app): app is SocialFolderApp & { iconSrc: string } => Boolean(
+    .map(appId => SPRINGBOARD_SOCIAL_APPS.find(app => app.id === appId))
+    .filter((app): app is SpringBoardSocialApp & { iconSrc: string } => Boolean(
       app?.iconStatus === "READY" && app.available && app.iconSrc,
     ));
 

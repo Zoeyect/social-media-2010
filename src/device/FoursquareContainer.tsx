@@ -1,6 +1,7 @@
 import { Dispatch, useLayoutEffect, useRef } from "react";
 import { FoursquareEvent, FoursquareState, FoursquareVenue } from "../state/foursquareState";
 import { useSessionIdentity } from "../state/sessionIdentity";
+import { IOS4Textarea } from "./IOS4KeyboardSystem";
 
 type FoursquareContainerProps = {
   state: FoursquareState;
@@ -68,11 +69,12 @@ export function FoursquareContainer({ state, dispatch }: FoursquareContainerProp
           dispatch({ type: "CHECK_IN", venueId: venue.id, checkedInBy: identity.name, checkInTimestamp: Date.now() });
         }}>
           <label htmlFor={`foursquare-shout-${venue.id}`}>Shout (optional)</label>
-          <textarea
+          <IOS4Textarea
+            keyboardInputId={`foursquare-shout-${venue.id}`}
             id={`foursquare-shout-${venue.id}`}
             maxLength={140}
             value={state.shoutDrafts[venue.id] ?? ""}
-            onChange={event => dispatch({ type: "EDIT_CHECK_IN_SHOUT", venueId: venue.id, value: event.currentTarget.value })}
+            onValueChange={value => dispatch({ type: "EDIT_CHECK_IN_SHOUT", venueId: venue.id, value })}
           />
           <button className="foursquare-checkin-button" type="submit">Check In</button>
         </form>}

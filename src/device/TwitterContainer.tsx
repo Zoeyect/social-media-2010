@@ -14,6 +14,7 @@ import {
   TwitterUserProfile,
 } from "../state/twitterState";
 import { useSessionIdentity } from "../state/sessionIdentity";
+import { IOS4Textarea } from "./IOS4KeyboardSystem";
 import { SESSION_START_ISO } from "../state/deviceMachine";
 
 type TwitterContainerProps = {
@@ -364,7 +365,7 @@ function TwitterComposer({ identity, value, replyTarget, canSend, onChange, onSu
       <strong>{twitterReplyHandle(identity || "owner")}</strong>
       {replyTarget && <small>Reply to {twitterReplyHandle(replyTarget.displayName)}</small>}
     </div>
-    <textarea autoFocus={false} aria-label="Tweet" maxLength={140} value={value} onChange={event => onChange(event.currentTarget.value)} />
+    <IOS4Textarea keyboardInputId={replyTarget ? `twitter-reply-${replyTarget.id}` : "twitter-compose"} autoFocus={false} aria-label="Tweet" maxLength={140} value={value} onValueChange={onChange} />
     <div className="twitter-composer-disclosure" data-chrome-status="HOLD">
       <button type="button" disabled>attachments (...)</button>
       <span className="twitter-character-count">{140 - value.length}</span>

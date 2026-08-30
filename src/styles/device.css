@@ -95,6 +95,42 @@ button, input { font: inherit; }
 @keyframes springboard-folder-close { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.194); } }
 .app-launch-container { position: absolute; z-index: 20; inset: 0; width: 320px; height: 480px; overflow: hidden; background: #000; transform-origin: center; }
 .app-runtime-surface { position: absolute; inset: 20px 0 0; background: #000; }
+.ios4-keyboard-system { width: 320px; height: 460px; display: grid; grid-template-rows: minmax(0,1fr) 0; overflow: hidden; background: #000; transition: grid-template-rows 210ms ease-out; }
+.ios4-keyboard-system.is-keyboard-visible { grid-template-rows: minmax(0,1fr) 216px; }
+.ios4-keyboard-viewport { position: relative; min-height: 0; overflow: hidden; background: #000; }
+.ios4-keyboard-viewport > .facebook-container,
+.ios4-keyboard-viewport > .twitter-container,
+.ios4-keyboard-viewport > .instagram-container,
+.ios4-keyboard-viewport > .foursquare-container,
+.ios4-keyboard-viewport > .flickr-container,
+.ios4-keyboard-viewport > .tumblr-container,
+.ios4-keyboard-viewport > .mobilesms-container,
+.ios4-keyboard-viewport > .camera-runtime-container { height: 100%; }
+.ios4-keyboard { width: 320px; height: 216px; padding: 6px 3px 2px; display: grid; grid-template-rows: repeat(4,50px); row-gap: 2px; overflow: hidden; color: #111; border-top: 1px solid #5d6268; background: linear-gradient(#9da2a8 0%,#777d84 52%,#6a7077 100%); box-shadow: inset 0 1px rgba(255,255,255,.35); font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; pointer-events: none; user-select: none; }
+.ios4-keyboard-system.is-keyboard-visible .ios4-keyboard { pointer-events: auto; }
+.ios4-keyboard-row { min-width: 0; height: 50px; display: grid; align-items: center; }
+.ios4-keyboard-row.is-row-1 { grid-template-columns: repeat(10,minmax(0,1fr)); column-gap: 3px; }
+.ios4-keyboard-row.is-row-2 { grid-template-columns: repeat(9,minmax(0,1fr)); column-gap: 4px; padding: 0 14px; }
+.ios4-keyboard-row.is-row-2.is-ten-key-punctuation { grid-template-columns: repeat(10,minmax(0,1fr)); column-gap: 3px; padding: 0; }
+.ios4-keyboard-row.is-row-3 { grid-template-columns: 42px minmax(0,1fr) 42px; column-gap: 4px; }
+.ios4-keyboard-row-center { min-width: 0; display: grid; align-items: center; column-gap: 3px; }
+.ios4-keyboard-row.is-alpha .ios4-keyboard-row-center { grid-template-columns: repeat(7,minmax(0,1fr)); }
+.ios4-keyboard-row.is-numeric .ios4-keyboard-row-center { grid-template-columns: repeat(5,minmax(0,1fr)); padding: 0 17px; column-gap: 5px; }
+.ios4-keyboard-row.is-bottom-row { grid-template-columns: 54px minmax(0,1fr) 70px; column-gap: 5px; }
+.ios4-keyboard-key { min-width: 0; height: 42px; padding: 0; display: grid; place-items: center; color: #111; border: 1px solid #62676d; border-radius: 5px; background: linear-gradient(#f9f9f9 0%,#e9e9e9 48%,#d6d6d6 100%); box-shadow: inset 0 1px #fff,0 1px 1px rgba(0,0,0,.72); font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 21px; font-weight: normal; line-height: 40px; text-align: center; text-shadow: 0 1px rgba(255,255,255,.7); -webkit-tap-highlight-color: transparent; }
+.ios4-keyboard-key:active { background: linear-gradient(#b8bdc3,#9ca2a9); box-shadow: inset 0 1px rgba(0,0,0,.18),0 1px rgba(255,255,255,.2); }
+.ios4-keyboard-key.is-function { color: #fff; border-color: #4d535a; background: linear-gradient(#a1a7ad 0%,#7c838a 50%,#6d747b 100%); box-shadow: inset 0 1px rgba(255,255,255,.36),0 1px 1px rgba(0,0,0,.72); font-size: 14px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.75); }
+.ios4-keyboard-key.is-function:active { background: linear-gradient(#747b82,#60676e); }
+.ios4-keyboard-key.is-shift,
+.ios4-keyboard-key.is-delete { font-size: 21px; }
+.ios4-keyboard-key.is-symbol-switch { font-size: 12px; letter-spacing: -.02em; }
+.ios4-keyboard-key.is-mode { font-size: 13px; }
+.ios4-keyboard-key.is-space { font-size: 14px; }
+.ios4-keyboard-key.is-return { font-size: 13px; text-transform: lowercase; }
+.ios4-keyboard-key.is-return.is-action { border-color: #315b79; background: linear-gradient(#7aa4c2 0%,#4d7c9d 50%,#376b8e 100%); }
+.ios4-shift-icon { position: relative; width: 19px; height: 21px; display: block; }
+.ios4-shift-icon::before { content: ""; position: absolute; left: 1px; top: 0; width: 17px; height: 12px; background: #33383d; clip-path: polygon(50% 0,100% 60%,72% 60%,72% 100%,28% 100%,28% 60%,0 60%); filter: drop-shadow(0 1px rgba(255,255,255,.28)); }
+.ios4-keyboard-key.is-upper .ios4-shift-icon::before { background: #fff; filter: drop-shadow(0 0 3px rgba(255,255,255,.75)) drop-shadow(0 -1px rgba(0,0,0,.35)); }
 .camera-runtime-container, .camera-runtime-preview-surface { width: 320px; height: 460px; }
 .camera-runtime-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #000; }
 .camera-runtime-preview-surface { pointer-events: none; }

@@ -42,6 +42,7 @@ import { SMSAlertOverlay } from "./SMSAlertOverlay";
 import { SpringBoard } from "./SpringBoard";
 import { StatusBar } from "./StatusBar";
 import { TwitterContainer } from "./TwitterContainer";
+import { IOS4KeyboardSystem } from "./IOS4KeyboardSystem";
 
 const TERMINAL_DEPLETED_DISPLAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
@@ -701,6 +702,10 @@ export function App() {
           dispatch={dispatchAppRuntime}
           onClosed={() => update({ phase: "springboard" })}
         >
+          <IOS4KeyboardSystem
+            suspended={multitaskingBar !== "closed" || cameraRuntime.cameraPicker.phase !== "none"}
+            suspendReason={multitaskingBar !== "closed" ? "app-switch" : "navigation"}
+          >
           {appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none" && <CameraContainer
             owner="cameraApp"
             session={cameraRuntime.cameraApp}
@@ -775,6 +780,7 @@ export function App() {
             state={foursquareState}
             dispatch={dispatchFoursquare}
           />}
+          </IOS4KeyboardSystem>
         </AppLaunchContainer>}
         {session.phase === "app" && <MultitaskingBar
           state={multitaskingBar}

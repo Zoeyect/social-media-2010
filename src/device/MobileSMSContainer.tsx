@@ -1,8 +1,7 @@
-import { Dispatch, useEffect, useRef, useState } from "react";
+import { Dispatch, useEffect, useRef } from "react";
 import { DeviceAudio } from "../audio/deviceAudio";
 import { MessagesEvent, MessagesState, MobileSMSMessage, shouldScheduleDadLoveReply, shouldScheduleMomLoveReply, shouldScheduleMomReply } from "../state/messagesState";
-
-type KeyboardState = "idle" | "input-focused" | "keyboard-visible";
+import { IOS4Input } from "./IOS4KeyboardSystem";
 
 type MobileSMSContainerProps = {
   state: MessagesState;
@@ -16,11 +15,10 @@ type MobileSMSContainerProps = {
 };
 
 export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onScheduleMomReply, onScheduleMomLoveReply, onScheduleDadLoveReply, onOpenCameraPicker, cameraPickerActive }: MobileSMSContainerProps) {
-  const [keyboardState, setKeyboardState] = useState<KeyboardState>("idle");
   const inputRef = useRef<HTMLInputElement>(null);
+  const conversationRef = useRef<HTMLDivElement>(null);
   const pickerWasActive = useRef(false);
-  const pickerOpeningRequested = useRef(false);
-  const keyboardStateBeforePicker = useRef<KeyboardState>("idle");
+  const restoreKeyboardAfterPicker = useRef(false);
   const conversationOpen = state.view === "conversation";
   const conversationSummaries = createConversationSummaries(state.messages);
   const activeMessages = state.activeConversationId
@@ -28,18 +26,37 @@ export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onSchedu
     : [];
   const contactName = activeMessages.find(message => message.direction === "incoming")?.sender ?? "Messages";
   const canSend = Boolean(state.draft.trim());
+  const sendDraft = () => {
+    if (!canSend) return;
+    const schedulesMomReply = shouldScheduleMomReply(state, state.draft);
+    const schedulesMomLoveReply = shouldScheduleMomLoveReply(state, state.draft);
+    const schedulesDadLoveReply = shouldScheduleDadLoveReply(state, state.draft, currentElapsedMs);
+    DeviceAudio.messageSent();
+    dispatch({ type: "SEND", elapsedMs: currentElapsedMs });
+    if (schedulesMomReply) onScheduleMomReply();
+    if (schedulesMomLoveReply) onScheduleMomLoveReply();
+    if (schedulesDadLoveReply) onScheduleDadLoveReply();
+  };
 
   useEffect(() => {
     if (cameraPickerActive && !pickerWasActive.current) {
-      if (!pickerOpeningRequested.current) keyboardStateBeforePicker.current = keyboardState;
-      pickerOpeningRequested.current = false;
       inputRef.current?.blur();
     } else if (!cameraPickerActive && pickerWasActive.current
-      && keyboardStateBeforePicker.current !== "idle") {
+      && restoreKeyboardAfterPicker.current) {
       requestAnimationFrame(() => inputRef.current?.focus());
     }
     pickerWasActive.current = cameraPickerActive;
   }, [cameraPickerActive]);
+
+  useEffect(() => {
+    const transcript = conversationRef.current;
+    if (!transcript) return;
+    const scrollToLatest = () => { transcript.scrollTop = transcript.scrollHeight; };
+    scrollToLatest();
+    const observer = new ResizeObserver(scrollToLatest);
+    observer.observe(transcript);
+    return () => observer.disconnect();
+  }, [state.activeConversationId, activeMessages.length]);
 
   return <section className="mobilesms-container" aria-label="Messages">
     <header className="mobilesms-navigation-bar">
@@ -60,7 +77,7 @@ export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onSchedu
     </header>
     {conversationOpen
       ? <>
-        <div className="mobilesms-conversation-scroll" role="log" aria-label={`Conversation with ${contactName}`}>
+        <div ref={conversationRef} className="mobilesms-conversation-scroll" role="log" aria-label={`Conversation with ${contactName}`}>
           {activeMessages.map(message => <div
             key={message.id}
             className={`mobilesms-message-row is-${message.direction}`}
@@ -78,45 +95,33 @@ export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onSchedu
             data-provenance-status="READY"
             data-asset-source="8B117:/Applications/MobileSMS.app/PhotoButton@2x~iphone.png"
             aria-label="Camera"
+            onPointerDown={() => {
+              restoreKeyboardAfterPicker.current = document.activeElement === inputRef.current;
+            }}
             onClick={() => {
-              keyboardStateBeforePicker.current = keyboardState;
-              pickerOpeningRequested.current = true;
               onOpenCameraPicker();
             }}
           />
-          <input
+          <IOS4Input
             ref={inputRef}
+            keyboardInputId="messages-compose"
+            keyboardReturnKeyType="send"
+            onKeyboardSubmit={sendDraft}
             aria-label="Text Message"
             value={state.draft}
-            onFocus={() => {
-              setKeyboardState("input-focused");
-              requestAnimationFrame(() => setKeyboardState("keyboard-visible"));
-            }}
-            onBlur={() => setKeyboardState("idle")}
-            onChange={event => dispatch({ type: "EDIT_DRAFT", value: event.target.value })}
+            onValueChange={value => dispatch({ type: "EDIT_DRAFT", value })}
             onKeyDown={event => {
               const editsText = event.key.length === 1
                 || (event.key === "Backspace" && state.draft.length > 0)
                 || (event.key === "Delete" && state.draft.length > 0);
               if (editsText && !event.metaKey && !event.ctrlKey && !event.altKey) DeviceAudio.keyboardTap();
             }}
-            data-keyboard-state={keyboardState}
             autoFocus={false}
           />
           <button
             type="button"
             disabled={!canSend}
-            onClick={() => {
-              if (!canSend) return;
-              const schedulesMomReply = shouldScheduleMomReply(state, state.draft);
-              const schedulesMomLoveReply = shouldScheduleMomLoveReply(state, state.draft);
-              const schedulesDadLoveReply = shouldScheduleDadLoveReply(state, state.draft, currentElapsedMs);
-              DeviceAudio.messageSent();
-              dispatch({ type: "SEND", elapsedMs: currentElapsedMs });
-              if (schedulesMomReply) onScheduleMomReply();
-              if (schedulesMomLoveReply) onScheduleMomLoveReply();
-              if (schedulesDadLoveReply) onScheduleDadLoveReply();
-            }}
+            onClick={sendDraft}
           >Send</button>
         </div>
       </>

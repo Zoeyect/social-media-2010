@@ -1,6 +1,7 @@
 import { Dispatch, useLayoutEffect, useRef } from "react";
 import { FlickrEvent, FlickrPhoto, FlickrState } from "../state/flickrState";
 import { useSessionIdentity } from "../state/sessionIdentity";
+import { IOS4Textarea } from "./IOS4KeyboardSystem";
 
 type FlickrContainerProps = {
   state: FlickrState;
@@ -101,7 +102,7 @@ export function FlickrContainer({ state, dispatch }: FlickrContainerProps) {
         event.preventDefault();
         dispatch({ type: "SUBMIT_COMMENT", author: identity.name });
       }}>
-        <textarea aria-label="Comment" value={state.commentDraft} onChange={event => dispatch({ type: "EDIT_COMMENT", value: event.currentTarget.value })} />
+        <IOS4Textarea keyboardInputId={`flickr-comment-${selected.id}`} aria-label="Comment" value={state.commentDraft} onValueChange={value => dispatch({ type: "EDIT_COMMENT", value })} />
         <button type="submit" disabled={!state.commentDraft.trim()}>Post</button>
       </form>
     </section>}

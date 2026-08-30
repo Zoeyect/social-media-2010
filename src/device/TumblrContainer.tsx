@@ -1,6 +1,7 @@
 import { Dispatch, useLayoutEffect, useRef } from "react";
 import { TumblrEvent, TumblrPost, TumblrState } from "../state/tumblrState";
 import { useSessionIdentity } from "../state/sessionIdentity";
+import { IOS4Textarea } from "./IOS4KeyboardSystem";
 
 type TumblrContainerProps = {
   state: TumblrState;
@@ -71,11 +72,12 @@ export function TumblrContainer({ state, dispatch }: TumblrContainerProps) {
         dispatch({ type: "CONFIRM_REBLOG", rebloggedBy: identity.name, actionTimestamp: Date.now() });
       }}>
         <label htmlFor={`tumblr-reblog-${selected.id}`}>Add text (optional)</label>
-        <textarea
+        <IOS4Textarea
+          keyboardInputId={`tumblr-reblog-${selected.id}`}
           id={`tumblr-reblog-${selected.id}`}
           maxLength={140}
           value={state.reblogDraft}
-          onChange={event => dispatch({ type: "EDIT_REBLOG_TEXT", value: event.currentTarget.value })}
+          onValueChange={value => dispatch({ type: "EDIT_REBLOG_TEXT", value })}
         />
         <div>
           <button type="button" onClick={() => dispatch({ type: "CANCEL_REBLOG" })}>Cancel</button>

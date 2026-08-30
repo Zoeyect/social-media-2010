@@ -44,6 +44,7 @@ import { SESSION_START_ISO } from "../state/deviceMachine";
 import { getFacebookPage } from "../data/facebookPages";
 import { FacebookHomeIcon } from "./FacebookHomeIcons";
 import { Facebook2010BackButton, FacebookCameraArtwork, FacebookGridLauncherArtwork, FacebookMicroGlyph, FacebookNotificationActionBubble, FacebookStoryActionBubble, FacebookUnreadBadge } from "./FacebookMicroChrome";
+import { IOS4Input, IOS4Textarea } from "./IOS4KeyboardSystem";
 
 type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number };
 
@@ -143,7 +144,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
         event.preventDefault();
         dispatch({ type: "SUBMIT_STATUS", displayName: sessionIdentity.name, timestamp: currentDeviceTime, createdAt: new Date(simulatedNowMs).toISOString() });
       }}>
-        <textarea aria-label="Status" autoFocus value={state.statusDraft} onChange={event => dispatch({ type: "EDIT_STATUS", value: event.currentTarget.value })} />
+        <IOS4Textarea keyboardInputId="facebook-status" aria-label="Status" autoFocus value={state.statusDraft} onValueChange={value => dispatch({ type: "EDIT_STATUS", value })} />
         <div><button type="button" onClick={() => dispatch({ type: "CANCEL_STATUS" })}>Cancel</button><button type="submit" disabled={!state.statusDraft.trim()}>Share</button></div>
       </form>}
       <div ref={feedRef} className="facebook-feed" onScroll={event => dispatch({ type: "SET_SCROLL_POSITION", scrollPosition: event.currentTarget.scrollTop })}>
@@ -180,7 +181,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
         event.preventDefault();
         dispatch({ type: "SUBMIT_COMMENT", displayName: sessionIdentity.name });
       }}>
-        <textarea aria-label="Comment" value={state.commentDraft} onChange={event => dispatch({ type: "EDIT_COMMENT", value: event.currentTarget.value })} />
+        <IOS4Textarea keyboardInputId={`facebook-feed-comment-${selectedItem.id}`} aria-label="Comment" value={state.commentDraft} onValueChange={value => dispatch({ type: "EDIT_COMMENT", value })} />
         <div><button type="button" onClick={() => dispatch({ type: "CANCEL_COMMENT" })}>Cancel</button><button type="submit" disabled={!state.commentDraft.trim()}>Post</button></div>
       </form>}
     </article>}
@@ -201,12 +202,13 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
         event.preventDefault();
         dispatch({ type: "SUBMIT_COMMENT", displayName: sessionIdentity.name });
       }}>
-        <input
+        <IOS4Input
+          keyboardInputId={`facebook-comments-${selectedItem.id}`}
           aria-label="Write a comment"
           placeholder="Write a comment..."
           value={state.commentComposerItemId === selectedItem.id ? state.commentDraft : ""}
           onFocus={() => dispatch({ type: "BEGIN_COMMENT", itemId: selectedItem.id })}
-          onChange={event => dispatch({ type: "EDIT_COMMENT", value: event.currentTarget.value })}
+          onValueChange={value => dispatch({ type: "EDIT_COMMENT", value })}
         />
         {state.commentComposerItemId === selectedItem.id && <button type="submit" disabled={!state.commentDraft.trim()}>Post</button>}
       </form>
@@ -232,7 +234,7 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
         </section>)}
       </div>
       <form className="facebook-message-composer" onSubmit={event => { event.preventDefault(); dispatch({ type: "SUBMIT_MESSAGE_REPLY", displayName: sessionIdentity.name, timestamp: currentDeviceTime }); }}>
-        <textarea aria-label={`Reply to ${selectedMessage.sender}`} value={state.messageReplyDraft} onChange={event => dispatch({ type: "EDIT_MESSAGE_REPLY", value: event.currentTarget.value })} />
+        <IOS4Textarea keyboardInputId={`facebook-inbox-${selectedMessage.id}`} aria-label={`Reply to ${selectedMessage.sender}`} value={state.messageReplyDraft} onValueChange={value => dispatch({ type: "EDIT_MESSAGE_REPLY", value })} />
         <button type="submit" disabled={!state.messageReplyDraft.trim()}>Send</button>
       </form>
     </article>}
@@ -278,7 +280,7 @@ function FacebookNavigationHeader({ state, displayName, selectedItem, dispatch }
     </header>
     <div className="facebook-home-search-row">
       <label className="facebook-search-field facebook-home-search"><span className="facebook-search-glyph" aria-hidden="true" />
-        <input aria-label="Search Facebook people" placeholder="Search" value={state.homeSearchQuery} onChange={event => dispatch({ type: "EDIT_HOME_SEARCH", value: event.currentTarget.value })} />
+        <IOS4Input keyboardInputId="facebook-home-search" keyboardReturnKeyType="search" keyboardDismissOnSubmit aria-label="Search Facebook people" placeholder="Search" value={state.homeSearchQuery} onValueChange={value => dispatch({ type: "EDIT_HOME_SEARCH", value })} />
       </label>
     </div>
   </div>;
@@ -313,7 +315,12 @@ function FacebookChatConversation({ state, displayName, currentDeviceTime, simul
 
   useLayoutEffect(() => {
     if (!transcriptRef.current) return;
-    transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+    const transcript = transcriptRef.current;
+    const scrollToLatest = () => { transcript.scrollTop = transcript.scrollHeight; };
+    scrollToLatest();
+    const observer = new ResizeObserver(scrollToLatest);
+    observer.observe(transcript);
+    return () => observer.disconnect();
   }, [peerId, messages.length]);
 
   if (!peer || peer.presence !== "online") return null;
@@ -325,7 +332,7 @@ function FacebookChatConversation({ state, displayName, currentDeviceTime, simul
       </section>)}
     </div>
     <form className="facebook-chat-composer" onSubmit={event => { event.preventDefault(); dispatch({ type: "SUBMIT_CHAT_MESSAGE", displayName, timestamp: currentDeviceTime, createdAt: new Date(simulatedNowMs).toISOString() }); }}>
-      <input aria-label={`Chat message to ${peer.displayName}`} value={state.chatDraft} onChange={event => dispatch({ type: "EDIT_CHAT_DRAFT", value: event.currentTarget.value })} />
+      <IOS4Input keyboardInputId={`facebook-chat-${peer.characterId}`} keyboardReturnKeyType="send" aria-label={`Chat message to ${peer.displayName}`} value={state.chatDraft} onValueChange={value => dispatch({ type: "EDIT_CHAT_DRAFT", value })} />
       <button type="submit" disabled={!state.chatDraft.trim()}>Send</button>
     </form>
   </article>;
@@ -435,7 +442,7 @@ function FacebookFriends({ state, requestCount, dispatch }: { state: FacebookSta
   const alphabet = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"];
   const visiblePages = selectFacebookVisiblePages(state);
   return <section className="facebook-friends-screen">
-    <label className="facebook-search-field facebook-friends-search"><span className="facebook-search-glyph" aria-hidden="true" /><input aria-label={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} placeholder={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} value={state.friendSearchQuery} onChange={event => dispatch({ type: "EDIT_FRIEND_SEARCH", value: event.currentTarget.value })} /></label>
+    <label className="facebook-search-field facebook-friends-search"><span className="facebook-search-glyph" aria-hidden="true" /><IOS4Input keyboardInputId={`facebook-${state.friendsSection}-search`} keyboardReturnKeyType="search" keyboardDismissOnSubmit aria-label={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} placeholder={state.friendsSection === "pages" ? "Search Pages" : "Search Friends"} value={state.friendSearchQuery} onValueChange={value => dispatch({ type: "EDIT_FRIEND_SEARCH", value })} /></label>
     <div className="facebook-friends-content">
       {state.friendsSection === "friends" && <>
         <div className="facebook-friend-list" aria-label="Friends">
@@ -549,7 +556,7 @@ function FacebookPlaceCheckIn({ venue, state, displayName, currentDeviceTime, si
   }}>
     <div className="facebook-place-map-hold" data-provenance-status="HOLD"><span>Map</span><small>Location view unavailable</small></div>
     <strong className="facebook-place-check-in-name">{venue.name}</strong>
-    <label><span>What are you doing?</span><textarea aria-label="What are you doing?" value={state.placeStatusDraft} onChange={event => dispatch({ type: "EDIT_PLACE_STATUS", value: event.currentTarget.value })} /></label>
+    <label><span>What are you doing?</span><IOS4Textarea keyboardInputId={`facebook-place-${venue.id}`} aria-label="What are you doing?" value={state.placeStatusDraft} onValueChange={value => dispatch({ type: "EDIT_PLACE_STATUS", value })} /></label>
     <button type="button" className="facebook-place-tag-entry" onClick={() => dispatch({ type: "OPEN_PLACE_TAG_FRIENDS" })}><span>Tag Friends With You</span><small>{state.placeTaggedFriendIds.length > 0 ? `${state.placeTaggedFriendIds.length} selected` : "None"}</small><b aria-hidden="true">›</b></button>
     <button type="submit" className="facebook-place-submit">Check In</button>
   </form>;
@@ -663,7 +670,7 @@ function FacebookPhotoDetail({ album, media, state, currentUserName, elapsedSeco
     </div>
     {comments.map(comment => <FacebookCommentRow key={comment.id} comment={comment} sessionUserName={currentUserName} dispatch={dispatch} />)}
     {state.commentComposerItemId === photo.storyId && <form className="facebook-comment-composer" onSubmit={event => { event.preventDefault(); dispatch({ type: "SUBMIT_COMMENT", displayName: currentUserName }); }}>
-      <textarea aria-label="Comment" value={state.commentDraft} onChange={event => dispatch({ type: "EDIT_COMMENT", value: event.currentTarget.value })} />
+      <IOS4Textarea keyboardInputId={`facebook-photo-comment-${photo.storyId}`} aria-label="Comment" value={state.commentDraft} onValueChange={value => dispatch({ type: "EDIT_COMMENT", value })} />
       <div><button type="button" onClick={() => dispatch({ type: "CANCEL_COMMENT" })}>Cancel</button><button type="submit" disabled={!state.commentDraft.trim()}>Post</button></div>
     </form>}
   </article>;

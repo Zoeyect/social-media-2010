@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { CAMERA_LOOK_NOMINAL_LIMITS, clampCameraLookPointerOffset } from "../state/cameraRuntime";
 import type { CameraLookOffset, CameraOwner, CameraSession } from "../state/cameraRuntime";
+import type { CameraPhotoRecord } from "../state/cameraCaptureState";
 import cameraIconSrc from "../assets/historical/ios4.1/camera/CameraButtonIcon@2x.browser.png";
 import cameraModeIconSrc from "../assets/historical/ios4.1/camera/CameraSwitchIcon@2x.browser.png";
 import cameraLaunchSrc from "../assets/historical/ios4.1/camera/Default-Camera@2x.browser.png";
@@ -25,6 +26,8 @@ type CameraContainerProps = {
   previewCanvasRef?: (canvas: HTMLCanvasElement | null) => void;
   onLookPointerOffsetChange?: (offset: CameraLookOffset) => void;
   onCapture?: () => void;
+  latestPhoto?: CameraPhotoRecord | null;
+  onOpenLatestPhoto?: () => void;
 };
 
 type CameraLookDrag = {
@@ -41,6 +44,8 @@ export function CameraContainer({
   previewCanvasRef,
   onLookPointerOffsetChange,
   onCapture,
+  latestPhoto = null,
+  onOpenLatestPhoto,
 }: CameraContainerProps) {
   const isStandaloneCamera = owner === "cameraApp";
   const isLaunchingStandaloneCamera = isStandaloneCamera && session.phase === "launching";
@@ -162,7 +167,20 @@ export function CameraContainer({
       </div>
       <div className="camera-runtime-bottom-chrome">
         <img className="camera-runtime-preview-well" src={previewWellSrc} alt="" />
-        <img className="camera-runtime-preview-placeholder" src={previewPlaceholderSrc} alt="" />
+        {latestPhoto
+          ? <img
+            className="camera-runtime-preview-thumbnail"
+            data-visual-status="RECONSTRUCTED"
+            src={latestPhoto.objectUrl}
+            alt=""
+          />
+          : <img className="camera-runtime-preview-placeholder" src={previewPlaceholderSrc} alt="" />}
+        {latestPhoto && onOpenLatestPhoto && <button
+          type="button"
+          className="camera-runtime-preview-control"
+          aria-label={`View ${latestPhoto.filename}`}
+          onClick={onOpenLatestPhoto}
+        />}
         <button
           type="button"
           className="camera-runtime-shutter"

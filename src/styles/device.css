@@ -172,6 +172,7 @@ button, input { font: inherit; }
 .ios4-keyboard-viewport > .flickr-container,
 .ios4-keyboard-viewport > .tumblr-container,
 .ios4-keyboard-viewport > .mobilesms-container,
+.ios4-keyboard-viewport > .photos-container,
 .ios4-keyboard-viewport > .camera-runtime-container { height: 100%; }
 .ios4-keyboard { width: 320px; height: 216px; padding: 6px 3px 2px; display: grid; grid-template-rows: repeat(4,50px); row-gap: 2px; overflow: hidden; color: #111; border-top: 1px solid #5d6268; background: linear-gradient(#9da2a8 0%,#777d84 52%,#6a7077 100%); box-shadow: inset 0 1px rgba(255,255,255,.35); font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; pointer-events: none; user-select: none; }
 .ios4-keyboard-system.is-keyboard-visible .ios4-keyboard { pointer-events: auto; }
@@ -229,6 +230,8 @@ button, input { font: inherit; }
 .camera-runtime-bottom-chrome { position: absolute; z-index: 2; left: 0; top: 427px; width: 320px; height: 53px; overflow: hidden; background-image: url("../assets/historical/ios4.1/camera/cameraButtonBarSilver@2x.browser.png"); background-position: 0 0; background-repeat: repeat-x; background-size: 2px 53px; pointer-events: none; }
 .camera-runtime-preview-well { position: absolute; left: 0; top: 0; width: 47px; height: 53px; display: block; }
 .camera-runtime-preview-placeholder { position: absolute; left: 10px; top: 8px; width: 37px; height: 37px; display: block; }
+.camera-runtime-preview-thumbnail { position: absolute; left: 10px; top: 8px; width: 37px; height: 37px; display: block; object-fit: cover; }
+.camera-runtime-preview-control { position: absolute; z-index: 2; left: 0; top: 0; width: 47px; height: 53px; margin: 0; padding: 0; border: 0; appearance: none; background: transparent; pointer-events: auto; touch-action: manipulation; }
 .camera-runtime-shutter { position: absolute; left: 111px; top: 6px; width: 98px; height: 41px; margin: 0; padding: 0; border-style: solid; border-width: 0 20.5px; border-image-slice: 0 41 0 41 fill; border-image-width: 0 20.5px; border-image-repeat: stretch; display: block; appearance: none; color: inherit; background: transparent; outline: 0; opacity: 1; cursor: default; pointer-events: auto; touch-action: manipulation; }
 .camera-runtime-shutter:disabled { opacity: 1; }
 .camera-runtime-shutter-icon { position: absolute; z-index: 1; left: 147px; top: 16px; width: 26px; height: 21px; display: block; pointer-events: none; }
@@ -240,6 +243,26 @@ button, input { font: inherit; }
 .camera-runtime-mode-icon.is-photo { left: 250px; }
 .camera-runtime-mode-icon.is-video { left: 292px; }
 .camera-picker-cancel { position: absolute; z-index: 3; right: 10px; bottom: 9px; min-width: 58px; height: 30px; padding: 0 9px; display: block; color: #fff; border: 1px solid #555; border-radius: 5px; background: #222; font-size: 14px; pointer-events: auto; }
+.photos-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #111; background: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.photos-navigation-bar { position: relative; z-index: 2; flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-top: 1px solid #a9b8c9; border-bottom: 1px solid #2c4059; background: linear-gradient(#a5b4c5 0%,#8195ab 49%,#667f9a 50%,#718aa3 100%); box-shadow: inset 0 1px rgba(255,255,255,.38); text-shadow: 0 -1px 1px rgba(0,0,0,.68); }
+.photos-navigation-bar > strong { max-width: 180px; overflow: hidden; font-size: 20px; line-height: 44px; text-overflow: ellipsis; white-space: nowrap; }
+.photos-back-button { position: absolute; left: 7px; top: 7px; max-width: 92px; height: 30px; padding: 0 8px; overflow: hidden; color: #fff; border: 1px solid #354d68; border-radius: 5px; background: linear-gradient(#879cb2,#617b98 50%,#506d8d 51%,#617d9b); box-shadow: inset 0 1px rgba(255,255,255,.32); font-size: 12px; font-weight: bold; line-height: 28px; text-overflow: ellipsis; text-shadow: 0 -1px rgba(0,0,0,.62); white-space: nowrap; }
+.photos-album-list { flex: 1 1 auto; min-height: 0; background: #fff; }
+.photos-album-row { position: relative; width: 100%; height: 80px; padding: 7px 45px 7px 79px; display: block; color: #111; border: 0; border-bottom: 1px solid #b7b7b7; background: #fff; font: inherit; text-align: left; }
+.photos-album-row > strong { display: block; overflow: hidden; font-size: 17px; line-height: 66px; text-overflow: ellipsis; white-space: nowrap; }
+.photos-album-cover { position: absolute; left: 8px; top: 7px; width: 64px; height: 64px; overflow: hidden; border: 1px solid #999; background: #e5e5e5; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.photos-album-cover > img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.photos-album-cover-empty { width: 100%; height: 100%; display: block; background: linear-gradient(135deg,#eee,#c9c9c9); }
+.photos-album-count { position: absolute; right: 25px; top: 0; color: #777; font-size: 16px; line-height: 80px; }
+.photos-disclosure { position: absolute; right: 8px; top: 0; color: #8d8d8d; font: 29px/78px Arial,sans-serif; }
+.photos-camera-roll-grid { flex: 1 1 auto; min-height: 0; padding: 4px; display: grid; grid-template-columns: repeat(4,75px); grid-auto-rows: 75px; align-content: start; gap: 4px; overflow-y: auto; background: #fff; }
+.photos-camera-roll-thumbnail { width: 75px; height: 75px; margin: 0; padding: 0; overflow: hidden; border: 0; appearance: none; background: #ddd; }
+.photos-camera-roll-thumbnail > img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.photos-state-message { grid-column: 1/-1; margin: 0; padding: 30px 12px; color: #777; font-size: 15px; text-align: center; }
+.photos-state-message.is-error { color: #555; }
+.photos-photo-viewer { position: relative; background: #000; }
+.photos-photo-viewer-image { flex: 1 1 auto; min-height: 0; width: 320px; margin: 0; padding: 0; display: grid; place-items: center; overflow: hidden; border: 0; appearance: none; background: #000; }
+.photos-photo-viewer-image > img { max-width: 100%; max-height: 100%; display: block; object-fit: contain; }
 .mobilesms-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #111; background: #e9e9e9; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
 .mobilesms-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; padding: 0 8px; color: #fff; border-top: 1px solid #b7c3d1; border-bottom: 1px solid #263a54; background: linear-gradient(#9aadc1 0%,#7188a2 48%,#526d8c 51%,#587492 100%); box-shadow: inset 0 1px rgba(255,255,255,.38), inset 0 -1px rgba(0,0,0,.18); text-shadow: 0 -1px 1px rgba(0,0,0,.72); }
 .mobilesms-navigation-bar > strong { color: #fff; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 20px; font-weight: bold; line-height: 44px; }

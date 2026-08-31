@@ -2474,7 +2474,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(new Set(promotedSocialIds).size, promotedSocialIds.length, "promoted social app IDs must not be duplicated");
   const pageLaunchIds = [...`${pageOneSource}\n${pageTwoSource}`.matchAll(/launchId: "([^"]+)"/g)].map(match => match[1]);
   assert.equal(new Set(pageLaunchIds).size, pageLaunchIds.length, "SpringBoard page launch IDs must not be duplicated");
-  assert.deepEqual(pageLaunchIds, ["facebook", "twitter", "instagram", "foursquare", "flickr", "tumblr", "whatsapp", "skype"], "direct social launchers and HOLD app shells must retain the approved stable IDs across both pages");
+  assert.deepEqual(pageLaunchIds, ["photos", "facebook", "twitter", "instagram", "foursquare", "flickr", "tumblr", "whatsapp", "skype"], "the approved Photos launcher, direct social launchers, and HOLD app shells must retain their stable IDs across both pages");
   assert.doesNotMatch(springBoardSource, /name: "Social"|folderId: "social"|const SOCIAL_APPS|activeFolderId/, "the retired Social folder instance and its SpringBoard-specific state must be absent");
   assert.doesNotMatch(springBoardSocialAppsSource, /SOCIAL_FOLDER_SLOTS/, "the retired Social folder's padded slot registry must remain removed");
   assert.match(deviceCssSource, /\.screen > \.springboard \{[^}]*DefaultWallpaper@2x~iphone\.png[^}]*320px 480px no-repeat;/, "the existing water-droplet wallpaper and crop must remain unchanged");

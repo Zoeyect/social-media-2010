@@ -9,6 +9,9 @@ import { cameraRuntimeTransition, initialCameraRuntimeState, requestCameraCaptur
 import type { CameraLookOffset, CameraOwner } from "../state/cameraRuntime";
 import { createCameraPhotoRecord, releaseCameraPhotoRecords } from "../state/cameraCaptureState";
 import type { CameraPhotoRecord } from "../state/cameraCaptureState";
+import { erasePlayerCameraRoll, initializeCameraRollPersistence, persistCameraCapturedArtifact } from "../state/cameraRollPersistence";
+import { initialCameraRoll, initialPhotosState, photosStateTransition, sortCameraRollRecords } from "../state/cameraRollState";
+import type { CameraRollInitialization } from "../state/cameraRollState";
 import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent, scheduleDeviceEvents } from "../state/deviceEventScheduler";
 import { batteryPercent, BOOT_DURATION_MS, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
@@ -40,6 +43,7 @@ import { LockScreenStatusPresentation } from "./LockScreenStatusPresentation";
 import { AppLaunchContainer } from "./AppLaunchContainer";
 import { MultitaskingBar } from "./MultitaskingBar";
 import { MobileSMSContainer } from "./MobileSMSContainer";
+import { PhotosContainer } from "./PhotosContainer";
 import { SMSAlertOverlay } from "./SMSAlertOverlay";
 import { SpringBoard } from "./SpringBoard";
 import { StatusBar } from "./StatusBar";
@@ -62,7 +66,9 @@ const DAD_LOVE_REPLY_SMS = { id: "dad-sleep-early", sender: "Dad", message: "Sle
 type CameraCaptureQaHandle = Readonly<{
   latest: () => CameraPhotoRecord | null;
   records: () => readonly CameraPhotoRecord[];
+  persistenceStatus: () => CameraRollInitialization["status"];
   failNextCapture: () => void;
+  eraseCameraRoll: () => Promise<void>;
 }>;
 
 type CameraCaptureQaWindow = Window & {
@@ -92,10 +98,13 @@ export function App() {
   const [activeFolderSlotIndex, setActiveFolderSlotIndex] = useState(0);
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
   const [cameraRuntime, dispatchCameraRuntime] = useReducer(cameraRuntimeTransition, initialCameraRuntimeState);
+  const [photosState, dispatchPhotos] = useReducer(photosStateTransition, initialPhotosState);
   const cameraCapture = useRef<CameraStillCapture | null>(null);
   const cameraCaptureInFlight = useRef(false);
   const cameraCaptureNamespace = useRef(0);
-  const cameraPhotoRecords = useRef<CameraPhotoRecord[]>([]);
+  const [cameraRoll, setCameraRoll] = useState<CameraRollInitialization>(initialCameraRoll);
+  const cameraRollRef = useRef<CameraRollInitialization>(initialCameraRoll);
+  const cameraRollMounted = useRef(true);
   const failNextCameraCapture = useRef(false);
   const cameraCaptureResetActive = useRef(false);
   const setCameraCaptureReady = useCallback((capture: CameraStillCapture | null) => {
@@ -154,7 +163,7 @@ export function App() {
   const captureCameraPhoto = async () => {
     const capture = cameraCapture.current;
     const cameraSession = cameraRuntime.cameraApp;
-    if (!capture || cameraCaptureInFlight.current) return;
+    if (!capture || cameraCaptureInFlight.current || cameraRollRef.current.status !== "ready") return;
     cameraCaptureInFlight.current = true;
     if (!requestCameraCapture(cameraRuntime, "cameraApp", dispatchCameraRuntime)) {
       cameraCaptureInFlight.current = false;
@@ -176,9 +185,16 @@ export function App() {
       dispatchCameraRuntime({ type: "CAPTURE_COMPLETE", owner: "cameraApp" });
       const artifact = await pendingArtifact;
       if (namespace !== cameraCaptureNamespace.current) return;
-      const record = createCameraPhotoRecord(artifact, cameraPhotoRecords.current);
-      cameraPhotoRecords.current = [...cameraPhotoRecords.current, record];
-      dispatchCameraRuntime({ type: "PROCESSING_COMPLETE", owner: "cameraApp" });
+      const durableRecord = await persistCameraCapturedArtifact(artifact);
+      if (!cameraRollMounted.current) return;
+      const record = createCameraPhotoRecord(durableRecord);
+      const records = sortCameraRollRecords([...cameraRollRef.current.records, record]);
+      const nextCameraRoll: CameraRollInitialization = { status: "ready", records, error: null };
+      cameraRollRef.current = nextCameraRoll;
+      setCameraRoll(nextCameraRoll);
+      if (namespace === cameraCaptureNamespace.current) {
+        dispatchCameraRuntime({ type: "PROCESSING_COMPLETE", owner: "cameraApp" });
+      }
     } catch (error) {
       console.error("Camera capture failed.", error);
       if (namespace === cameraCaptureNamespace.current) {
@@ -219,14 +235,62 @@ export function App() {
       ? "cameraPicker"
       : null;
 
+  const eraseCameraRollForDevelopment = useCallback(async () => {
+    await erasePlayerCameraRoll();
+    if (!cameraRollMounted.current) return;
+    releaseCameraPhotoRecords(cameraRollRef.current.records);
+    const emptyCameraRoll: CameraRollInitialization = { status: "ready", records: Object.freeze([]), error: null };
+    cameraRollRef.current = emptyCameraRoll;
+    setCameraRoll(emptyCameraRoll);
+    dispatchPhotos({ type: "RESET" });
+  }, []);
+
   useEffect(() => saveSession(session), [session]);
+  useEffect(() => {
+    cameraRollMounted.current = true;
+    let cancelled = false;
+    void initializeCameraRollPersistence().then(durableRecords => {
+      const restoredRecords: CameraPhotoRecord[] = [];
+      try {
+        durableRecords.forEach(record => restoredRecords.push(createCameraPhotoRecord(record)));
+      } catch (error) {
+        releaseCameraPhotoRecords(restoredRecords);
+        throw error;
+      }
+      if (cancelled) {
+        releaseCameraPhotoRecords(restoredRecords);
+        return;
+      }
+      releaseCameraPhotoRecords(cameraRollRef.current.records);
+      const readyCameraRoll: CameraRollInitialization = {
+        status: "ready",
+        records: sortCameraRollRecords(restoredRecords),
+        error: null,
+      };
+      cameraRollRef.current = readyCameraRoll;
+      setCameraRoll(readyCameraRoll);
+    }).catch(error => {
+      if (cancelled) return;
+      const message = error instanceof Error ? error.message : "Durable Camera Roll failed to initialize.";
+      console.error("Camera Roll persistence initialization failed.", error);
+      const failedCameraRoll: CameraRollInitialization = { status: "error", records: Object.freeze([]), error: message };
+      cameraRollRef.current = failedCameraRoll;
+      setCameraRoll(failedCameraRoll);
+    });
+    return () => {
+      cancelled = true;
+      cameraRollMounted.current = false;
+    };
+  }, []);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const qaWindow = window as CameraCaptureQaWindow;
     const handle: CameraCaptureQaHandle = Object.freeze({
-      latest: () => cameraPhotoRecords.current[cameraPhotoRecords.current.length - 1] ?? null,
-      records: () => [...cameraPhotoRecords.current],
+      latest: () => cameraRollRef.current.records[cameraRollRef.current.records.length - 1] ?? null,
+      records: () => [...cameraRollRef.current.records],
+      persistenceStatus: () => cameraRollRef.current.status,
       failNextCapture: () => { failNextCameraCapture.current = true; },
+      eraseCameraRoll: eraseCameraRollForDevelopment,
     });
     qaWindow.__SM2010_CAMERA_CAPTURE_QA__ = handle;
     return () => {
@@ -234,11 +298,11 @@ export function App() {
         delete qaWindow.__SM2010_CAMERA_CAPTURE_QA__;
       }
     };
-  }, []);
+  }, [eraseCameraRollForDevelopment]);
   useEffect(() => () => {
     if (pendingAppHomePress.current !== null) window.clearTimeout(pendingAppHomePress.current);
-    releaseCameraPhotoRecords(cameraPhotoRecords.current);
-    cameraPhotoRecords.current = [];
+    releaseCameraPhotoRecords(cameraRollRef.current.records);
+    cameraRollRef.current = initialCameraRoll;
   }, []);
   useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id); }, []);
   useEffect(() => {
@@ -536,8 +600,7 @@ export function App() {
     if (runtimeMustReset && !cameraCaptureResetActive.current) {
       cameraCaptureResetActive.current = true;
       cameraCaptureNamespace.current += 1;
-      releaseCameraPhotoRecords(cameraPhotoRecords.current);
-      cameraPhotoRecords.current = [];
+      dispatchPhotos({ type: "RESET" });
     } else if (!runtimeMustReset) {
       cameraCaptureResetActive.current = false;
     }
@@ -570,6 +633,16 @@ export function App() {
       });
     }
     dispatchAppRuntime({ type: "LAUNCH", appId });
+    update({ phase: "app" });
+  };
+  const openLatestCameraPhoto = () => {
+    const records = cameraRollRef.current.records;
+    const latestPhoto = records[records.length - 1];
+    if (!latestPhoto || appRuntime.activeAppId !== "camera") return;
+    dispatchPhotos({ type: "OPEN_PHOTO", photoId: latestPhoto.id });
+    dispatchCameraRuntime({ type: "SUSPEND", owner: "cameraApp" });
+    dispatchAppRuntime({ type: "SUSPEND" });
+    dispatchAppRuntime({ type: "LAUNCH", appId: "photos" });
     update({ phase: "app" });
   };
   const openLockNotificationTarget = (notification: ActiveLockNotification) => {
@@ -824,7 +897,14 @@ export function App() {
             session={cameraRuntime.cameraApp}
             previewCanvasRef={ambientWorldEnabled ? setCameraPreviewCanvas : undefined}
             onLookPointerOffsetChange={ambientWorldEnabled ? setCameraLookPointerOffset : undefined}
-            onCapture={ambientWorldEnabled ? captureCameraPhoto : undefined}
+            onCapture={ambientWorldEnabled && cameraRoll.status === "ready" ? captureCameraPhoto : undefined}
+            latestPhoto={cameraRoll.records[cameraRoll.records.length - 1] ?? null}
+            onOpenLatestPhoto={openLatestCameraPhoto}
+          />}
+          {appRuntime.activeAppId === "photos" && <PhotosContainer
+            state={photosState}
+            dispatch={dispatchPhotos}
+            cameraRoll={cameraRoll}
           />}
           {appRuntime.activeAppId === "messages" && <MobileSMSContainer
             state={messagesState}

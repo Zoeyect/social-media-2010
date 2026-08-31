@@ -96,7 +96,7 @@ const UTILITIES_APPS = [
 
 const PAGE_ONE_APPS: readonly (SpringBoardApp | undefined)[] = [
   { name: "Calendar", iconSrc: calendarIconSrc, calendarDay: "20" },
-  { name: "Photos", iconSrc: photosIconSrc },
+  { name: "Photos", iconSrc: photosIconSrc, launchId: "photos" },
   { name: "Stocks", iconSrc: stocksIconSrc },
   { name: "Maps", iconSrc: mapsIconSrc },
   { name: "Weather", iconSrc: weatherIconSrc },

@@ -1,4 +1,5 @@
-import { Dispatch, useLayoutEffect, useRef } from "react";
+import { Dispatch, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { KeyboardEvent, PointerEvent, TransitionEvent } from "react";
 import type { CameraPhotoRecord } from "../state/cameraCaptureState";
 import type { CameraRollInitialization, PhotosEvent, PhotosState } from "../state/cameraRollState";
 
@@ -13,12 +14,26 @@ export function PhotosContainer({ state, dispatch, cameraRoll }: PhotosContainer
     ? cameraRoll.records.find(record => record.id === state.selectedPhotoId) ?? null
     : null;
 
+  useEffect(() => {
+    if (state.view !== "photo" || !state.selectedPhotoId || selectedPhoto) return;
+    const fallbackPhoto = cameraRoll.records[cameraRoll.records.length - 1];
+    dispatch(fallbackPhoto
+      ? { type: "PAGE_PHOTO", photoId: fallbackPhoto.id }
+      : { type: "OPEN_CAMERA_ROLL" });
+  }, [cameraRoll.records, dispatch, selectedPhoto, state.selectedPhotoId, state.view]);
+
   if (state.view === "photo" && selectedPhoto) {
+    const selectedIndex = cameraRoll.records.findIndex(record => record.id === selectedPhoto.id);
     return <PhotoViewer
       photo={selectedPhoto}
+      previousPhoto={selectedIndex > 0 ? cameraRoll.records[selectedIndex - 1] : null}
+      nextPhoto={selectedIndex >= 0 && selectedIndex < cameraRoll.records.length - 1
+        ? cameraRoll.records[selectedIndex + 1]
+        : null}
       controlsVisible={state.viewerControlsVisible}
       onBack={() => dispatch({ type: "BACK" })}
       onToggleControls={() => dispatch({ type: "TOGGLE_VIEWER_CONTROLS" })}
+      onPage={photoId => dispatch({ type: "PAGE_PHOTO", photoId })}
     />;
   }
 
@@ -101,28 +116,170 @@ function CameraRollGrid({
 
 function PhotoViewer({
   photo,
+  previousPhoto,
+  nextPhoto,
   controlsVisible,
   onBack,
   onToggleControls,
+  onPage,
 }: Readonly<{
   photo: CameraPhotoRecord;
+  previousPhoto: CameraPhotoRecord | null;
+  nextPhoto: CameraPhotoRecord | null;
   controlsVisible: boolean;
   onBack: () => void;
   onToggleControls: () => void;
+  onPage: (photoId: string) => void;
 }>) {
+  const viewer = useRef<HTMLButtonElement | null>(null);
+  const drag = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    maximumMovement: number;
+  } | null>(null);
+  const pendingPhotoId = useRef<string | null>(null);
+  const suppressClick = useRef(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [settling, setSettling] = useState(false);
+
+  useEffect(() => {
+    drag.current = null;
+    pendingPhotoId.current = null;
+    suppressClick.current = false;
+    setDragOffset(0);
+    setSettling(false);
+  }, [photo.id]);
+
+  const settleToPhoto = (target: CameraPhotoRecord, offset: number) => {
+    pendingPhotoId.current = target.id;
+    setSettling(true);
+    setDragOffset(offset);
+  };
+
+  const beginDrag = (event: PointerEvent<HTMLButtonElement>) => {
+    if (settling || !event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      maximumMovement: 0,
+    };
+    pendingPhotoId.current = null;
+    suppressClick.current = false;
+    setSettling(false);
+  };
+
+  const moveDrag = (event: PointerEvent<HTMLButtonElement>) => {
+    const activeDrag = drag.current;
+    if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    const deltaX = event.clientX - activeDrag.startX;
+    const deltaY = event.clientY - activeDrag.startY;
+    activeDrag.maximumMovement = Math.max(activeDrag.maximumMovement, Math.hypot(deltaX, deltaY));
+    const width = event.currentTarget.getBoundingClientRect().width;
+    const directionalOffset = deltaX < 0 && !nextPhoto
+      ? 0
+      : deltaX > 0 && !previousPhoto
+        ? 0
+        : deltaX;
+    setDragOffset(Math.max(-width, Math.min(width, directionalOffset)));
+  };
+
+  const finishDrag = (event: PointerEvent<HTMLButtonElement>, cancelled = false) => {
+    const activeDrag = drag.current;
+    if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - activeDrag.startX;
+    const deltaY = event.clientY - activeDrag.startY;
+    const maximumMovement = Math.max(activeDrag.maximumMovement, Math.hypot(deltaX, deltaY));
+    const width = event.currentTarget.getBoundingClientRect().width;
+    const pageThreshold = width * 0.2;
+    const wasTap = !cancelled && maximumMovement < 8;
+    suppressClick.current = !wasTap;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    drag.current = null;
+
+    if (!cancelled && deltaX <= -pageThreshold && nextPhoto) {
+      settleToPhoto(nextPhoto, -width);
+    } else if (!cancelled && deltaX >= pageThreshold && previousPhoto) {
+      settleToPhoto(previousPhoto, width);
+    } else if (!wasTap && dragOffset !== 0) {
+      pendingPhotoId.current = null;
+      setSettling(true);
+      setDragOffset(0);
+    } else {
+      setDragOffset(0);
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (settling) return;
+    const width = viewer.current?.getBoundingClientRect().width ?? 320;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      if (previousPhoto) settleToPhoto(previousPhoto, width);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      if (nextPhoto) settleToPhoto(nextPhoto, -width);
+    }
+  };
+
+  const finishSettling = (event: TransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || event.propertyName !== "transform") return;
+    const targetPhotoId = pendingPhotoId.current;
+    pendingPhotoId.current = null;
+    setDragOffset(0);
+    setSettling(false);
+    if (targetPhotoId) onPage(targetPhotoId);
+  };
+
   return <section
     className={`photos-container photos-photo-viewer${controlsVisible ? " has-controls" : ""}`}
     aria-label={photo.filename}
     data-visual-status="RECONSTRUCTED"
+    data-paging-timing-status="RECONSTRUCTED"
+    onKeyDown={handleKeyDown}
   >
     {controlsVisible && <PhotosNavigationBar title="Camera Roll" backLabel="Camera Roll" onBack={onBack} />}
     <button
+      ref={viewer}
       type="button"
-      className="photos-photo-viewer-image"
+      autoFocus
+      className={`photos-photo-viewer-image${settling ? " is-settling" : ""}`}
       aria-label={controlsVisible ? "Hide photo controls" : "Show photo controls"}
-      onClick={onToggleControls}
+      onPointerDown={beginDrag}
+      onPointerMove={moveDrag}
+      onPointerUp={finishDrag}
+      onPointerCancel={event => finishDrag(event, true)}
+      onLostPointerCapture={() => { drag.current = null; }}
+      onClick={() => {
+        if (suppressClick.current) {
+          suppressClick.current = false;
+          return;
+        }
+        onToggleControls();
+      }}
     >
-      <img src={photo.objectUrl} alt={photo.filename} />
+      <span
+        className="photos-photo-viewer-track"
+        style={{ transform: `translate3d(${dragOffset}px,0,0)` }}
+        onTransitionEnd={finishSettling}
+      >
+        {previousPhoto && <span className="photos-photo-viewer-slide is-previous" aria-hidden="true">
+          <img src={previousPhoto.objectUrl} alt="" />
+        </span>}
+        <span className="photos-photo-viewer-slide is-current">
+          <img src={photo.objectUrl} alt={photo.filename} />
+        </span>
+        {nextPhoto && <span className="photos-photo-viewer-slide is-next" aria-hidden="true">
+          <img src={nextPhoto.objectUrl} alt="" />
+        </span>}
+      </span>
     </button>
   </section>;
 }

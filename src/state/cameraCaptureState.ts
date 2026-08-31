@@ -26,6 +26,7 @@ export type CameraCaptureFramingSnapshot = Readonly<{
 
 export type CameraCaptureSnapshot = Readonly<{
   createdAt: string;
+  experienceSessionId: string;
   sceneId: typeof CAMERA_CAPTURE_SCENE_ID;
   width: typeof CAMERA_CAPTURE_WIDTH;
   height: typeof CAMERA_CAPTURE_HEIGHT;
@@ -46,6 +47,7 @@ export type CameraPhotoDurableRecord = Readonly<{
   id: string;
   filename: string;
   captureSequence: number;
+  experienceSessionId: string;
   createdAt: string;
   sceneId: typeof CAMERA_CAPTURE_SCENE_ID;
   width: typeof CAMERA_CAPTURE_WIDTH;

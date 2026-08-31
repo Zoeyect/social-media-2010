@@ -31,6 +31,7 @@ try {
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
+  const cameraRollPersistence = await vite.ssrLoadModule("/src/state/cameraRollPersistence.ts");
 
   const seed = seedContent.SESSION_SEED_CONTENT;
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_CHARACTER_IDS, ["katie", "matt", "alex", "chris", "jay", "june", "jack", "ben", "luca"]);
@@ -1521,6 +1522,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(deviceMachine.SESSION_DURATION_MS, 900_000, "battery terminal must remain T+900s");
   const activeDeviceSession = {
     ...deviceMachine.initialSession,
+    experienceSessionId: deviceMachine.createExperienceSessionId(),
     phase: "app",
     sessionStartEpochMs: 1_000,
   };
@@ -1530,9 +1532,30 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(deviceMachine.homeButtonTransition(sleepingDeviceSession), { phase: "locked" }, "Home wake from sleep must reveal Lock Screen");
   assert.deepEqual(deviceMachine.shortPowerTransition(sleepingDeviceSession), { phase: "locked" }, "Power wake from sleep must reveal Lock Screen");
   assert.equal(sleepingDeviceSession.sessionStartEpochMs, activeDeviceSession.sessionStartEpochMs, "ordinary sleep must preserve the current session");
+  assert.equal(sleepingDeviceSession.experienceSessionId, activeDeviceSession.experienceSessionId, "ordinary lock/sleep and resume transitions must preserve Camera Roll ownership");
   assert.equal(deviceMachine.elapsedMs(sleepingDeviceSession, 61_000), 60_000, "session clock must continue while the display sleeps");
   assert.equal(deviceMachine.hasReachedSessionTerminal(sleepingDeviceSession, 900_999), false, "ordinary sleep must not trigger terminal shutdown early");
   assert.equal(deviceMachine.hasReachedSessionTerminal(sleepingDeviceSession, 901_000), true, "T+900 terminal shutdown must remain independent from ordinary sleep");
+  assert.equal(deviceMachine.initialSession.experienceSessionId, null, "Hero must not own a prior player's Camera Roll namespace");
+  const experienceSessionA = deviceMachine.createExperienceSessionId();
+  const experienceSessionB = deviceMachine.createExperienceSessionId();
+  assert.notEqual(experienceSessionA, experienceSessionB, "each valid new-player activation must receive a distinct opaque experience ID");
+  assert.equal(deviceMachine.resolveExperienceSessionId(experienceSessionA, true), experienceSessionA, "reload and ordinary resume must preserve the active canonical experience ID");
+  assert.equal(deviceMachine.resolveExperienceSessionId(undefined, false), null, "Hero and terminal session state must not manufacture an experience ID");
+  const migratedLegacyExperience = deviceMachine.resolveExperienceSessionId(undefined, true);
+  assert.ok(migratedLegacyExperience && migratedLegacyExperience !== experienceSessionA, "a legacy active narrative session must receive one new opaque ID rather than inheriting browser-global media");
+  assert.equal(cameraRollPersistence.CAMERA_ROLL_DATABASE_VERSION, 2, "Camera Roll ownership requires IndexedDB v2");
+  assert.notEqual(cameraRollPersistence.cameraRollRecordId(experienceSessionA, 1), cameraRollPersistence.cameraRollRecordId(experienceSessionB, 1), "two experiences may allocate IMG_0001 without durable ID collision");
+  assert.equal(cameraRollPersistence.cameraRollFilename(1), "IMG_0001.JPG", "each experience filename namespace must begin at IMG_0001.JPG");
+  assert.notEqual(cameraRollPersistence.cameraRollSequenceMetadataKey(experienceSessionA), cameraRollPersistence.cameraRollSequenceMetadataKey(experienceSessionB), "capture sequence metadata must be owner-scoped");
+  assert.equal(cameraRollPersistence.resolveNextCameraRollSequence([], undefined), 1, "a new experience must begin at IMG_0001");
+  assert.equal(cameraRollPersistence.resolveNextCameraRollSequence([{ captureSequence: 1 }, { captureSequence: 2 }], 3), 3, "reloading an experience must continue its owner-scoped sequence");
+  assert.equal(cameraRollPersistence.resolveNextCameraRollSequence([], 1), 1, "another experience must not participate in the current owner's sequence");
+  const ownershipFixture = { origin: "player-camera", experienceSessionId: experienceSessionA };
+  assert.equal(cameraRollPersistence.isCameraRollRecordOwnedByExperience(ownershipFixture, experienceSessionA), true, "the active owner may resolve its own Camera Roll record");
+  assert.equal(cameraRollPersistence.isCameraRollRecordOwnedByExperience(ownershipFixture, experienceSessionB), false, "Camera Roll queries must reject another experience's records");
+  assert.equal(cameraRollPersistence.isCameraCaptureOwnerCurrent(experienceSessionA, experienceSessionB), false, "a stale capture must not cross the owner boundary");
+  assert.equal(cameraRollPersistence.isCameraCaptureOwnerCurrent(experienceSessionB, experienceSessionB), true, "a capture may commit only while its shutter-time owner remains active");
   assert.ok(timelineDefinitions.filter(event => event.atElapsedSeconds <= 720).some(event => event.id === "twitter-slang-epic-fail"));
   assert.ok(timelineDefinitions.filter(event => event.atElapsedSeconds <= 720).some(event => event.id === "twitter-slang-fml"), "both slang events must be catch-up eligible by 12:14 AM");
   assert.ok(timelineDefinitions.filter(event => event.sourceApp === "twitter").every(event => event.deliveryPolicy === "internal"));
@@ -2323,6 +2346,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const coreSocialSource = await readFile(resolve(projectRoot, "src/data/coreSocialFriends.ts"), "utf8");
   const instagramStateSource = await readFile(resolve(projectRoot, "src/state/instagramState.ts"), "utf8");
   const appSource = await readFile(resolve(projectRoot, "src/device/App.tsx"), "utf8");
+  const deviceMachineSource = await readFile(resolve(projectRoot, "src/state/deviceMachine.ts"), "utf8");
+  const cameraRollPersistenceSource = await readFile(resolve(projectRoot, "src/state/cameraRollPersistence.ts"), "utf8");
+  const cameraCaptureStateSource = await readFile(resolve(projectRoot, "src/state/cameraCaptureState.ts"), "utf8");
   const lockScreenSource = await readFile(resolve(projectRoot, "src/device/LockScreen.tsx"), "utf8");
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
   const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
@@ -2360,6 +2386,16 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
 
   assert.equal((ios4KeyboardSource.match(/export function IOS4KeyboardSystem/g) ?? []).length, 1, "the device must own exactly one shared software-keyboard runtime");
   assert.match(appSource, /session\.phase === "app" && <AppLaunchContainer[\s\S]+<IOS4KeyboardSystem[\s\S]+suspended=\{multitaskingBar !== "closed" \|\| cameraRuntime\.cameraPicker\.phase !== "none"\}[\s\S]+suspendReason=/, "the shared keyboard must live at the device app-runtime boundary and retain explicit lifecycle dismissal");
+  assert.match(deviceMachineSource, /experienceSessionId: string \| null;[\s\S]+initialSession[\s\S]+experienceSessionId: null/, "experience ownership must extend the canonical Session and remain empty at Hero");
+  assert.match(appSource, /submitName[\s\S]+createExperienceSessionId\(\)[\s\S]+experienceSessionId,/, "only valid Hero name submission may activate a new experience ID");
+  assert.match(appSource, /experienceSessionId: persisted\.experienceSessionId/, "runtime reload reconstruction must preserve the persisted canonical experience ID");
+  assert.match(cameraCaptureStateSource, /CameraCaptureSnapshot[\s\S]+experienceSessionId: string;[\s\S]+CameraPhotoDurableRecord[\s\S]+experienceSessionId: string;/, "shutter-time snapshots and durable Camera records must carry explicit experience ownership");
+  assert.match(cameraRollPersistenceSource, /CAMERA_ROLL_DATABASE_VERSION = 2[\s\S]+\["origin", "experienceSessionId"\][\s\S]+\["experienceSessionId", "captureSequence"\][\s\S]+unique: true/, "IndexedDB v2 must index owner queries and enforce unique owner-sequence pairs");
+  assert.match(cameraRollPersistenceSource, /oldVersion < 2[\s\S]+origin === "player-camera"[\s\S]+typeof value\.experienceSessionId !== "string"[\s\S]+cursor\.delete\(\)/, "v1 player-camera records without provable ownership must be deleted rather than assigned to the current player");
+  assert.match(cameraRollPersistenceSource, /index\(CAMERA_ROLL_OWNER_INDEX\)\.getAll\(\["player-camera", experienceSessionId\]\)/, "Camera Roll initialization and current-owner erase must query an explicit owner namespace");
+  assert.match(cameraRollPersistenceSource, /cameraRollSequenceMetadataKey\(experienceSessionId\)[\s\S]+photoStore\.add\(record\)[\s\S]+nextSequence: sequence \+ 1/, "record insertion and owner-scoped sequence advancement must share one transaction");
+  assert.match(appSource, /const experienceSessionId = session\.experienceSessionId;[\s\S]+isCameraCaptureOwnerCurrent\(experienceSessionId, activeExperienceSessionIdRef\.current\)[\s\S]+persistCameraCapturedArtifact\(artifact, experienceSessionId\)[\s\S]+discardPersistedCameraPhoto\(durableRecord\)/, "capture must freeze shutter-time ownership and discard a record if its owner becomes stale before runtime exposure");
+  assert.match(appSource, /deleteStalePlayerCameraRolls\(experienceSessionId\)[\s\S]+owner filtering remains active/, "stale cleanup failure must leave explicit owner filtering as the privacy boundary");
   assert.match(ios4KeyboardSource, /activeRegistration = useRef<IOS4InputRegistration \| null>\(null\)/, "the keyboard must enforce one active input owner");
   assert.match(ios4KeyboardSource, /export type IOS4KeyboardDismissReason =[\s\S]+"submit"[\s\S]+"navigation"[\s\S]+"app-switch"[\s\S]+"session-reset"[\s\S]+"explicit";/, "keyboard dismissal must use centralized typed reasons");
   assert.doesNotMatch(ios4KeyboardSource, /tap-anywhere|document\.addEventListener|window\.addEventListener\(["'](?:click|pointerdown|mousedown|touchstart)/, "the shared keyboard must not implement universal outside-tap dismissal");

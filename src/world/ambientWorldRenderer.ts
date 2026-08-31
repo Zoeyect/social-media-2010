@@ -67,6 +67,7 @@ export type AmbientWorldRenderer = {
 
 export type CameraStillCaptureRequest = Readonly<{
   createdAt: string;
+  experienceSessionId: string;
   cameraFacing: CameraDevice;
   cameraMode: CameraMode;
 }>;
@@ -525,6 +526,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     });
     const snapshot = Object.freeze({
       createdAt: request.createdAt,
+      experienceSessionId: request.experienceSessionId,
       sceneId: CAMERA_CAPTURE_SCENE_ID,
       width: CAMERA_CAPTURE_WIDTH,
       height: CAMERA_CAPTURE_HEIGHT,

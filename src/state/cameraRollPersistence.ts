@@ -4,15 +4,19 @@ import type {
 } from "./cameraCaptureState";
 
 export const CAMERA_ROLL_DATABASE_NAME = "social-media-2010.camera-roll";
-export const CAMERA_ROLL_DATABASE_VERSION = 1;
+export const CAMERA_ROLL_DATABASE_VERSION = 2;
 export const CAMERA_ROLL_PHOTO_STORE = "photos";
 export const CAMERA_ROLL_METADATA_STORE = "metadata";
+export const CAMERA_ROLL_OWNER_INDEX = "by-origin-experience";
+export const CAMERA_ROLL_SEQUENCE_INDEX = "by-experience-sequence";
 
-const CAPTURE_SEQUENCE_METADATA_KEY = "capture-sequence";
+const LEGACY_CAPTURE_SEQUENCE_METADATA_KEY = "capture-sequence";
+const CAPTURE_SEQUENCE_METADATA_PREFIX = "capture-sequence:";
 const MAX_CAPTURE_SEQUENCE = 9999;
 
 type CaptureSequenceMetadata = Readonly<{
-  key: typeof CAPTURE_SEQUENCE_METADATA_KEY;
+  key: string;
+  experienceSessionId: string;
   nextSequence: number;
 }>;
 
@@ -33,6 +37,22 @@ function transactionComplete(transaction: IDBTransaction) {
   });
 }
 
+export function cameraRollSequenceMetadataKey(experienceSessionId: string) {
+  return `${CAPTURE_SEQUENCE_METADATA_PREFIX}${experienceSessionId}`;
+}
+
+export function cameraRollFilename(sequence: number) {
+  return `IMG_${String(sequence).padStart(4, "0")}.JPG`;
+}
+
+export function cameraRollRecordId(experienceSessionId: string, sequence: number) {
+  return `camera-photo-${experienceSessionId}-${String(sequence).padStart(4, "0")}`;
+}
+
+function assertExperienceSessionId(experienceSessionId: string) {
+  if (!experienceSessionId.trim()) throw new Error("Camera Roll requires an active experience session.");
+}
+
 function openCameraRollDatabase() {
   if (!databasePromise) {
     databasePromise = new Promise<IDBDatabase>((resolve, reject) => {
@@ -41,13 +61,36 @@ function openCameraRollDatabase() {
         return;
       }
       const request = window.indexedDB.open(CAMERA_ROLL_DATABASE_NAME, CAMERA_ROLL_DATABASE_VERSION);
-      request.onupgradeneeded = () => {
+      request.onupgradeneeded = event => {
         const database = request.result;
-        if (!database.objectStoreNames.contains(CAMERA_ROLL_PHOTO_STORE)) {
-          database.createObjectStore(CAMERA_ROLL_PHOTO_STORE, { keyPath: "id" });
+        const transaction = request.transaction;
+        if (!transaction) throw new Error("Camera Roll migration transaction is unavailable.");
+        const photoStore = database.objectStoreNames.contains(CAMERA_ROLL_PHOTO_STORE)
+          ? transaction.objectStore(CAMERA_ROLL_PHOTO_STORE)
+          : database.createObjectStore(CAMERA_ROLL_PHOTO_STORE, { keyPath: "id" });
+        const metadataStore = database.objectStoreNames.contains(CAMERA_ROLL_METADATA_STORE)
+          ? transaction.objectStore(CAMERA_ROLL_METADATA_STORE)
+          : database.createObjectStore(CAMERA_ROLL_METADATA_STORE, { keyPath: "key" });
+
+        if (!photoStore.indexNames.contains(CAMERA_ROLL_OWNER_INDEX)) {
+          photoStore.createIndex(CAMERA_ROLL_OWNER_INDEX, ["origin", "experienceSessionId"], { unique: false });
         }
-        if (!database.objectStoreNames.contains(CAMERA_ROLL_METADATA_STORE)) {
-          database.createObjectStore(CAMERA_ROLL_METADATA_STORE, { keyPath: "key" });
+        if (!photoStore.indexNames.contains(CAMERA_ROLL_SEQUENCE_INDEX)) {
+          photoStore.createIndex(CAMERA_ROLL_SEQUENCE_INDEX, ["experienceSessionId", "captureSequence"], { unique: true });
+        }
+
+        if ((event as IDBVersionChangeEvent).oldVersion < 2) {
+          const cursorRequest = photoStore.openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            const value = cursor.value as { origin?: unknown; experienceSessionId?: unknown } | null;
+            if (value?.origin === "player-camera" && typeof value.experienceSessionId !== "string") {
+              cursor.delete();
+            }
+            cursor.continue();
+          };
+          metadataStore.delete(LEGACY_CAPTURE_SEQUENCE_METADATA_KEY);
         }
       };
       request.onsuccess = () => {
@@ -75,6 +118,8 @@ function isPlayerCameraRecord(value: unknown): value is CameraPhotoDurableRecord
   if (!value || typeof value !== "object") return false;
   const record = value as Partial<CameraPhotoDurableRecord>;
   return record.origin === "player-camera"
+    && typeof record.experienceSessionId === "string"
+    && Boolean(record.experienceSessionId)
     && typeof record.id === "string"
     && typeof record.filename === "string"
     && Number.isInteger(record.captureSequence)
@@ -86,11 +131,33 @@ function isPlayerCameraRecord(value: unknown): value is CameraPhotoDurableRecord
     && record.blob instanceof Blob;
 }
 
-function maximumCaptureSequence(records: readonly CameraPhotoDurableRecord[]) {
+export function isCameraRollRecordOwnedByExperience(
+  record: Pick<CameraPhotoDurableRecord, "origin" | "experienceSessionId">,
+  experienceSessionId: string,
+) {
+  return record.origin === "player-camera" && record.experienceSessionId === experienceSessionId;
+}
+
+export function isCameraCaptureOwnerCurrent(
+  captureExperienceSessionId: string,
+  activeExperienceSessionId: string | null,
+) {
+  return captureExperienceSessionId === activeExperienceSessionId;
+}
+
+function maximumCaptureSequence(records: readonly Pick<CameraPhotoDurableRecord, "captureSequence">[]) {
   return records.reduce((maximum, record) => Math.max(maximum, record.captureSequence), 0);
 }
 
-export async function initializeCameraRollPersistence() {
+export function resolveNextCameraRollSequence(
+  records: readonly Pick<CameraPhotoDurableRecord, "captureSequence">[],
+  storedNextSequence?: number,
+) {
+  return Math.max(storedNextSequence ?? 1, maximumCaptureSequence(records) + 1);
+}
+
+export async function initializeCameraRollPersistence(experienceSessionId: string) {
+  assertExperienceSessionId(experienceSessionId);
   const database = await openCameraRollDatabase();
   const transaction = database.transaction(
     [CAMERA_ROLL_PHOTO_STORE, CAMERA_ROLL_METADATA_STORE],
@@ -99,21 +166,30 @@ export async function initializeCameraRollPersistence() {
   const completion = transactionComplete(transaction);
   const photoStore = transaction.objectStore(CAMERA_ROLL_PHOTO_STORE);
   const metadataStore = transaction.objectStore(CAMERA_ROLL_METADATA_STORE);
-  const storedValues = await requestResult(photoStore.getAll());
-  const records = storedValues.filter(isPlayerCameraRecord);
-  const storedMetadata = await requestResult(
-    metadataStore.get(CAPTURE_SEQUENCE_METADATA_KEY) as IDBRequest<CaptureSequenceMetadata | undefined>,
+  const storedValues = await requestResult(
+    photoStore.index(CAMERA_ROLL_OWNER_INDEX).getAll(["player-camera", experienceSessionId]),
   );
-  const derivedNextSequence = maximumCaptureSequence(records) + 1;
-  const nextSequence = Math.max(storedMetadata?.nextSequence ?? 1, derivedNextSequence);
-  metadataStore.put({ key: CAPTURE_SEQUENCE_METADATA_KEY, nextSequence });
+  const records = storedValues
+    .filter(isPlayerCameraRecord)
+    .filter(record => isCameraRollRecordOwnedByExperience(record, experienceSessionId));
+  const metadataKey = cameraRollSequenceMetadataKey(experienceSessionId);
+  const storedMetadata = await requestResult(
+    metadataStore.get(metadataKey) as IDBRequest<CaptureSequenceMetadata | undefined>,
+  );
+  const nextSequence = resolveNextCameraRollSequence(records, storedMetadata?.nextSequence);
+  metadataStore.put({ key: metadataKey, experienceSessionId, nextSequence });
   await completion;
   return records;
 }
 
 export async function persistCameraCapturedArtifact(
   artifact: CameraCapturedArtifact,
+  experienceSessionId: string,
 ): Promise<CameraPhotoDurableRecord> {
+  assertExperienceSessionId(experienceSessionId);
+  if (artifact.snapshot.experienceSessionId !== experienceSessionId) {
+    throw new Error("Camera capture ownership changed before persistence.");
+  }
   const database = await openCameraRollDatabase();
   const transaction = database.transaction(
     [CAMERA_ROLL_PHOTO_STORE, CAMERA_ROLL_METADATA_STORE],
@@ -122,8 +198,9 @@ export async function persistCameraCapturedArtifact(
   const completion = transactionComplete(transaction);
   const photoStore = transaction.objectStore(CAMERA_ROLL_PHOTO_STORE);
   const metadataStore = transaction.objectStore(CAMERA_ROLL_METADATA_STORE);
+  const metadataKey = cameraRollSequenceMetadataKey(experienceSessionId);
   const metadata = await requestResult(
-    metadataStore.get(CAPTURE_SEQUENCE_METADATA_KEY) as IDBRequest<CaptureSequenceMetadata | undefined>,
+    metadataStore.get(metadataKey) as IDBRequest<CaptureSequenceMetadata | undefined>,
   );
   const sequence = metadata?.nextSequence;
   if (!Number.isInteger(sequence) || !sequence || sequence < 1 || sequence > MAX_CAPTURE_SEQUENCE) {
@@ -132,11 +209,11 @@ export async function persistCameraCapturedArtifact(
     throw new Error("The durable Camera filename namespace is unavailable or exhausted.");
   }
 
-  const serial = String(sequence).padStart(4, "0");
   const record: CameraPhotoDurableRecord = Object.freeze({
-    id: `camera-photo-${serial}`,
-    filename: `IMG_${serial}.JPG`,
+    id: cameraRollRecordId(experienceSessionId, sequence),
+    filename: cameraRollFilename(sequence),
     captureSequence: sequence,
+    experienceSessionId,
     createdAt: artifact.snapshot.createdAt,
     sceneId: artifact.snapshot.sceneId,
     width: artifact.snapshot.width,
@@ -151,12 +228,21 @@ export async function persistCameraCapturedArtifact(
   });
 
   photoStore.add(record);
-  metadataStore.put({ key: CAPTURE_SEQUENCE_METADATA_KEY, nextSequence: sequence + 1 });
+  metadataStore.put({ key: metadataKey, experienceSessionId, nextSequence: sequence + 1 });
   await completion;
   return record;
 }
 
-export async function erasePlayerCameraRoll() {
+export async function discardPersistedCameraPhoto(record: CameraPhotoDurableRecord) {
+  const database = await openCameraRollDatabase();
+  const transaction = database.transaction(CAMERA_ROLL_PHOTO_STORE, "readwrite");
+  const completion = transactionComplete(transaction);
+  transaction.objectStore(CAMERA_ROLL_PHOTO_STORE).delete(record.id);
+  await completion;
+}
+
+export async function deleteStalePlayerCameraRolls(activeExperienceSessionId: string) {
+  assertExperienceSessionId(activeExperienceSessionId);
   const database = await openCameraRollDatabase();
   const transaction = database.transaction(
     [CAMERA_ROLL_PHOTO_STORE, CAMERA_ROLL_METADATA_STORE],
@@ -165,8 +251,74 @@ export async function erasePlayerCameraRoll() {
   const completion = transactionComplete(transaction);
   const photoStore = transaction.objectStore(CAMERA_ROLL_PHOTO_STORE);
   const metadataStore = transaction.objectStore(CAMERA_ROLL_METADATA_STORE);
-  const storedValues = await requestResult(photoStore.getAll());
-  storedValues.filter(isPlayerCameraRecord).forEach(record => photoStore.delete(record.id));
-  metadataStore.put({ key: CAPTURE_SEQUENCE_METADATA_KEY, nextSequence: 1 });
+  const photoCursorRequest = photoStore.openCursor();
+  photoCursorRequest.onsuccess = () => {
+    const cursor = photoCursorRequest.result;
+    if (!cursor) return;
+    const value = cursor.value as Partial<CameraPhotoDurableRecord>;
+    if (value.origin === "player-camera" && value.experienceSessionId !== activeExperienceSessionId) {
+      cursor.delete();
+    }
+    cursor.continue();
+  };
+  const metadataCursorRequest = metadataStore.openCursor();
+  metadataCursorRequest.onsuccess = () => {
+    const cursor = metadataCursorRequest.result;
+    if (!cursor) return;
+    const key = typeof cursor.key === "string" ? cursor.key : "";
+    if (key.startsWith(CAPTURE_SEQUENCE_METADATA_PREFIX)
+      && key !== cameraRollSequenceMetadataKey(activeExperienceSessionId)) {
+      cursor.delete();
+    }
+    cursor.continue();
+  };
+  await completion;
+}
+
+export async function eraseCurrentCameraRoll(experienceSessionId: string) {
+  assertExperienceSessionId(experienceSessionId);
+  const database = await openCameraRollDatabase();
+  const transaction = database.transaction(
+    [CAMERA_ROLL_PHOTO_STORE, CAMERA_ROLL_METADATA_STORE],
+    "readwrite",
+  );
+  const completion = transactionComplete(transaction);
+  const photoStore = transaction.objectStore(CAMERA_ROLL_PHOTO_STORE);
+  const metadataStore = transaction.objectStore(CAMERA_ROLL_METADATA_STORE);
+  const records = await requestResult(
+    photoStore.index(CAMERA_ROLL_OWNER_INDEX).getAll(["player-camera", experienceSessionId]),
+  );
+  records.filter(isPlayerCameraRecord).forEach(record => photoStore.delete(record.id));
+  metadataStore.delete(cameraRollSequenceMetadataKey(experienceSessionId));
+  await completion;
+}
+
+export async function eraseAllPlayerCameraRolls() {
+  const database = await openCameraRollDatabase();
+  const transaction = database.transaction(
+    [CAMERA_ROLL_PHOTO_STORE, CAMERA_ROLL_METADATA_STORE],
+    "readwrite",
+  );
+  const completion = transactionComplete(transaction);
+  const photoStore = transaction.objectStore(CAMERA_ROLL_PHOTO_STORE);
+  const metadataStore = transaction.objectStore(CAMERA_ROLL_METADATA_STORE);
+  const photoCursorRequest = photoStore.openCursor();
+  photoCursorRequest.onsuccess = () => {
+    const cursor = photoCursorRequest.result;
+    if (!cursor) return;
+    const value = cursor.value as Partial<CameraPhotoDurableRecord>;
+    if (value.origin === "player-camera") cursor.delete();
+    cursor.continue();
+  };
+  const metadataCursorRequest = metadataStore.openCursor();
+  metadataCursorRequest.onsuccess = () => {
+    const cursor = metadataCursorRequest.result;
+    if (!cursor) return;
+    if (typeof cursor.key === "string" && cursor.key.startsWith(CAPTURE_SEQUENCE_METADATA_PREFIX)) {
+      cursor.delete();
+    }
+    cursor.continue();
+  };
+  metadataStore.delete(LEGACY_CAPTURE_SEQUENCE_METADATA_KEY);
   await completion;
 }

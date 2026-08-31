@@ -9,11 +9,11 @@ import { cameraRuntimeTransition, initialCameraRuntimeState, requestCameraCaptur
 import type { CameraLookOffset, CameraOwner } from "../state/cameraRuntime";
 import { createCameraPhotoRecord, releaseCameraPhotoRecords } from "../state/cameraCaptureState";
 import type { CameraPhotoRecord } from "../state/cameraCaptureState";
-import { erasePlayerCameraRoll, initializeCameraRollPersistence, persistCameraCapturedArtifact } from "../state/cameraRollPersistence";
+import { deleteStalePlayerCameraRolls, discardPersistedCameraPhoto, eraseAllPlayerCameraRolls, eraseCurrentCameraRoll, initializeCameraRollPersistence, isCameraCaptureOwnerCurrent, persistCameraCapturedArtifact } from "../state/cameraRollPersistence";
 import { initialCameraRoll, initialPhotosState, photosStateTransition, sortCameraRollRecords } from "../state/cameraRollState";
 import type { CameraRollInitialization } from "../state/cameraRollState";
 import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent, scheduleDeviceEvents } from "../state/deviceEventScheduler";
-import { batteryPercent, BOOT_DURATION_MS, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
+import { batteryPercent, BOOT_DURATION_MS, createExperienceSessionId, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
 import { createInitialFacebookState, deterministicFacebookPartyInviteDelayMs, FACEBOOK_PARTY_INVITE_EVENT_ID, facebookStateTransition } from "../state/facebookState";
 import type { FacebookEvent } from "../state/facebookState";
@@ -68,7 +68,8 @@ type CameraCaptureQaHandle = Readonly<{
   records: () => readonly CameraPhotoRecord[];
   persistenceStatus: () => CameraRollInitialization["status"];
   failNextCapture: () => void;
-  eraseCameraRoll: () => Promise<void>;
+  eraseCurrentCameraRoll: () => Promise<void>;
+  eraseAllPlayerCameraRolls: () => Promise<void>;
 }>;
 
 type CameraCaptureQaWindow = Window & {
@@ -82,6 +83,7 @@ function loadRuntimeSession(): Session {
   return {
     ...initialSession,
     sessionIdentity: persisted.sessionIdentity,
+    experienceSessionId: persisted.experienceSessionId,
     phase: persisted.sessionIdentity.name ? "booting" : "hero",
   };
 }
@@ -102,6 +104,8 @@ export function App() {
   const cameraCapture = useRef<CameraStillCapture | null>(null);
   const cameraCaptureInFlight = useRef(false);
   const cameraCaptureNamespace = useRef(0);
+  const activeExperienceSessionIdRef = useRef(session.experienceSessionId);
+  activeExperienceSessionIdRef.current = session.experienceSessionId;
   const [cameraRoll, setCameraRoll] = useState<CameraRollInitialization>(initialCameraRoll);
   const cameraRollRef = useRef<CameraRollInitialization>(initialCameraRoll);
   const cameraRollMounted = useRef(true);
@@ -163,7 +167,8 @@ export function App() {
   const captureCameraPhoto = async () => {
     const capture = cameraCapture.current;
     const cameraSession = cameraRuntime.cameraApp;
-    if (!capture || cameraCaptureInFlight.current || cameraRollRef.current.status !== "ready") return;
+    const experienceSessionId = session.experienceSessionId;
+    if (!capture || !experienceSessionId || cameraCaptureInFlight.current || cameraRollRef.current.status !== "ready") return;
     cameraCaptureInFlight.current = true;
     if (!requestCameraCapture(cameraRuntime, "cameraApp", dispatchCameraRuntime)) {
       cameraCaptureInFlight.current = false;
@@ -179,13 +184,20 @@ export function App() {
       }
       const pendingArtifact = capture({
         createdAt,
+        experienceSessionId,
         cameraFacing: cameraSession.cameraDevice,
         cameraMode: cameraSession.mode,
       });
       dispatchCameraRuntime({ type: "CAPTURE_COMPLETE", owner: "cameraApp" });
       const artifact = await pendingArtifact;
-      if (namespace !== cameraCaptureNamespace.current) return;
-      const durableRecord = await persistCameraCapturedArtifact(artifact);
+      if (namespace !== cameraCaptureNamespace.current
+        || !isCameraCaptureOwnerCurrent(experienceSessionId, activeExperienceSessionIdRef.current)) return;
+      const durableRecord = await persistCameraCapturedArtifact(artifact, experienceSessionId);
+      if (namespace !== cameraCaptureNamespace.current
+        || !isCameraCaptureOwnerCurrent(experienceSessionId, activeExperienceSessionIdRef.current)) {
+        await discardPersistedCameraPhoto(durableRecord);
+        return;
+      }
       if (!cameraRollMounted.current) return;
       const record = createCameraPhotoRecord(durableRecord);
       const records = sortCameraRollRecords([...cameraRollRef.current.records, record]);
@@ -235,21 +247,46 @@ export function App() {
       ? "cameraPicker"
       : null;
 
-  const eraseCameraRollForDevelopment = useCallback(async () => {
-    await erasePlayerCameraRoll();
+  const clearRuntimeCameraRoll = useCallback((status: "loading" | "ready") => {
     if (!cameraRollMounted.current) return;
     releaseCameraPhotoRecords(cameraRollRef.current.records);
-    const emptyCameraRoll: CameraRollInitialization = { status: "ready", records: Object.freeze([]), error: null };
+    const emptyCameraRoll: CameraRollInitialization = { status, records: Object.freeze([]), error: null };
     cameraRollRef.current = emptyCameraRoll;
     setCameraRoll(emptyCameraRoll);
     dispatchPhotos({ type: "RESET" });
   }, []);
 
+  const eraseCurrentCameraRollForDevelopment = useCallback(async () => {
+    const experienceSessionId = activeExperienceSessionIdRef.current;
+    if (!experienceSessionId) return;
+    await eraseCurrentCameraRoll(experienceSessionId);
+    if (experienceSessionId !== activeExperienceSessionIdRef.current) return;
+    await initializeCameraRollPersistence(experienceSessionId);
+    if (experienceSessionId === activeExperienceSessionIdRef.current) clearRuntimeCameraRoll("ready");
+  }, [clearRuntimeCameraRoll]);
+
+  const eraseAllPlayerCameraRollsForDevelopment = useCallback(async () => {
+    await eraseAllPlayerCameraRolls();
+    const experienceSessionId = activeExperienceSessionIdRef.current;
+    if (!experienceSessionId) {
+      clearRuntimeCameraRoll("loading");
+      return;
+    }
+    await initializeCameraRollPersistence(experienceSessionId);
+    if (experienceSessionId === activeExperienceSessionIdRef.current) clearRuntimeCameraRoll("ready");
+  }, [clearRuntimeCameraRoll]);
+
   useEffect(() => saveSession(session), [session]);
   useEffect(() => {
-    cameraRollMounted.current = true;
+    const experienceSessionId = session.experienceSessionId;
     let cancelled = false;
-    void initializeCameraRollPersistence().then(durableRecords => {
+    clearRuntimeCameraRoll("loading");
+    if (!experienceSessionId) return () => { cancelled = true; };
+
+    void deleteStalePlayerCameraRolls(experienceSessionId).catch(error => {
+      console.error("Stale Camera Roll cleanup failed; owner filtering remains active.", error);
+    });
+    void initializeCameraRollPersistence(experienceSessionId).then(durableRecords => {
       const restoredRecords: CameraPhotoRecord[] = [];
       try {
         durableRecords.forEach(record => restoredRecords.push(createCameraPhotoRecord(record)));
@@ -257,7 +294,7 @@ export function App() {
         releaseCameraPhotoRecords(restoredRecords);
         throw error;
       }
-      if (cancelled) {
+      if (cancelled || experienceSessionId !== activeExperienceSessionIdRef.current) {
         releaseCameraPhotoRecords(restoredRecords);
         return;
       }
@@ -270,7 +307,7 @@ export function App() {
       cameraRollRef.current = readyCameraRoll;
       setCameraRoll(readyCameraRoll);
     }).catch(error => {
-      if (cancelled) return;
+      if (cancelled || experienceSessionId !== activeExperienceSessionIdRef.current) return;
       const message = error instanceof Error ? error.message : "Durable Camera Roll failed to initialize.";
       console.error("Camera Roll persistence initialization failed.", error);
       const failedCameraRoll: CameraRollInitialization = { status: "error", records: Object.freeze([]), error: message };
@@ -279,9 +316,8 @@ export function App() {
     });
     return () => {
       cancelled = true;
-      cameraRollMounted.current = false;
     };
-  }, []);
+  }, [clearRuntimeCameraRoll, session.experienceSessionId]);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const qaWindow = window as CameraCaptureQaWindow;
@@ -290,7 +326,8 @@ export function App() {
       records: () => [...cameraRollRef.current.records],
       persistenceStatus: () => cameraRollRef.current.status,
       failNextCapture: () => { failNextCameraCapture.current = true; },
-      eraseCameraRoll: eraseCameraRollForDevelopment,
+      eraseCurrentCameraRoll: eraseCurrentCameraRollForDevelopment,
+      eraseAllPlayerCameraRolls: eraseAllPlayerCameraRollsForDevelopment,
     });
     qaWindow.__SM2010_CAMERA_CAPTURE_QA__ = handle;
     return () => {
@@ -298,11 +335,15 @@ export function App() {
         delete qaWindow.__SM2010_CAMERA_CAPTURE_QA__;
       }
     };
-  }, [eraseCameraRollForDevelopment]);
-  useEffect(() => () => {
-    if (pendingAppHomePress.current !== null) window.clearTimeout(pendingAppHomePress.current);
-    releaseCameraPhotoRecords(cameraRollRef.current.records);
-    cameraRollRef.current = initialCameraRoll;
+  }, [eraseAllPlayerCameraRollsForDevelopment, eraseCurrentCameraRollForDevelopment]);
+  useEffect(() => {
+    cameraRollMounted.current = true;
+    return () => {
+      cameraRollMounted.current = false;
+      if (pendingAppHomePress.current !== null) window.clearTimeout(pendingAppHomePress.current);
+      releaseCameraPhotoRecords(cameraRollRef.current.records);
+      cameraRollRef.current = initialCameraRoll;
+    };
   }, []);
   useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id); }, []);
   useEffect(() => {
@@ -691,10 +732,15 @@ export function App() {
     const data = new FormData(event.currentTarget);
     const name = String(data.get("name") || "").trim();
     if (name) {
+      const experienceSessionId = createExperienceSessionId();
+      cameraCaptureNamespace.current += 1;
+      activeExperienceSessionIdRef.current = experienceSessionId;
+      clearRuntimeCameraRoll("loading");
       dispatchFacebook({ type: "RESET", displayName: name });
       dispatchTwitter({ type: "RESET", displayName: name });
       update({
         sessionIdentity: createSessionIdentity(name),
+        experienceSessionId,
         phase: "poweredOff",
         shutdownReason: null,
         returnToHeroPending: false,

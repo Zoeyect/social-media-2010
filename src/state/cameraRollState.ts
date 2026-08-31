@@ -31,6 +31,7 @@ export type PhotosState = Readonly<{
 export type PhotosEvent =
   | Readonly<{ type: "OPEN_CAMERA_ROLL" }>
   | Readonly<{ type: "OPEN_PHOTO"; photoId: string }>
+  | Readonly<{ type: "PAGE_PHOTO"; photoId: string }>
   | Readonly<{ type: "BACK" }>
   | Readonly<{ type: "TOGGLE_VIEWER_CONTROLS" }>
   | Readonly<{ type: "RESET" }>;
@@ -47,6 +48,8 @@ export function photosStateTransition(state: PhotosState, event: PhotosEvent): P
       return { view: "cameraRoll", selectedPhotoId: null, viewerControlsVisible: true };
     case "OPEN_PHOTO":
       return { view: "photo", selectedPhotoId: event.photoId, viewerControlsVisible: true };
+    case "PAGE_PHOTO":
+      return state.view === "photo" ? { ...state, selectedPhotoId: event.photoId } : state;
     case "BACK":
       if (state.view === "photo") {
         return { view: "cameraRoll", selectedPhotoId: null, viewerControlsVisible: true };

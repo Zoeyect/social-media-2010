@@ -675,7 +675,10 @@ export function App() {
       <button className="power" aria-label="Power button" onPointerDown={beginPower} onPointerUp={endPower} onPointerCancel={cancelPower} onPointerLeave={cancelPower} />
       <div className="speaker" /><div className="camera" />
       <div className={`screen ${session.phase}`}>
-        {(session.phase === "locked" || session.phase === "springboard" || session.phase === "app") && <div className="device-status-bar-layer">
+        {(session.phase === "locked"
+          || session.phase === "springboard"
+          || (session.phase === "app"
+            && !(appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none"))) && <div className="device-status-bar-layer">
           {session.phase === "locked"
             ? <LockScreenStatusPresentation model={lockScreenModel} />
             : <StatusBar state={statusBarState} />}

@@ -160,6 +160,8 @@ button, input { font: inherit; }
 @keyframes springboard-folder-tray-close { from { clip-path: inset(0); } to { clip-path: inset(0 0 100% 0); } }
 .app-launch-container { position: absolute; z-index: 20; inset: 0; width: 320px; height: 480px; overflow: hidden; background: #000; transform-origin: center; }
 .app-runtime-surface { position: absolute; inset: 20px 0 0; background: #000; }
+.app-launch-container[data-app-id="camera"] > .app-runtime-surface { inset: 0; }
+.app-launch-container[data-app-id="camera"] .ios4-keyboard-system { height: 480px; }
 .ios4-keyboard-system { width: 320px; height: 460px; display: grid; grid-template-rows: minmax(0,1fr) 0; overflow: hidden; background: #000; transition: grid-template-rows 210ms ease-out; }
 .ios4-keyboard-system.is-keyboard-visible { grid-template-rows: minmax(0,1fr) 216px; }
 .ios4-keyboard-viewport { position: relative; min-height: 0; overflow: hidden; background: #000; }
@@ -199,6 +201,40 @@ button, input { font: inherit; }
 .camera-runtime-container, .camera-runtime-preview-surface { width: 320px; height: 460px; }
 .camera-runtime-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #000; }
 .camera-runtime-preview-surface { position: absolute; z-index: 1; inset: 0; display: block; pointer-events: none; }
+.camera-runtime-container[data-camera-owner="cameraApp"] { height: 480px; }
+.camera-runtime-container[data-camera-owner="cameraApp"] .camera-runtime-preview-surface { width: 320px; height: 427px; }
+.camera-runtime-launch-raster { position: absolute; z-index: 5; inset: 0; width: 320px; height: 480px; display: block; }
+.camera-runtime-top-chrome { position: absolute; z-index: 3; inset: 0; pointer-events: none; }
+.camera-runtime-top-control { position: absolute; height: 31.5px; overflow: hidden; color: #111; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 12px; font-weight: bold; line-height: 31.5px; text-align: center; white-space: nowrap; }
+.camera-runtime-top-control.is-flash { left: 14px; top: 11px; width: 70px; }
+.camera-runtime-top-control.is-hdr { left: 119px; top: 11px; width: 82px; }
+.camera-runtime-control-cap { position: absolute; z-index: 0; top: 0; height: 31.5px; display: block; }
+.camera-runtime-top-control.is-flash > .camera-runtime-control-cap.is-left { left: 0; width: 24.5px; }
+.camera-runtime-top-control.is-flash > .camera-runtime-control-cap.is-right { right: 0; width: 16px; }
+.camera-runtime-top-control.is-hdr > .camera-runtime-control-cap { width: 16px; }
+.camera-runtime-top-control.is-hdr > .camera-runtime-control-cap.is-left { left: 0; }
+.camera-runtime-top-control.is-hdr > .camera-runtime-control-cap.is-right { right: 0; }
+.camera-runtime-control-fill { position: absolute; z-index: 0; top: 0; height: 31.5px; overflow: hidden; display: block; }
+.camera-runtime-control-fill > img { position: absolute; left: 0; top: 0; width: 16px; height: 31.5px; display: block; clip-path: inset(0 15px 0 0); transform-origin: left top; }
+.camera-runtime-top-control.is-flash > .camera-runtime-control-fill { left: 24.5px; width: 29.5px; }
+.camera-runtime-top-control.is-flash > .camera-runtime-control-fill > img { transform: scaleX(29.5); }
+.camera-runtime-top-control.is-hdr > .camera-runtime-control-fill { left: 16px; width: 50px; }
+.camera-runtime-top-control.is-hdr > .camera-runtime-control-fill > img { transform: scaleX(50); }
+.camera-runtime-control-label { position: absolute; z-index: 1; inset: 0; display: block; }
+.camera-runtime-top-control.is-flash > .camera-runtime-control-label { left: 24.5px; width: 45.5px; }
+.camera-runtime-camera-toggle { position: absolute; left: 247px; top: 11px; width: 60px; height: 31px; display: block; }
+.camera-runtime-bottom-chrome { position: absolute; z-index: 2; left: 0; top: 427px; width: 320px; height: 53px; overflow: hidden; background-image: url("../assets/historical/ios4.1/camera/cameraButtonBarSilver@2x.browser.png"); background-position: 0 0; background-repeat: repeat-x; background-size: 2px 53px; pointer-events: none; }
+.camera-runtime-preview-well { position: absolute; left: 0; top: 0; width: 47px; height: 53px; display: block; }
+.camera-runtime-preview-placeholder { position: absolute; left: 10px; top: 8px; width: 37px; height: 37px; display: block; }
+.camera-runtime-shutter { position: absolute; left: 111px; top: 6px; width: 98px; height: 41px; border-style: solid; border-width: 0 20.5px; border-image-slice: 0 41 0 41 fill; border-image-width: 0 20.5px; border-image-repeat: stretch; display: block; }
+.camera-runtime-shutter-icon { position: absolute; left: 150px; top: 18px; width: 20px; height: 17px; display: block; }
+.camera-runtime-mode-background, .camera-runtime-mode-well { position: absolute; left: 250px; top: 0; width: 70px; height: 53px; display: block; }
+.camera-runtime-mode-background { z-index: 0; }
+.camera-runtime-mode-well { z-index: 1; }
+.camera-runtime-mode-thumb { position: absolute; z-index: 2; left: 250.5px; top: 29.5px; width: 21px; height: 14.5px; opacity: .45; display: block; }
+.camera-runtime-mode-icon { position: absolute; z-index: 3; top: 8px; width: 28px; height: 22px; display: block; }
+.camera-runtime-mode-icon.is-photo { left: 250px; }
+.camera-runtime-mode-icon.is-video { left: 292px; }
 .camera-picker-cancel { position: absolute; z-index: 3; right: 10px; bottom: 9px; min-width: 58px; height: 30px; padding: 0 9px; display: block; color: #fff; border: 1px solid #555; border-radius: 5px; background: #222; font-size: 14px; pointer-events: auto; }
 .mobilesms-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #111; background: #e9e9e9; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
 .mobilesms-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; padding: 0 8px; color: #fff; border-top: 1px solid #b7c3d1; border-bottom: 1px solid #263a54; background: linear-gradient(#9aadc1 0%,#7188a2 48%,#526d8c 51%,#587492 100%); box-shadow: inset 0 1px rgba(255,255,255,.38), inset 0 -1px rgba(0,0,0,.18); text-shadow: 0 -1px 1px rgba(0,0,0,.72); }

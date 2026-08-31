@@ -4,6 +4,8 @@ import {
   AMBIENT_WORLD_VERTEX_SHADER,
 } from "./ambientWorldShaders";
 import { createAmbientWorldScene, updateAmbientWorldScene } from "./ambientWorldState";
+import { CAMERA_LOOK_NOMINAL_LIMITS } from "../state/cameraRuntime";
+import type { CameraLookOffset, CameraLookState } from "../state/cameraRuntime";
 
 const WORLD_TREATMENT = {
   blur: 0.82,
@@ -31,13 +33,26 @@ const DISPLAY_CONSTANTS = {
   brightKnee: 0.14,
 } as const;
 
+const CAMERA_LOOK_EDGE_SCALE = 0.994;
+const MAX_SHARED_SCENE_OFFSET = 0.001;
+const SHARED_ZOOM_RANGE = { minimum: 0.9986, maximum: 1.0014 } as const;
+const ZERO_CAMERA_LOOK: CameraLookState = {
+  pointerOffset: { x: 0, y: 0 },
+  orientationOffset: { x: 0, y: 0 },
+};
+
 type Uniforms = Record<string, WebGLUniformLocation | null>;
 type Treatment = typeof WORLD_TREATMENT | typeof CAMERA_TREATMENT;
 
 export type AmbientWorldRenderer = {
   setCameraViewfinder: (canvas: HTMLCanvasElement | null) => void;
+  setCameraLookState: (state: CameraLookState) => void;
+  setCameraLookClampHandler: (handler: ((offset: CameraLookOffset) => void) | null) => void;
   dispose: () => void;
 };
+
+type CameraLookAxisBounds = { minimum: number; maximum: number };
+type CameraLookBounds = { x: CameraLookAxisBounds; y: CameraLookAxisBounds };
 
 function compileShader(gl: WebGL2RenderingContext, type: number, source: string, name: string) {
   const shader = gl.createShader(type);
@@ -114,6 +129,9 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
   let sampleFrames = 0;
   let cameraViewfinder: HTMLCanvasElement | null = null;
   let cameraPresentation: CanvasRenderingContext2D | null = null;
+  let cameraLookState: CameraLookState = ZERO_CAMERA_LOOK;
+  let cameraLookClampHandler: ((offset: CameraLookOffset) => void) | null = null;
+  let lastReportedClampedOffset: CameraLookOffset | null = null;
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -217,6 +235,110 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     return { left, top, width: right - left, height: bottom - top };
   }
 
+  function coverScale() {
+    const canvasAspect = canvas.width / canvas.height;
+    const imageAspect = plateWidth / plateHeight;
+    return canvasAspect > imageAspect
+      ? { x: 1, y: imageAspect / canvasAspect }
+      : { x: canvasAspect / imageAspect, y: 1 };
+  }
+
+  function extremaAcrossZoom(minimum: number, maximum: number) {
+    const candidates = [
+      (minimum - 0.5) / SHARED_ZOOM_RANGE.minimum + 0.5,
+      (minimum - 0.5) / SHARED_ZOOM_RANGE.maximum + 0.5,
+      (maximum - 0.5) / SHARED_ZOOM_RANGE.minimum + 0.5,
+      (maximum - 0.5) / SHARED_ZOOM_RANGE.maximum + 0.5,
+    ];
+    return {
+      minimum: Math.min(...candidates) - MAX_SHARED_SCENE_OFFSET,
+      maximum: Math.max(...candidates) + MAX_SHARED_SCENE_OFFSET,
+    };
+  }
+
+  function safeAxisBounds(
+    minimum: number,
+    maximum: number,
+    nominalLimit: number,
+    samplingRadius: number,
+  ): CameraLookAxisBounds {
+    const transformedMinimum = (samplingRadius - 0.5) / CAMERA_LOOK_EDGE_SCALE + 0.5;
+    const transformedMaximum = ((1 - samplingRadius) - 0.5) / CAMERA_LOOK_EDGE_SCALE + 0.5;
+    const safeMinimum = Math.max(-nominalLimit, transformedMinimum - minimum);
+    const safeMaximum = Math.min(nominalLimit, transformedMaximum - maximum);
+    return safeMinimum <= safeMaximum
+      ? { minimum: safeMinimum, maximum: safeMaximum }
+      : { minimum: 0, maximum: 0 };
+  }
+
+  function cameraLookBounds(bounds: NonNullable<ReturnType<typeof cameraBounds>>): CameraLookBounds {
+    const scale = coverScale();
+    const left = bounds.left / canvas.width;
+    const right = (bounds.left + bounds.width) / canvas.width;
+    const bottom = (canvas.height - bounds.top - bounds.height) / canvas.height;
+    const top = (canvas.height - bounds.top) / canvas.height;
+    const sourceX = extremaAcrossZoom(
+      (left - 0.5) * scale.x + 0.5,
+      (right - 0.5) * scale.x + 0.5,
+    );
+    const sourceY = extremaAcrossZoom(
+      (bottom - 0.5) * scale.y + 0.5,
+      (top - 0.5) * scale.y + 0.5,
+    );
+    const samplingRadius = ((2 ** (CAMERA_TREATMENT.blur * DISPLAY_CONSTANTS.maxLod)) * 0.85)
+      / plateHeight;
+    return {
+      x: safeAxisBounds(
+        sourceX.minimum,
+        sourceX.maximum,
+        CAMERA_LOOK_NOMINAL_LIMITS.x,
+        samplingRadius,
+      ),
+      y: safeAxisBounds(
+        sourceY.minimum,
+        sourceY.maximum,
+        CAMERA_LOOK_NOMINAL_LIMITS.y,
+        samplingRadius,
+      ),
+    };
+  }
+
+  function effectiveCameraLook(bounds: NonNullable<ReturnType<typeof cameraBounds>>) {
+    const safeBounds = cameraLookBounds(bounds);
+    const requested = {
+      x: cameraLookState.pointerOffset.x + cameraLookState.orientationOffset.x,
+      y: cameraLookState.pointerOffset.y + cameraLookState.orientationOffset.y,
+    };
+    const effective = {
+      x: Math.min(safeBounds.x.maximum, Math.max(safeBounds.x.minimum, requested.x)),
+      y: Math.min(safeBounds.y.maximum, Math.max(safeBounds.y.minimum, requested.y)),
+    };
+    const clampedPointerOffset = {
+      x: effective.x - cameraLookState.orientationOffset.x,
+      y: effective.y - cameraLookState.orientationOffset.y,
+    };
+    const wasClamped = Math.abs(clampedPointerOffset.x - cameraLookState.pointerOffset.x) > 1e-7
+      || Math.abs(clampedPointerOffset.y - cameraLookState.pointerOffset.y) > 1e-7;
+    if (wasClamped) {
+      const alreadyReported = lastReportedClampedOffset
+        && Math.abs(lastReportedClampedOffset.x - clampedPointerOffset.x) <= 1e-7
+        && Math.abs(lastReportedClampedOffset.y - clampedPointerOffset.y) <= 1e-7;
+      if (!alreadyReported) {
+        lastReportedClampedOffset = clampedPointerOffset;
+        cameraLookClampHandler?.(clampedPointerOffset);
+      }
+    } else {
+      lastReportedClampedOffset = null;
+    }
+    canvas.dataset.cameraLookMinX = safeBounds.x.minimum.toFixed(6);
+    canvas.dataset.cameraLookMaxX = safeBounds.x.maximum.toFixed(6);
+    canvas.dataset.cameraLookMinY = safeBounds.y.minimum.toFixed(6);
+    canvas.dataset.cameraLookMaxY = safeBounds.y.maximum.toFixed(6);
+    canvas.dataset.cameraLookX = effective.x.toFixed(6);
+    canvas.dataset.cameraLookY = effective.y.toFixed(6);
+    return effective;
+  }
+
   function presentCamera(bounds: NonNullable<ReturnType<typeof cameraBounds>>, dpr: number) {
     if (!cameraViewfinder || !cameraPresentation) return;
     const targetWidth = Math.max(1, Math.round(cameraViewfinder.clientWidth * dpr));
@@ -251,6 +373,12 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       canvas.dataset.drawCalls = "1";
       return;
     }
+    const cameraLook = effectiveCameraLook(bounds);
+    gl.uniform2f(
+      uniforms.uSceneOffset,
+      scene.offset[0] + cameraLook.x,
+      scene.offset[1] + cameraLook.y,
+    );
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(bounds.left, canvas.height - bounds.top - bounds.height, bounds.width, bounds.height);
     drawLayer(CAMERA_TREATMENT, 137);
@@ -294,10 +422,20 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       cameraViewfinder = target;
       cameraPresentation = target?.getContext("2d", { alpha: false }) ?? null;
     },
+    setCameraLookState(state: CameraLookState) {
+      cameraLookState = {
+        pointerOffset: { ...state.pointerOffset },
+        orientationOffset: { ...state.orientationOffset },
+      };
+    },
+    setCameraLookClampHandler(handler: ((offset: CameraLookOffset) => void) | null) {
+      cameraLookClampHandler = handler;
+    },
     dispose() {
       disposed = true;
       cameraViewfinder = null;
       cameraPresentation = null;
+      cameraLookClampHandler = null;
       image.onload = null;
       image.onerror = null;
       window.cancelAnimationFrame(animationFrame);

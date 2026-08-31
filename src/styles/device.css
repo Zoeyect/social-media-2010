@@ -201,11 +201,14 @@ button, input { font: inherit; }
 .camera-runtime-container, .camera-runtime-preview-surface { width: 320px; height: 460px; }
 .camera-runtime-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #000; }
 .camera-runtime-preview-surface { position: absolute; z-index: 1; inset: 0; display: block; pointer-events: none; }
+.camera-runtime-preview-surface[data-camera-look-input="true"] { pointer-events: auto; touch-action: none; user-select: none; cursor: grab; }
+.camera-runtime-preview-surface[data-camera-look-input="true"]:active { cursor: grabbing; }
 .camera-runtime-container[data-camera-owner="cameraApp"] { height: 480px; }
 .camera-runtime-container[data-camera-owner="cameraApp"] .camera-runtime-preview-surface { width: 320px; height: 427px; }
 .camera-runtime-launch-raster { position: absolute; z-index: 5; inset: 0; width: 320px; height: 480px; display: block; }
 .camera-runtime-top-chrome { position: absolute; z-index: 3; inset: 0; pointer-events: none; }
 .camera-runtime-top-control { position: absolute; height: 31.5px; overflow: hidden; color: #111; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 12px; font-weight: bold; line-height: 31.5px; text-align: center; white-space: nowrap; }
+.camera-runtime-top-control, .camera-runtime-camera-toggle { pointer-events: auto; }
 .camera-runtime-top-control.is-flash { left: 14px; top: 11px; width: 70px; }
 .camera-runtime-top-control.is-hdr { left: 119px; top: 11px; width: 82px; }
 .camera-runtime-control-cap { position: absolute; z-index: 0; top: 0; height: 31.5px; display: block; }

@@ -14,6 +14,29 @@ export type CameraLaunchMode = "standaloneCamera" | "mobileSMSPicker";
 export type CameraMode = "photo" | "video";
 export type CameraDevice = "rear" | "front";
 export type CameraFlashMode = "auto" | "on" | "off";
+export type CameraLookOffset = { x: number; y: number };
+export type CameraLookState = {
+  pointerOffset: CameraLookOffset;
+  orientationOffset: CameraLookOffset;
+};
+
+export const CAMERA_LOOK_NOMINAL_LIMITS: CameraLookOffset = { x: 0.06, y: 0.04 };
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+export function clampCameraLookPointerOffset(offset: CameraLookOffset): CameraLookOffset {
+  return {
+    x: clamp(offset.x, -CAMERA_LOOK_NOMINAL_LIMITS.x, CAMERA_LOOK_NOMINAL_LIMITS.x),
+    y: clamp(offset.y, -CAMERA_LOOK_NOMINAL_LIMITS.y, CAMERA_LOOK_NOMINAL_LIMITS.y),
+  };
+}
+
+const initialCameraLookState = (): CameraLookState => ({
+  pointerOffset: { x: 0, y: 0 },
+  orientationOffset: { x: 0, y: 0 },
+});
 
 export type CameraSession = {
   phase: CameraRuntimePhase;
@@ -23,6 +46,7 @@ export type CameraSession = {
   cameraDevice: CameraDevice;
   flashMode: CameraFlashMode;
   hdrEnabled: boolean;
+  cameraLook: CameraLookState;
 };
 
 export type CameraRuntimeState = Record<CameraOwner, CameraSession>;
@@ -39,6 +63,7 @@ export type CameraRuntimeEvent =
   | { type: "CANCEL"; owner: CameraOwner }
   | { type: "RETURN"; owner: CameraOwner }
   | { type: "RETURN_COMPLETE"; owner: CameraOwner }
+  | { type: "SET_LOOK_POINTER_OFFSET"; owner: CameraOwner; offset: CameraLookOffset }
   | { type: "RESET"; owner: CameraOwner };
 
 const initialCameraSession = (cameraLaunchMode: CameraLaunchMode): CameraSession => ({
@@ -49,6 +74,7 @@ const initialCameraSession = (cameraLaunchMode: CameraLaunchMode): CameraSession
   cameraDevice: "rear",
   flashMode: "auto",
   hdrEnabled: false,
+  cameraLook: initialCameraLookState(),
 });
 
 export const initialCameraRuntimeState: CameraRuntimeState = {
@@ -98,6 +124,16 @@ export function cameraRuntimeTransition(
         ? event.owner === "cameraPicker"
           ? replace(initialCameraSession("mobileSMSPicker"))
           : replace({ ...session, phase: "previewing" })
+        : state;
+    case "SET_LOOK_POINTER_OFFSET":
+      return session.phase !== "none"
+        ? replace({
+          ...session,
+          cameraLook: {
+            ...session.cameraLook,
+            pointerOffset: clampCameraLookPointerOffset(event.offset),
+          },
+        })
         : state;
     case "RESET":
       return replace(initialCameraSession(event.owner === "cameraPicker"

@@ -1,4 +1,4 @@
-import { FormEvent, PointerEvent, useEffect, useReducer, useRef, useState } from "react";
+import { FormEvent, PointerEvent, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.png?inline";
 import lowBatterySrc from "../assets/device/low-battery-iphone4.png";
 import { DeviceAudio } from "../audio/deviceAudio";
@@ -6,7 +6,7 @@ import { buildSessionTimelineEvents } from "../data/sessionTimeline";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
 import { DEVICE_CARRIER_CONFIG } from "../state/carrierConfig";
 import { cameraRuntimeTransition, initialCameraRuntimeState } from "../state/cameraRuntime";
-import type { CameraOwner } from "../state/cameraRuntime";
+import type { CameraLookOffset, CameraOwner } from "../state/cameraRuntime";
 import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent, scheduleDeviceEvents } from "../state/deviceEventScheduler";
 import { batteryPercent, BOOT_DURATION_MS, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
@@ -79,6 +79,9 @@ export function App() {
   const [activeFolderSlotIndex, setActiveFolderSlotIndex] = useState(0);
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
   const [cameraRuntime, dispatchCameraRuntime] = useReducer(cameraRuntimeTransition, initialCameraRuntimeState);
+  const setCameraLookPointerOffset = useCallback((offset: CameraLookOffset) => {
+    dispatchCameraRuntime({ type: "SET_LOOK_POINTER_OFFSET", owner: "cameraApp", offset });
+  }, []);
   const [multitaskingBar, dispatchMultitaskingBar] = useReducer(multitaskingBarStateTransition, "closed");
   const [messagesState, dispatchMessages] = useReducer(messagesStateTransition, undefined, createInitialMessagesState);
   const [messagesUnreadIds, dispatchMessagesBadge] = useReducer(messagesBadgeStateTransition, undefined, createInitialMessagesBadgeState);
@@ -654,7 +657,11 @@ export function App() {
   </>;
 
   return <SessionIdentityContext.Provider value={session.sessionIdentity}>
-    {ambientWorldEnabled && <AmbientWorld cameraViewfinder={cameraPreviewCanvas} />}
+    {ambientWorldEnabled && <AmbientWorld
+      cameraViewfinder={cameraPreviewCanvas}
+      cameraLook={cameraRuntime.cameraApp.cameraLook}
+      onCameraLookPointerOffsetClamped={setCameraLookPointerOffset}
+    />}
     <main className={`stage${ambientWorldEnabled ? " has-ambient-world" : ""}`}>
       <section
       className={`device${displayIsLit ? " is-display-lit" : ""}`}
@@ -730,6 +737,7 @@ export function App() {
             owner="cameraApp"
             session={cameraRuntime.cameraApp}
             previewCanvasRef={ambientWorldEnabled ? setCameraPreviewCanvas : undefined}
+            onLookPointerOffsetChange={ambientWorldEnabled ? setCameraLookPointerOffset : undefined}
           />}
           {appRuntime.activeAppId === "messages" && <MobileSMSContainer
             state={messagesState}

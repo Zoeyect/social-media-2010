@@ -1,4 +1,7 @@
-import type { CameraOwner, CameraSession } from "../state/cameraRuntime";
+import { useEffect, useRef } from "react";
+import type { PointerEvent } from "react";
+import { CAMERA_LOOK_NOMINAL_LIMITS, clampCameraLookPointerOffset } from "../state/cameraRuntime";
+import type { CameraLookOffset, CameraOwner, CameraSession } from "../state/cameraRuntime";
 import cameraIconSrc from "../assets/historical/ios4.1/camera/CameraButtonIcon@2x.browser.png";
 import cameraModeIconSrc from "../assets/historical/ios4.1/camera/CameraSwitchIcon@2x.browser.png";
 import cameraLaunchSrc from "../assets/historical/ios4.1/camera/Default-Camera@2x.browser.png";
@@ -19,11 +22,74 @@ type CameraContainerProps = {
   session: CameraSession;
   onCancel?: () => void;
   previewCanvasRef?: (canvas: HTMLCanvasElement | null) => void;
+  onLookPointerOffsetChange?: (offset: CameraLookOffset) => void;
 };
 
-export function CameraContainer({ owner, session, onCancel, previewCanvasRef }: CameraContainerProps) {
+type CameraLookDrag = {
+  pointerId: number;
+  clientX: number;
+  clientY: number;
+  pointerOffset: CameraLookOffset;
+};
+
+export function CameraContainer({
+  owner,
+  session,
+  onCancel,
+  previewCanvasRef,
+  onLookPointerOffsetChange,
+}: CameraContainerProps) {
   const isStandaloneCamera = owner === "cameraApp";
   const isLaunchingStandaloneCamera = isStandaloneCamera && session.phase === "launching";
+  const lookDrag = useRef<CameraLookDrag | null>(null);
+  const cameraLookEnabled = isStandaloneCamera
+    && session.phase === "previewing"
+    && !session.suspended
+    && Boolean(onLookPointerOffsetChange);
+
+  useEffect(() => {
+    if (lookDrag.current) {
+      lookDrag.current.pointerOffset = session.cameraLook.pointerOffset;
+    }
+  }, [session.cameraLook.pointerOffset]);
+
+  const beginCameraLook = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (!cameraLookEnabled || !event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    lookDrag.current = {
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      pointerOffset: session.cameraLook.pointerOffset,
+    };
+  };
+
+  const moveCameraLook = (event: PointerEvent<HTMLCanvasElement>) => {
+    const drag = lookDrag.current;
+    if (!drag || drag.pointerId !== event.pointerId || !onLookPointerOffsetChange) return;
+    event.preventDefault();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return;
+    const nextOffset = clampCameraLookPointerOffset({
+      x: drag.pointerOffset.x
+        + ((event.clientX - drag.clientX) / bounds.width) * CAMERA_LOOK_NOMINAL_LIMITS.x * 2,
+      y: drag.pointerOffset.y
+        - ((event.clientY - drag.clientY) / bounds.height) * CAMERA_LOOK_NOMINAL_LIMITS.y * 2,
+    });
+    drag.clientX = event.clientX;
+    drag.clientY = event.clientY;
+    drag.pointerOffset = nextOffset;
+    onLookPointerOffsetChange(nextOffset);
+  };
+
+  const endCameraLook = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (lookDrag.current?.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    lookDrag.current = null;
+  };
 
   return <section
     className="camera-runtime-container"
@@ -38,7 +104,17 @@ export function CameraContainer({ owner, session, onCancel, previewCanvasRef }: 
     {isLaunchingStandaloneCamera
       ? <img className="camera-runtime-launch-raster" src={cameraLaunchSrc} alt="" />
       : previewCanvasRef
-        ? <canvas ref={previewCanvasRef} className="camera-runtime-preview-surface" aria-hidden="true" />
+        ? <canvas
+          ref={previewCanvasRef}
+          className="camera-runtime-preview-surface"
+          aria-hidden="true"
+          data-camera-look-input={cameraLookEnabled || undefined}
+          onPointerDown={beginCameraLook}
+          onPointerMove={moveCameraLook}
+          onPointerUp={endCameraLook}
+          onPointerCancel={endCameraLook}
+          onLostPointerCapture={() => { lookDrag.current = null; }}
+        />
         : <div className="camera-runtime-preview-surface" aria-hidden="true" />}
     {isStandaloneCamera && !isLaunchingStandaloneCamera && <>
       <div className="camera-runtime-top-chrome" aria-hidden="true">

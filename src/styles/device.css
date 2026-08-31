@@ -17,12 +17,14 @@ button, input { font: inherit; }
 .device-antenna-seam.is-top { left: 75px; top: -1px; width: 2px; height: 5px; }
 .device-antenna-seam.is-lower-left { left: -1px; top: 611px; width: 5px; height: 2px; }
 .device-antenna-seam.is-lower-right { right: -1px; top: 611px; width: 5px; height: 2px; }
-.device-mute-switch,.device-volume-button { position: absolute; z-index: 0; display: block; border: 1px solid #34373b; background: linear-gradient(90deg,#25282b,#adb1b6 45%,#565a5f 100%); box-shadow: inset 1px 0 rgba(255,255,255,.3),0 1px 2px rgba(0,0,0,.8); pointer-events: none; }
-.device-mute-switch { left: -4px; top: 83px; width: 9px; height: 42px; border-radius: 4px 0 0 4px; }
-.device-volume-button { left: -4px; width: 10px; height: 30px; border-radius: 7px 0 0 7px; }
-.device-volume-button.is-up { top: 133px; }
-.device-volume-button.is-down { top: 182px; }
-.power { position: absolute; z-index: 0; width: 68px; height: 9px; right: 56px; top: -7px; border: 1px solid #383b3f; border-radius: 5px 5px 1px 1px; background: linear-gradient(#8b8f94,#35383c 55%,#17191b); box-shadow: inset 0 1px rgba(255,255,255,.35); cursor: pointer; }
+.device-mute-switch,.device-volume-button { position: absolute; z-index: 0; left: -6px; display: block; width: 6px; pointer-events: none; }
+.device-mute-switch { top: 94px; height: 20px; border: 1px solid #383b3f; border-radius: 3px 0 0 3px; background: linear-gradient(90deg,#303337 0%,#777b80 52%,#494d51 100%); box-shadow: inset 1px 0 rgba(255,255,255,.18),0 1px 1px rgba(0,0,0,.68); }
+.device-volume-button { height: 30px; overflow: hidden; }
+.device-volume-button::before { content: ""; position: absolute; left: 0; top: 0; width: 30px; height: 30px; border: 1px solid #383b3f; border-radius: 50%; background: linear-gradient(90deg,#303337 0%,#8d9196 22%,#505459 100%); box-shadow: inset 1px 0 rgba(255,255,255,.2),0 1px 1px rgba(0,0,0,.7); }
+.device-volume-button.is-up { top: 136px; }
+.device-volume-button.is-down { top: 202px; }
+.power { position: absolute; z-index: 0; width: 68px; height: 9px; right: 56px; top: -7px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.power::before { content: ""; position: absolute; inset: 0; clip-path: inset(0 0 2px 0); border: 1px solid #383b3f; border-radius: 5px 5px 1px 1px; background: linear-gradient(#8b8f94,#35383c 55%,#17191b); box-shadow: inset 0 1px rgba(255,255,255,.35); pointer-events: none; }
 .speaker { position: absolute; z-index: 4; width: 58px; height: 7px; top: 74px; left: 161px; border-radius: 8px; background: #030303; box-shadow: inset 0 1px 2px #333; }
 .camera { position: absolute; z-index: 4; width: 10px; height: 10px; top: 72px; left: 124px; border-radius: 50%; background: #071323; box-shadow: inset 0 0 3px #235; }
 .home { position: absolute; z-index: 4; left: 158px; bottom: 26px; width: 64px; height: 64px; border: 1px solid #34373b; border-radius: 50%; background: radial-gradient(circle at 48% 42%,#181a1c,#070809 65%,#020202); box-shadow: inset 0 1px 1px rgba(255,255,255,.06),0 0 0 1px rgba(0,0,0,.65); }

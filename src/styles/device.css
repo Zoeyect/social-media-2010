@@ -227,7 +227,7 @@ button, input { font: inherit; }
 .camera-runtime-preview-well { position: absolute; left: 0; top: 0; width: 47px; height: 53px; display: block; }
 .camera-runtime-preview-placeholder { position: absolute; left: 10px; top: 8px; width: 37px; height: 37px; display: block; }
 .camera-runtime-shutter { position: absolute; left: 111px; top: 6px; width: 98px; height: 41px; border-style: solid; border-width: 0 20.5px; border-image-slice: 0 41 0 41 fill; border-image-width: 0 20.5px; border-image-repeat: stretch; display: block; }
-.camera-runtime-shutter-icon { position: absolute; left: 150px; top: 18px; width: 20px; height: 17px; display: block; }
+.camera-runtime-shutter-icon { position: absolute; left: 147px; top: 16px; width: 26px; height: 21px; display: block; }
 .camera-runtime-mode-background, .camera-runtime-mode-well { position: absolute; left: 250px; top: 0; width: 70px; height: 53px; display: block; }
 .camera-runtime-mode-background { z-index: 0; }
 .camera-runtime-mode-well { z-index: 1; }

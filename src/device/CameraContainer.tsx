@@ -1,5 +1,5 @@
 import type { CameraOwner, CameraSession } from "../state/cameraRuntime";
-import cameraIconSrc from "../assets/historical/ios4.1/camera/CameraIconWhite@2x.browser.png";
+import cameraIconSrc from "../assets/historical/ios4.1/camera/CameraButtonIcon@2x.browser.png";
 import cameraModeIconSrc from "../assets/historical/ios4.1/camera/CameraSwitchIcon@2x.browser.png";
 import cameraLaunchSrc from "../assets/historical/ios4.1/camera/Default-Camera@2x.browser.png";
 import videoModeIconSrc from "../assets/historical/ios4.1/camera/Video@2x.browser.png";

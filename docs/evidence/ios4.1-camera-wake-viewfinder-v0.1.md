@@ -29,7 +29,7 @@ Original CgBI resources remain unchanged under `src/assets/historical/ios4.1/cam
 
 | Asset | Pixels | SHA-256 | Role | Confidence |
 |---|---:|---|---|---|
-| `CameraIconWhite@2x.png` | 40×34 | `fc098f98fc2fa7bcef2cb5fe6d735b99874eb6bc09bba31a2e8491ceeb61d81d` | Shutter glyph | **CONFIRMED asset** |
+| `CameraButtonIcon@2x.png` | 52×42 | `b15863f15666971c36c66cdf409489654e11f59cb6b4a0927ef04abc4c1a4f14` | Dark Photo-mode shutter glyph | **CONFIRMED** |
 | `CameraSwitchIcon@2x.png` | 56×44 | `5e950b84ac19e8c2991b429bbfdfedd0c1791d53f95929ae5eccec1d133e1277` | Photo-mode icon | **CONFIRMED asset** |
 | `Video@2x.png` | 56×44 | `874e314c34ceb1a068119aeeb72dbe746492168f80cdea94178329c30d7a1ab3` | Video-mode icon | **CONFIRMED asset** |
 | `cameraButtonBarSilver@2x.png` | 4×106 | `ddd026a769c147ba6500d9079330ea8f55e81bfa94f93515b199c0eacad172b1` | Silver bottom-bar repeat | **CONFIRMED** |
@@ -69,12 +69,14 @@ Bottom-control frames:
 | Preview well | `0, 427, 47, 53` | **CONFIRMED** in launch raster |
 | Empty placeholder | `10, 435, 37, 37` | **CONFIRMED** in launch raster |
 | Shutter outer frame | `111, 433, 98, 41` | **CONFIRMED** final raster frame |
-| Shutter glyph | `150, 445, 20, 17` | **PROBABLE** centered placement |
+| Shutter glyph | `147, 443, 26, 21` | **CONFIRMED** in the launch raster; **PROBABLE** for active runtime |
 | Photo/video well | `250, 427, 70, 53` | **CONFIRMED** asset/raster frame |
 | Photo icon canvas | `250, 435, 28, 22` | **PROBABLE** |
 | Video icon canvas | `292, 435, 28, 22` | **PROBABLE** |
 
 The shutter source is presented at the evidenced 98×41-point final frame using a 20.5 / 57 / 20.5-point cap-preserving reconstruction. The exact launch raster supports the resulting rounded-end/flat-center silhouette, but the original UIKit cap-inset implementation remains unrecovered; the cap values are **PROBABLE / RECONSTRUCTED**, not claimed as original UIKit constants.
+
+The shutter mark uses the authenticated dark `CameraButtonIcon@2x.png` at its native 26×21-point canvas without tint, filtering, recoloring, redrawing, or additional opacity. Its asset identity and dark presentation are **CONFIRMED**. The exact `Default-Camera@2x.png` launch raster confirms its 52×42-pixel canvas at physical coordinates `294, 886` (logical `147, 443`). Reusing that placement for the active runtime is **PROBABLE**. Exact UIKit active/pressed opacity behavior remains **HOLD**.
 
 The Photo/Video well and icons retain their independently composable authenticated rasters. No separate Photo-thumb raster was recovered, so the initially selected Photo thumb is reconstructed at `250.5, 456.5, 21, 14.5` from the authenticated silver-button material at reduced opacity. Its geometry and optical density are calibrated against the exact launch raster, which remains pixel-reference ground truth and is not rendered as runtime bottom chrome. This material reuse is **RECONSTRUCTED**, not claimed as recovered UIKit composition.
 

@@ -2264,7 +2264,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   instagramState = instagram.instagramStateTransition(instagramState, { type: "CONTINUE_TO_SHARE" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "POST_FIRST_PHOTO", owner: "Zoey", createdAt: 1_287_552_900_000 });
   assert.deepEqual(instagramState.photos, [{
-    id: "instagram-first-photo",
+    id: "instagram-user-photo-0001",
     owner: "Zoey",
     source: "camera-roll",
     sourcePhotoId: "camera-photo-session-a-0002",
@@ -2272,15 +2272,30 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     createdAt: 1_287_552_900_000,
     origin: "user",
   }]);
+  assert.deepEqual([instagramState.currentView, instagramState.selectedPhotoId, instagramState.draft], ["feed", "instagram-user-photo-0001", { selectedCameraRollPhotoId: null, filter: null }], "posting must return to Feed and clear only the completed draft");
   assert.deepEqual({ followers: instagramState.followers, following: instagram.selectInstagramFollowingCount(instagramState) }, { followers: 0, following: 1 });
-  const instagramAfterSecondAttempt = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
-  assert.strictEqual(instagramAfterSecondAttempt, instagramState, "v0.2 must allow at most one user photo");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
+  assert.equal(instagramState.currentView, "source", "Share must remain available after the first post");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_CAMERA_ROLL_PHOTO", photoId: "camera-photo-session-a-0002" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "CONTINUE_TO_SHARE" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "POST_FIRST_PHOTO", owner: "Zoey", createdAt: 1_287_552_901_000 });
+  assert.deepEqual(instagramState.photos.map(photo => [photo.id, photo.sourcePhotoId, photo.createdAt]), [
+    ["instagram-user-photo-0001", "camera-photo-session-a-0002", 1_287_552_900_000],
+    ["instagram-user-photo-0002", "camera-photo-session-a-0002", 1_287_552_901_000],
+  ], "a second post must append without replacing the first and may reuse the same authorized Camera Roll source");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_CAMERA_ROLL_PHOTO", photoId: "camera-photo-session-a-0003" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "CONTINUE_TO_SHARE" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "POST_FIRST_PHOTO", owner: "Zoey", createdAt: 1_287_552_902_000 });
+  assert.deepEqual(instagramState.photos.map(photo => photo.id), ["instagram-user-photo-0001", "instagram-user-photo-0002", "instagram-user-photo-0003"], "multiple posts must receive deterministic unique session-local IDs in append order");
+  assert.equal(new Set(instagramState.photos.map(photo => photo.id)).size, 3, "every player Instagram post ID must be unique");
+  assert.deepEqual(instagramState.photos.map(photo => photo.sourcePhotoId), ["camera-photo-session-a-0002", "camera-photo-session-a-0002", "camera-photo-session-a-0003"], "multi-post state must retain every Camera Roll stable source ID without Blob duplication");
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SET_SCROLL_POSITION", scrollPosition: 37 });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SHOW_PROFILE" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SHOW_FEED" });
-  assert.equal(instagramState.photos.length, 1, "navigation must retain the current-session photo");
+  assert.equal(instagramState.photos.length, 3, "navigation and the Profile Photos count source must retain every current-session post");
   assert.equal(instagramState.scrollPosition, 37);
-  assert.deepEqual(seed.instagram.photos, [], "first-photo activity must not mutate the Instagram seed baseline");
+  assert.deepEqual(seed.instagram.photos, [], "multi-post activity must not mutate the Instagram seed baseline");
 
   const tumblrZoey = tumblrPlayability;
   let facebookZoey = facebook.createInitialFacebookState("Zoey");
@@ -2361,6 +2376,26 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const lockScreenSource = await readFile(resolve(projectRoot, "src/device/LockScreen.tsx"), "utf8");
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
   const instagramChromeSource = await readFile(resolve(projectRoot, "src/device/instagram/InstagramChrome.tsx"), "utf8");
+  const instagramWordmarkSource = await readFile(resolve(projectRoot, "src/assets/instagram/chrome/instagram-wordmark-2010-reconstructed.svg"), "utf8");
+  const instagramTabIconSources = await Promise.all([
+    "instagram-feed-2010-reconstructed.svg",
+    "instagram-feed-2010-selected-reconstructed.svg",
+    "instagram-popular-2010-reconstructed.svg",
+    "instagram-popular-2010-selected-reconstructed.svg",
+    "instagram-share-2010-reconstructed.svg",
+    "instagram-news-2010-reconstructed.svg",
+    "instagram-news-2010-selected-reconstructed.svg",
+    "instagram-profile-2010-reconstructed.svg",
+    "instagram-profile-2010-selected-reconstructed.svg",
+  ].map(fileName => readFile(resolve(projectRoot, "src/assets/instagram/chrome", fileName), "utf8")));
+  const instagramSelectedFeedSource = instagramTabIconSources[1];
+  const instagramShareIconSource = instagramTabIconSources[4];
+  const instagramNewsIconSource = instagramTabIconSources[5];
+  const instagramSelectedNewsSource = instagramTabIconSources[6];
+  const instagramSelectedProfileSource = instagramTabIconSources[8];
+  const instagramClockSource = await readFile(resolve(projectRoot, "src/assets/instagram/chrome/instagram-clock-2010-reconstructed.svg"), "utf8");
+  const instagramBackButtonSource = await readFile(resolve(projectRoot, "src/assets/instagram/chrome/instagram-back-button-2010-reconstructed.svg"), "utf8");
+  const instagramShareHousingSource = await readFile(resolve(projectRoot, "src/assets/instagram/chrome/instagram-share-housing-2010-reconstructed.svg"), "utf8");
   const photosContainerSource = await readFile(resolve(projectRoot, "src/device/PhotosContainer.tsx"), "utf8");
   const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
   const facebookHomeIconsSource = await readFile(resolve(projectRoot, "src/device/FacebookHomeIcons.tsx"), "utf8");
@@ -2698,6 +2733,48 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(instagramChromeSource, /<span className="instagram-tab-label">Popular<\/span>/, "Popular must be a functional root tab");
   assert.match(instagramChromeSource, /<span className="instagram-tab-label">Share<\/span>/, "the center Instagram tab must use Share semantics");
   assert.match(instagramContainerSource, /instagramAccountTabLabel\(identity\.name\)/, "the rightmost tab must derive current-account identity");
+  assert.match(instagramChromeSource, /feedIconSelectedSrc[\s\S]+popularIconSelectedSrc[\s\S]+newsIconSelectedSrc[\s\S]+profileIconSelectedSrc/, "ordinary Instagram tabs must import explicit selected-state artwork");
+  assert.match(instagramChromeSource, /function InstagramTabArtwork[\s\S]+className="is-unselected"[\s\S]+className="is-selected"/, "ordinary Instagram tabs must render explicit selected and unselected artwork paths");
+  assert.doesNotMatch(deviceCssSource, /(?:-webkit-)?mask:\s*var\(--instagram-tab-icon\)/, "Instagram tab states must not be generated by recoloring one generic mask");
+  assert.match(instagramSelectedFeedSource, /RECONSTRUCTED_FROM_PERIOD_SCREENSHOT/, "selected Instagram tab artwork must retain reconstructed provenance");
+  assert.equal([...instagramSelectedFeedSource.matchAll(/<circle\b/g)].length, 3, "the screenshot-derived Feed icon must retain its three-person group silhouette");
+  assert.match(instagramNewsIconSource, /RECONSTRUCTED_FROM_PERIOD_SCREENSHOT[\s\S]+M6 1\.5h16\.5[\s\S]+M3 5\.5h16\.5/, "the screenshot-derived News icon must use two overlapping card surfaces");
+  assert.match(instagramShareIconSource, /RECONSTRUCTED_FROM_PERIOD_SCREENSHOT[\s\S]+width="28" height="22"[\s\S]+<circle cx="14" cy="13\.5" r="4"/, "the raised Share control must retain its flat 28-by-22 camera and restrained 8pt circular lens");
+  assert.ok(instagramTabIconSources.every(source => /<svg[^>]+stroke="none"/.test(source)), "every Instagram tab icon family and state must explicitly default to no stroke");
+  assert.doesNotMatch(instagramTabIconSources.join("\n"), /\bstroke=(?!"none")|<filter\b|(?:linear|radial)Gradient|drop-shadow/, "Instagram tab icons must not regain unsupported outlines, filters, gradients, or drop shadows");
+  assert.match(instagramSelectedNewsSource, /selected tonal state remains HOLD/, "unsupported selected News micro-artwork must remain explicitly HOLD");
+  assert.match(instagramSelectedProfileSource, /selected tonal state remains HOLD/, "unsupported selected Profile micro-artwork must remain explicitly HOLD");
+  assert.match(instagramWordmarkSource, /RECONSTRUCTED_FROM_PERIOD_SCREENSHOT/, "the deterministic Instagram wordmark must retain reconstructed provenance");
+  assert.match(instagramWordmarkSource, /width="122" height="29" viewBox="0 0 122 29"[\s\S]+data-provenance="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT"[\s\S]+stroke="none"/, "the Instagram wordmark must retain its audited 122-by-29 screenshot-trace canvas and provenance");
+  assert.equal([...instagramWordmarkSource.matchAll(/<path\b/g)].length, 1, "the Instagram wordmark must use exactly one filled silhouette");
+  assert.match(instagramWordmarkSource, /<path d="[^"]+Z" fill="#f4f1e8" fill-rule="evenodd"\/>/, "the Instagram wordmark must retain its single warm-white screenshot-traced silhouette");
+  assert.doesNotMatch(instagramWordmarkSource, /#29495f|<text\b|font-family=|stroke-width=|stroke-linecap=|stroke-linejoin=|<filter\b|\bfilter=|drop-shadow|text-shadow|opacity=/, "the Instagram wordmark must remain fill-only without dark depth, fonts, outlines, shadows, opacity treatments, or filters");
+  assert.match(instagramClockSource, /RECONSTRUCTED_FROM_PERIOD_SCREENSHOT[\s\S]+<circle[\s\S]+<path/, "the Feed timestamp clock must use explicit reconstructed face and hand artwork");
+  assert.match(instagramContainerSource, /instagramClockSrc[\s\S]+<time><img src=\{instagramClockSrc\}/, "Feed timestamps must render the reconstructed clock asset");
+  assert.match(deviceCssSource, /\.instagram-navigation-bar button\.instagram-navigation-cancel \{ width: 52px; min-width: 52px;/, "Instagram Back controls must retain the audited fixed 52pt frame");
+  assert.match(instagramBackButtonSource, /RECONSTRUCTED_FROM_PERIOD_SCREENSHOT[\s\S]+<path d="M13 1h34\.3[\s\S]+L1 15\.5 13 1Z"/, "Instagram Back must use one continuous reconstructed pentagonal path");
+  assert.match(deviceCssSource, /\.instagram-navigation-bar button\.instagram-navigation-cancel \{[^}]*border-radius: 0;[^}]*instagram-back-button-2010-reconstructed\.svg/, "every shared Instagram Back surface must use the continuous artwork instead of a rounded rectangle");
+  assert.match(deviceCssSource, /\.instagram-navigation-bar button\.instagram-navigation-next:not\(\.instagram-profile-relationship-control\) \{ width: 42px; min-width: 42px;/, "Instagram Next and Post controls must retain the audited fixed 42pt frame without changing HOLD Profile relationship geometry");
+  assert.match(deviceCssSource, /\.instagram-wordmark \{ width: 122px; height: 29px;[^}]*transform: translateX\(-1\.5px\);/, "the deterministic Instagram wordmark must render at the audited 122-by-29 bounds with the native-reference optical bias");
+  assert.match(deviceCssSource, /\.instagram-development-navigation \{[^}]*flex: 0 0 48px;[^}]*grid-template-columns: repeat\(5,64px\)/, "Instagram artwork reconstruction must preserve the locked 48pt five-by-64pt tab geometry");
+  assert.match(deviceCssSource, /\.instagram-development-navigation button \{[^}]*height: 48px; padding: 0; display: block;[^}]*font-size: 9px; font-weight: normal; line-height: 11px;/, "Instagram tabs must use the measured 9px period label face without selected-state weight inflation");
+  assert.match(deviceCssSource, /\.instagram-tab-icon \{[^}]*left: 18px; top: 4px; width: 28px; height: 24px;/, "ordinary Instagram icon canvases must occupy one explicit optical row");
+  assert.match(deviceCssSource, /\.instagram-tab-label \{[^}]*left: 2px; top: 34px; width: 60px; height: 11px;[^}]*font-size: 9px; font-weight: normal; line-height: 11px;/, "all five Instagram labels must share one explicit 9px baseline row");
+  assert.doesNotMatch(deviceCssSource, /\.instagram-development-navigation button\[aria-current="page"\][^{]*\{[^}]*font-weight:\s*bold/, "selected Instagram labels must not become optically larger through bold weight");
+  assert.match(deviceCssSource, /\.instagram-navigation-bar \{[^}]*flex: 0 0 44px; height: 44px;/, "Instagram material reconstruction must preserve the locked 44pt navigation geometry");
+  assert.match(deviceCssSource, /\.instagram-share-housing \{[^}]*top: -7px; width: 64px; height: 55px;[^}]*instagram-share-housing-2010-reconstructed\.svg[^}]*64px 55px no-repeat;/, "the raised Share control must use the measured continuous 64-by-55 molded-tab silhouette");
+  assert.doesNotMatch(deviceCssSource, /\.instagram-share-housing(?:::before|::after)? \{[^}]*(?:border-radius|box-shadow|linear-gradient)/, "the Share housing must not regress to generic rounded-card or autonomous bevel construction");
+  assert.match(instagramShareHousingSource, /RECONSTRUCTED_FROM_PERIOD_SCREENSHOT[\s\S]+width="64" height="55"[\s\S]+M0 7C6 4 18 0 32 0s26 4 32 7v48H0V7Z/, "the Share housing SVG must retain the normalized dome and vertical side-wall silhouette");
+  assert.match(instagramShareHousingSource, /<rect x="1" y="28" width="62" height="1"[\s\S]+<rect x="1" y="29" width="62" height="26"/, "the Share housing must retain its measured filled divider and continuous lower field");
+  assert.match(instagramShareHousingSource, /<linearGradient id="housing-outer"[\s\S]+<linearGradient id="housing-rim"[\s\S]+<linearGradient id="housing-upper-shell"[\s\S]+<linearGradient id="housing-upper-field"[\s\S]+<linearGradient id="housing-lower-field"/, "the Share housing must preserve its reconstructed smoked-plastic material layers");
+  assert.doesNotMatch(instagramShareHousingSource, /\bstroke=(?!"none")|<filter\b|<radialGradient\b|\bfilter=|\b(?:blur|drop-shadow|backdrop-filter)\b/i, "the Share housing must remain fill-only without outlines, filters, blur, or shadows");
+  assert.match(deviceCssSource, /\.instagram-share-housing \.instagram-tab-icon \{[^}]*left: 18px; top: 10px; width: 28px; height: 22px;/, "the Share camera must preserve its tab-global position inside the taller housing");
+  assert.doesNotMatch(deviceCssSource, /\.instagram-share-tab \.instagram-tab-label/, "Share must not retain an independent label baseline rule");
+  assert.doesNotMatch(`${instagramChromeSource}\n${instagramContainerSource}`, /shareDisabled|className="instagram-share-tab" disabled=/, "player post count must never disable the Instagram Share tab");
+  assert.doesNotMatch(deviceCssSource, /instagram-share-tab:disabled/, "Share must not acquire a post-count disabled opacity treatment");
+  assert.doesNotMatch(instagramStateSource, /state\.photos\.length\s*[>=]|instagram-first-photo/, "Instagram Share and Post must not retain the one-post guards or fixed first-photo ID");
+  assert.match(instagramStateSource, /function nextInstagramPhotoId[\s\S]+instagram-user-photo-[\s\S]+photos: \[\.\.\.state\.photos, \{[\s\S]+selectedPhotoId: photoId/, "player Instagram posts must append with deterministic unique session-local IDs");
+  assert.match(instagramContainerSource, /<InstagramProfileStats photos=\{state\.photos\.length\}/, "Player Profile Photos count must continue deriving from the complete post array");
   assert.match(deviceCssSource, /\.instagram-period-empty-root \{[^}]*flex: 0 0 368px;[^}]*width: 320px;[^}]*height: 368px;[^}]*background: #e7e7e7;[^}]*font: 12px\/16px/, "News must fill the approved 320-by-368 content region with the shared neutral background and period-scale type");
   assert.match(deviceCssSource, /\.instagram-period-empty-root > p \{ margin: 0; \}/, "News empty copy must remain optically centered without browser paragraph margins");
   assert.match(deviceCssSource, /\.instagram-profile-summary \{[^}]*min-height: 104px;[^}]*grid-template-columns: 74px 1fr;/, "Profile must retain the approved dark 104pt summary and 74pt avatar column");

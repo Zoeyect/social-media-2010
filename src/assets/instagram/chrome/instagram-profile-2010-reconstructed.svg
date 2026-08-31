@@ -1,2 +1,12 @@
-<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: filled account-card silhouette, not original bundle artwork. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="22" viewBox="0 0 25 22"><path fill-rule="evenodd" d="M2 2h21c1.1 0 2 .9 2 2v16c0 1.1-.9 2-2 2H2c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2Zm5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-5 7h10v-2.2c0-2.4-2.2-3.8-5-3.8s-5 1.4-5 3.8V19Zm12-12h8V5h-8v2Zm0 4h8V9h-8v2Zm0 4h6v-2h-6v2Z"/></svg>
+<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: unselected Profile tab artwork; not original bundle artwork. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="27" height="22" viewBox="0 0 27 22" stroke="none">
+  <rect x="1" y="2.5" width="25" height="18" rx="1.5" fill="#929594"/>
+  <rect x="3" y="5" width="8.5" height="12.8" rx=".7" fill="#565a59"/>
+  <circle cx="7.25" cy="8.5" r="2.3" fill="#b5b8b7"/>
+  <path d="M4 16.7v-1.6c0-2 1.3-3.2 3.25-3.2s3.25 1.2 3.25 3.2v1.6H4Z" fill="#aaadac"/>
+  <rect x="14" y="5.5" width="9" height="1.1" fill="#4b4f4e"/>
+  <rect x="14" y="8.5" width="9" height="1.1" fill="#4b4f4e"/>
+  <rect x="14" y="11.5" width="7" height="1.1" fill="#4b4f4e"/>
+  <rect x="14" y="14.5" width="9" height="1.1" fill="#4b4f4e"/>
+  <rect x="14" y="17.5" width="5.5" height="1.1" fill="#4b4f4e"/>
+</svg>

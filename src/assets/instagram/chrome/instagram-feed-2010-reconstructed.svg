@@ -1,2 +1,9 @@
-<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: filled people silhouette, not original bundle artwork. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="26" height="23" viewBox="0 0 26 23"><path d="M8 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm9-1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM1 21v-5.2c0-3.1 3.1-5 7-5s7 1.9 7 5V21H1Zm14-1v-4.2c0-1.8-.8-3.3-2.2-4.4 1.1-.8 2.6-1.2 4.2-1.2 4 0 7 1.9 7 5V20h-9Z"/></svg>
+<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: unselected Feed tab artwork; not original bundle artwork. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="27" height="23" viewBox="0 0 27 23" stroke="none">
+  <circle cx="6.2" cy="7" r="3.2" fill="#aaadac"/>
+  <circle cx="20.8" cy="7" r="3.2" fill="#aaadac"/>
+  <path d="M1 20.8v-3.2c0-3 2-5 5.2-5s5.2 2 5.2 5v3.2H1Z" fill="#707473"/>
+  <path d="M15.6 20.8v-3.2c0-3 2-5 5.2-5s5.2 2 5.2 5v3.2H15.6Z" fill="#707473"/>
+  <circle cx="13.5" cy="5.2" r="4" fill="#d1d4d3"/>
+  <path d="M6.2 22v-4.3c0-3.8 2.8-6.1 7.3-6.1s7.3 2.3 7.3 6.1V22H6.2Z" fill="#909392"/>
+</svg>

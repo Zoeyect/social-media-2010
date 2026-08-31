@@ -1,2 +1,5 @@
-<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: filled heart silhouette, not original bundle artwork. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="22" viewBox="0 0 25 22"><path d="M12.5 21C9.2 17.8 2 12.3 1.1 7.4.4 3.6 2.8 1 6.3 1c2.8 0 4.5 1.7 6.2 4 1.7-2.3 3.4-4 6.2-4 3.5 0 5.9 2.6 5.2 6.4C23 12.3 15.8 17.8 12.5 21Z"/></svg>
+<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: unselected Popular tab artwork; not original bundle artwork. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="22" viewBox="0 0 25 22" stroke="none">
+  <path d="M12.5 20.8 4 13.1C1.9 11.2.8 9 .8 6.7.8 3.4 3 1.2 6.2 1.2c2.8 0 4.8 1.6 6.3 4 1.5-2.4 3.5-4 6.3-4 3.2 0 5.4 2.2 5.4 5.5 0 2.3-1.1 4.5-3.2 6.4l-8.5 7.7Z" fill="#858887"/>
+  <path d="M12.5 20.8 4 13.1c-1.2-1.1-2.1-2.3-2.6-3.5 2.6 2.1 7 5.7 11.1 9.4 4.1-3.7 8.5-7.3 11.1-9.4-.5 1.2-1.4 2.4-2.6 3.5l-8.5 7.7Z" fill="#747776"/>
+</svg>

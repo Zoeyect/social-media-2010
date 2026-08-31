@@ -1,0 +1,37 @@
+<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: continuous raised Share tab housing; not original bundle artwork. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="55" viewBox="0 0 64 55" stroke="none">
+  <defs>
+    <linearGradient id="housing-outer" x1="0" y1="0" x2="0" y2="55" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#282828"/>
+      <stop offset="0.5" stop-color="#222222"/>
+      <stop offset="1" stop-color="#1c1c1c"/>
+    </linearGradient>
+    <linearGradient id="housing-rim" x1="0" y1="0" x2="64" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#505050"/>
+      <stop offset="0.2" stop-color="#696969"/>
+      <stop offset="0.5" stop-color="#7a7a7a"/>
+      <stop offset="0.8" stop-color="#696969"/>
+      <stop offset="1" stop-color="#505050"/>
+    </linearGradient>
+    <linearGradient id="housing-upper-shell" x1="0" y1="2" x2="0" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#303030"/>
+      <stop offset="0.5" stop-color="#292929"/>
+      <stop offset="1" stop-color="#242424"/>
+    </linearGradient>
+    <linearGradient id="housing-upper-field" x1="0" y1="3" x2="0" y2="27" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#444444"/>
+      <stop offset="0.55" stop-color="#383838"/>
+      <stop offset="1" stop-color="#303030"/>
+    </linearGradient>
+    <linearGradient id="housing-lower-field" x1="0" y1="29" x2="0" y2="55" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#191919"/>
+      <stop offset="1" stop-color="#101010"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 7C6 4 18 0 32 0s26 4 32 7v48H0V7Z" fill="url(#housing-outer)"/>
+  <path d="M0 7C6 4 18 0 32 0s26 4 32 7v1C57 5 45 1 32 1S7 5 0 8V7Z" fill="url(#housing-rim)"/>
+  <path d="M1 8C7 5 18 2 32 2s25 3 31 6v20H1V8Z" fill="url(#housing-upper-shell)"/>
+  <path d="M4 9C10 6 20 3 32 3s22 3 28 6v18H4V9Z" fill="url(#housing-upper-field)"/>
+  <rect x="1" y="28" width="62" height="1" fill="#0c0c0c"/>
+  <rect x="1" y="29" width="62" height="26" fill="url(#housing-lower-field)"/>
+</svg>

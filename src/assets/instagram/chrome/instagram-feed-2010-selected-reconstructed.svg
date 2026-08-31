@@ -1,0 +1,9 @@
+<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: selected Feed tab artwork; not original bundle artwork. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="27" height="23" viewBox="0 0 27 23" stroke="none">
+  <circle cx="6.2" cy="7" r="3.2" fill="#e8eceb"/>
+  <circle cx="20.8" cy="7" r="3.2" fill="#e8eceb"/>
+  <path d="M1 20.8v-3.2c0-3 2-5 5.2-5s5.2 2 5.2 5v3.2H1Z" fill="#bdc5c5"/>
+  <path d="M15.6 20.8v-3.2c0-3 2-5 5.2-5s5.2 2 5.2 5v3.2H15.6Z" fill="#bdc5c5"/>
+  <circle cx="13.5" cy="5.2" r="4" fill="#f1f3f2"/>
+  <path d="M6.2 22v-4.3c0-3.8 2.8-6.1 7.3-6.1s7.3 2.3 7.3 6.1V22H6.2Z" fill="#579fc1"/>
+</svg>

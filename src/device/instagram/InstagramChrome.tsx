@@ -1,9 +1,13 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import feedIconSrc from "../../assets/instagram/chrome/instagram-feed-2010-reconstructed.svg";
+import feedIconSelectedSrc from "../../assets/instagram/chrome/instagram-feed-2010-selected-reconstructed.svg";
 import popularIconSrc from "../../assets/instagram/chrome/instagram-popular-2010-reconstructed.svg";
+import popularIconSelectedSrc from "../../assets/instagram/chrome/instagram-popular-2010-selected-reconstructed.svg";
 import shareIconSrc from "../../assets/instagram/chrome/instagram-share-2010-reconstructed.svg";
 import newsIconSrc from "../../assets/instagram/chrome/instagram-news-2010-reconstructed.svg";
+import newsIconSelectedSrc from "../../assets/instagram/chrome/instagram-news-2010-selected-reconstructed.svg";
 import profileIconSrc from "../../assets/instagram/chrome/instagram-profile-2010-reconstructed.svg";
+import profileIconSelectedSrc from "../../assets/instagram/chrome/instagram-profile-2010-selected-reconstructed.svg";
 import refreshIconSrc from "../../assets/instagram/chrome/instagram-refresh-2010-reconstructed.svg";
 import wordmarkSrc from "../../assets/instagram/chrome/instagram-wordmark-2010-reconstructed.svg";
 import type { InstagramState } from "../../state/instagramState";
@@ -34,7 +38,6 @@ export function InstagramRefreshButton({ label, onClick }: { label: string; onCl
 type InstagramTabBarProps = {
   currentView: InstagramState["currentView"];
   accountLabel: string;
-  shareDisabled: boolean;
   onFeed: () => void;
   onPopular: () => void;
   onShare: () => void;
@@ -42,30 +45,35 @@ type InstagramTabBarProps = {
   onProfile: () => void;
 };
 
-const tabIconStyle = (src: string) => ({ "--instagram-tab-icon": `url(${src})` }) as CSSProperties;
+function InstagramTabArtwork({ unselectedSrc, selectedSrc }: { unselectedSrc: string; selectedSrc: string }) {
+  return <span className="instagram-tab-icon" aria-hidden="true">
+    <img className="is-unselected" src={unselectedSrc} alt="" />
+    <img className="is-selected" src={selectedSrc} alt="" />
+  </span>;
+}
 
-export function InstagramTabBar({ currentView, accountLabel, shareDisabled, onFeed, onPopular, onShare, onNews, onProfile }: InstagramTabBarProps) {
+export function InstagramTabBar({ currentView, accountLabel, onFeed, onPopular, onShare, onNews, onProfile }: InstagramTabBarProps) {
   const popularSelected = currentView === "popular" || currentView === "popularPhotoDetail";
 
   return <nav className="instagram-development-navigation" aria-label="Instagram sections" data-artwork-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
     <button type="button" aria-current={currentView === "feed" ? "page" : undefined} onClick={onFeed}>
-      <span className="instagram-tab-icon" style={tabIconStyle(feedIconSrc)} aria-hidden="true" />
+      <InstagramTabArtwork unselectedSrc={feedIconSrc} selectedSrc={feedIconSelectedSrc} />
       <span className="instagram-tab-label">Feed</span>
     </button>
     <button type="button" aria-current={popularSelected ? "page" : undefined} onClick={onPopular}>
-      <span className="instagram-tab-icon" style={tabIconStyle(popularIconSrc)} aria-hidden="true" />
+      <InstagramTabArtwork unselectedSrc={popularIconSrc} selectedSrc={popularIconSelectedSrc} />
       <span className="instagram-tab-label">Popular</span>
     </button>
-    <button type="button" className="instagram-share-tab" disabled={shareDisabled} onClick={onShare}>
-      <span className="instagram-share-housing"><span className="instagram-tab-icon" style={tabIconStyle(shareIconSrc)} aria-hidden="true" /></span>
+    <button type="button" className="instagram-share-tab" onClick={onShare}>
+      <span className="instagram-share-housing"><span className="instagram-tab-icon" aria-hidden="true"><img src={shareIconSrc} alt="" /></span></span>
       <span className="instagram-tab-label">Share</span>
     </button>
     <button type="button" aria-current={currentView === "news" ? "page" : undefined} onClick={onNews}>
-      <span className="instagram-tab-icon" style={tabIconStyle(newsIconSrc)} aria-hidden="true" />
+      <InstagramTabArtwork unselectedSrc={newsIconSrc} selectedSrc={newsIconSelectedSrc} />
       <span className="instagram-tab-label">News</span>
     </button>
     <button type="button" aria-current={currentView === "profile" ? "page" : undefined} onClick={onProfile}>
-      <span className="instagram-tab-icon" style={tabIconStyle(profileIconSrc)} aria-hidden="true" />
+      <InstagramTabArtwork unselectedSrc={profileIconSrc} selectedSrc={profileIconSelectedSrc} />
       <span className="instagram-tab-label">{accountLabel}</span>
     </button>
   </nav>;

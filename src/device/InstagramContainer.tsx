@@ -6,6 +6,7 @@ import { getSharedCharacterMedia } from "../data/sharedCharacterMedia";
 import { getInstagramPopularPost, INSTAGRAM_POPULAR_POSTS } from "../data/instagramPopularContent";
 import { InstagramRefreshButton, InstagramTabBar, InstagramTopBar } from "./instagram/InstagramChrome";
 import { PhotosContainer } from "./PhotosContainer";
+import instagramClockSrc from "../assets/instagram/chrome/instagram-clock-2010-reconstructed.svg";
 
 type InstagramContainerProps = {
   state: InstagramState;
@@ -104,7 +105,7 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
                 {avatar && <img src={avatar.src} alt="" />}
                 <strong>{post.username}</strong>
               </button>
-              <time>{formatInstagramRelativeTimestamp(post.timestamp, currentDeviceDateTime)}</time>
+              <time><img src={instagramClockSrc} alt="" aria-hidden="true" />{formatInstagramRelativeTimestamp(post.timestamp, currentDeviceDateTime)}</time>
             </header>
             <div className="instagram-square-photo instagram-feed-photo"><img className="instagram-character-photo" src={media.src} alt="" /></div>
           </article>;
@@ -211,7 +212,6 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
     {!isWorkflow && <InstagramTabBar
       currentView={state.currentView}
       accountLabel={accountTabLabel}
-      shareDisabled={state.photos.length > 0}
       onFeed={() => dispatch({ type: "SHOW_FEED" })}
       onPopular={() => dispatch({ type: "SHOW_POPULAR" })}
       onShare={() => dispatch({ type: "BEGIN_FIRST_PHOTO" })}

@@ -104,6 +104,16 @@ export type InstagramEvent =
 
 const emptyDraft = (): InstagramDraft => ({ selectedCameraRollPhotoId: null, filter: null });
 
+function nextInstagramPhotoId(photos: InstagramPhoto[]): string {
+  const prefix = "instagram-user-photo-";
+  const nextSequence = photos.reduce((highest, photo) => {
+    if (!photo.id.startsWith(prefix)) return highest;
+    const sequence = Number.parseInt(photo.id.slice(prefix.length), 10);
+    return Number.isFinite(sequence) ? Math.max(highest, sequence) : highest;
+  }, 0) + 1;
+  return `${prefix}${String(nextSequence).padStart(4, "0")}`;
+}
+
 export function createInitialInstagramState(): InstagramState {
   return {
     currentView: "feed",
@@ -208,9 +218,7 @@ export function instagramStateTransition(state: InstagramState, event: Instagram
         ? { ...state, knownAccountPosts: state.knownAccountPosts.map(post => post.id === event.postId ? { ...post, status: "deleted" } : post) }
         : state;
     case "BEGIN_FIRST_PHOTO":
-      return state.photos.length === 0
-        ? { ...state, currentView: "source", selectedPhotoId: null, draft: emptyDraft() }
-        : state;
+      return { ...state, currentView: "source", selectedPhotoId: null, draft: emptyDraft() };
     case "SELECT_CAMERA_ROLL_PHOTO":
       return state.currentView === "source" && Boolean(event.photoId)
         ? { ...state, currentView: "filter", draft: { selectedCameraRollPhotoId: event.photoId, filter: "Original" } }
@@ -227,13 +235,14 @@ export function instagramStateTransition(state: InstagramState, event: Instagram
       return state.currentView === "filter" && state.draft.selectedCameraRollPhotoId && state.draft.filter
         ? { ...state, currentView: "share" }
         : state;
-    case "POST_FIRST_PHOTO":
-      if (state.currentView !== "share" || state.photos.length > 0 || !state.draft.selectedCameraRollPhotoId || !state.draft.filter) return state;
+    case "POST_FIRST_PHOTO": {
+      if (state.currentView !== "share" || !state.draft.selectedCameraRollPhotoId || !state.draft.filter) return state;
+      const photoId = nextInstagramPhotoId(state.photos);
       return {
         ...state,
         currentView: "feed",
-        photos: [{
-          id: "instagram-first-photo",
+        photos: [...state.photos, {
+          id: photoId,
           owner: event.owner,
           source: "camera-roll",
           sourcePhotoId: state.draft.selectedCameraRollPhotoId,
@@ -241,9 +250,10 @@ export function instagramStateTransition(state: InstagramState, event: Instagram
           createdAt: event.createdAt,
           origin: "user",
         }],
-        selectedPhotoId: "instagram-first-photo",
+        selectedPhotoId: photoId,
         draft: emptyDraft(),
       };
+    }
     case "INVALIDATE_DRAFT_MEDIA":
       return state.draft.selectedCameraRollPhotoId
         ? { ...state, currentView: state.currentView === "filter" || state.currentView === "share" ? "source" : state.currentView, draft: emptyDraft() }

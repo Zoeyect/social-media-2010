@@ -1,2 +1,6 @@
-<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: circular refresh glyph, not original bundle artwork. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="22" viewBox="0 0 20 22"><path fill="#fff" d="M17.7 3v5.8h-5.8l2.1-2.1a6.2 6.2 0 1 0 1.5 6.4l2.7.8A9 9 0 1 1 16 4.7L17.7 3Z"/></svg>
+<!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: slim Refresh glyph; not original bundle artwork. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="22" viewBox="0 0 18 22">
+  <path d="M15.5 7.4A7 7 0 1 0 16 13" fill="none" stroke="#173c56" stroke-opacity=".72" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M15.5 7.4A7 7 0 1 0 16 13" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="M12.1 3.2 16.2 7.7l-5.7.8" fill="#fff" stroke="#173c56" stroke-width=".7" stroke-linejoin="round"/>
+</svg>

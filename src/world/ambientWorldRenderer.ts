@@ -14,6 +14,15 @@ const WORLD_TREATMENT = {
   bloomAmount: 0.2,
 } as const;
 
+const CAMERA_TREATMENT = {
+  blur: 0.1,
+  exposure: 1,
+  noiseAmount: 0.022,
+  luminanceDrift: 0.01,
+  colorDrift: 0.004,
+  bloomAmount: 0.16,
+} as const;
+
 const DISPLAY_CONSTANTS = {
   maxLod: 5,
   bloomLod: 5,
@@ -23,6 +32,12 @@ const DISPLAY_CONSTANTS = {
 } as const;
 
 type Uniforms = Record<string, WebGLUniformLocation | null>;
+type Treatment = typeof WORLD_TREATMENT | typeof CAMERA_TREATMENT;
+
+export type AmbientWorldRenderer = {
+  setCameraViewfinder: (canvas: HTMLCanvasElement | null) => void;
+  dispose: () => void;
+};
 
 function compileShader(gl: WebGL2RenderingContext, type: number, source: string, name: string) {
   const shader = gl.createShader(type);
@@ -97,6 +112,8 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
   let lastFrameTime = performance.now();
   let sampleElapsed = 0;
   let sampleFrames = 0;
+  let cameraViewfinder: HTMLCanvasElement | null = null;
+  let cameraPresentation: CanvasRenderingContext2D | null = null;
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -150,11 +167,8 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     ready = true;
   }
 
-  function draw(dpr: number) {
+  function uploadScene(dpr: number) {
     if (!plateTexture || !bloomTexture) return;
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.disable(gl.SCISSOR_TEST);
-    gl.disable(gl.BLEND);
     gl.useProgram(layerProgram);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, plateTexture);
@@ -170,19 +184,79 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     gl.uniform1f(uniforms.uSceneLuma, scene.luma);
     gl.uniform1f(uniforms.uSceneColor, scene.color);
     gl.uniform1f(uniforms.uSceneRing, scene.ring);
-    gl.uniform1f(uniforms.uBlur, WORLD_TREATMENT.blur);
-    gl.uniform1f(uniforms.uExposure, WORLD_TREATMENT.exposure);
-    gl.uniform1f(uniforms.uNoiseAmount, WORLD_TREATMENT.noiseAmount);
-    gl.uniform1f(uniforms.uLuminanceDrift, WORLD_TREATMENT.luminanceDrift);
-    gl.uniform1f(uniforms.uColorDrift, WORLD_TREATMENT.colorDrift);
-    gl.uniform1f(uniforms.uBloomAmount, WORLD_TREATMENT.bloomAmount);
-    gl.uniform1f(uniforms.uOpacity, 1);
     gl.uniform1f(uniforms.uMaxLod, DISPLAY_CONSTANTS.maxLod);
     gl.uniform1f(uniforms.uBloomLod, DISPLAY_CONSTANTS.bloomLod);
     gl.uniform1f(uniforms.uGrainScale, dpr * 1.25);
     gl.uniform1f(uniforms.uGrainRate, DISPLAY_CONSTANTS.grainRate);
-    gl.uniform1f(uniforms.uGrainSeed, 0);
+  }
+
+  function drawLayer(treatment: Treatment, grainSeed: number) {
+    gl.uniform1f(uniforms.uBlur, treatment.blur);
+    gl.uniform1f(uniforms.uExposure, treatment.exposure);
+    gl.uniform1f(uniforms.uNoiseAmount, treatment.noiseAmount);
+    gl.uniform1f(uniforms.uLuminanceDrift, treatment.luminanceDrift);
+    gl.uniform1f(uniforms.uColorDrift, treatment.colorDrift);
+    gl.uniform1f(uniforms.uBloomAmount, treatment.bloomAmount);
+    gl.uniform1f(uniforms.uOpacity, 1);
+    gl.uniform1f(uniforms.uGrainSeed, grainSeed);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  function cameraBounds() {
+    if (!cameraViewfinder || !cameraPresentation) return null;
+    const canvasRect = canvas.getBoundingClientRect();
+    const viewfinderRect = cameraViewfinder.getBoundingClientRect();
+    if (canvasRect.width <= 0 || canvasRect.height <= 0 || viewfinderRect.width <= 0 || viewfinderRect.height <= 0) return null;
+    const scaleX = canvas.width / canvasRect.width;
+    const scaleY = canvas.height / canvasRect.height;
+    const left = Math.max(0, Math.round((viewfinderRect.left - canvasRect.left) * scaleX));
+    const top = Math.max(0, Math.round((viewfinderRect.top - canvasRect.top) * scaleY));
+    const right = Math.min(canvas.width, Math.round((viewfinderRect.right - canvasRect.left) * scaleX));
+    const bottom = Math.min(canvas.height, Math.round((viewfinderRect.bottom - canvasRect.top) * scaleY));
+    if (right <= left || bottom <= top) return null;
+    return { left, top, width: right - left, height: bottom - top };
+  }
+
+  function presentCamera(bounds: NonNullable<ReturnType<typeof cameraBounds>>, dpr: number) {
+    if (!cameraViewfinder || !cameraPresentation) return;
+    const targetWidth = Math.max(1, Math.round(cameraViewfinder.clientWidth * dpr));
+    const targetHeight = Math.max(1, Math.round(cameraViewfinder.clientHeight * dpr));
+    if (cameraViewfinder.width !== targetWidth || cameraViewfinder.height !== targetHeight) {
+      cameraViewfinder.width = targetWidth;
+      cameraViewfinder.height = targetHeight;
+    }
+    cameraPresentation.drawImage(
+      canvas,
+      bounds.left,
+      bounds.top,
+      bounds.width,
+      bounds.height,
+      0,
+      0,
+      targetWidth,
+      targetHeight,
+    );
+  }
+
+  function draw(dpr: number) {
+    if (!plateTexture || !bloomTexture) return;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.disable(gl.SCISSOR_TEST);
+    gl.disable(gl.BLEND);
+    uploadScene(dpr);
+    drawLayer(WORLD_TREATMENT, 0);
+
+    const bounds = cameraBounds();
+    if (!bounds) {
+      canvas.dataset.drawCalls = "1";
+      return;
+    }
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(bounds.left, canvas.height - bounds.top - bounds.height, bounds.width, bounds.height);
+    drawLayer(CAMERA_TREATMENT, 137);
+    gl.disable(gl.SCISSOR_TEST);
+    presentCamera(bounds, dpr);
+    canvas.dataset.drawCalls = "2";
   }
 
   function frame(now: number) {
@@ -215,16 +289,24 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     lastFrameTime = performance.now();
   }
 
-  return () => {
-    disposed = true;
-    image.onload = null;
-    image.onerror = null;
-    window.cancelAnimationFrame(animationFrame);
-    document.removeEventListener("visibilitychange", resetFrameTime);
-    if (plateTexture) gl.deleteTexture(plateTexture);
-    if (bloomTexture) gl.deleteTexture(bloomTexture);
-    gl.deleteProgram(layerProgram);
-    gl.deleteProgram(brightProgram);
-    if (vertexArray) gl.deleteVertexArray(vertexArray);
+  return {
+    setCameraViewfinder(target: HTMLCanvasElement | null) {
+      cameraViewfinder = target;
+      cameraPresentation = target?.getContext("2d", { alpha: false }) ?? null;
+    },
+    dispose() {
+      disposed = true;
+      cameraViewfinder = null;
+      cameraPresentation = null;
+      image.onload = null;
+      image.onerror = null;
+      window.cancelAnimationFrame(animationFrame);
+      document.removeEventListener("visibilitychange", resetFrameTime);
+      if (plateTexture) gl.deleteTexture(plateTexture);
+      if (bloomTexture) gl.deleteTexture(bloomTexture);
+      gl.deleteProgram(layerProgram);
+      gl.deleteProgram(brightProgram);
+      if (vertexArray) gl.deleteVertexArray(vertexArray);
+    },
   };
 }

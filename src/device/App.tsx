@@ -70,6 +70,7 @@ function loadRuntimeSession(): Session {
 export function App() {
   const [session, setSession] = useState<Session>(loadRuntimeSession);
   const ambientWorldEnabled = import.meta.env.DEV && new URLSearchParams(window.location.search).get("ambientWorld") === "1";
+  const [cameraPreviewCanvas, setCameraPreviewCanvas] = useState<HTMLCanvasElement | null>(null);
   const requestedDevApp = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("devApp") : null;
   const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" || requestedDevApp === "foursquare" || requestedDevApp === "flickr" || requestedDevApp === "tumblr" ? requestedDevApp : null;
   const devAutoOpen = devAppId !== null && new URLSearchParams(window.location.search).get("autoOpen") === "1";
@@ -653,7 +654,7 @@ export function App() {
   </>;
 
   return <SessionIdentityContext.Provider value={session.sessionIdentity}>
-    {ambientWorldEnabled && <AmbientWorld />}
+    {ambientWorldEnabled && <AmbientWorld cameraViewfinder={cameraPreviewCanvas} />}
     <main className={`stage${ambientWorldEnabled ? " has-ambient-world" : ""}`}>
       <section
       className={`device${displayIsLit ? " is-display-lit" : ""}`}
@@ -725,6 +726,7 @@ export function App() {
           {appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none" && <CameraContainer
             owner="cameraApp"
             session={cameraRuntime.cameraApp}
+            previewCanvasRef={ambientWorldEnabled ? setCameraPreviewCanvas : undefined}
           />}
           {appRuntime.activeAppId === "messages" && <MobileSMSContainer
             state={messagesState}

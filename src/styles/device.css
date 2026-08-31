@@ -198,7 +198,7 @@ button, input { font: inherit; }
 .ios4-keyboard-key.is-upper .ios4-shift-icon::before { background: #fff; filter: drop-shadow(0 0 3px rgba(255,255,255,.75)) drop-shadow(0 -1px rgba(0,0,0,.35)); }
 .camera-runtime-container, .camera-runtime-preview-surface { width: 320px; height: 460px; }
 .camera-runtime-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #000; }
-.camera-runtime-preview-surface { pointer-events: none; }
+.camera-runtime-preview-surface { position: absolute; z-index: 1; inset: 0; display: block; pointer-events: none; }
 .camera-picker-cancel { position: absolute; z-index: 3; right: 10px; bottom: 9px; min-width: 58px; height: 30px; padding: 0 9px; display: block; color: #fff; border: 1px solid #555; border-radius: 5px; background: #222; font-size: 14px; pointer-events: auto; }
 .mobilesms-container { width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #111; background: #e9e9e9; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
 .mobilesms-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; padding: 0 8px; color: #fff; border-top: 1px solid #b7c3d1; border-bottom: 1px solid #263a54; background: linear-gradient(#9aadc1 0%,#7188a2 48%,#526d8c 51%,#587492 100%); box-shadow: inset 0 1px rgba(255,255,255,.38), inset 0 -1px rgba(0,0,0,.18); text-shadow: 0 -1px 1px rgba(0,0,0,.72); }

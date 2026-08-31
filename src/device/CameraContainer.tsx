@@ -4,9 +4,10 @@ type CameraContainerProps = {
   owner: CameraOwner;
   session: CameraSession;
   onCancel?: () => void;
+  previewCanvasRef?: (canvas: HTMLCanvasElement | null) => void;
 };
 
-export function CameraContainer({ owner, session, onCancel }: CameraContainerProps) {
+export function CameraContainer({ owner, session, onCancel, previewCanvasRef }: CameraContainerProps) {
   return <section
     className="camera-runtime-container"
     aria-label={owner === "cameraApp" ? "Camera" : "Camera attachment picker"}
@@ -17,7 +18,9 @@ export function CameraContainer({ owner, session, onCancel }: CameraContainerPro
     data-camera-device={session.cameraDevice}
     data-camera-suspended={session.suspended || undefined}
   >
-    <div className="camera-runtime-preview-surface" aria-hidden="true" />
+    {previewCanvasRef
+      ? <canvas ref={previewCanvasRef} className="camera-runtime-preview-surface" aria-hidden="true" />
+      : <div className="camera-runtime-preview-surface" aria-hidden="true" />}
     {owner === "cameraPicker" && onCancel && <button
       type="button"
       className="camera-picker-cancel"

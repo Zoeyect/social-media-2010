@@ -625,15 +625,26 @@ button, input { font: inherit; }
 .instagram-known-photo-grid span { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px; color: #fff; background: rgba(0,0,0,.55); font-size: 9px; }
 .instagram-filter-step { flex: 0 0 416px; width: 320px; height: 416px; overflow: hidden; background: #111; }
 .instagram-filter-preview { width: 320px; height: 320px; display: grid; place-items: center; overflow: hidden; background: #111; }
-.instagram-filter-preview > img { width: 320px; height: 320px; display: block; object-fit: cover; }
-.instagram-filter-filmstrip { width: 320px; height: 96px; display: flex; align-items: stretch; overflow: hidden; border-top: 1px solid #111; background: linear-gradient(#565656,#303030 8%,#151515 100%); box-shadow: inset 0 1px rgba(255,255,255,.23); }
-.instagram-filter-filmstrip > button { flex: 0 0 68px; width: 68px; height: 96px; padding: 7px 6px 3px; display: grid; grid-template-rows: 56px 18px; justify-items: center; gap: 3px; color: #fff; border: 0; background: transparent; font-size: 10px; line-height: 15px; text-shadow: 0 -1px #000; }
-.instagram-filter-thumbnail-frame { width: 56px; height: 56px; padding: 4px; box-sizing: border-box; display: block; border: 1px solid transparent; border-radius: 4px; background: rgba(0,0,0,.28); }
-.instagram-filter-thumbnail-frame > img { width: 48px; height: 48px; display: block; object-fit: cover; }
-.instagram-filter-filmstrip > button[aria-pressed="true"] .instagram-filter-thumbnail-frame { border-color: #e7eef3; background: #708a9e; box-shadow: 0 0 0 1px #172631,inset 0 0 0 1px rgba(255,255,255,.35); }
+.instagram-filter-preview > .instagram-filtered-image { width: 320px; height: 320px; }
+.instagram-filter-filmstrip { width: 320px; height: 96px; overflow-x: auto; overflow-y: hidden; border-top: 1px solid #111; background: repeating-linear-gradient(135deg,rgba(255,255,255,.018) 0 1px,rgba(0,0,0,.018) 1px 2px),linear-gradient(#565656,#303030 8%,#151515 100%); box-shadow: inset 0 1px rgba(255,255,255,.23); scrollbar-width: none; -ms-overflow-style: none; }
+.instagram-filter-filmstrip::-webkit-scrollbar { display: none; }
+.instagram-filter-filmstrip-track { width: 350px; height: 96px; display: flex; align-items: stretch; }
+.instagram-filter-filmstrip-track > button { flex: 0 0 70px; width: 70px; height: 96px; padding: 9px 6px 3px; display: grid; grid-template-rows: 58px 15px; justify-items: center; gap: 3px; color: #fff; border: 0; background: transparent; font-size: 10px; line-height: 15px; text-shadow: 0 -1px #000; }
+.instagram-filter-thumbnail-frame { width: 58px; height: 58px; padding: 4px; box-sizing: border-box; display: block; border: 1px solid transparent; border-radius: 3px; background: rgba(0,0,0,.28); }
+.instagram-filter-thumbnail-frame > .instagram-filtered-image { width: 48px; height: 48px; }
+.instagram-filter-filmstrip-track > button[aria-pressed="true"] .instagram-filter-thumbnail-frame { border-color: #e7eef3; background: #708a9e; box-shadow: 0 0 0 1px #172631,inset 0 0 0 1px rgba(255,255,255,.35); }
+.instagram-filtered-image { --instagram-filter-treatment: none; --instagram-filter-wash: transparent; --instagram-filter-vignette: transparent; position: relative; width: 100%; height: 100%; display: block; overflow: hidden; background: #111; }
+.instagram-filtered-image > img { position: relative; z-index: 0; width: 100%; height: 100%; display: block; object-fit: cover; filter: var(--instagram-filter-treatment); }
+.instagram-filtered-image-wash,.instagram-filtered-image-vignette { position: absolute; z-index: 1; inset: 0; display: block; pointer-events: none; }
+.instagram-filtered-image-wash { background: var(--instagram-filter-wash); }
+.instagram-filtered-image-vignette { background: var(--instagram-filter-vignette); }
+.instagram-filtered-image[data-instagram-filter="X-Pro II"] { --instagram-filter-treatment: contrast(1.24) saturate(1.32) brightness(.96) sepia(.08) hue-rotate(-8deg); --instagram-filter-wash: linear-gradient(180deg,rgba(255,218,142,.08),rgba(35,72,126,.14)); --instagram-filter-vignette: radial-gradient(circle at 50% 46%,transparent 42%,rgba(4,12,30,.12) 66%,rgba(2,7,20,.48) 100%); }
+.instagram-filtered-image[data-instagram-filter="Lomo-fi"] { --instagram-filter-treatment: contrast(1.28) saturate(1.46) brightness(.97) sepia(.06); --instagram-filter-wash: linear-gradient(180deg,rgba(255,163,90,.06),rgba(128,53,25,.04)); --instagram-filter-vignette: radial-gradient(circle at 50% 48%,transparent 43%,rgba(0,0,0,.14) 67%,rgba(0,0,0,.5) 100%); }
+.instagram-filtered-image[data-instagram-filter="Earlybird"] { --instagram-filter-treatment: contrast(.94) saturate(.88) brightness(1.06) sepia(.34); --instagram-filter-wash: linear-gradient(180deg,rgba(255,218,139,.18),rgba(109,55,27,.1)); --instagram-filter-vignette: radial-gradient(circle at 50% 46%,transparent 48%,rgba(77,38,19,.08) 70%,rgba(68,31,16,.34) 100%); }
+.instagram-filtered-image[data-instagram-filter="1977"] { --instagram-filter-treatment: contrast(.9) saturate(1.18) brightness(1.08) sepia(.16) hue-rotate(-12deg); --instagram-filter-wash: linear-gradient(135deg,rgba(255,214,112,.1),rgba(232,88,128,.2)); --instagram-filter-vignette: radial-gradient(circle at 50% 48%,transparent 52%,rgba(105,52,36,.06) 74%,rgba(87,40,31,.22) 100%); }
 .instagram-share-confirmation { flex: 1 1 auto; min-height: 0; overflow: hidden; background: #eee; }
 .instagram-share-photo-row { width: 320px; height: 80px; padding: 8px; box-sizing: border-box; display: flex; align-items: center; border-bottom: 1px solid #aaa; background: #fff; }
-.instagram-share-photo-row > img { width: 64px; height: 64px; display: block; border: 1px solid #999; object-fit: cover; }
+.instagram-share-photo-row > .instagram-filtered-image { width: 64px; height: 64px; border: 1px solid #999; }
 .instagram-camera-roll-state { margin: 0; color: #777; font-size: 13px; text-align: center; }
 .instagram-development-navigation { position: relative; z-index: 3; flex: 0 0 48px; width: 320px; height: 48px; display: grid; grid-template-columns: repeat(5,64px); overflow: visible; border-top: 1px solid #080808; background: linear-gradient(#565656 0%,#333 9%,#202020 48%,#111 100%); box-shadow: inset 0 1px rgba(255,255,255,.3),inset 0 -1px #050505; }
 .instagram-development-navigation button { position: relative; height: 48px; padding: 0; display: block; color: #aaa; border: 0; border-right: 1px solid rgba(0,0,0,.9); border-left: 1px solid rgba(255,255,255,.075); background: transparent; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 9px; font-weight: normal; line-height: 11px; }

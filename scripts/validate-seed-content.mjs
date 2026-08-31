@@ -2241,6 +2241,21 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(instagram.selectInstagramKnownAccountStats(dramaInstagram, "june"), { posts: 3, followers: 118, following: 236 });
   assert.equal(instagramState.currentView, "feed");
   assert.deepEqual(instagramState.draft, { selectedCameraRollPhotoId: null, filter: null });
+  const instagramFilterIdentities = ["Original", "X-Pro II", "Lomo-fi", "Earlybird", "1977"];
+  for (const [filterIndex, filter] of instagramFilterIdentities.entries()) {
+    let filterState = instagram.createInitialInstagramState();
+    filterState = instagram.instagramStateTransition(filterState, { type: "BEGIN_FIRST_PHOTO" });
+    filterState = instagram.instagramStateTransition(filterState, { type: "SELECT_CAMERA_ROLL_PHOTO", photoId: "camera-photo-filter-source" });
+    assert.equal(filterState.draft.filter, "Original", "every new Camera Roll selection must begin at Normal / Original");
+    filterState = instagram.instagramStateTransition(filterState, { type: "SELECT_FILTER", filter });
+    assert.deepEqual(filterState.draft, { selectedCameraRollPhotoId: "camera-photo-filter-source", filter }, `${filter} must update only the draft filter identity`);
+    filterState = instagram.instagramStateTransition(filterState, { type: "CONTINUE_TO_SHARE" });
+    filterState = instagram.instagramStateTransition(filterState, { type: "BACK_TO_FILTERS" });
+    assert.deepEqual([filterState.currentView, filterState.draft.filter], ["filter", filter], `${filter} must survive Filters to Share to Back`);
+    filterState = instagram.instagramStateTransition(filterState, { type: "CONTINUE_TO_SHARE" });
+    filterState = instagram.instagramStateTransition(filterState, { type: "POST_FIRST_PHOTO", owner: "Zoey", createdAt: 1_287_552_800_000 + filterIndex });
+    assert.deepEqual([filterState.photos[0].sourcePhotoId, filterState.photos[0].filter], ["camera-photo-filter-source", filter], `${filter} must persist by identity while retaining the original Camera Roll stable ID`);
+  }
   instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
   assert.equal(instagramState.currentView, "source");
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_CAMERA_ROLL_PHOTO", photoId: "camera-photo-session-a-0001" });
@@ -2277,6 +2292,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
   assert.equal(instagramState.currentView, "source", "Share must remain available after the first post");
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_CAMERA_ROLL_PHOTO", photoId: "camera-photo-session-a-0002" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_FILTER", filter: "X-Pro II" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "CONTINUE_TO_SHARE" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "POST_FIRST_PHOTO", owner: "Zoey", createdAt: 1_287_552_901_000 });
   assert.deepEqual(instagramState.photos.map(photo => [photo.id, photo.sourcePhotoId, photo.createdAt]), [
@@ -2285,11 +2301,13 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   ], "a second post must append without replacing the first and may reuse the same authorized Camera Roll source");
   instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_CAMERA_ROLL_PHOTO", photoId: "camera-photo-session-a-0003" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_FILTER", filter: "1977" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "CONTINUE_TO_SHARE" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "POST_FIRST_PHOTO", owner: "Zoey", createdAt: 1_287_552_902_000 });
   assert.deepEqual(instagramState.photos.map(photo => photo.id), ["instagram-user-photo-0001", "instagram-user-photo-0002", "instagram-user-photo-0003"], "multiple posts must receive deterministic unique session-local IDs in append order");
   assert.equal(new Set(instagramState.photos.map(photo => photo.id)).size, 3, "every player Instagram post ID must be unique");
   assert.deepEqual(instagramState.photos.map(photo => photo.sourcePhotoId), ["camera-photo-session-a-0002", "camera-photo-session-a-0002", "camera-photo-session-a-0003"], "multi-post state must retain every Camera Roll stable source ID without Blob duplication");
+  assert.deepEqual(instagramState.photos.map(photo => photo.filter), ["Original", "X-Pro II", "1977"], "multiple posts must retain distinct filter identities without replacing earlier post treatment");
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SET_SCROLL_POSITION", scrollPosition: 37 });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SHOW_PROFILE" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SHOW_FEED" });
@@ -2375,6 +2393,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const cameraCaptureStateSource = await readFile(resolve(projectRoot, "src/state/cameraCaptureState.ts"), "utf8");
   const lockScreenSource = await readFile(resolve(projectRoot, "src/device/LockScreen.tsx"), "utf8");
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
+  const instagramFilteredImageSource = await readFile(resolve(projectRoot, "src/device/instagram/InstagramFilteredImage.tsx"), "utf8");
   const instagramChromeSource = await readFile(resolve(projectRoot, "src/device/instagram/InstagramChrome.tsx"), "utf8");
   const instagramWordmarkSource = await readFile(resolve(projectRoot, "src/assets/instagram/chrome/instagram-wordmark-2010-reconstructed.svg"), "utf8");
   const instagramTabIconSources = await Promise.all([
@@ -2783,6 +2802,19 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.instagram-owner-profile > \.instagram-find-facebook-friends \{ width: 190px; min-width: 190px; height: 28px; min-height: 28px; margin: 7px auto;[^}]*background: linear-gradient\(#709abd,#47779d 49%,#38688e 51%,#3d6b8f\)/, "Find Friends must use the approved restrained centered steel-blue control geometry");
   assert.match(appSource, /<InstagramContainer[\s\S]+cameraRoll=\{cameraRoll\}/, "Instagram must receive only App's authorized runtime Camera Roll collection");
   assert.match(instagramContainerSource, /<PhotosContainer[\s\S]+mode="picker"[\s\S]+onPickerSelect/, "Instagram Share must enter the system Camera Roll picker mode");
+  assert.match(instagramStateSource, /export type InstagramFilter = "Original" \| "X-Pro II" \| "Lomo-fi" \| "Earlybird" \| "1977";/, "Instagram filter state must expose exactly the five evidenced launch filter identities");
+  assert.match(instagramFilteredImageSource, /Original[\s\S]+Normal[\s\S]+X-Pro II[\s\S]+Lomo-fi[\s\S]+Earlybird[\s\S]+1977/, "the shared renderer registry must retain evidenced filter order and the Normal display label");
+  assert.match(instagramFilteredImageSource, /className="instagram-filtered-image"[\s\S]+<img src=\{src\}[\s\S]+instagram-filtered-image-wash[\s\S]+instagram-filtered-image-vignette/, "all filtered surfaces must share the square crop, CSS treatment, wash, then vignette renderer pipeline");
+  assert.equal((instagramContainerSource.match(/<InstagramFilteredImage/g) ?? []).length, 5, "filter thumbnails, preview, Share confirmation, player Feed, and player Profile must use the one shared renderer call site");
+  const instagramKnownMediaSource = instagramContainerSource.match(/followedKnownPosts\.map[\s\S]*?state\.photos\.map/)?.[0] ?? "";
+  const instagramKnownProfileMediaSource = instagramContainerSource.match(/selectedKnownPosts\.map[\s\S]*?knownConnections/)?.[0] ?? "";
+  assert.doesNotMatch(`${instagramKnownMediaSource}\n${instagramKnownProfileMediaSource}`, /InstagramFilteredImage/, "seeded and known-account Instagram media must remain outside the player-filter renderer");
+  assert.doesNotMatch(instagramFilteredImageSource, /canvas|toBlob|toDataURL|Blob|indexedDB|createObjectURL|revokeObjectURL/, "Instagram filtering must not create or persist derivative media");
+  assert.match(deviceCssSource, /\.instagram-filter-filmstrip-track \{ width: 350px; height: 96px;[\s\S]+flex: 0 0 70px; width: 70px; height: 96px;/, "the five filters must use a real 350pt horizontal track at the approved 70pt pitch");
+  assert.match(deviceCssSource, /\.instagram-filter-filmstrip \{[^}]*overflow-x: auto;[^}]*scrollbar-width: none;/, "the filter strip must scroll horizontally without visible modern scroll chrome");
+  assert.doesNotMatch(deviceCssSource, /instagram-filter-filmstrip[^}]*(?:scroll-snap|overscroll-behavior)|instagram-filter-(?:arrow|carousel)/, "the period filmstrip must not add snap, arrow, or carousel behavior");
+  assert.match(deviceCssSource, /data-instagram-filter="X-Pro II"[\s\S]+contrast\(1\.24\)[\s\S]+data-instagram-filter="Lomo-fi"[\s\S]+contrast\(1\.28\)[\s\S]+data-instagram-filter="Earlybird"[\s\S]+sepia\(\.34\)[\s\S]+data-instagram-filter="1977"[\s\S]+hue-rotate\(-12deg\)/, "every non-Normal filter must retain its approved deterministic reconstructed transform");
+  assert.doesNotMatch(deviceCssSource.match(/\.instagram-filtered-image \{[\s\S]*?\.instagram-share-confirmation/)?.[0] ?? "", /blur\(|drop-shadow|mix-blend-mode|background-blend-mode/, "the shared Instagram filter pipeline must not add blur, shadow, grain, or blend-mode variance");
   assert.doesNotMatch(instagramContainerSource, /DEV Fixture|DEV fixture|dev-fixture|Choose a source|No approved photographic fixture/, "normal Instagram runtime must not expose the development fixture path");
   assert.doesNotMatch(instagramContainerSource, /cameraRollPersistence|indexedDB|IDBDatabase/, "Instagram must not bypass App's Camera Roll ownership boundary");
   assert.match(photosContainerSource, /props\.mode === "picker"[\s\S]+backLabel="Cancel"[\s\S]+onOpenPhoto=\{props\.onPickerSelect\}/, "Photos picker mode must select a stable Camera Roll ID without opening the viewer");

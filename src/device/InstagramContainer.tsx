@@ -5,6 +5,7 @@ import { useSessionIdentity } from "../state/sessionIdentity";
 import { getSharedCharacterMedia } from "../data/sharedCharacterMedia";
 import { getInstagramPopularPost, INSTAGRAM_POPULAR_POSTS } from "../data/instagramPopularContent";
 import { InstagramRefreshButton, InstagramTabBar, InstagramTopBar } from "./instagram/InstagramChrome";
+import { InstagramFilteredImage, INSTAGRAM_FILTER_OPTIONS, instagramVisibleFilterLabel } from "./instagram/InstagramFilteredImage";
 import { PhotosContainer } from "./PhotosContainer";
 import instagramClockSrc from "../assets/instagram/chrome/instagram-clock-2010-reconstructed.svg";
 
@@ -114,7 +115,7 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
           return <article className="instagram-photo-record" key={photo.id} data-origin={photo.origin} data-source={photo.source}>
             <header><strong>{photo.owner}</strong><span>{instagramVisibleFilterLabel(photo.filter)}</span></header>
             {sourcePhoto
-              ? <div className="instagram-square-photo instagram-feed-photo"><img src={sourcePhoto.objectUrl} alt={sourcePhoto.filename} /></div>
+              ? <div className="instagram-square-photo instagram-feed-photo"><InstagramFilteredImage src={sourcePhoto.objectUrl} alt={sourcePhoto.filename} filter={photo.filter} /></div>
               : <div className="instagram-square-photo instagram-feed-photo instagram-unavailable-photo" role="img" aria-label="Photo unavailable" />}
           </article>;
         })}</>}
@@ -145,7 +146,7 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
         : state.photos.map(photo => {
           const sourcePhoto = cameraRoll.records.find(record => record.id === photo.sourcePhotoId) ?? null;
           return <article key={photo.id}><header><span className="instagram-stream-avatar-placeholder" aria-hidden="true" /><strong>{identity.name || "Owner"}</strong><time>{instagramVisibleFilterLabel(photo.filter)}</time></header>{sourcePhoto
-            ? <div className="instagram-square-photo"><img src={sourcePhoto.objectUrl} alt={sourcePhoto.filename} /></div>
+            ? <div className="instagram-square-photo"><InstagramFilteredImage src={sourcePhoto.objectUrl} alt={sourcePhoto.filename} filter={photo.filter} /></div>
             : <div className="instagram-square-photo instagram-unavailable-photo" role="img" aria-label="Photo unavailable" />}</article>;
         })}</div>
     </section>}
@@ -190,21 +191,23 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
     {state.currentView === "filter" && <section className="instagram-filter-step" data-geometry-status="RECONSTRUCTED">
       <div className="instagram-filter-preview">
         {selectedDraftPhoto
-          ? <img src={selectedDraftPhoto.objectUrl} alt={selectedDraftPhoto.filename} />
+          ? <InstagramFilteredImage src={selectedDraftPhoto.objectUrl} alt={selectedDraftPhoto.filename} filter={state.draft.filter ?? "Original"} />
           : <InstagramCameraRollStateMessage cameraRoll={cameraRoll} />}
       </div>
       <div className="instagram-filter-filmstrip" aria-label="Filters">
-        <button type="button" aria-pressed={state.draft.filter === "Original"} onClick={() => dispatch({ type: "SELECT_FILTER", filter: "Original" })}>
-          <span className="instagram-filter-thumbnail-frame">{selectedDraftPhoto && <img src={selectedDraftPhoto.objectUrl} alt="" />}</span>
-          <span>Normal</span>
-        </button>
+        <div className="instagram-filter-filmstrip-track">
+          {INSTAGRAM_FILTER_OPTIONS.map(option => <button key={option.id} type="button" aria-pressed={state.draft.filter === option.id} onClick={() => dispatch({ type: "SELECT_FILTER", filter: option.id })}>
+            <span className="instagram-filter-thumbnail-frame">{selectedDraftPhoto && <InstagramFilteredImage src={selectedDraftPhoto.objectUrl} alt="" filter={option.id} />}</span>
+            <span>{option.label}</span>
+          </button>)}
+        </div>
       </div>
     </section>}
 
     {state.currentView === "share" && <section className="instagram-share-confirmation" data-geometry-status="RECONSTRUCTED">
       <div className="instagram-share-photo-row">
         {selectedDraftPhoto
-          ? <img src={selectedDraftPhoto.objectUrl} alt={selectedDraftPhoto.filename} />
+          ? <InstagramFilteredImage src={selectedDraftPhoto.objectUrl} alt={selectedDraftPhoto.filename} filter={state.draft.filter ?? "Original"} />
           : <InstagramCameraRollStateMessage cameraRoll={cameraRoll} />}
       </div>
     </section>}
@@ -277,8 +280,4 @@ function InstagramCameraRollStateMessage({ cameraRoll }: { cameraRoll: CameraRol
   return <p className="instagram-camera-roll-state" role={cameraRoll.status === "error" ? "alert" : "status"}>
     {cameraRoll.status === "loading" ? "Loading Camera Roll…" : "Camera Roll Unavailable"}
   </p>;
-}
-
-function instagramVisibleFilterLabel(filter: InstagramState["draft"]["filter"]): string {
-  return filter === "Original" ? "Normal" : "";
 }

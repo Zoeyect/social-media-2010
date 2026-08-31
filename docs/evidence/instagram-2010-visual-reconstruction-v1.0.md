@@ -120,13 +120,13 @@ Normal Photos album browsing, Camera Roll browsing, paging viewer, persistence, 
 | Navigation | Back / Filters / Next in 320×44pt shared chrome | **CONFIRMED** period screenshot structure |
 | Preview | x=0, y=44, 320×320pt | **CONFIRMED / PROBABLE** screenshot measurement |
 | Filmstrip | x=0, y=364, 320×96pt | **CONFIRMED / PROBABLE** screenshot measurement |
-| Processing state | internal `Original`, visible `Normal` | **CONFIRMED** visible label; existing neutral processing semantics preserved |
-| Option pitch | 68pt | **RECONSTRUCTED** |
-| Thumbnail | 48×48pt within an approximately 56×56pt selected frame | **RECONSTRUCTED** |
-| Additional launch filters | unrendered because they are not functional in this checkpoint | **HOLD** |
+| Processing state | internal `Original`, visible `Normal`; `X-Pro II`, `Lomo-fi`, `Earlybird`, and `1977` | names/order **CONFIRMED**; visual character **PERIOD-REFERENCE-INFORMED**; exact parameters **RECONSTRUCTED** |
+| Option pitch | 70pt; five-option 350pt horizontally scrolling track | **RECONSTRUCTED** |
+| Thumbnail | 48×48pt within a 58×58pt selected frame | **RECONSTRUCTED** |
+| Launch filters | all five visible options are functional through one deterministic renderer | original proprietary algorithms **HOLD** |
 | Preview crop | centered square cover of the selected Camera Roll JPEG | **RECONSTRUCTED** |
 
-No crop editor, fabricated filter processing, or nonfunctional period filter buttons are introduced.
+No crop editor or nonfunctional filter buttons are introduced. The original Camera Roll JPEG remains unchanged; only filter identity is stored in Instagram state.
 
 ### Share classification
 
@@ -350,3 +350,21 @@ The superseded reconstruction materially diverged in letterform mass, rhythm and
 The sole fill is off-white `#f4f1e8`. There is no second depth silhouette, dark edge, outline, stroke, shadow, opacity treatment, filter, live text or font dependency. Exact original RGB remains **HOLD** because the compressed screenshot cannot establish it. Any historical dark-edge or shadow treatment also remains **HOLD** pending stronger independent evidence.
 
 The direct CSS mount is 122×29pt with a 1.5pt left translation and no vertical translation. In the unchanged centered navigation grid, this targets screenshot bounds of approximately x=98…219 and y=28…56 and optical center x=158.5, y=42; final raster edges remain subject to ±1px antialiasing uncertainty. Refresh, navigation geometry, React/state behavior, Share housing and bottom tabs are unchanged. The artwork remains **RECONSTRUCTED_FROM_PERIOD_SCREENSHOT**; original Instagram bundle artwork remains **HOLD**.
+
+## Instagram Filters v1.1b
+
+The Web Design Museum 2010 Filters screenshot confirms the visible launch-era sequence `Normal`, `X-Pro II`, `Lomo-fi`, `Earlybird`, and `1977`. Those identities and their order are **CONFIRMED**. Their broad visual character is **PERIOD-REFERENCE-INFORMED**. The exact browser transforms below are **RECONSTRUCTED** because the original Instagram algorithms and numerical parameters remain **HOLD**.
+
+| Filter | Deterministic reconstructed treatment |
+| --- | --- |
+| Normal | unchanged source pixels at presentation time |
+| X-Pro II | `contrast(1.24) saturate(1.32) brightness(.96) sepia(.08) hue-rotate(-8deg)`; faint warm-to-cool wash; strong blue-black vignette |
+| Lomo-fi | `contrast(1.28) saturate(1.46) brightness(.97) sepia(.06)`; restrained warm wash; strong neutral-black vignette |
+| Earlybird | `contrast(.94) saturate(.88) brightness(1.06) sepia(.34)`; amber-to-brown wash; soft brown vignette |
+| 1977 | `contrast(.90) saturate(1.18) brightness(1.08) sepia(.16) hue-rotate(-12deg)`; pink/yellow wash; mild warm vignette |
+
+One shared renderer is used by the 48×48pt filter thumbnails, 320×320pt preview, Share confirmation, player Feed media, and player Profile media. Its fixed presentation pipeline is square cover crop → CSS filter → alpha-gradient wash → radial vignette. It uses no blur, sharpening, grain, noise, frame, blend mode, derivative canvas, or JPEG export. Known-account and June seed media remain outside this player-filter renderer.
+
+Instagram state stores only the selected filter identity beside the stable Camera Roll source ID. Every surface resolves the same authorized Camera Roll object URL, so selection and posting do not alter the source JPEG, create a derivative Blob, or change IndexedDB ownership. A new Camera Roll selection begins at internal `Original` / visible `Normal`; Filters → Share → Back preserves the current identity; a new Share draft resets to Normal.
+
+The locked Filters surface remains 320×44pt navigation, 320×320pt preview, and 320×96pt filmstrip. The filmstrip uses five 70pt options on a real 350pt horizontal track, exposing the first four options and approximately 40pt of `1977` at the initial left position. Each option uses a 48×48pt image within a reconstructed 58×58pt frame and an approximately 10px period label. The dark textured strip and pale-rim/muted-blue-gray selected state are **RECONSTRUCTED**. There are no arrows, snapping, carousel logic, fake inertia, or visible scrollbar.

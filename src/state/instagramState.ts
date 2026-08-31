@@ -7,7 +7,7 @@ import type { InstagramPopularPostId } from "../data/instagramPopularContent";
 export type InstagramView = "feed" | "popular" | "popularPhotoDetail" | "news" | "profile" | "following" | "facebookFriends" | "knownProfile" | "knownConnections" | "source" | "filter" | "share";
 export type InstagramKnownProfileOrigin = "feed" | "following" | "facebookFriends";
 export type InstagramPhotoSource = "camera-roll";
-export type InstagramFilter = "Original";
+export type InstagramFilter = "Original" | "X-Pro II" | "Lomo-fi" | "Earlybird" | "1977";
 
 export type InstagramPhoto = {
   id: string;

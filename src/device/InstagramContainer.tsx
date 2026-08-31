@@ -3,13 +3,15 @@ import { InstagramEvent, InstagramState, selectInstagramFollowedAccounts, select
 import { useSessionIdentity } from "../state/sessionIdentity";
 import { getSharedCharacterMedia } from "../data/sharedCharacterMedia";
 import { getInstagramPopularPost, INSTAGRAM_POPULAR_POSTS } from "../data/instagramPopularContent";
+import { InstagramRefreshButton, InstagramTabBar, InstagramTopBar } from "./instagram/InstagramChrome";
 
 type InstagramContainerProps = {
   state: InstagramState;
   dispatch: Dispatch<InstagramEvent>;
+  currentDeviceDateTime: Date;
 };
 
-export function InstagramContainer({ state, dispatch }: InstagramContainerProps) {
+export function InstagramContainer({ state, dispatch, currentDeviceDateTime }: InstagramContainerProps) {
   const identity = useSessionIdentity();
   const feedRef = useRef<HTMLDivElement>(null);
   const popularRef = useRef<HTMLDivElement>(null);
@@ -34,16 +36,30 @@ export function InstagramContainer({ state, dispatch }: InstagramContainerProps)
     popularRef.current.scrollTop = state.popularScrollPosition;
   }, [state.currentView, state.popularScrollPosition]);
 
-  return <section className="instagram-container" aria-label="Instagram" data-chrome-status="HOLD">
-    <header className="instagram-navigation-bar">
-      {state.currentView === "popularPhotoDetail" && <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_FROM_POPULAR_PHOTO" })}>Back</button>}
-      {(state.currentView === "following" || state.currentView === "facebookFriends" || state.currentView === "knownProfile" || state.currentView === "knownConnections") && <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_FROM_DISCOVERY" })}>Back</button>}
-      {isWorkflow && <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "CANCEL_FIRST_PHOTO" })}>Cancel</button>}
-      <strong>{viewTitle(state.currentView, selectedKnownAccount?.username, state.knownConnectionsKind)}</strong>
-      {state.currentView === "filter" && <button className="instagram-navigation-next" type="button" onClick={() => dispatch({ type: "CONTINUE_TO_SHARE" })}>Next</button>}
-      {state.currentView === "popular" && <button className="instagram-navigation-next instagram-popular-refresh" type="button" data-icon-status="HOLD-HISTORICAL-ASSET" onClick={() => dispatch({ type: "REFRESH_POPULAR" })}>Refresh</button>}
-      {state.currentView === "knownProfile" && selectedKnownAccount && <button className="instagram-navigation-next instagram-profile-relationship-control" type="button" data-chrome-status="HOLD" aria-pressed={state.followedCharacterIds.includes(selectedKnownAccount.canonicalCharacterId)} onClick={() => dispatch({ type: "SET_KNOWN_ACCOUNT_FOLLOWING", characterId: selectedKnownAccount.canonicalCharacterId, following: !state.followedCharacterIds.includes(selectedKnownAccount.canonicalCharacterId) })}>{state.followedCharacterIds.includes(selectedKnownAccount.canonicalCharacterId) ? "Following" : "Follow"}</button>}
-    </header>
+  const leftControl = state.currentView === "popularPhotoDetail"
+    ? <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_FROM_POPULAR_PHOTO" })}>Back</button>
+    : state.currentView === "following" || state.currentView === "facebookFriends" || state.currentView === "knownProfile" || state.currentView === "knownConnections"
+      ? <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_FROM_DISCOVERY" })}>Back</button>
+      : isWorkflow
+        ? <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "CANCEL_FIRST_PHOTO" })}>Cancel</button>
+        : null;
+  const rightControl = state.currentView === "filter"
+    ? <button className="instagram-navigation-next" type="button" onClick={() => dispatch({ type: "CONTINUE_TO_SHARE" })}>Next</button>
+    : state.currentView === "feed"
+      ? <InstagramRefreshButton label="Refresh Feed" onClick={() => dispatch({ type: "SHOW_FEED" })} />
+      : state.currentView === "popular"
+        ? <InstagramRefreshButton label="Refresh Popular" onClick={() => dispatch({ type: "REFRESH_POPULAR" })} />
+        : state.currentView === "knownProfile" && selectedKnownAccount
+          ? <button className="instagram-navigation-next instagram-profile-relationship-control" type="button" data-chrome-status="HOLD" aria-pressed={state.followedCharacterIds.includes(selectedKnownAccount.canonicalCharacterId)} onClick={() => dispatch({ type: "SET_KNOWN_ACCOUNT_FOLLOWING", characterId: selectedKnownAccount.canonicalCharacterId, following: !state.followedCharacterIds.includes(selectedKnownAccount.canonicalCharacterId) })}>{state.followedCharacterIds.includes(selectedKnownAccount.canonicalCharacterId) ? "Following" : "Follow"}</button>
+          : null;
+
+  return <section className="instagram-container" aria-label="Instagram" data-chrome-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
+    <InstagramTopBar
+      title={viewTitle(state.currentView, selectedKnownAccount?.username, state.knownConnectionsKind)}
+      wordmark={state.currentView === "feed"}
+      leftControl={leftControl}
+      rightControl={rightControl}
+    />
 
     {state.currentView === "feed" && <div
       ref={feedRef}
@@ -57,9 +73,16 @@ export function InstagramContainer({ state, dispatch }: InstagramContainerProps)
           </div>
         : <>{followedKnownPosts.map(post => {
           const media = getSharedCharacterMedia(post.mediaId);
+          const avatar = post.canonicalCharacterId === "june" ? getSharedCharacterMedia("june-profile-avatar") : null;
           return <article className="instagram-photo-record is-known-account" key={post.id} data-origin={post.origin}>
-            <header><button type="button" onClick={() => dispatch({ type: "OPEN_KNOWN_PROFILE", characterId: post.canonicalCharacterId })}>@{post.username}</button><span>{post.timestamp}</span></header>
-            <div className="instagram-square-photo"><img className="instagram-character-photo" src={media.src} alt="" /></div>
+            <header className="instagram-feed-metadata">
+              <button className="instagram-feed-author" type="button" onClick={() => dispatch({ type: "OPEN_KNOWN_PROFILE", characterId: post.canonicalCharacterId })}>
+                {avatar && <img src={avatar.src} alt="" />}
+                <strong>{post.username}</strong>
+              </button>
+              <time>{formatInstagramRelativeTimestamp(post.timestamp, currentDeviceDateTime)}</time>
+            </header>
+            <div className="instagram-square-photo instagram-feed-photo"><img className="instagram-character-photo" src={media.src} alt="" /></div>
           </article>;
         })}{state.photos.map(photo => <article className="instagram-photo-record" key={photo.id} data-origin={photo.origin}>
             <header><strong>{photo.owner}</strong><span>{photo.filter}</span></header>
@@ -158,13 +181,16 @@ export function InstagramContainer({ state, dispatch }: InstagramContainerProps)
       <button type="button" onClick={() => dispatch({ type: "POST_FIRST_PHOTO", owner: identity.name || "Owner", createdAt: Date.now() })}>Post</button>
     </section>}
 
-    {!isWorkflow && <nav className="instagram-development-navigation" aria-label="Instagram sections">
-      <button type="button" aria-current={state.currentView === "feed" ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_FEED" })}>Feed</button>
-      <button type="button" aria-current={state.currentView === "popular" || state.currentView === "popularPhotoDetail" ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_POPULAR" })}>Popular</button>
-      <button type="button" className="instagram-share-tab" disabled={state.photos.length > 0} onClick={() => dispatch({ type: "BEGIN_FIRST_PHOTO" })}>Share</button>
-      <button type="button" aria-current={state.currentView === "news" ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_NEWS" })}>News</button>
-      <button type="button" aria-current={state.currentView === "profile" ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_PROFILE" })}>{accountTabLabel}</button>
-    </nav>}
+    {!isWorkflow && <InstagramTabBar
+      currentView={state.currentView}
+      accountLabel={accountTabLabel}
+      shareDisabled={state.photos.length > 0}
+      onFeed={() => dispatch({ type: "SHOW_FEED" })}
+      onPopular={() => dispatch({ type: "SHOW_POPULAR" })}
+      onShare={() => dispatch({ type: "BEGIN_FIRST_PHOTO" })}
+      onNews={() => dispatch({ type: "SHOW_NEWS" })}
+      onProfile={() => dispatch({ type: "SHOW_PROFILE" })}
+    />}
   </section>;
 }
 
@@ -182,6 +208,16 @@ function formatInstagramProfileTimestamp(timestamp: string): string {
   if (timestamp === "2010-10-16") return "Oct 16";
   if (timestamp === "2010-10-15") return "Oct 15";
   return timestamp;
+}
+
+function formatInstagramRelativeTimestamp(timestamp: string, currentDeviceDateTime: Date): string {
+  const timestampMs = Date.parse(timestamp);
+  if (!Number.isFinite(timestampMs)) return "now";
+  const elapsedSeconds = Math.max(0, Math.floor((currentDeviceDateTime.getTime() - timestampMs) / 1000));
+  if (elapsedSeconds < 60) return "1m";
+  if (elapsedSeconds < 60 * 60) return `${Math.floor(elapsedSeconds / 60)}m`;
+  if (elapsedSeconds < 24 * 60 * 60) return `${Math.floor(elapsedSeconds / (60 * 60))}h`;
+  return `${Math.floor(elapsedSeconds / (24 * 60 * 60))}d`;
 }
 
 function InstagramPopularFixture({ media, username }: { media: string; username: string }) {

@@ -1009,6 +1009,7 @@ export function App() {
           {appRuntime.activeAppId === "instagram" && <InstagramContainer
             state={instagramState}
             dispatch={dispatchInstagram}
+            currentDeviceDateTime={deviceDateTime}
           />}
           {appRuntime.activeAppId === "flickr" && <FlickrContainer
             state={flickrState}

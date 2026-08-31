@@ -2351,6 +2351,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const cameraCaptureStateSource = await readFile(resolve(projectRoot, "src/state/cameraCaptureState.ts"), "utf8");
   const lockScreenSource = await readFile(resolve(projectRoot, "src/device/LockScreen.tsx"), "utf8");
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
+  const instagramChromeSource = await readFile(resolve(projectRoot, "src/device/instagram/InstagramChrome.tsx"), "utf8");
   const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
   const facebookHomeIconsSource = await readFile(resolve(projectRoot, "src/device/FacebookHomeIcons.tsx"), "utf8");
   const facebookMicroChromeSource = await readFile(resolve(projectRoot, "src/device/FacebookMicroChrome.tsx"), "utf8");
@@ -2681,12 +2682,12 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(instagramContainerSource, /instagram-profile-photo-stream/, "Instagram 1.0 profiles must use a vertical photo stream");
   assert.doesNotMatch(instagramContainerSource, /instagram-known-photo-grid|profile-bio|Story Highlights|Reels/, "June profile must not contain post-2010 grid, bio, Story, or Reels UI");
   assert.match(instagramContainerSource, /getSharedCharacterMedia\("june-profile-avatar"\)/, "June's profile and stream avatar must resolve through shared media");
-  assert.match(instagramContainerSource, />Popular<\/button>/, "Popular must be a functional root tab");
-  assert.match(instagramContainerSource, />Share<\/button>/, "the center Instagram tab must use Share semantics");
+  assert.match(instagramChromeSource, /<span className="instagram-tab-label">Popular<\/span>/, "Popular must be a functional root tab");
+  assert.match(instagramChromeSource, /<span className="instagram-tab-label">Share<\/span>/, "the center Instagram tab must use Share semantics");
   assert.match(instagramContainerSource, /instagramAccountTabLabel\(identity\.name\)/, "the rightmost tab must derive current-account identity");
-  assert.match(deviceCssSource, /\.instagram-popular-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,1fr\)[^}]*overflow-y:\s*auto/, "Popular must use a vertically scrolling four-column grid");
-  assert.match(deviceCssSource, /\.instagram-popular-grid\s*>\s*button\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/, "Popular thumbnails must remain square");
-  assert.doesNotMatch(instagramContainerSource, /Explore|category chips|Suggested for You|Reels|instagram-popular-search/, "Popular must not introduce modern Explore UI");
+  assert.match(deviceCssSource, /\.instagram-popular-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,80px\)[^}]*overflow-y:\s*auto/, "Popular must use a vertically scrolling four-column grid at the confirmed 80pt pitch");
+  assert.match(deviceCssSource, /\.instagram-popular-grid\s*>\s*button\s*\{[^}]*width:\s*80px;[^}]*height:\s*80px;/, "Popular thumbnails must retain square 80pt outer cells");
+  assert.doesNotMatch(`${instagramContainerSource}\n${instagramChromeSource}`, /Explore|category chips|Suggested for You|Reels|instagram-popular-search/, "Popular must not introduce modern Explore UI");
   assert.match(deviceCssSource, /\.instagram-square-photo\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/, "June Instagram media must use a square presentation surface");
   assert.match(deviceCssSource, /\.instagram-square-photo img\s*\{[^}]*width:\s*100%[^}]*height:\s*100%[^}]*object-fit:\s*cover/, "square Instagram images must fill their 1:1 surface without stretching");
   assert.match(facebookContainerSource, /getFacebookStoryMedia\(mediaId\)/, "Facebook Feed must resolve local and shared story media through the centralized registry resolver");

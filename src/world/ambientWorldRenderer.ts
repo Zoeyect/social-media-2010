@@ -5,7 +5,20 @@ import {
 } from "./ambientWorldShaders";
 import { createAmbientWorldScene, updateAmbientWorldScene } from "./ambientWorldState";
 import { CAMERA_LOOK_NOMINAL_LIMITS } from "../state/cameraRuntime";
-import type { CameraLookOffset, CameraLookState } from "../state/cameraRuntime";
+import type { CameraDevice, CameraLookOffset, CameraLookState, CameraMode } from "../state/cameraRuntime";
+import {
+  CAMERA_CAPTURE_GRAIN_SCALE,
+  CAMERA_CAPTURE_HEIGHT,
+  CAMERA_CAPTURE_JPEG_QUALITY,
+  CAMERA_CAPTURE_MIME_TYPE,
+  CAMERA_CAPTURE_SCENE_ID,
+  CAMERA_CAPTURE_WIDTH,
+} from "../state/cameraCaptureState";
+import type {
+  CameraCapturedArtifact,
+  CameraCaptureFramingSnapshot,
+  CameraCaptureSceneSnapshot,
+} from "../state/cameraCaptureState";
 
 const WORLD_TREATMENT = {
   blur: 0.82,
@@ -48,11 +61,70 @@ export type AmbientWorldRenderer = {
   setCameraViewfinder: (canvas: HTMLCanvasElement | null) => void;
   setCameraLookState: (state: CameraLookState) => void;
   setCameraLookClampHandler: (handler: ((offset: CameraLookOffset) => void) | null) => void;
+  captureCameraStill: (request: CameraStillCaptureRequest) => Promise<CameraCapturedArtifact>;
   dispose: () => void;
 };
 
+export type CameraStillCaptureRequest = Readonly<{
+  createdAt: string;
+  cameraFacing: CameraDevice;
+  cameraMode: CameraMode;
+}>;
+
 type CameraLookAxisBounds = { minimum: number; maximum: number };
 type CameraLookBounds = { x: CameraLookAxisBounds; y: CameraLookAxisBounds };
+
+type PresentedCameraFrame = Readonly<{
+  pointerOffset: CameraLookOffset;
+  orientationOffset: CameraLookOffset;
+  effectiveLookOffset: CameraLookOffset;
+  sharedScene: CameraCaptureSceneSnapshot;
+}>;
+
+function cloneOffset(offset: CameraLookOffset): CameraLookOffset {
+  return Object.freeze({ x: offset.x, y: offset.y });
+}
+
+function encodeJpeg(pixels: Uint8Array, width: number, height: number) {
+  const rowBytes = width * 4;
+  const row = new Uint8Array(rowBytes);
+  for (let top = 0, bottom = height - 1; top < bottom; top += 1, bottom -= 1) {
+    const topOffset = top * rowBytes;
+    const bottomOffset = bottom * rowBytes;
+    row.set(pixels.subarray(topOffset, topOffset + rowBytes));
+    pixels.copyWithin(topOffset, bottomOffset, bottomOffset + rowBytes);
+    pixels.set(row, bottomOffset);
+  }
+
+  const output = document.createElement("canvas");
+  output.width = width;
+  output.height = height;
+  const context = output.getContext("2d", { alpha: false });
+  if (!context) throw new Error("Camera capture could not create a 2D encoding context.");
+  context.putImageData(
+    new ImageData(
+      new Uint8ClampedArray(pixels.buffer as ArrayBuffer, pixels.byteOffset, pixels.byteLength),
+      width,
+      height,
+    ),
+    0,
+    0,
+  );
+  return new Promise<Blob>((resolve, reject) => {
+    try {
+      output.toBlob(blob => {
+        output.width = 1;
+        output.height = 1;
+        if (blob) resolve(blob);
+        else reject(new Error("Camera capture JPEG encoding returned no data."));
+      }, CAMERA_CAPTURE_MIME_TYPE, CAMERA_CAPTURE_JPEG_QUALITY);
+    } catch (error) {
+      output.width = 1;
+      output.height = 1;
+      reject(error);
+    }
+  });
+}
 
 function compileShader(gl: WebGL2RenderingContext, type: number, source: string, name: string) {
   const shader = gl.createShader(type);
@@ -132,6 +204,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
   let cameraLookState: CameraLookState = ZERO_CAMERA_LOOK;
   let cameraLookClampHandler: ((offset: CameraLookOffset) => void) | null = null;
   let lastReportedClampedOffset: CameraLookOffset | null = null;
+  let lastPresentedCameraFrame: PresentedCameraFrame | null = null;
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -185,7 +258,17 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     ready = true;
   }
 
-  function uploadScene(dpr: number) {
+  function uploadScene(
+    width: number,
+    height: number,
+    time: number,
+    offset: CameraLookOffset,
+    zoom: number,
+    luminance: number,
+    color: number,
+    ring: number,
+    grainScale: number,
+  ) {
     if (!plateTexture || !bloomTexture) return;
     gl.useProgram(layerProgram);
     gl.activeTexture(gl.TEXTURE0);
@@ -194,21 +277,21 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
     gl.uniform1i(uniforms.uBloomTex, 1);
-    gl.uniform2f(uniforms.uResolution, canvas.width, canvas.height);
+    gl.uniform2f(uniforms.uResolution, width, height);
     gl.uniform2f(uniforms.uTexResolution, plateWidth, plateHeight);
-    gl.uniform1f(uniforms.uTime, scene.time);
-    gl.uniform2f(uniforms.uSceneOffset, scene.offset[0], scene.offset[1]);
-    gl.uniform1f(uniforms.uSceneZoom, scene.zoom);
-    gl.uniform1f(uniforms.uSceneLuma, scene.luma);
-    gl.uniform1f(uniforms.uSceneColor, scene.color);
-    gl.uniform1f(uniforms.uSceneRing, scene.ring);
+    gl.uniform1f(uniforms.uTime, time);
+    gl.uniform2f(uniforms.uSceneOffset, offset.x, offset.y);
+    gl.uniform1f(uniforms.uSceneZoom, zoom);
+    gl.uniform1f(uniforms.uSceneLuma, luminance);
+    gl.uniform1f(uniforms.uSceneColor, color);
+    gl.uniform1f(uniforms.uSceneRing, ring);
     gl.uniform1f(uniforms.uMaxLod, DISPLAY_CONSTANTS.maxLod);
     gl.uniform1f(uniforms.uBloomLod, DISPLAY_CONSTANTS.bloomLod);
-    gl.uniform1f(uniforms.uGrainScale, dpr * 1.25);
+    gl.uniform1f(uniforms.uGrainScale, grainScale);
     gl.uniform1f(uniforms.uGrainRate, DISPLAY_CONSTANTS.grainRate);
   }
 
-  function drawLayer(treatment: Treatment, grainSeed: number) {
+  function uploadTreatment(treatment: Treatment, grainSeed: number) {
     gl.uniform1f(uniforms.uBlur, treatment.blur);
     gl.uniform1f(uniforms.uExposure, treatment.exposure);
     gl.uniform1f(uniforms.uNoiseAmount, treatment.noiseAmount);
@@ -217,6 +300,10 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     gl.uniform1f(uniforms.uBloomAmount, treatment.bloomAmount);
     gl.uniform1f(uniforms.uOpacity, 1);
     gl.uniform1f(uniforms.uGrainSeed, grainSeed);
+  }
+
+  function drawLayer(treatment: Treatment, grainSeed: number) {
+    uploadTreatment(treatment, grainSeed);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 
@@ -365,15 +452,40 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
-    uploadScene(dpr);
+    uploadScene(
+      canvas.width,
+      canvas.height,
+      scene.time,
+      { x: scene.offset[0], y: scene.offset[1] },
+      scene.zoom,
+      scene.luma,
+      scene.color,
+      scene.ring,
+      dpr * 1.25,
+    );
     drawLayer(WORLD_TREATMENT, 0);
 
     const bounds = cameraBounds();
     if (!bounds) {
+      lastPresentedCameraFrame = null;
       canvas.dataset.drawCalls = "1";
       return;
     }
     const cameraLook = effectiveCameraLook(bounds);
+    lastPresentedCameraFrame = Object.freeze({
+      pointerOffset: cloneOffset(cameraLookState.pointerOffset),
+      orientationOffset: cloneOffset(cameraLookState.orientationOffset),
+      effectiveLookOffset: cloneOffset(cameraLook),
+      sharedScene: Object.freeze({
+        timeSeconds: scene.time,
+        swayOffset: cloneOffset({ x: scene.offset[0], y: scene.offset[1] }),
+        zoom: scene.zoom,
+        luminance: scene.luma,
+        color: scene.color,
+        ring: scene.ring,
+        grainSeed: 137,
+      }),
+    });
     gl.uniform2f(
       uniforms.uSceneOffset,
       scene.offset[0] + cameraLook.x,
@@ -385,6 +497,175 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     gl.disable(gl.SCISSOR_TEST);
     presentCamera(bounds, dpr);
     canvas.dataset.drawCalls = "2";
+  }
+
+  async function captureCameraStill(request: CameraStillCaptureRequest): Promise<CameraCapturedArtifact> {
+    if (disposed || !ready || !plateTexture || !bloomTexture) {
+      throw new Error("Camera capture is unavailable before the scene renderer is ready.");
+    }
+    if (request.cameraMode !== "photo" || request.cameraFacing !== "rear") {
+      throw new Error("Camera Capture Pipeline v0.1 supports rear-camera Photo mode only.");
+    }
+    const presented = lastPresentedCameraFrame;
+    if (!presented) throw new Error("Camera capture has no presented Camera frame to snapshot.");
+
+    const maximumTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
+    if (maximumTextureSize < Math.max(CAMERA_CAPTURE_WIDTH, CAMERA_CAPTURE_HEIGHT)) {
+      throw new Error(`Camera capture requires a 2592px texture; WebGL reports ${maximumTextureSize}px.`);
+    }
+
+    const framing: CameraCaptureFramingSnapshot = Object.freeze({
+      pointerOffset: cloneOffset(presented.pointerOffset),
+      orientationOffset: cloneOffset(presented.orientationOffset),
+      effectiveLookOffset: cloneOffset(presented.effectiveLookOffset),
+      sharedScene: Object.freeze({
+        ...presented.sharedScene,
+        swayOffset: cloneOffset(presented.sharedScene.swayOffset),
+      }),
+    });
+    const snapshot = Object.freeze({
+      createdAt: request.createdAt,
+      sceneId: CAMERA_CAPTURE_SCENE_ID,
+      width: CAMERA_CAPTURE_WIDTH,
+      height: CAMERA_CAPTURE_HEIGHT,
+      mimeType: CAMERA_CAPTURE_MIME_TYPE,
+      cameraFacing: request.cameraFacing,
+      cameraMode: request.cameraMode,
+      framing,
+    });
+
+    const previousFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
+    const previousViewport = gl.getParameter(gl.VIEWPORT) as Int32Array;
+    const previousScissorBox = gl.getParameter(gl.SCISSOR_BOX) as Int32Array;
+    const previousScissorEnabled = gl.isEnabled(gl.SCISSOR_TEST);
+    const previousBlendEnabled = gl.isEnabled(gl.BLEND);
+    const previousProgram = gl.getParameter(gl.CURRENT_PROGRAM) as WebGLProgram | null;
+    const previousVertexArray = gl.getParameter(gl.VERTEX_ARRAY_BINDING) as WebGLVertexArrayObject | null;
+    const previousActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE) as number;
+    const previousPackAlignment = gl.getParameter(gl.PACK_ALIGNMENT) as number;
+    gl.activeTexture(gl.TEXTURE0);
+    const previousTexture0 = gl.getParameter(gl.TEXTURE_BINDING_2D) as WebGLTexture | null;
+    gl.activeTexture(gl.TEXTURE1);
+    const previousTexture1 = gl.getParameter(gl.TEXTURE_BINDING_2D) as WebGLTexture | null;
+    gl.activeTexture(previousActiveTexture);
+
+    let captureTexture: WebGLTexture | null = null;
+    let captureFramebuffer: WebGLFramebuffer | null = null;
+    let pixels: Uint8Array | null = null;
+    try {
+      captureTexture = gl.createTexture();
+      captureFramebuffer = gl.createFramebuffer();
+      if (!captureTexture || !captureFramebuffer) {
+        throw new Error("Camera capture could not allocate its WebGL target.");
+      }
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, captureTexture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA8,
+        CAMERA_CAPTURE_WIDTH,
+        CAMERA_CAPTURE_HEIGHT,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        null,
+      );
+      gl.bindFramebuffer(gl.FRAMEBUFFER, captureFramebuffer);
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        captureTexture,
+        0,
+      );
+      const framebufferStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+      if (framebufferStatus !== gl.FRAMEBUFFER_COMPLETE) {
+        throw new Error(`Camera capture framebuffer is incomplete (0x${framebufferStatus.toString(16)}).`);
+      }
+
+      gl.bindVertexArray(vertexArray);
+      gl.viewport(0, 0, CAMERA_CAPTURE_WIDTH, CAMERA_CAPTURE_HEIGHT);
+      gl.disable(gl.SCISSOR_TEST);
+      gl.disable(gl.BLEND);
+      const captureOffset = {
+        x: framing.sharedScene.swayOffset.x + framing.effectiveLookOffset.x,
+        y: framing.sharedScene.swayOffset.y + framing.effectiveLookOffset.y,
+      };
+      uploadScene(
+        CAMERA_CAPTURE_WIDTH,
+        CAMERA_CAPTURE_HEIGHT,
+        framing.sharedScene.timeSeconds,
+        captureOffset,
+        framing.sharedScene.zoom,
+        framing.sharedScene.luminance,
+        framing.sharedScene.color,
+        framing.sharedScene.ring,
+        CAMERA_CAPTURE_GRAIN_SCALE,
+      );
+      drawLayer(CAMERA_TREATMENT, framing.sharedScene.grainSeed);
+
+      pixels = new Uint8Array(CAMERA_CAPTURE_WIDTH * CAMERA_CAPTURE_HEIGHT * 4);
+      gl.readPixels(
+        0,
+        0,
+        CAMERA_CAPTURE_WIDTH,
+        CAMERA_CAPTURE_HEIGHT,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        pixels,
+      );
+      const readError = gl.getError();
+      if (readError !== gl.NO_ERROR) {
+        throw new Error(`Camera capture readPixels failed (0x${readError.toString(16)}).`);
+      }
+    } finally {
+      if (captureFramebuffer) gl.deleteFramebuffer(captureFramebuffer);
+      if (captureTexture) gl.deleteTexture(captureTexture);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, previousFramebuffer);
+      gl.viewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3]);
+      gl.scissor(previousScissorBox[0], previousScissorBox[1], previousScissorBox[2], previousScissorBox[3]);
+      if (previousScissorEnabled) gl.enable(gl.SCISSOR_TEST);
+      else gl.disable(gl.SCISSOR_TEST);
+      if (previousBlendEnabled) gl.enable(gl.BLEND);
+      else gl.disable(gl.BLEND);
+      uploadScene(
+        canvas.width,
+        canvas.height,
+        framing.sharedScene.timeSeconds,
+        {
+          x: framing.sharedScene.swayOffset.x + framing.effectiveLookOffset.x,
+          y: framing.sharedScene.swayOffset.y + framing.effectiveLookOffset.y,
+        },
+        framing.sharedScene.zoom,
+        framing.sharedScene.luminance,
+        framing.sharedScene.color,
+        framing.sharedScene.ring,
+        Math.min(window.devicePixelRatio || 1, 2) * 1.25,
+      );
+      uploadTreatment(CAMERA_TREATMENT, framing.sharedScene.grainSeed);
+      gl.useProgram(previousProgram);
+      gl.bindVertexArray(previousVertexArray);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, previousTexture0);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, previousTexture1);
+      gl.activeTexture(previousActiveTexture);
+      gl.pixelStorei(gl.PACK_ALIGNMENT, previousPackAlignment);
+    }
+
+    if (!pixels) throw new Error("Camera capture produced no pixel buffer.");
+    const encoding = encodeJpeg(pixels, CAMERA_CAPTURE_WIDTH, CAMERA_CAPTURE_HEIGHT);
+    pixels = null;
+    const blob = await encoding;
+    if (blob.type !== CAMERA_CAPTURE_MIME_TYPE || blob.size <= 0) {
+      throw new Error(`Camera capture encoded an invalid JPEG (${blob.type || "unknown type"}, ${blob.size} bytes).`);
+    }
+    return Object.freeze({ snapshot, blob });
   }
 
   function frame(now: number) {
@@ -421,6 +702,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     setCameraViewfinder(target: HTMLCanvasElement | null) {
       cameraViewfinder = target;
       cameraPresentation = target?.getContext("2d", { alpha: false }) ?? null;
+      lastPresentedCameraFrame = null;
     },
     setCameraLookState(state: CameraLookState) {
       cameraLookState = {
@@ -431,11 +713,13 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     setCameraLookClampHandler(handler: ((offset: CameraLookOffset) => void) | null) {
       cameraLookClampHandler = handler;
     },
+    captureCameraStill,
     dispose() {
       disposed = true;
       cameraViewfinder = null;
       cameraPresentation = null;
       cameraLookClampHandler = null;
+      lastPresentedCameraFrame = null;
       image.onload = null;
       image.onerror = null;
       window.cancelAnimationFrame(animationFrame);

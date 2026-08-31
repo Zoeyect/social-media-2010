@@ -59,6 +59,7 @@ export type CameraRuntimeEvent =
   | { type: "CAPTURE"; owner: CameraOwner }
   | { type: "CAPTURE_COMPLETE"; owner: CameraOwner }
   | { type: "PROCESSING_COMPLETE"; owner: CameraOwner }
+  | { type: "CAPTURE_FAILED"; owner: CameraOwner }
   | { type: "REVIEW"; owner: CameraOwner }
   | { type: "CANCEL"; owner: CameraOwner }
   | { type: "RETURN"; owner: CameraOwner }
@@ -108,6 +109,10 @@ export function cameraRuntimeTransition(
       return session.phase === "capturing" ? replace({ ...session, phase: "processing" }) : state;
     case "PROCESSING_COMPLETE":
       return session.phase === "processing" ? replace({ ...session, phase: "previewing" }) : state;
+    case "CAPTURE_FAILED":
+      return session.phase === "capturing" || session.phase === "processing"
+        ? replace({ ...session, phase: "previewing" })
+        : state;
     case "REVIEW":
       return session.phase === "previewing" ? replace({ ...session, phase: "reviewing" }) : state;
     case "CANCEL":

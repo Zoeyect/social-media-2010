@@ -5,8 +5,10 @@ import { DeviceAudio } from "../audio/deviceAudio";
 import { buildSessionTimelineEvents } from "../data/sessionTimeline";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
 import { DEVICE_CARRIER_CONFIG } from "../state/carrierConfig";
-import { cameraRuntimeTransition, initialCameraRuntimeState } from "../state/cameraRuntime";
+import { cameraRuntimeTransition, initialCameraRuntimeState, requestCameraCapture } from "../state/cameraRuntime";
 import type { CameraLookOffset, CameraOwner } from "../state/cameraRuntime";
+import { createCameraPhotoRecord, releaseCameraPhotoRecords } from "../state/cameraCaptureState";
+import type { CameraPhotoRecord } from "../state/cameraCaptureState";
 import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent, scheduleDeviceEvents } from "../state/deviceEventScheduler";
 import { batteryPercent, BOOT_DURATION_MS, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
@@ -44,6 +46,7 @@ import { StatusBar } from "./StatusBar";
 import { TwitterContainer } from "./TwitterContainer";
 import { IOS4KeyboardSystem } from "./IOS4KeyboardSystem";
 import { AmbientWorld } from "../world/AmbientWorld";
+import type { CameraStillCapture } from "../world/AmbientWorld";
 
 const TERMINAL_DEPLETED_DISPLAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
@@ -55,6 +58,16 @@ const TERMINAL_POWERED_OFF_MS = 500;
 const MOM_REPLY_SMS = { id: "mom-sleep-early", sender: "Mom", message: "Good. Sleep early." } as const;
 const MOM_LOVE_REPLY_SMS = { id: "mom-love-you-too", sender: "Mom", message: "I love you too." } as const;
 const DAD_LOVE_REPLY_SMS = { id: "dad-sleep-early", sender: "Dad", message: "Sleep early." } as const;
+
+type CameraCaptureQaHandle = Readonly<{
+  latest: () => CameraPhotoRecord | null;
+  records: () => readonly CameraPhotoRecord[];
+  failNextCapture: () => void;
+}>;
+
+type CameraCaptureQaWindow = Window & {
+  __SM2010_CAMERA_CAPTURE_QA__?: CameraCaptureQaHandle;
+};
 
 function loadRuntimeSession(): Session {
   const persisted = loadSession();
@@ -79,6 +92,15 @@ export function App() {
   const [activeFolderSlotIndex, setActiveFolderSlotIndex] = useState(0);
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
   const [cameraRuntime, dispatchCameraRuntime] = useReducer(cameraRuntimeTransition, initialCameraRuntimeState);
+  const cameraCapture = useRef<CameraStillCapture | null>(null);
+  const cameraCaptureInFlight = useRef(false);
+  const cameraCaptureNamespace = useRef(0);
+  const cameraPhotoRecords = useRef<CameraPhotoRecord[]>([]);
+  const failNextCameraCapture = useRef(false);
+  const cameraCaptureResetActive = useRef(false);
+  const setCameraCaptureReady = useCallback((capture: CameraStillCapture | null) => {
+    cameraCapture.current = capture;
+  }, []);
   const setCameraLookPointerOffset = useCallback((offset: CameraLookOffset) => {
     dispatchCameraRuntime({ type: "SET_LOOK_POINTER_OFFSET", owner: "cameraApp", offset });
   }, []);
@@ -129,6 +151,44 @@ export function App() {
   });
   const lockScreenModel = createLockScreenModel(lockScreenTime, deviceDate, statusBarState);
 
+  const captureCameraPhoto = async () => {
+    const capture = cameraCapture.current;
+    const cameraSession = cameraRuntime.cameraApp;
+    if (!capture || cameraCaptureInFlight.current) return;
+    cameraCaptureInFlight.current = true;
+    if (!requestCameraCapture(cameraRuntime, "cameraApp", dispatchCameraRuntime)) {
+      cameraCaptureInFlight.current = false;
+      return;
+    }
+
+    const namespace = cameraCaptureNamespace.current;
+    const createdAt = simulatedDeviceDateTime(elapsedMs(session, Date.now())).toISOString();
+    try {
+      if (import.meta.env.DEV && failNextCameraCapture.current) {
+        failNextCameraCapture.current = false;
+        throw new Error("Camera capture QA forced the next request to fail.");
+      }
+      const pendingArtifact = capture({
+        createdAt,
+        cameraFacing: cameraSession.cameraDevice,
+        cameraMode: cameraSession.mode,
+      });
+      dispatchCameraRuntime({ type: "CAPTURE_COMPLETE", owner: "cameraApp" });
+      const artifact = await pendingArtifact;
+      if (namespace !== cameraCaptureNamespace.current) return;
+      const record = createCameraPhotoRecord(artifact, cameraPhotoRecords.current);
+      cameraPhotoRecords.current = [...cameraPhotoRecords.current, record];
+      dispatchCameraRuntime({ type: "PROCESSING_COMPLETE", owner: "cameraApp" });
+    } catch (error) {
+      console.error("Camera capture failed.", error);
+      if (namespace === cameraCaptureNamespace.current) {
+        dispatchCameraRuntime({ type: "CAPTURE_FAILED", owner: "cameraApp" });
+      }
+    } finally {
+      cameraCaptureInFlight.current = false;
+    }
+  };
+
   const update = (change: Partial<Session>) => setSession(s => ({ ...s, ...change }));
   const dispatchFacebookEvent = (event: FacebookEvent) => {
     const validJuneTrigger = event.type === "SUBMIT_MESSAGE_REPLY"
@@ -160,8 +220,25 @@ export function App() {
       : null;
 
   useEffect(() => saveSession(session), [session]);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const qaWindow = window as CameraCaptureQaWindow;
+    const handle: CameraCaptureQaHandle = Object.freeze({
+      latest: () => cameraPhotoRecords.current[cameraPhotoRecords.current.length - 1] ?? null,
+      records: () => [...cameraPhotoRecords.current],
+      failNextCapture: () => { failNextCameraCapture.current = true; },
+    });
+    qaWindow.__SM2010_CAMERA_CAPTURE_QA__ = handle;
+    return () => {
+      if (qaWindow.__SM2010_CAMERA_CAPTURE_QA__ === handle) {
+        delete qaWindow.__SM2010_CAMERA_CAPTURE_QA__;
+      }
+    };
+  }, []);
   useEffect(() => () => {
     if (pendingAppHomePress.current !== null) window.clearTimeout(pendingAppHomePress.current);
+    releaseCameraPhotoRecords(cameraPhotoRecords.current);
+    cameraPhotoRecords.current = [];
   }, []);
   useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id); }, []);
   useEffect(() => {
@@ -456,6 +533,14 @@ export function App() {
   useEffect(() => {
     const appTemporarilyCoveredByPowerConfirmation = session.phase === "powerOffConfirm" && session.previousPhase === "app";
     const runtimeMustReset = session.phase === "hero" || session.phase === "poweredOff" || session.phase === "booting" || session.phase === "shutdown";
+    if (runtimeMustReset && !cameraCaptureResetActive.current) {
+      cameraCaptureResetActive.current = true;
+      cameraCaptureNamespace.current += 1;
+      releaseCameraPhotoRecords(cameraPhotoRecords.current);
+      cameraPhotoRecords.current = [];
+    } else if (!runtimeMustReset) {
+      cameraCaptureResetActive.current = false;
+    }
     if (runtimeMustReset && appRuntime.phase !== "none") {
       dispatchAppRuntime({ type: "RESET" });
     }
@@ -661,6 +746,7 @@ export function App() {
       cameraViewfinder={cameraPreviewCanvas}
       cameraLook={cameraRuntime.cameraApp.cameraLook}
       onCameraLookPointerOffsetClamped={setCameraLookPointerOffset}
+      onCameraCaptureReady={setCameraCaptureReady}
     />}
     <main className={`stage${ambientWorldEnabled ? " has-ambient-world" : ""}`}>
       <section
@@ -738,6 +824,7 @@ export function App() {
             session={cameraRuntime.cameraApp}
             previewCanvasRef={ambientWorldEnabled ? setCameraPreviewCanvas : undefined}
             onLookPointerOffsetChange={ambientWorldEnabled ? setCameraLookPointerOffset : undefined}
+            onCapture={ambientWorldEnabled ? captureCameraPhoto : undefined}
           />}
           {appRuntime.activeAppId === "messages" && <MobileSMSContainer
             state={messagesState}

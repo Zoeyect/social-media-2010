@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import type { PointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent, PointerEvent } from "react";
 import { CAMERA_LOOK_NOMINAL_LIMITS, clampCameraLookPointerOffset } from "../state/cameraRuntime";
 import type { CameraLookOffset, CameraOwner, CameraSession } from "../state/cameraRuntime";
 import cameraIconSrc from "../assets/historical/ios4.1/camera/CameraButtonIcon@2x.browser.png";
@@ -9,6 +9,7 @@ import videoModeIconSrc from "../assets/historical/ios4.1/camera/Video@2x.browse
 import switchWellSrc from "../assets/historical/ios4.1/camera/cameraButtonBarSwitchWell@2x.browser.png";
 import switchWellBackgroundSrc from "../assets/historical/ios4.1/camera/cameraButtonBarSwitchWellBackground@2x.browser.png";
 import shutterSrc from "../assets/historical/ios4.1/camera/cameraButtonSilver@2x.browser.png";
+import shutterPressedSrc from "../assets/historical/ios4.1/camera/cameraButtonSilver_pressed@2x.browser.png";
 import previewPlaceholderSrc from "../assets/historical/ios4.1/camera/cameraPreviewPlaceholder@2x.browser.png";
 import previewWellSrc from "../assets/historical/ios4.1/camera/cameraPreviewWell@2x.browser.png";
 import flashLeftSrc from "../assets/historical/ios4.1/camera/vc~cameraFlashBackgroundLeft.browser.png";
@@ -23,6 +24,7 @@ type CameraContainerProps = {
   onCancel?: () => void;
   previewCanvasRef?: (canvas: HTMLCanvasElement | null) => void;
   onLookPointerOffsetChange?: (offset: CameraLookOffset) => void;
+  onCapture?: () => void;
 };
 
 type CameraLookDrag = {
@@ -38,14 +40,22 @@ export function CameraContainer({
   onCancel,
   previewCanvasRef,
   onLookPointerOffsetChange,
+  onCapture,
 }: CameraContainerProps) {
   const isStandaloneCamera = owner === "cameraApp";
   const isLaunchingStandaloneCamera = isStandaloneCamera && session.phase === "launching";
   const lookDrag = useRef<CameraLookDrag | null>(null);
+  const [shutterPressed, setShutterPressed] = useState(false);
   const cameraLookEnabled = isStandaloneCamera
     && session.phase === "previewing"
     && !session.suspended
     && Boolean(onLookPointerOffsetChange);
+  const shutterEnabled = isStandaloneCamera
+    && session.phase === "previewing"
+    && !session.suspended
+    && session.mode === "photo"
+    && session.cameraDevice === "rear"
+    && Boolean(onCapture);
 
   useEffect(() => {
     if (lookDrag.current) {
@@ -89,6 +99,15 @@ export function CameraContainer({
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
     lookDrag.current = null;
+  };
+
+  const pressShutter = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!shutterEnabled || !event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
+    setShutterPressed(true);
+  };
+
+  const pressShutterKey = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (shutterEnabled && (event.key === " " || event.key === "Enter")) setShutterPressed(true);
   };
 
   return <section
@@ -141,13 +160,28 @@ export function CameraContainer({
           alt=""
         />
       </div>
-      <div className="camera-runtime-bottom-chrome" aria-hidden="true">
+      <div className="camera-runtime-bottom-chrome">
         <img className="camera-runtime-preview-well" src={previewWellSrc} alt="" />
         <img className="camera-runtime-preview-placeholder" src={previewPlaceholderSrc} alt="" />
-        <span
+        <button
+          type="button"
           className="camera-runtime-shutter"
           data-visual-status="RECONSTRUCTED"
-          style={{ borderImageSource: `url("${shutterSrc}")` }}
+          data-shutter-pressed={shutterPressed || undefined}
+          aria-label="Take Picture"
+          disabled={!shutterEnabled}
+          style={{ borderImageSource: `url("${shutterPressed ? shutterPressedSrc : shutterSrc}")` }}
+          onPointerDown={pressShutter}
+          onPointerUp={() => setShutterPressed(false)}
+          onPointerCancel={() => setShutterPressed(false)}
+          onPointerLeave={() => setShutterPressed(false)}
+          onKeyDown={pressShutterKey}
+          onKeyUp={() => setShutterPressed(false)}
+          onBlur={() => setShutterPressed(false)}
+          onClick={() => {
+            setShutterPressed(false);
+            if (shutterEnabled) onCapture?.();
+          }}
         />
         <img className="camera-runtime-shutter-icon" src={cameraIconSrc} alt="" />
         <img className="camera-runtime-mode-background" src={switchWellBackgroundSrc} alt="" />

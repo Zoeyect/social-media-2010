@@ -229,8 +229,9 @@ button, input { font: inherit; }
 .camera-runtime-bottom-chrome { position: absolute; z-index: 2; left: 0; top: 427px; width: 320px; height: 53px; overflow: hidden; background-image: url("../assets/historical/ios4.1/camera/cameraButtonBarSilver@2x.browser.png"); background-position: 0 0; background-repeat: repeat-x; background-size: 2px 53px; pointer-events: none; }
 .camera-runtime-preview-well { position: absolute; left: 0; top: 0; width: 47px; height: 53px; display: block; }
 .camera-runtime-preview-placeholder { position: absolute; left: 10px; top: 8px; width: 37px; height: 37px; display: block; }
-.camera-runtime-shutter { position: absolute; left: 111px; top: 6px; width: 98px; height: 41px; border-style: solid; border-width: 0 20.5px; border-image-slice: 0 41 0 41 fill; border-image-width: 0 20.5px; border-image-repeat: stretch; display: block; }
-.camera-runtime-shutter-icon { position: absolute; left: 147px; top: 16px; width: 26px; height: 21px; display: block; }
+.camera-runtime-shutter { position: absolute; left: 111px; top: 6px; width: 98px; height: 41px; margin: 0; padding: 0; border-style: solid; border-width: 0 20.5px; border-image-slice: 0 41 0 41 fill; border-image-width: 0 20.5px; border-image-repeat: stretch; display: block; appearance: none; color: inherit; background: transparent; outline: 0; opacity: 1; cursor: default; pointer-events: auto; touch-action: manipulation; }
+.camera-runtime-shutter:disabled { opacity: 1; }
+.camera-runtime-shutter-icon { position: absolute; z-index: 1; left: 147px; top: 16px; width: 26px; height: 21px; display: block; pointer-events: none; }
 .camera-runtime-mode-background, .camera-runtime-mode-well { position: absolute; left: 250px; top: 0; width: 70px; height: 53px; display: block; }
 .camera-runtime-mode-background { z-index: 0; }
 .camera-runtime-mode-well { z-index: 1; }

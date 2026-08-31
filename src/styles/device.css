@@ -68,7 +68,7 @@ button, input { font: inherit; }
 .lockscreen-sms-alert-sender { display: block; color: #fff; font-size: 13px; font-weight: bold; line-height: 16px; }
 .lockscreen-sms-alert-body { margin: 0; color: #fff; font-size: 13px; font-weight: normal; line-height: 16px; }
 .lockscreen-bottom-bar { position: absolute; z-index: 1; left: 0; bottom: 0; width: 320px; height: 96px; background: url("../assets/historical/ios4.1/lockscreen/BarBottomLock@2x.png") center / .5px 96px repeat-x; }
-.unlock-track { position: absolute; left: 20px; bottom: 21px; width: 280px; height: 52px; overflow: hidden; text-align: center; line-height: 52px; color: #ccc; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 300; letter-spacing: -.2px; }
+.unlock-track { position: absolute; left: 20px; bottom: 21px; width: 280px; height: 52px; overflow: hidden; text-align: center; line-height: 52px; color: #ccc; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 23px; font-weight: 400; letter-spacing: 0; }
 .unlock-track-raster { position: absolute; z-index: 0; inset: 0; border: 13px solid transparent; border-image-source: url("../assets/historical/ios4.1/lockscreen/WellLock@2x.png"); border-image-slice: 26 fill; border-image-width: 13px; border-image-repeat: stretch; pointer-events: none; }
 .unlock-track-label { position: absolute; z-index: 1; left: 75px; top: 0; width: 205px; height: 52px; display: block; color: rgba(255,255,255,.36); text-align: center; text-shadow: 0 -1px rgba(0,0,0,.62); }
 .unlock-track-highlight { position: absolute; z-index: 2; left: 75px; top: 0; width: 205px; height: 52px; color: #fff; text-align: center; -webkit-mask-image: url("../assets/historical/ios4.1/lockscreen/bottombarlocktextmask@2x.png"); mask-image: url("../assets/historical/ios4.1/lockscreen/bottombarlocktextmask@2x.png"); -webkit-mask-position: -80px center; mask-position: -80px center; -webkit-mask-size: 80px 32px; mask-size: 80px 32px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; animation: slider-highlight 2.8s linear infinite; pointer-events: none; }
@@ -95,7 +95,7 @@ button, input { font: inherit; }
 .springboard-system-icon.is-app-store-artwork { left: 1px; top: 1px; width: 57px; height: 57px; border-radius: 10px; box-shadow: 0 1px 1px rgba(0,0,0,.45); }
 .springboard-system-icon.is-folder { height: 62px; }
 .springboard-icon-button { padding: 0; border: 0; color: inherit; background: transparent; cursor: pointer; }
-.springboard-icon-label { position: absolute; z-index: 3; left: 50%; top: 62px; display: block; max-width: 76px; transform: translateX(-50%); overflow: hidden; color: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 10px; line-height: 14px; font-weight: 600; text-align: center; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 1px rgba(0,0,0,.95),0 0 1px rgba(0,0,0,.78); }
+.springboard-icon-label { position: absolute; z-index: 3; left: 50%; top: 59px; display: block; max-width: 76px; transform: translateX(-50%); overflow: hidden; color: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 10px; line-height: 14px; font-weight: 600; text-align: center; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 1px rgba(0,0,0,.95),0 0 1px rgba(0,0,0,.78); }
 .springboard-calendar-date { position: absolute; z-index: 2; left: 1px; top: 1px; width: 57px; height: 57px; color: #111; text-align: center; pointer-events: none; }
 .springboard-calendar-date small { position: absolute; left: 0; top: 2px; width: 100%; color: #fff; font: bold 7px/10px "Helvetica Neue",Helvetica,Arial,sans-serif; text-shadow: 0 -1px rgba(90,0,0,.7); }
 .springboard-calendar-date b { position: absolute; left: 0; top: 15px; width: 100%; font: normal 31px/36px "Helvetica Neue",Helvetica,Arial,sans-serif; }
@@ -191,8 +191,8 @@ button, input { font: inherit; }
 .ios4-keyboard-key.is-space { font-size: 14px; }
 .ios4-keyboard-key.is-return { font-size: 13px; text-transform: lowercase; }
 .ios4-keyboard-key.is-return.is-action { border-color: #315b79; background: linear-gradient(#7aa4c2 0%,#4d7c9d 50%,#376b8e 100%); }
-.ios4-shift-icon { position: relative; width: 19px; height: 21px; display: block; }
-.ios4-shift-icon::before { content: ""; position: absolute; left: 1px; top: 0; width: 17px; height: 12px; background: #33383d; clip-path: polygon(50% 0,100% 60%,72% 60%,72% 100%,28% 100%,28% 60%,0 60%); filter: drop-shadow(0 1px rgba(255,255,255,.28)); }
+.ios4-shift-icon { position: relative; width: 21px; height: 18px; display: block; }
+.ios4-shift-icon::before { content: ""; position: absolute; left: 0; top: 0; width: 21px; height: 18px; background: #33383d; clip-path: polygon(50% 0,100% 60%,72% 60%,72% 100%,28% 100%,28% 60%,0 60%); filter: drop-shadow(0 1px rgba(255,255,255,.28)); }
 .ios4-keyboard-key.is-upper .ios4-shift-icon::before { background: #fff; filter: drop-shadow(0 0 3px rgba(255,255,255,.75)) drop-shadow(0 -1px rgba(0,0,0,.35)); }
 .camera-runtime-container, .camera-runtime-preview-surface { width: 320px; height: 460px; }
 .camera-runtime-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #000; }

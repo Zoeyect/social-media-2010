@@ -43,6 +43,7 @@ import { SpringBoard } from "./SpringBoard";
 import { StatusBar } from "./StatusBar";
 import { TwitterContainer } from "./TwitterContainer";
 import { IOS4KeyboardSystem } from "./IOS4KeyboardSystem";
+import { AmbientWorld } from "../world/AmbientWorld";
 
 const TERMINAL_DEPLETED_DISPLAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
@@ -68,6 +69,7 @@ function loadRuntimeSession(): Session {
 
 export function App() {
   const [session, setSession] = useState<Session>(loadRuntimeSession);
+  const ambientWorldEnabled = import.meta.env.DEV && new URLSearchParams(window.location.search).get("ambientWorld") === "1";
   const requestedDevApp = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("devApp") : null;
   const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" || requestedDevApp === "foursquare" || requestedDevApp === "flickr" || requestedDevApp === "tumblr" ? requestedDevApp : null;
   const devAutoOpen = devAppId !== null && new URLSearchParams(window.location.search).get("autoOpen") === "1";
@@ -651,7 +653,8 @@ export function App() {
   </>;
 
   return <SessionIdentityContext.Provider value={session.sessionIdentity}>
-    <main className="stage">
+    {ambientWorldEnabled && <AmbientWorld />}
+    <main className={`stage${ambientWorldEnabled ? " has-ambient-world" : ""}`}>
       <section
       className={`device${displayIsLit ? " is-display-lit" : ""}`}
       aria-label="Black iPhone 4"

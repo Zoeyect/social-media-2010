@@ -883,7 +883,7 @@ button, input { font: inherit; }
 .instagram-profile-photo-stream article > header strong { color: #2f5f88; font-size: 12px; }
 .instagram-profile-photo-stream article > header time { color: #777; font-size: 10px; }
 .instagram-period-empty-stream { margin: 0; padding: 32px 12px; color: #666; background: #fff; text-align: center; }
-.instagram-owner-profile > .instagram-find-facebook-friends { width: 100%; min-height: 35px; border-radius: 0; }
+.instagram-owner-profile > .instagram-find-facebook-friends { width: 190px; min-width: 190px; height: 28px; min-height: 28px; margin: 7px auto; padding: 0 10px; color: #fff; border: 1px solid #284d69; border-radius: 4px; background: linear-gradient(#709abd,#47779d 49%,#38688e 51%,#3d6b8f); box-shadow: inset 0 1px rgba(255,255,255,.35),0 1px rgba(255,255,255,.55); font-size: 10px; line-height: 26px; text-shadow: 0 -1px rgba(0,0,0,.55); }
 .instagram-profile-relationship-control { max-width: 68px; overflow: hidden; text-overflow: ellipsis; }
 .instagram-known-connections article { min-height: 50px; padding: 8px 12px; display: grid; gap: 3px; color: #555; border-bottom: 1px solid #bbb; background: #fff; }
 .instagram-known-connections article strong { color: #2f5f88; font-size: 13px; }
@@ -896,7 +896,8 @@ button, input { font: inherit; }
 .instagram-popular-photo-detail > header strong { color: #2f5f88; font-size: 12px; }
 .instagram-popular-photo-detail > header time { color: #777; font-size: 10px; }
 .instagram-popular-photo-detail > footer { min-height: 32px; padding: 7px 10px; display: flex; gap: 14px; color: #2f5f88; border-top: 1px solid #bbb; font-size: 11px; font-weight: bold; }
-.instagram-period-empty-root { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; color: #777; background: #eee; font-size: 12px; }
+.instagram-period-empty-root { flex: 0 0 368px; width: 320px; height: 368px; min-height: 368px; display: grid; place-items: center; color: #777; background: #e7e7e7; font: 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.instagram-period-empty-root > p { margin: 0; }
 .instagram-development-navigation { flex-basis: 48px; min-height: 48px; }
 
 /* Facebook for iPhone 3.2-era structural pass. Launcher glyphs are evidence-bounded CSS reconstructions; exact raster payloads remain HOLD. */

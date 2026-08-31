@@ -141,3 +141,59 @@ Share uses the shared 44pt Instagram navigation with Back, Share, and Post. The 
 - Ready with no records: `No Photos`
 
 All retain Cancel. Exact copy and layout remain **RECONSTRUCTED / HOLD**. There is no development fixture, fabricated photo, unsupported Camera handoff, or cross-session fallback.
+
+## Checkpoint C — News / Profile final visual pass
+
+Checkpoint C completes the narrow launch-era News and Profile presentation without changing Instagram state, media ownership, Feed, Popular, Share, Filters, Camera Roll, or shared application chrome.
+
+### News classification
+
+| Decision | Value | Classification |
+| --- | --- | --- |
+| News tab and narrative-empty project behavior | existing root tab with no seeded activity | **CONFIRMED** |
+| Navigation title | `News` | **CONFIRMED** shared-root label |
+| Content region | 320×368pt beneath the frozen 44pt navigation and above the frozen 48pt tabs | **CONFIRMED** shared-shell geometry |
+| Empty copy | `No new activity.` | **RECONSTRUCTED** |
+| Empty-state placement | centered 12pt Helvetica on the approved neutral Instagram content background | **RECONSTRUCTED** |
+| Exact launch-build empty-state copy and pixel placement | unavailable | **HOLD** |
+
+News intentionally contains no activity rows, fabricated identities, badges, explanatory copy, cards, illustrations, or modern notification treatments.
+
+### Player Profile classification
+
+| Decision | Value | Classification |
+| --- | --- | --- |
+| Navigation title | existing account-label-derived handle such as `@zoey` | **RECONSTRUCTED**; no new persisted username |
+| Overall architecture | summary followed by chronological vertical photo stream | **CONFIRMED** period structure |
+| Summary geometry | approximately 104pt dark summary, 74×74pt avatar, three 46pt steel-blue statistic blocks | **PROBABLE / RECONSTRUCTED** screenshot measurement and material approximation |
+| Player avatar | neutral initial placeholder derived from the existing identity name | **RECONSTRUCTED** |
+| Find Friends control | centered 190×28pt steel-blue beveled button with 7pt vertical margins | **RECONSTRUCTED** placement and material |
+| Profile post media | existing stable Camera Roll source IDs resolved through the current experience's authorized collection | existing functional behavior, unchanged |
+| Empty stream | existing `No photos yet.` state | **RECONSTRUCTED / HOLD** |
+
+No profile grid, biography, website, Edit Profile, stories, highlights, modern settings, or other unsupported fields are introduced.
+
+### Known-account Profile classification
+
+The known-account path retains the shared Profile architecture and all existing June behavior: `junepark` navigation title, Back control, curated avatar/media, statistic values, Follow/Following control, and vertical chronological stream. The shared summary proportions are **PROBABLE / RECONSTRUCTED**. Follow-control geometry and exact early-build relationship chrome remain **RECONSTRUCTED / HOLD**. No reducer, follow-state, or navigation behavior changed.
+
+### Instagram 2010 Visual Shell v1.0 — FROZEN
+
+This checkpoint defines the following frozen Instagram 2010 v1.0 shell:
+
+- 320×460pt application surface, 44pt steel-blue navigation, 368pt content region, and 48pt charcoal five-tab bar
+- screenshot-reconstructed wordmark, refresh icon, five-tab icon family, and raised Share housing, all still explicitly `RECONSTRUCTED_FROM_PERIOD_SCREENSHOT`
+- approved Feed metadata/avatar/photo proportions and Popular four-column geometry
+- approved Filters navigation, 320×320 preview, and 96pt filmstrip proportions
+- News root presentation and player/known-account Profile architecture and proportions documented above
+
+Freezing the shell does not upgrade evidence confidence and does not freeze unresolved behavior or content. The following remain outside the freeze:
+
+- Popular Detail historical correction
+- exact News activity-row design
+- unsupported Share destination controls and exact Share composition
+- future real filter expansion and filmstrip micro-geometry
+- direct Camera handoff
+- original application-bundle artwork, exact cap stretches, pressed states, picker micro-geometry, Find Friends placement/material, follow-control geometry, and all other explicitly **HOLD** artwork/runtime details
+
+No Instagram chrome asset in this reconstruction is authenticated application-bundle artwork.

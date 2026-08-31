@@ -79,7 +79,7 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
 
   return <section className="instagram-container" aria-label="Instagram" data-chrome-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
     <InstagramTopBar
-      title={viewTitle(state.currentView, selectedKnownAccount?.username, state.knownConnectionsKind)}
+      title={viewTitle(state.currentView, selectedKnownAccount?.username, state.knownConnectionsKind, accountTabLabel)}
       wordmark={state.currentView === "feed"}
       leftControl={leftControl}
       rightControl={rightControl}
@@ -129,7 +129,7 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
       <footer data-action-chrome-status="HOLD"><span>Like</span><span>Comment</span></footer>
     </article>}
 
-    {state.currentView === "news" && <section className="instagram-period-empty-root" data-content-status="HOLD"><p>No new activity.</p></section>}
+    {state.currentView === "news" && <section className="instagram-period-empty-root" data-content-status="RECONSTRUCTED" data-exact-ui-status="HOLD"><p>No new activity.</p></section>}
 
     {state.currentView === "profile" && <section className="instagram-period-profile instagram-owner-profile">
       <div className="instagram-profile-summary">
@@ -138,7 +138,7 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
           <InstagramProfileStats photos={state.photos.length} followers={state.followers} following={followingCount} onFollowing={() => dispatch({ type: "SHOW_FOLLOWING" })} />
         </div>
       </div>
-      <button className="instagram-find-facebook-friends" type="button" onClick={() => dispatch({ type: "SHOW_FACEBOOK_FRIENDS" })}>Find Friends from Facebook</button>
+      <button className="instagram-find-facebook-friends" type="button" data-placement-status="RECONSTRUCTED" onClick={() => dispatch({ type: "SHOW_FACEBOOK_FRIENDS" })}>Find Friends from Facebook</button>
       <div className="instagram-profile-photo-stream">{state.photos.length === 0
         ? <p className="instagram-period-empty-stream">No photos yet.</p>
         : state.photos.map(photo => {
@@ -256,13 +256,13 @@ function instagramAccountTabLabel(name: string): string {
   return `@${normalized || "account"}`;
 }
 
-function viewTitle(view: InstagramState["currentView"], knownUsername?: string, connectionsKind?: "followers" | "following" | null): string {
+function viewTitle(view: InstagramState["currentView"], knownUsername: string | undefined, connectionsKind: "followers" | "following" | null | undefined, accountTitle: string): string {
   switch (view) {
     case "feed": return "Instagram";
     case "popular": return "Popular";
     case "popularPhotoDetail": return "Photo";
     case "news": return "News";
-    case "profile": return "Profile";
+    case "profile": return accountTitle;
     case "following": return "Following";
     case "facebookFriends": return "Facebook Friends";
     case "knownProfile": return knownUsername ?? "Profile";

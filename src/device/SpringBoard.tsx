@@ -377,7 +377,7 @@ function SpringBoardIcon({ name, iconSrc, iconPresentation, kind, folderApps, so
     {kind === "folder" && iconSrc
       ? <SpringBoardFolderIcon iconSrc={iconSrc} miniatures={folderApps ?? []} />
       : socialAppId
-        ? <ReconstructedSocialIcon appId={socialAppId} />
+        ? <SpringBoardSocialIcon appId={socialAppId} />
         : iconSrc && <img className={`springboard-system-icon${iconPresentation === "app-store-artwork" ? " is-app-store-artwork" : ""}`} src={iconSrc} alt={name ?? ""} />}
     {calendarDay && <span className="springboard-calendar-date" aria-hidden="true"><small>Wednesday</small><b>{calendarDay}</b></span>}
     {(iconSrc || socialAppId) && name && <span className="springboard-icon-label">{name}</span>}
@@ -403,18 +403,17 @@ function SpringBoardFolderIcon({ iconSrc, miniatures }: { iconSrc: string; minia
   </span>;
 }
 
-function ReconstructedSocialIcon({ appId }: { appId: SocialAppId }) {
-  const label = appId === "facebook" ? "f"
-    : appId === "twitter" ? "t"
-      : appId === "foursquare" ? "4"
-        : appId === "tumblr" ? "t"
-          : appId === "flickr" ? "••"
-            : "◉";
-  return <span
-    className={`springboard-social-icon is-${appId}`}
-    data-provenance="RECONSTRUCTED"
+function SpringBoardSocialIcon({ appId }: { appId: SocialAppId }) {
+  const app = SPRINGBOARD_SOCIAL_APPS.find(candidate => candidate.id === appId);
+  if (!app) return null;
+  return <img
+    className="springboard-social-icon"
+    src={app.iconSrc}
+    alt=""
+    data-app-id={app.id}
+    data-artwork-status={app.artworkStatus}
     aria-hidden="true"
-  >{label}</span>;
+  />;
 }
 
 function SpringBoardPageIndicator({ currentPage }: { currentPage: 0 | 1 }) {

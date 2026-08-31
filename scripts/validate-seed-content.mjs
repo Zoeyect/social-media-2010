@@ -2323,6 +2323,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const coreSocialSource = await readFile(resolve(projectRoot, "src/data/coreSocialFriends.ts"), "utf8");
   const instagramStateSource = await readFile(resolve(projectRoot, "src/state/instagramState.ts"), "utf8");
   const appSource = await readFile(resolve(projectRoot, "src/device/App.tsx"), "utf8");
+  const lockScreenSource = await readFile(resolve(projectRoot, "src/device/LockScreen.tsx"), "utf8");
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
   const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
   const facebookHomeIconsSource = await readFile(resolve(projectRoot, "src/device/FacebookHomeIcons.tsx"), "utf8");
@@ -2434,7 +2435,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.springboard\.is-folder-opening \.springboard-page-indicator,[\s\S]+translate\(-50%, var\(--folder-lower-offset\)\)/, "page dots must join the coherent lower SpringBoard displacement while a folder opens");
   assert.match(deviceCssSource, /\.springboard\.is-folder-opening \.springboard-dock,[\s\S]+\.springboard\.is-folder-open \.springboard-dock \{[^}]*translateY\(100%\);/, "the dock must complete its downward motion fully beyond the physical viewport while a folder is open");
   assert.match(deviceCssSource, /\.springboard-pages \{[^}]*inset: 0 0 84px;[^}]*overflow: hidden;[^}]*\}[\s\S]+\.springboard\.is-folder-opening \.springboard-pages,[\s\S]+\.springboard\.is-folder-open \.springboard-pages,[\s\S]+\.springboard\.is-folder-closing \.springboard-pages \{ overflow: visible; \}/, "folder states must remove the closed-page child clip so the lower SpringBoard remains continuous below the tray");
-  assert.match(deviceCssSource, /\.screen \{[^}]*height: 480px;[^}]*overflow: hidden;/, "only the physical 480-point device screen may clip the final folder-open composition");
+  assert.match(deviceCssSource, /\.screen \{[^}]*height: var\(--iphone4-screen-height\);[^}]*overflow: hidden;/, "only the canonical physical device screen may clip the final folder-open composition");
   assert.match(deviceCssSource, /\.springboard-dock \{[^}]*height: 84px;/, "folder opening must not compress the standard 84-point dock region");
   assert.match(deviceCssSource, /springboard-folder-region-open 300ms ease-in-out[\s\S]+springboard-folder-tray-open 300ms ease-in-out/, "split regions and folder tray must use one synchronized reconstructed 300ms mechanical transition");
   assert.doesNotMatch(deviceCssSource, /@keyframes springboard-folder-(?:open|close)[^{]*\{[^}]*scale\(/, "folder presentation must not regress to the former whole-panel scale effect");
@@ -2446,6 +2447,28 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(folderUnlockLifecycleSource, /dispatchFolderEvent|setActiveFolderSlotIndex/, "unlock must not close or retarget the active folder");
   assert.equal((appSource.match(/dispatchFolderEvent\("CLOSE"\)/g) ?? []).length, 2, "only full shutdown and explicit Home-on-SpringBoard may dispatch the folder close event");
   assert.match(springBoardSocialAppsSource, /id: "facebook"[\s\S]+id: "twitter"[\s\S]+id: "foursquare"[\s\S]+id: "tumblr"[\s\S]+id: "flickr"[\s\S]+id: "instagram"/, "the stable social-app registry must preserve all six existing application IDs");
+  assert.equal((springBoardSocialAppsSource.match(/artworkStatus: "RECONSTRUCTED_FROM_PERIOD_REFERENCE"/g) ?? []).length, 6, "all six third-party SpringBoard icons must carry explicit reference-derived provenance");
+  assert.equal((springBoardSocialAppsSource.match(/iconStatus: "HOLD"/g) ?? []).length, 6, "reference-derived artwork must not be mislabeled as a recovered original bundle payload");
+  assert.equal((springBoardSocialAppsSource.match(/referenceUrl: "https:\/\/www\.webdesignmuseum\.org\/iphone\//g) ?? []).length, 6, "each reconstructed icon must retain its supplied dated visual reference");
+  assert.match(springBoardSource, /function SpringBoardSocialIcon[\s\S]+SPRINGBOARD_SOCIAL_APPS\.find[\s\S]+className="springboard-social-icon"[\s\S]+src=\{app\.iconSrc\}[\s\S]+data-artwork-status=\{app\.artworkStatus\}/, "SpringBoard must render the central raster registry and expose its reconstruction status");
+  assert.doesNotMatch(springBoardSource, /ReconstructedSocialIcon|appId === "facebook"|appId === "twitter"|appId === "foursquare"|>••<|>◉</, "third-party launchers must not regress to per-app letter or symbol placeholders");
+  assert.match(deviceCssSource, /\.springboard-social-icon \{[^}]*left: 1px;[^}]*top: 1px;[^}]*width: 57px;[^}]*height: 57px;[^}]*object-fit: cover;[^}]*border-radius: 10px;/, "reference-derived icons must retain the established 57-point SpringBoard artwork box");
+  assert.doesNotMatch(deviceCssSource, /\.springboard-social-icon\.is-(?:facebook|twitter|instagram|foursquare|flickr|tumblr)/, "CSS letter/gradient approximations must not return beside the raster registry");
+  const reconstructedThirdPartyIcons = [
+    ["Facebook-2010-reference@2x.png", 114, "471b6971281523cb276ec88ffe911d80438a9081613e32e78ed138f946c03340"],
+    ["Twitter-2010-reference@2x.png", 114, "b12f9939f32c16816009ecec206e4f42f0b16a9717806be79af52ec856eccaaa"],
+    ["Instagram-2010-reference@2x.png", 114, "03ea31e8af5afc1bbf8dc506a05c5dfcb365bd61f607ad47cd70493a6e8a777a"],
+    ["Foursquare-2010-reference@2x.png", 114, "e31eddda163b1d974952c4e5e93218c9cac33c2b2af20476bed1ac78f65f6dfc"],
+    ["Flickr-2010-reference.png", 57, "93ea3a49ec696769b0a60469aa485166d2aea0c07a112461ac74f39b82061aa5"],
+    ["Tumblr-2010-reference@2x.png", 114, "f2a704a65d07dcbecaf7a4ea551c7dc5cad391b7eb77f565d1b1118813d3ddf9"],
+  ];
+  for (const [fileName, pixelSize, expectedHash] of reconstructedThirdPartyIcons) {
+    const iconBytes = await readFile(resolve(projectRoot, "src/assets/historical/ios4.1/springboard/apps/third-party", fileName));
+    assert.equal(iconBytes.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", `${fileName} must remain a PNG raster asset`);
+    assert.equal(iconBytes.readUInt32BE(16), pixelSize, `${fileName} must retain its audited pixel width`);
+    assert.equal(iconBytes.readUInt32BE(20), pixelSize, `${fileName} must retain its audited pixel height`);
+    assert.equal(createHash("sha256").update(iconBytes).digest("hex"), expectedHash, `${fileName} must not silently drift from the audited reconstruction`);
+  }
   const promotedSocialIds = [...pageOneSource.matchAll(/socialAppId: "([^"]+)"/g)].map(match => match[1]);
   assert.deepEqual(promotedSocialIds, ["facebook", "twitter", "instagram", "foursquare", "flickr"], "Page 1 social icons must retain their stable IDs in the corrected order");
   assert.equal(new Set(promotedSocialIds).size, promotedSocialIds.length, "promoted social app IDs must not be duplicated");
@@ -2588,6 +2611,20 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(appSource, /session\.phase === "sleeping" && <div className="screen-off-surface"/, "sleeping must render the dedicated display-off surface");
   assert.match(appSource, /session\.phase === "locked" && <LockScreen/, "locked must render Lock Screen");
   assert.match(deviceCssSource, /\.screen-off-surface\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*100;[^}]*inset:\s*0;[^}]*background:\s*#000;/, "display-off surface must be an opaque full-screen top layer");
+  assert.match(deviceCssSource, /\.device \{[^}]*--iphone4-screen-left: 30px;[^}]*--iphone4-screen-top: 133px;[^}]*--iphone4-screen-width: 320px;[^}]*--iphone4-screen-height: 480px;[^}]*width: 380px;[^}]*height: 747px;/, "the physical shell must own one fixed iPhone 4 body and 2:3 screen geometry");
+  assert.match(deviceCssSource, /\.screen \{[^}]*left: var\(--iphone4-screen-left\);[^}]*top: var\(--iphone4-screen-top\);[^}]*width: var\(--iphone4-screen-width\);[^}]*height: var\(--iphone4-screen-height\);/, "every device state must render through the single canonical screen rectangle");
+  assert.doesNotMatch(deviceCssSource, /\.screen\.(?:booting|locked|springboard|app|sleeping|poweredOff|shutdown|lowBatteryWarning|powerOffConfirm)[^{]*\{[^}]*(?:width|height):/, "no device phase may override the canonical screen dimensions");
+  assert.match(appSource, /const displayIsLit = session\.phase !== "sleeping" && session\.phase !== "poweredOff" && session\.phase !== "shutdown";[\s\S]+className=\{`device\$\{displayIsLit \? " is-display-lit" : ""\}`\}/, "screen light spill must derive from the existing display session phase without new power state");
+  assert.match(deviceCssSource, /\.device-screen-glow \{[^}]*opacity: 0;[^}]*pointer-events: none;[^}]*\}[\s\S]+\.device\.is-display-lit \.device-screen-glow \{ opacity: 1; \}/, "the dedicated screen glow must remain non-interactive and disappear for sleeping or powered-off states");
+  assert.match(lockScreenSource, /data-geometry-status="VISUAL-CROSSCHECK" data-material-status="RECONSTRUCTED"/, "the SMS alert must keep its visual geometry and reconstructed material confidence explicit");
+  assert.match(deviceCssSource, /\.lockscreen::before \{[^}]*background: rgba\(0,0,0,\.08\);[^}]*pointer-events: none;/, "Lock Screen wallpaper dimming must remain a simple non-interactive tonal overlay");
+  assert.doesNotMatch(deviceCssSource, /\.lockscreen(?:::before)?[^}]*(?:backdrop-filter|filter:\s*blur)/, "Lock Screen wallpaper must not acquire modern blur material");
+  assert.match(deviceCssSource, /\.unlock-track-raster \{[^}]*WellLock@2x\.png[^}]*\}[\s\S]+\.unlock-track button \{[^}]*width: 71px; height: 47px;[^}]*bottombarknobgray@2x\.png/, "the slider must retain the recovered iOS 4.1 track and knob artwork at native logical geometry");
+  assert.match(lockScreenSource, /data-slider-arrow-source="embedded-in-knob-asset"[\s\S]+onPointerDown=\{beginDrag\}[\s\S]+onPointerMove=\{drag\}[\s\S]+onPointerUp=\{finishDrag\}/, "the period arrow raster and existing slider interaction handlers must remain intact");
+  assert.match(appSource, /className="device-mute-switch"[\s\S]+className="device-volume-button is-up"[\s\S]+className="device-volume-button is-down"/, "the GSM shell must expose one visual Ring/Silent switch and two separate volume controls");
+  assert.equal((appSource.match(/className="device-antenna-seam is-/g) ?? []).length, 3, "the front-facing GSM shell must retain only its three subtle visible seam projections");
+  assert.match(appSource, /className="power"[^>]+onPointerDown=\{beginPower\}[^>]+onPointerUp=\{endPower\}/, "the refined Power control must retain its existing runtime handlers");
+  assert.match(appSource, /className=\{`home\$\{homePressed \? " is-pressed" : ""\}`\}[\s\S]+onPointerDown=\{beginHomePress\}[\s\S]+onPointerUp=\{endHomePress\}/, "the refined Home control must retain its existing runtime handlers");
   const timelineCellSource = twitterContainerSource.match(/function TimelineTweet[\s\S]*?function TweetDetail/)?.[0] ?? "";
   const facebookProfileSource = facebookContainerSource.match(/function FacebookProfile[\s\S]*?function FacebookCommentRow/)?.[0] ?? "";
   const facebookProfileIdentitySource = facebookProfileSource.match(/<header className="facebook-profile-header"[\s\S]*?<\/header>/)?.[0] ?? "";

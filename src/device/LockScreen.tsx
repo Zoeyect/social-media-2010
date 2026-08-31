@@ -83,7 +83,7 @@ export function LockScreen({ model, onUnlock, activeLockNotification, onViewNoti
       <time className="lock-clock-slot">{model.clock}</time>
       <time className="lock-date-slot">{model.date}</time>
     </div>
-    {activeLockNotification && <section className="lockscreen-sms-alert" aria-label={activeLockNotification.payload.title} data-geometry-status="HOLD" data-material-status="HOLD">
+    {activeLockNotification && <section className="lockscreen-sms-alert" aria-label={activeLockNotification.payload.title} data-geometry-status="VISUAL-CROSSCHECK" data-material-status="RECONSTRUCTED">
       <strong className="lockscreen-sms-alert-title">{activeLockNotification.payload.title}</strong>
       {activeLockNotification.payload.sender && <b className="lockscreen-sms-alert-sender">{activeLockNotification.payload.sender}</b>}
       <p className="lockscreen-sms-alert-body">{activeLockNotification.payload.message}</p>

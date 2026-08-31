@@ -588,6 +588,7 @@ export function App() {
   };
 
   const homeEnabled = session.phase === "locked" || session.phase === "springboard" || session.phase === "app" || session.phase === "sleeping";
+  const displayIsLit = session.phase !== "sleeping" && session.phase !== "poweredOff" && session.phase !== "shutdown";
   const beginHomePress = (event: PointerEvent<HTMLButtonElement>) => {
     if (!homeEnabled) return;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -652,13 +653,21 @@ export function App() {
   return <SessionIdentityContext.Provider value={session.sessionIdentity}>
     <main className="stage">
       <section
-      className="device"
+      className={`device${displayIsLit ? " is-display-lit" : ""}`}
       aria-label="Black iPhone 4"
       onPointerDownCapture={recordInteraction}
       onPointerMoveCapture={continueDeviceInteraction}
       onPointerUpCapture={recordInteraction}
       onPointerCancelCapture={recordInteraction}
     >
+      <div className="device-front-glass" aria-hidden="true" />
+      <div className="device-screen-glow" aria-hidden="true" />
+      <span className="device-antenna-seam is-top" aria-hidden="true" />
+      <span className="device-antenna-seam is-lower-left" aria-hidden="true" />
+      <span className="device-antenna-seam is-lower-right" aria-hidden="true" />
+      <span className="device-mute-switch" aria-hidden="true" />
+      <span className="device-volume-button is-up" aria-hidden="true" />
+      <span className="device-volume-button is-down" aria-hidden="true" />
       <button className="power" aria-label="Power button" onPointerDown={beginPower} onPointerUp={endPower} onPointerCancel={cancelPower} onPointerLeave={cancelPower} />
       <div className="speaker" /><div className="camera" />
       <div className={`screen ${session.phase}`}>

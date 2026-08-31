@@ -1010,6 +1010,7 @@ export function App() {
             state={instagramState}
             dispatch={dispatchInstagram}
             currentDeviceDateTime={deviceDateTime}
+            cameraRoll={cameraRoll}
           />}
           {appRuntime.activeAppId === "flickr" && <FlickrContainer
             state={flickrState}

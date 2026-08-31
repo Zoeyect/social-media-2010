@@ -3,13 +3,37 @@ import type { KeyboardEvent, PointerEvent, TransitionEvent } from "react";
 import type { CameraPhotoRecord } from "../state/cameraCaptureState";
 import type { CameraRollInitialization, PhotosEvent, PhotosState } from "../state/cameraRollState";
 
-type PhotosContainerProps = Readonly<{
+type PhotosBrowseProps = Readonly<{
+  mode?: "browse";
   state: PhotosState;
   dispatch: Dispatch<PhotosEvent>;
   cameraRoll: CameraRollInitialization;
 }>;
 
-export function PhotosContainer({ state, dispatch, cameraRoll }: PhotosContainerProps) {
+type PhotosPickerProps = Readonly<{
+  mode: "picker";
+  cameraRoll: CameraRollInitialization;
+  onPickerCancel: () => void;
+  onPickerSelect: (photoId: string) => void;
+}>;
+
+type PhotosContainerProps = PhotosBrowseProps | PhotosPickerProps;
+
+export function PhotosContainer(props: PhotosContainerProps) {
+  if (props.mode === "picker") {
+    return <CameraRollGrid
+      cameraRoll={props.cameraRoll}
+      backLabel="Cancel"
+      mode="picker"
+      onBack={props.onPickerCancel}
+      onOpenPhoto={props.onPickerSelect}
+    />;
+  }
+
+  return <PhotosBrowseContainer {...props} />;
+}
+
+function PhotosBrowseContainer({ state, dispatch, cameraRoll }: PhotosBrowseProps) {
   const selectedPhoto = state.selectedPhotoId
     ? cameraRoll.records.find(record => record.id === state.selectedPhotoId) ?? null
     : null;
@@ -74,10 +98,14 @@ export function PhotosContainer({ state, dispatch, cameraRoll }: PhotosContainer
 
 function CameraRollGrid({
   cameraRoll,
+  backLabel = "Albums",
+  mode = "browse",
   onBack,
   onOpenPhoto,
 }: Readonly<{
   cameraRoll: CameraRollInitialization;
+  backLabel?: string;
+  mode?: "browse" | "picker";
   onBack: () => void;
   onOpenPhoto: (photoId: string) => void;
 }>) {
@@ -87,8 +115,8 @@ function CameraRollGrid({
     if (element && cameraRoll.status === "ready") element.scrollTop = element.scrollHeight;
   }, [cameraRoll.records.length, cameraRoll.status]);
 
-  return <section className="photos-container" aria-label="Camera Roll">
-    <PhotosNavigationBar title="Camera Roll" backLabel="Albums" onBack={onBack} />
+  return <section className="photos-container" aria-label={mode === "picker" ? "Choose from Camera Roll" : "Camera Roll"} data-mode={mode}>
+    <PhotosNavigationBar title="Camera Roll" backLabel={backLabel} onBack={onBack} />
     <div
       ref={grid}
       className="photos-camera-roll-grid"

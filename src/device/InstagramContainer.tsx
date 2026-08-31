@@ -1,17 +1,20 @@
-import { Dispatch, useLayoutEffect, useRef } from "react";
+import { Dispatch, useEffect, useLayoutEffect, useRef } from "react";
 import { InstagramEvent, InstagramState, selectInstagramFollowedAccounts, selectInstagramFollowingCount, selectInstagramKnownAccountStats, selectInstagramVisibleFollowedPosts, selectInstagramVisibleKnownPosts } from "../state/instagramState";
+import type { CameraRollInitialization } from "../state/cameraRollState";
 import { useSessionIdentity } from "../state/sessionIdentity";
 import { getSharedCharacterMedia } from "../data/sharedCharacterMedia";
 import { getInstagramPopularPost, INSTAGRAM_POPULAR_POSTS } from "../data/instagramPopularContent";
 import { InstagramRefreshButton, InstagramTabBar, InstagramTopBar } from "./instagram/InstagramChrome";
+import { PhotosContainer } from "./PhotosContainer";
 
 type InstagramContainerProps = {
   state: InstagramState;
   dispatch: Dispatch<InstagramEvent>;
   currentDeviceDateTime: Date;
+  cameraRoll: CameraRollInitialization;
 };
 
-export function InstagramContainer({ state, dispatch, currentDeviceDateTime }: InstagramContainerProps) {
+export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cameraRoll }: InstagramContainerProps) {
   const identity = useSessionIdentity();
   const feedRef = useRef<HTMLDivElement>(null);
   const popularRef = useRef<HTMLDivElement>(null);
@@ -24,6 +27,9 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime }: I
   const selectedKnownStats = selectedKnownAccount ? selectInstagramKnownAccountStats(state, selectedKnownAccount.canonicalCharacterId) : null;
   const selectedKnownAvatar = selectedKnownAccount?.canonicalCharacterId === "june" ? getSharedCharacterMedia("june-profile-avatar") : null;
   const selectedPopularPost = state.selectedPopularPostId ? getInstagramPopularPost(state.selectedPopularPostId) : null;
+  const selectedDraftPhoto = state.draft.selectedCameraRollPhotoId
+    ? cameraRoll.records.find(photo => photo.id === state.draft.selectedCameraRollPhotoId) ?? null
+    : null;
   const accountTabLabel = instagramAccountTabLabel(identity.name);
 
   useLayoutEffect(() => {
@@ -36,15 +42,33 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime }: I
     popularRef.current.scrollTop = state.popularScrollPosition;
   }, [state.currentView, state.popularScrollPosition]);
 
+  useEffect(() => {
+    if (cameraRoll.status !== "ready" || !state.draft.selectedCameraRollPhotoId || selectedDraftPhoto) return;
+    dispatch({ type: "INVALIDATE_DRAFT_MEDIA" });
+  }, [cameraRoll.status, dispatch, selectedDraftPhoto, state.draft.selectedCameraRollPhotoId]);
+
+  if (state.currentView === "source") {
+    return <PhotosContainer
+      mode="picker"
+      cameraRoll={cameraRoll}
+      onPickerCancel={() => dispatch({ type: "CANCEL_FIRST_PHOTO" })}
+      onPickerSelect={photoId => dispatch({ type: "SELECT_CAMERA_ROLL_PHOTO", photoId })}
+    />;
+  }
+
   const leftControl = state.currentView === "popularPhotoDetail"
     ? <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_FROM_POPULAR_PHOTO" })}>Back</button>
     : state.currentView === "following" || state.currentView === "facebookFriends" || state.currentView === "knownProfile" || state.currentView === "knownConnections"
       ? <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_FROM_DISCOVERY" })}>Back</button>
-      : isWorkflow
-        ? <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "CANCEL_FIRST_PHOTO" })}>Cancel</button>
-        : null;
+      : state.currentView === "filter"
+        ? <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_TO_CAMERA_ROLL" })}>Back</button>
+        : state.currentView === "share"
+          ? <button className="instagram-navigation-cancel" type="button" onClick={() => dispatch({ type: "BACK_TO_FILTERS" })}>Back</button>
+          : null;
   const rightControl = state.currentView === "filter"
-    ? <button className="instagram-navigation-next" type="button" onClick={() => dispatch({ type: "CONTINUE_TO_SHARE" })}>Next</button>
+    ? <button className="instagram-navigation-next" type="button" disabled={!selectedDraftPhoto} onClick={() => dispatch({ type: "CONTINUE_TO_SHARE" })}>Next</button>
+    : state.currentView === "share"
+      ? <button className="instagram-navigation-next" type="button" disabled={!selectedDraftPhoto} onClick={() => dispatch({ type: "POST_FIRST_PHOTO", owner: identity.name || "Owner", createdAt: Date.now() })}>Post</button>
     : state.currentView === "feed"
       ? <InstagramRefreshButton label="Refresh Feed" onClick={() => dispatch({ type: "SHOW_FEED" })} />
       : state.currentView === "popular"
@@ -84,13 +108,15 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime }: I
             </header>
             <div className="instagram-square-photo instagram-feed-photo"><img className="instagram-character-photo" src={media.src} alt="" /></div>
           </article>;
-        })}{state.photos.map(photo => <article className="instagram-photo-record" key={photo.id} data-origin={photo.origin}>
-            <header><strong>{photo.owner}</strong><span>{photo.filter}</span></header>
-            <div className="instagram-dev-photo-surface" role="img" aria-label="Development-only non-photographic fixture">
-              <strong>DEV fixture</strong>
-              <span>No photographic asset</span>
-            </div>
-          </article>)}</>}
+        })}{state.photos.map(photo => {
+          const sourcePhoto = cameraRoll.records.find(record => record.id === photo.sourcePhotoId) ?? null;
+          return <article className="instagram-photo-record" key={photo.id} data-origin={photo.origin} data-source={photo.source}>
+            <header><strong>{photo.owner}</strong><span>{instagramVisibleFilterLabel(photo.filter)}</span></header>
+            {sourcePhoto
+              ? <div className="instagram-square-photo instagram-feed-photo"><img src={sourcePhoto.objectUrl} alt={sourcePhoto.filename} /></div>
+              : <div className="instagram-square-photo instagram-feed-photo instagram-unavailable-photo" role="img" aria-label="Photo unavailable" />}
+          </article>;
+        })}</>}
     </div>}
 
     {state.currentView === "popular" && <div ref={popularRef} className="instagram-popular-grid" aria-label="Popular photos" data-refresh-count={state.popularRefreshCount} onScroll={event => dispatch({ type: "SET_POPULAR_SCROLL_POSITION", scrollPosition: event.currentTarget.scrollTop })}>
@@ -115,7 +141,12 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime }: I
       <button className="instagram-find-facebook-friends" type="button" onClick={() => dispatch({ type: "SHOW_FACEBOOK_FRIENDS" })}>Find Friends from Facebook</button>
       <div className="instagram-profile-photo-stream">{state.photos.length === 0
         ? <p className="instagram-period-empty-stream">No photos yet.</p>
-        : state.photos.map(photo => <article key={photo.id}><header><span className="instagram-stream-avatar-placeholder" aria-hidden="true" /><strong>{identity.name || "Owner"}</strong><time>{photo.filter}</time></header><div className="instagram-dev-photo-surface" role="img" aria-label="Development-only non-photographic fixture"><strong>DEV fixture</strong><span>No photographic asset</span></div></article>)}</div>
+        : state.photos.map(photo => {
+          const sourcePhoto = cameraRoll.records.find(record => record.id === photo.sourcePhotoId) ?? null;
+          return <article key={photo.id}><header><span className="instagram-stream-avatar-placeholder" aria-hidden="true" /><strong>{identity.name || "Owner"}</strong><time>{instagramVisibleFilterLabel(photo.filter)}</time></header>{sourcePhoto
+            ? <div className="instagram-square-photo"><img src={sourcePhoto.objectUrl} alt={sourcePhoto.filename} /></div>
+            : <div className="instagram-square-photo instagram-unavailable-photo" role="img" aria-label="Photo unavailable" />}</article>;
+        })}</div>
     </section>}
 
     {state.currentView === "following" && <section className="instagram-facebook-friends instagram-following-list" aria-label="Following">
@@ -155,30 +186,26 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime }: I
       <article data-content-status="HOLD"><strong>Account list</strong><span>Individual rows remain HOLD pending approved social-graph identities.</span></article>
     </section>}
 
-    {state.currentView === "source" && <section className="instagram-first-photo-step">
-      <h2>Choose a source</h2>
-      <p>No approved photographic fixture is installed.</p>
-      <button type="button" onClick={() => dispatch({ type: "SELECT_SOURCE", source: "dev-fixture" })}>Use DEV Fixture</button>
-      <small>DEV-ONLY · source artwork HOLD</small>
+    {state.currentView === "filter" && <section className="instagram-filter-step" data-geometry-status="RECONSTRUCTED">
+      <div className="instagram-filter-preview">
+        {selectedDraftPhoto
+          ? <img src={selectedDraftPhoto.objectUrl} alt={selectedDraftPhoto.filename} />
+          : <InstagramCameraRollStateMessage cameraRoll={cameraRoll} />}
+      </div>
+      <div className="instagram-filter-filmstrip" aria-label="Filters">
+        <button type="button" aria-pressed={state.draft.filter === "Original"} onClick={() => dispatch({ type: "SELECT_FILTER", filter: "Original" })}>
+          <span className="instagram-filter-thumbnail-frame">{selectedDraftPhoto && <img src={selectedDraftPhoto.objectUrl} alt="" />}</span>
+          <span>Normal</span>
+        </button>
+      </div>
     </section>}
 
-    {state.currentView === "filter" && <section className="instagram-first-photo-step">
-      <div className="instagram-dev-photo-surface" role="img" aria-label="Development-only non-photographic fixture preview">
-        <strong>DEV fixture</strong>
-        <span>No photographic asset</span>
+    {state.currentView === "share" && <section className="instagram-share-confirmation" data-geometry-status="RECONSTRUCTED">
+      <div className="instagram-share-photo-row">
+        {selectedDraftPhoto
+          ? <img src={selectedDraftPhoto.objectUrl} alt={selectedDraftPhoto.filename} />
+          : <InstagramCameraRollStateMessage cameraRoll={cameraRoll} />}
       </div>
-      <h2>Filter</h2>
-      <button type="button" aria-pressed={state.draft.filter === "Original"} onClick={() => dispatch({ type: "SELECT_FILTER", filter: "Original" })}>Original</button>
-      <small>Additional launch-era filter names remain HOLD.</small>
-    </section>}
-
-    {state.currentView === "share" && <section className="instagram-first-photo-step">
-      <div className="instagram-dev-photo-surface" role="img" aria-label="Development-only non-photographic fixture preview">
-        <strong>DEV fixture</strong>
-        <span>No photographic asset</span>
-      </div>
-      <p>{identity.name || "Owner"} · {state.draft.filter ?? "Original"}</p>
-      <button type="button" onClick={() => dispatch({ type: "POST_FIRST_PHOTO", owner: identity.name || "Owner", createdAt: Date.now() })}>Post</button>
     </section>}
 
     {!isWorkflow && <InstagramTabBar
@@ -241,7 +268,17 @@ function viewTitle(view: InstagramState["currentView"], knownUsername?: string, 
     case "knownProfile": return knownUsername ?? "Profile";
     case "knownConnections": return connectionsKind === "followers" ? "Followers" : "Following";
     case "source": return "Photo";
-    case "filter": return "Filter";
+    case "filter": return "Filters";
     case "share": return "Share";
   }
+}
+
+function InstagramCameraRollStateMessage({ cameraRoll }: { cameraRoll: CameraRollInitialization }) {
+  return <p className="instagram-camera-roll-state" role={cameraRoll.status === "error" ? "alert" : "status"}>
+    {cameraRoll.status === "loading" ? "Loading Camera Roll…" : "Camera Roll Unavailable"}
+  </p>;
+}
+
+function instagramVisibleFilterLabel(filter: InstagramState["draft"]["filter"]): string {
+  return filter === "Original" ? "Normal" : "";
 }

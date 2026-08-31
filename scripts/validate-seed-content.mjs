@@ -2240,25 +2240,34 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual([dramaInstagram.followedCharacterIds, instagram.selectInstagramFollowingCount(dramaInstagram)], [["june"], 1]);
   assert.deepEqual(instagram.selectInstagramKnownAccountStats(dramaInstagram, "june"), { posts: 3, followers: 118, following: 236 });
   assert.equal(instagramState.currentView, "feed");
-  assert.deepEqual(instagramState.draft, { source: null, filter: null });
+  assert.deepEqual(instagramState.draft, { selectedCameraRollPhotoId: null, filter: null });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
   assert.equal(instagramState.currentView, "source");
-  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_SOURCE", source: "dev-fixture" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_CAMERA_ROLL_PHOTO", photoId: "camera-photo-session-a-0001" });
   assert.equal(instagramState.currentView, "filter");
-  assert.deepEqual(instagramState.draft, { source: "dev-fixture", filter: "Original" });
+  assert.deepEqual(instagramState.draft, { selectedCameraRollPhotoId: "camera-photo-session-a-0001", filter: "Original" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "BACK_TO_CAMERA_ROLL" });
+  assert.equal(instagramState.currentView, "source", "Filters Back must return to the system Camera Roll picker");
+  assert.deepEqual(instagramState.draft, { selectedCameraRollPhotoId: "camera-photo-session-a-0001", filter: "Original" }, "Filters Back may preserve the selected draft identity");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "INVALIDATE_DRAFT_MEDIA" });
+  assert.deepEqual(instagramState.draft, { selectedCameraRollPhotoId: null, filter: null }, "an unresolved Camera Roll identity must invalidate without retaining media data");
   instagramState = instagram.instagramStateTransition(instagramState, { type: "CANCEL_FIRST_PHOTO" });
   assert.equal(instagramState.currentView, "feed");
-  assert.deepEqual(instagramState.draft, { source: null, filter: null }, "cancel must discard the first-photo draft");
+  assert.deepEqual(instagramState.draft, { selectedCameraRollPhotoId: null, filter: null }, "cancel must discard the first-photo draft");
   instagramState = instagram.instagramStateTransition(instagramState, { type: "BEGIN_FIRST_PHOTO" });
-  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_SOURCE", source: "dev-fixture" });
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_CAMERA_ROLL_PHOTO", photoId: "camera-photo-session-a-0002" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "SELECT_FILTER", filter: "Original" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "CONTINUE_TO_SHARE" });
   assert.equal(instagramState.currentView, "share");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "BACK_TO_FILTERS" });
+  assert.equal(instagramState.currentView, "filter", "Share Back must return to Filters without replacing the selected media");
+  instagramState = instagram.instagramStateTransition(instagramState, { type: "CONTINUE_TO_SHARE" });
   instagramState = instagram.instagramStateTransition(instagramState, { type: "POST_FIRST_PHOTO", owner: "Zoey", createdAt: 1_287_552_900_000 });
   assert.deepEqual(instagramState.photos, [{
     id: "instagram-first-photo",
     owner: "Zoey",
-    source: "dev-fixture",
+    source: "camera-roll",
+    sourcePhotoId: "camera-photo-session-a-0002",
     filter: "Original",
     createdAt: 1_287_552_900_000,
     origin: "user",
@@ -2334,7 +2343,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(instagramAlex.currentView, "feed");
   assert.equal(instagramAlex.selectedPhotoId, null);
   assert.equal(instagramAlex.scrollPosition, 0);
-  assert.deepEqual(instagramAlex.draft, { source: null, filter: null });
+  assert.deepEqual(instagramAlex.draft, { selectedCameraRollPhotoId: null, filter: null });
   assert.deepEqual({ followers: instagramAlex.followers, following: instagram.selectInstagramFollowingCount(instagramAlex) }, { followers: 0, following: 1 });
   assert.deepEqual(instagramAlex.knownAccounts.map(account => [account.canonicalCharacterId, account.username]), [["june", "junepark"]], "new session must restore the sparse canonical June mapping");
   assert.deepEqual(instagram.selectInstagramVisibleKnownPosts(instagramAlex, "june").map(post => post.id), ["june-ig-04", "june-ig-03", "june-ig-02"], "new session must restore the locked June seed chronology");
@@ -2352,6 +2361,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const lockScreenSource = await readFile(resolve(projectRoot, "src/device/LockScreen.tsx"), "utf8");
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
   const instagramChromeSource = await readFile(resolve(projectRoot, "src/device/instagram/InstagramChrome.tsx"), "utf8");
+  const photosContainerSource = await readFile(resolve(projectRoot, "src/device/PhotosContainer.tsx"), "utf8");
   const facebookContainerSource = await readFile(resolve(projectRoot, "src/device/FacebookContainer.tsx"), "utf8");
   const facebookHomeIconsSource = await readFile(resolve(projectRoot, "src/device/FacebookHomeIcons.tsx"), "utf8");
   const facebookMicroChromeSource = await readFile(resolve(projectRoot, "src/device/FacebookMicroChrome.tsx"), "utf8");
@@ -2685,6 +2695,12 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(instagramChromeSource, /<span className="instagram-tab-label">Popular<\/span>/, "Popular must be a functional root tab");
   assert.match(instagramChromeSource, /<span className="instagram-tab-label">Share<\/span>/, "the center Instagram tab must use Share semantics");
   assert.match(instagramContainerSource, /instagramAccountTabLabel\(identity\.name\)/, "the rightmost tab must derive current-account identity");
+  assert.match(appSource, /<InstagramContainer[\s\S]+cameraRoll=\{cameraRoll\}/, "Instagram must receive only App's authorized runtime Camera Roll collection");
+  assert.match(instagramContainerSource, /<PhotosContainer[\s\S]+mode="picker"[\s\S]+onPickerSelect/, "Instagram Share must enter the system Camera Roll picker mode");
+  assert.doesNotMatch(instagramContainerSource, /DEV Fixture|DEV fixture|dev-fixture|Choose a source|No approved photographic fixture/, "normal Instagram runtime must not expose the development fixture path");
+  assert.doesNotMatch(instagramContainerSource, /cameraRollPersistence|indexedDB|IDBDatabase/, "Instagram must not bypass App's Camera Roll ownership boundary");
+  assert.match(photosContainerSource, /props\.mode === "picker"[\s\S]+backLabel="Cancel"[\s\S]+onOpenPhoto=\{props\.onPickerSelect\}/, "Photos picker mode must select a stable Camera Roll ID without opening the viewer");
+  assert.match(photosContainerSource, /function PhotosBrowseContainer[\s\S]+function PhotoViewer/, "normal Photos browsing and viewer paths must remain present beside picker mode");
   assert.match(deviceCssSource, /\.instagram-popular-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,80px\)[^}]*overflow-y:\s*auto/, "Popular must use a vertically scrolling four-column grid at the confirmed 80pt pitch");
   assert.match(deviceCssSource, /\.instagram-popular-grid\s*>\s*button\s*\{[^}]*width:\s*80px;[^}]*height:\s*80px;/, "Popular thumbnails must retain square 80pt outer cells");
   assert.doesNotMatch(`${instagramContainerSource}\n${instagramChromeSource}`, /Explore|category chips|Suggested for You|Reels|instagram-popular-search/, "Popular must not introduce modern Explore UI");

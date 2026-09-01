@@ -307,8 +307,9 @@ button, input { font: inherit; }
 .twitter-compose-glyph { position: absolute; left: 6px; top: 4px; width: 20px; height: 20px; background: linear-gradient(#fff,#d7e2e8); -webkit-mask: url("../assets/twitter/chrome/twitter-compose-2010-reconstructed.svg") center / 20px 20px no-repeat; mask: url("../assets/twitter/chrome/twitter-compose-2010-reconstructed.svg") center / 20px 20px no-repeat; filter: drop-shadow(0 -1px rgba(0,0,0,.4)); }
 .twitter-navigation-bar > button:disabled { color: rgba(255,255,255,.55); }
 .twitter-timeline { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
-.twitter-timeline-item { position: relative; border-bottom: 1px solid #c5c5c5; background: #fff; }
-.twitter-timeline-row { position: relative; width: 100%; min-height: 58px; padding: 5px; display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 7px; align-items: start; color: #222; border: 0; background: #fff; text-align: left; touch-action: pan-y; }
+.twitter-timeline-item { position: relative; display: grid; grid-template-columns: minmax(0,1fr); overflow: hidden; border-bottom: 1px solid #c5c5c5; background: #fff; }
+.twitter-timeline-row { position: relative; z-index: 2; grid-area: 1 / 1; width: 100%; min-height: 58px; padding: 5px; display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 7px; align-items: start; color: #222; border: 0; background: #fff; text-align: left; touch-action: pan-y; transform: translateX(0); transition: transform 160ms cubic-bezier(.25,.1,.25,1); }
+.twitter-timeline-item.is-revealed .twitter-timeline-row { transform: translateX(320px); }
 .twitter-avatar-fixture { width: 48px; height: 48px; display: grid; place-items: center; color: #fff; border: 1px solid #878787; border-radius: 4px; background: #a2a2a2; font-size: 14px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.35); }
 .twitter-tweet-copy { min-width: 0; display: grid; align-content: start; grid-template-columns: 1fr auto; column-gap: 7px; }
 .twitter-tweet-copy strong { overflow: hidden; color: #222; font-size: 14px; line-height: 17px; text-overflow: ellipsis; white-space: nowrap; }
@@ -319,12 +320,22 @@ button, input { font: inherit; }
 .twitter-tweet-handle { grid-column: 1 / -1; padding-top: 2px; color: #888; font-size: 11px; line-height: 18px; }
 .twitter-tweet-handle.twitter-profile-link { display: inline-block; text-decoration: none; cursor: pointer; }
 .twitter-profile-link { color: #286d91; }
-.twitter-favorite-marker { position: absolute; top: 25px; right: 7px; color: #d2a22e; font-size: 11px; }
-.twitter-tweet-action-row { height: 38px; display: grid; grid-template-columns: repeat(3,1fr); border-top: 1px solid #b8b8b8; background: #e7e7e7; }
-.twitter-tweet-action-row button { padding: 0; color: #286d91; border: 0; border-right: 1px solid #bbb; background: linear-gradient(#fff,#dedede); font-size: 11px; font-weight: bold; }
-.twitter-tweet-action-row button:last-child { border-right: 0; }
-.twitter-tweet-action-row button[aria-pressed="true"] { color: #946b12; }
-.twitter-tweet-action-row button:disabled { color: #999; }
+.twitter-favorite-marker { position: absolute; z-index: 3; top: 0; right: 0; width: 15px; height: 15px; pointer-events: none; background: url("../assets/twitter/chrome/twitter-favorite-corner-2010-reconstructed.svg") center / 15px 15px no-repeat; }
+.twitter-tweet-action-row { position: relative; z-index: 1; grid-area: 1 / 1; min-height: 58px; display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); align-self: stretch; overflow: hidden; border-top: 1px solid #3c4a55; border-bottom: 1px solid #080d11; background: radial-gradient(circle at 1px 1px,rgba(255,255,255,.12) 0 .7px,transparent .9px) 0 0 / 4px 4px,radial-gradient(circle at 1px 1px,rgba(0,0,0,.34) 0 .7px,transparent .9px) 2px 2px / 4px 4px,linear-gradient(#2c3944,#182229); box-shadow: inset 0 1px rgba(255,255,255,.1),inset 0 -1px rgba(0,0,0,.72); }
+.twitter-tweet-action,.twitter-tweet-action-hold { min-width: 0; min-height: 0; padding: 0; display: grid; place-items: center; border: 0; background: transparent; }
+.twitter-tweet-action { cursor: pointer; }
+.twitter-tweet-action:active { background: rgba(0,0,0,.16); }
+.twitter-tweet-action:focus-visible { outline: 1px dotted rgba(235,240,242,.72); outline-offset: -4px; }
+.twitter-tweet-action:disabled { cursor: default; opacity: .42; }
+.twitter-tweet-action > span,.twitter-tweet-action-hold > span { display: block; background: linear-gradient(#fafbf9,#c9cdce); filter: drop-shadow(0 -1px rgba(0,0,0,.7)) drop-shadow(0 1px rgba(255,255,255,.12)); }
+.twitter-tweet-action.is-reply > span { width: 32px; height: 30px; -webkit-mask: url("../assets/twitter/chrome/twitter-action-reply-2010-reconstructed.svg") center / contain no-repeat; mask: url("../assets/twitter/chrome/twitter-action-reply-2010-reconstructed.svg") center / contain no-repeat; }
+.twitter-tweet-action.is-retweet > span { width: 30px; height: 30px; -webkit-mask: url("../assets/twitter/chrome/twitter-action-retweet-2010-reconstructed.svg") center / contain no-repeat; mask: url("../assets/twitter/chrome/twitter-action-retweet-2010-reconstructed.svg") center / contain no-repeat; }
+.twitter-tweet-action.is-favorite > span { width: 32px; height: 32px; -webkit-mask: url("../assets/twitter/chrome/twitter-action-favorite-2010-reconstructed.svg") center / contain no-repeat; mask: url("../assets/twitter/chrome/twitter-action-favorite-2010-reconstructed.svg") center / contain no-repeat; }
+.twitter-tweet-action.is-favorite[aria-pressed="true"] > span { background: linear-gradient(#fff3a2,#e9b32c); -webkit-mask-image: url("../assets/twitter/chrome/twitter-action-favorite-selected-2010-reconstructed.svg"); mask-image: url("../assets/twitter/chrome/twitter-action-favorite-selected-2010-reconstructed.svg"); }
+.twitter-tweet-action.is-profile > span { width: 30px; height: 36px; -webkit-mask: url("../assets/twitter/chrome/twitter-action-profile-2010-reconstructed.svg") center / contain no-repeat; mask: url("../assets/twitter/chrome/twitter-action-profile-2010-reconstructed.svg") center / contain no-repeat; }
+.twitter-tweet-action-hold { pointer-events: none; }
+.twitter-tweet-action-hold.is-slot5 > span { width: 22px; height: 38px; -webkit-mask: url("../assets/twitter/chrome/twitter-action-slot5-hold-2010-reconstructed.svg") center / contain no-repeat; mask: url("../assets/twitter/chrome/twitter-action-slot5-hold-2010-reconstructed.svg") center / contain no-repeat; }
+.twitter-tweet-action-hold.is-slot6 > span { width: 32px; height: 32px; -webkit-mask: url("../assets/twitter/chrome/twitter-action-slot6-hold-2010-reconstructed.svg") center / contain no-repeat; mask: url("../assets/twitter/chrome/twitter-action-slot6-hold-2010-reconstructed.svg") center / contain no-repeat; }
 .twitter-tweet-detail { flex: 1 1 auto; min-height: 0; padding: 14px 12px; overflow-y: auto; background: #fff; }
 .twitter-tweet-detail > header { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 10px; }
 .twitter-tweet-detail > header strong { font-size: 17px; }

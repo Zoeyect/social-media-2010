@@ -294,12 +294,15 @@ function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted,
         <span>{tweet.text}</span>
         {retweetAttribution && <small>{retweetAttribution}</small>}
       </span>
-      {favorite && <span className="twitter-favorite-marker">Favorite</span>}
+      {favorite && <span className="twitter-favorite-marker" aria-hidden="true" />}
     </div>
-    {revealed && <div className="twitter-tweet-action-row" aria-label="Tweet actions" data-chrome-status="HOLD">
-      <button type="button" onClick={onReply}>Reply</button>
-      <button type="button" aria-pressed={retweeted} disabled={!retweetAllowed} onClick={onRetweet}>{retweetAllowed ? (retweeted ? "Retweeted" : "Retweet") : "Retweet"}</button>
-      <button type="button" aria-pressed={favorite} onClick={onFavorite}>{favorite ? "Favorited" : "Favorite"}</button>
+    {revealed && <div className="twitter-tweet-action-row" role="group" aria-label="Tweet actions" data-chrome-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
+      <button type="button" className="twitter-tweet-action is-reply" aria-label="Reply" onClick={onReply}><span aria-hidden="true" /></button>
+      <button type="button" className="twitter-tweet-action is-retweet" aria-label={retweeted ? "Undo Retweet" : "Retweet"} aria-pressed={retweeted} disabled={!retweetAllowed} onClick={onRetweet}><span aria-hidden="true" /></button>
+      <button type="button" className="twitter-tweet-action is-favorite" aria-label={favorite ? "Remove Favorite" : "Favorite"} aria-pressed={favorite} onClick={onFavorite}><span aria-hidden="true" /></button>
+      <button type="button" className="twitter-tweet-action is-profile" aria-label={`Open ${tweet.displayName} profile`} onClick={() => onOpenProfile(tweet.authorHandle || tweet.displayName)}><span aria-hidden="true" /></button>
+      <span className="twitter-tweet-action-hold is-slot5" aria-hidden="true"><span /></span>
+      <span className="twitter-tweet-action-hold is-slot6" aria-hidden="true"><span /></span>
     </div>}
   </article>;
 }

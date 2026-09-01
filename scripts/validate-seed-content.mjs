@@ -1237,6 +1237,32 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(twitterState.activeTab, "timeline");
   assert.equal(twitterState.currentView, "timeline");
   assert.equal(twitterState.revealedTweetId, null);
+  const b2FirstTweetId = twitterState.timeline[0].id;
+  const b2SecondTweetId = twitterState.timeline[1].id;
+  let b2ActionState = twitter.twitterStateTransition(twitterState, { type: "TOGGLE_TWEET_ACTIONS", tweetId: b2FirstTweetId, timelineItemId: b2FirstTweetId });
+  assert.equal(b2ActionState.revealedTweetId, b2FirstTweetId, "B2 must reveal the selected Timeline Tweet only");
+  b2ActionState = twitter.twitterStateTransition(b2ActionState, { type: "TOGGLE_TWEET_ACTIONS", tweetId: b2SecondTweetId, timelineItemId: b2SecondTweetId });
+  assert.equal(b2ActionState.revealedTweetId, b2SecondTweetId, "revealing a second Timeline Tweet must close the first and leave one revealed ID");
+  const b2ReplyState = twitter.twitterStateTransition(b2ActionState, { type: "BEGIN_REPLY", tweetId: b2SecondTweetId });
+  assert.deepEqual([b2ReplyState.currentView, b2ReplyState.composerKind, b2ReplyState.replyComposerTweetId, b2ReplyState.revealedTweetId], ["composer", "reply", b2SecondTweetId, null], "B2 Reply must reuse the existing composer route and clear the pane");
+  const b2ReplyCancelState = twitter.twitterStateTransition(b2ReplyState, { type: "CANCEL_REPLY" });
+  assert.deepEqual([b2ReplyCancelState.currentView, b2ReplyCancelState.composerKind, b2ReplyCancelState.replyComposerTweetId], ["timeline", null, null], "canceling a Timeline-pane Reply must return to Timeline root");
+  const b2RetweetState = twitter.twitterStateTransition(b2ActionState, { type: "TOGGLE_RETWEET", tweetId: b2SecondTweetId, retweetedBy: "Zoey", retweetActionTimestamp: 100 });
+  assert.deepEqual(b2RetweetState.retweetedTweetIds, [b2SecondTweetId], "B2 Retweet must retain the existing single-source state transition");
+  assert.equal(b2RetweetState.retweetActivities[0].sourceTweetId, b2SecondTweetId, "B2 Retweet must retain the source Tweet relation");
+  const b2FavoriteState = twitter.twitterStateTransition(b2ActionState, { type: "TOGGLE_FAVORITE", tweetId: b2SecondTweetId });
+  assert.deepEqual(b2FavoriteState.favoriteTweetIds, [b2SecondTweetId], "B2 Favorite must retain the existing state transition");
+  const b2FavoriteOffState = twitter.twitterStateTransition(b2FavoriteState, { type: "TOGGLE_FAVORITE", tweetId: b2SecondTweetId });
+  assert.deepEqual(b2FavoriteOffState.favoriteTweetIds, [], "B2 Favorite must retain existing toggle-off behavior");
+  const b2ProfileState = twitter.twitterStateTransition(b2ActionState, { type: "OPEN_USER_PROFILE", displayName: twitterState.timeline[1].displayName, originView: "timeline" });
+  assert.deepEqual([b2ProfileState.currentView, b2ProfileState.profileOriginView, b2ProfileState.revealedTweetId], ["userProfile", "timeline", null], "B2 Profile must reuse the existing origin-aware profile route");
+  const b2ProfileBackState = twitter.twitterStateTransition(b2ProfileState, { type: "BACK_FROM_PROFILE" });
+  assert.deepEqual([b2ProfileBackState.activeTab, b2ProfileBackState.currentView], ["timeline", "timeline"], "B2 Profile Back must return to Timeline");
+  const b2ProfileRootState = twitter.twitterStateTransition(b2ProfileState, { type: "SHOW_TAB", tab: "timeline" });
+  assert.deepEqual([b2ProfileRootState.activeTab, b2ProfileRootState.currentView, b2ProfileRootState.selectedUserId], ["timeline", "timeline", null], "B2 Profile to Timeline tab must retain strict root-tab navigation");
+  const b2PersistentState = twitter.twitterStateTransition(b2RetweetState, { type: "TOGGLE_FAVORITE", tweetId: b2SecondTweetId });
+  const b2AfterTabState = twitter.twitterStateTransition(b2PersistentState, { type: "SHOW_TAB", tab: "mentions" });
+  assert.deepEqual([b2AfterTabState.favoriteTweetIds, b2AfterTabState.retweetedTweetIds], [[b2SecondTweetId], [b2SecondTweetId]], "tab navigation must preserve B2 Favorite and Retweet state");
   assert.equal(twitter.TWITTER_SUGGESTED_USER_COUNT, 20, "Suggested Users must expose the designed 20-account inventory");
   assert.equal(twitterState.suggestedUsers.length, 20);
   assert.ok(twitterState.suggestedUsers.every(user => (
@@ -2566,6 +2592,14 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     "twitter-tab-more-2010-reconstructed.svg",
     "twitter-compose-2010-reconstructed.svg",
     "twitter-back-control-2010-reconstructed.svg",
+    "twitter-action-reply-2010-reconstructed.svg",
+    "twitter-action-retweet-2010-reconstructed.svg",
+    "twitter-action-favorite-2010-reconstructed.svg",
+    "twitter-action-favorite-selected-2010-reconstructed.svg",
+    "twitter-action-profile-2010-reconstructed.svg",
+    "twitter-action-slot5-hold-2010-reconstructed.svg",
+    "twitter-action-slot6-hold-2010-reconstructed.svg",
+    "twitter-favorite-corner-2010-reconstructed.svg",
   ].map(fileName => readFile(resolve(projectRoot, "src/assets/twitter/chrome", fileName), "utf8")));
   const springBoardSource = await readFile(resolve(projectRoot, "src/device/SpringBoard.tsx"), "utf8");
   const springBoardSocialAppsSource = await readFile(resolve(projectRoot, "src/data/springBoardSocialApps.ts"), "utf8");
@@ -2863,6 +2897,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(appSource, /className="power"[^>]+onPointerDown=\{beginPower\}[^>]+onPointerUp=\{endPower\}/, "the refined Power control must retain its existing runtime handlers");
   assert.match(appSource, /className=\{`home\$\{homePressed \? " is-pressed" : ""\}`\}[\s\S]+onPointerDown=\{beginHomePress\}[\s\S]+onPointerUp=\{endHomePress\}/, "the refined Home control must retain its existing runtime handlers");
   const timelineCellSource = twitterContainerSource.match(/function TimelineTweet[\s\S]*?function TweetDetail/)?.[0] ?? "";
+  const tweetDetailSource = twitterContainerSource.match(/function TweetDetail[\s\S]*?function TwitterComposer/)?.[0] ?? "";
   const facebookProfileSource = facebookContainerSource.match(/function FacebookProfile[\s\S]*?function FacebookCommentRow/)?.[0] ?? "";
   const facebookProfileIdentitySource = facebookProfileSource.match(/<header className="facebook-profile-header"[\s\S]*?<\/header>/)?.[0] ?? "";
   assert.doesNotMatch(seedSource, /DeviceAudio|deviceEventScheduler|smsNotification/, "seed definitions must not depend on delivery systems");
@@ -3214,6 +3249,25 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.facebook-place-detail-content \{[^}]*overflow-y: auto;/, "Place Detail must own one bounded content scroll container");
   assert.ok(["Timeline", "Mentions", "Messages", "Search", "More"].every(label => twitterContainerSource.includes(`"${label}"`)), "Twitter must expose the five period tab destinations");
   assert.match(twitterContainerSource, /twitter-tweet-action-row/, "Twitter must render the swipe-revealed action row");
+  const b2ActionPaneSource = timelineCellSource.match(/revealed && <div className="twitter-tweet-action-row"[\s\S]*?<\/div>/)?.[0] ?? "";
+  assert.equal((b2ActionPaneSource.match(/<button\b/g) ?? []).length, 4, "B2 must expose exactly four functional Tweet action buttons");
+  assert.equal((b2ActionPaneSource.match(/twitter-tweet-action-hold/g) ?? []).length, 2, "B2 must retain exactly two visually evidenced HOLD slots");
+  assert.match(b2ActionPaneSource, /is-reply[\s\S]+aria-label="Reply"[\s\S]+onClick=\{onReply\}/, "B2 Reply icon must reuse the existing Reply callback");
+  assert.match(b2ActionPaneSource, /is-retweet[\s\S]+aria-pressed=\{retweeted\}[\s\S]+onClick=\{onRetweet\}/, "B2 Retweet icon must remain driven by existing Retweet state and behavior");
+  assert.match(b2ActionPaneSource, /is-favorite[\s\S]+aria-pressed=\{favorite\}[\s\S]+onClick=\{onFavorite\}/, "B2 Favorite icon must remain driven by existing Favorite state and behavior");
+  assert.match(b2ActionPaneSource, /is-profile[\s\S]+onClick=\{\(\) => onOpenProfile\(tweet\.authorHandle \|\| tweet\.displayName\)\}/, "B2 Profile icon must reuse the existing Timeline profile route");
+  const b2HoldSlotsSource = b2ActionPaneSource.match(/<span className="twitter-tweet-action-hold is-slot5"[\s\S]*?<span className="twitter-tweet-action-hold is-slot6"[\s\S]*?<\/span>/)?.[0] ?? "";
+  assert.match(b2HoldSlotsSource, /is-slot5" aria-hidden="true"[\s\S]+is-slot6" aria-hidden="true"/, "both B2 HOLD slots must be hidden from accessibility APIs");
+  assert.doesNotMatch(b2HoldSlotsSource, /<button|onClick|aria-label|title=|tabIndex|tabindex/, "B2 HOLD slots must remain nonfunctional, unlabeled, and unfocusable");
+  assert.match(timelineCellSource, /favorite && <span className="twitter-favorite-marker" aria-hidden="true" \/>/, "favorited Timeline rows must render only the reconstructed corner marker");
+  assert.doesNotMatch(timelineCellSource, /twitter-favorite-marker[^\n>]*>\s*Favorite/, "Timeline rows must not leak a literal Favorite state label");
+  assert.match(tweetDetailSource, />\{favorite \? "Favorited" : "Favorite"\}<\/button>/, "Tweet Detail's known textual Favorite HOLD mismatch must remain untouched in B2");
+  assert.match(deviceCssSource, /\.twitter-timeline-item\.is-revealed \.twitter-timeline-row \{ transform: translateX\(320px\); \}/, "B2 must reveal the full 320-point pane beneath the displaced Tweet row");
+  assert.match(deviceCssSource, /\.twitter-timeline-row \{[^}]*transition: transform 160ms cubic-bezier\(\.25,\.1,\.25,1\);/, "B2 must retain the documented conservative reconstructed reveal timing");
+  assert.match(deviceCssSource, /\.twitter-tweet-action-row \{[^}]*grid-area: 1 \/ 1; min-height: 58px;[^}]*grid-template-columns: repeat\(6,minmax\(0,1fr\)\);[^}]*align-self: stretch;/, "B2 pane must share row height with six equal 53.33-point slots and the B1 minimum");
+  assert.match(deviceCssSource, /\.twitter-tweet-action-hold \{ pointer-events: none; \}/, "B2 HOLD slots must reject pointer interaction");
+  assert.match(deviceCssSource, /\.twitter-tweet-action\.is-favorite\[aria-pressed="true"\] > span \{[^}]*twitter-action-favorite-selected-2010-reconstructed\.svg/, "B2 selected Favorite state must use its filled reconstructed star asset");
+  assert.match(deviceCssSource, /\.twitter-favorite-marker \{[^}]*top: 0; right: 0; width: 15px; height: 15px;[^}]*twitter-favorite-corner-2010-reconstructed\.svg/, "B2 favorited Timeline marker must retain the reconstructed 15-point corner geometry");
   assert.match(twitterContainerSource, /twitter-avatar-fixture/, "Twitter cells must not leave the avatar column visually empty");
   assert.match(timelineCellSource, /data-row-anatomy-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT"/, "Timeline row geometry must retain explicit screenshot-reconstruction provenance");
   assert.match(timelineCellSource, /className="twitter-avatar-fixture twitter-profile-link twitter-timeline-avatar"[\s\S]+className="twitter-tweet-copy"[\s\S]+<strong[\s\S]+<time>[\s\S]+<span>\{tweet\.text\}<\/span>/, "Timeline rows must retain avatar, display name, timestamp, and Tweet text anatomy in period order");

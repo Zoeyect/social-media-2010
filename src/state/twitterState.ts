@@ -3,11 +3,19 @@ import type { ContentOrigin } from "../data/sessionSeedContent";
 import type { CoreSocialFriendId } from "../data/coreSocialFriends";
 
 export type TwitterTab = "timeline" | "mentions" | "messages" | "search" | "more";
-export type TwitterView = "timeline" | "tweetDetail" | "composer" | "userProfile" | "searchLanding" | "suggestedUsers" | "following" | "mentions" | "messagesList" | "dmThread";
+export type TwitterView = "timeline" | "tweetDetail" | "composer" | "userProfile" | "searchLanding" | "suggestedUsers" | "following" | "mentions" | "messagesList" | "dmThread" | "more";
 export type TwitterProfileOrigin = "timeline" | "tweetDetail" | "suggestedUsers" | "following" | "searchLanding";
 export type TwitterComposerKind = "new" | "reply";
 export type TwitterSuggestedUserProvenance = "PERIOD-EVIDENCE" | "CURATED" | "HOLD";
 export type TwitterHistoricalStatProvenance = "EXACT" | "NEAR-DATE" | "ESTIMATED" | "ESTIMATED-DISPLAY" | "CURATED-FILL";
+
+const TWITTER_ROOT_VIEW_BY_TAB: Record<TwitterTab, TwitterView> = {
+  timeline: "timeline",
+  mentions: "mentions",
+  messages: "messagesList",
+  search: "searchLanding",
+  more: "more",
+};
 
 export type TwitterHistoricalStat = {
   value?: number;
@@ -426,13 +434,16 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
       return {
         ...state,
         activeTab: event.tab,
-        currentView: event.tab === "search" ? "searchLanding"
-          : event.tab === "mentions" ? "mentions"
-          : event.tab === "messages" ? "messagesList"
-          : event.tab === "timeline" && state.currentView !== "composer" && state.currentView !== "userProfile"
-            ? state.selectedTweetId ? "tweetDetail" : "timeline"
-            : state.currentView,
-        ...(event.tab === "search" ? { selectedUserId: null, profileOriginView: null } : {}),
+        currentView: TWITTER_ROOT_VIEW_BY_TAB[event.tab],
+        selectedTweetId: null,
+        selectedUserId: null,
+        profileOriginView: null,
+        selectedDirectMessageId: null,
+        tweetDetailOrigin: "timeline",
+        composerKind: null,
+        replyComposerTweetId: null,
+        replyDraft: "",
+        newTweetDraft: "",
       };
     case "TOGGLE_TWEET_ACTIONS":
       if (![...state.timeline, ...state.mentionTweets].some(tweet => tweet.id === event.tweetId)) return state;

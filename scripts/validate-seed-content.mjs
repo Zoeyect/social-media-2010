@@ -1350,6 +1350,81 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.ok(Math.abs(twitter.selectTwitterLiveFollowerDelta("barackobama", 900, "Zoey")) <= 500, "session drift must respect its curated cap");
   assert.equal(followReset.suggestedUsersScrollPosition, 0);
   assert.equal(followReset.followingScrollPosition, 0);
+  let rootNavigationBaseline = twitter.twitterStateTransition(twitter.createInitialTwitterState("Zoey"), { type: "SET_SCROLL_POSITION", scrollPosition: 91 });
+  rootNavigationBaseline = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SET_SOCIAL_SCROLL_POSITION", view: "mentions", scrollPosition: 12 });
+  rootNavigationBaseline = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SET_SOCIAL_SCROLL_POSITION", view: "messages", scrollPosition: 13 });
+  rootNavigationBaseline = twitter.twitterStateTransition(rootNavigationBaseline, { type: "TOGGLE_FAVORITE", tweetId: "still-awake" });
+  rootNavigationBaseline = twitter.twitterStateTransition(rootNavigationBaseline, { type: "TOGGLE_RETWEET", tweetId: "still-awake", retweetedBy: "Zoey", retweetActionTimestamp: 100 });
+  rootNavigationBaseline = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SET_FOLLOW", profileId: "npr", following: true });
+  rootNavigationBaseline = twitter.twitterStateTransition(rootNavigationBaseline, { type: "TOGGLE_TWEET_ACTIONS", tweetId: "still-awake" });
+  const assertRootNavigationPreservesTwitterData = (candidate, baseline, label) => {
+    assert.strictEqual(candidate.timeline, baseline.timeline, `${label}: Timeline records must remain unchanged`);
+    assert.strictEqual(candidate.mentions, baseline.mentions, `${label}: Mention records and unread state must remain unchanged`);
+    assert.strictEqual(candidate.mentionTweets, baseline.mentionTweets, `${label}: Mention Tweets must remain unchanged`);
+    assert.strictEqual(candidate.directMessages, baseline.directMessages, `${label}: DM records and unread state must remain unchanged`);
+    assert.strictEqual(candidate.linkedTweets, baseline.linkedTweets, `${label}: linked Tweets must remain unchanged`);
+    assert.strictEqual(candidate.favoriteTweetIds, baseline.favoriteTweetIds, `${label}: Favorites must remain unchanged`);
+    assert.strictEqual(candidate.retweetedTweetIds, baseline.retweetedTweetIds, `${label}: Retweet IDs must remain unchanged`);
+    assert.strictEqual(candidate.retweetActivities, baseline.retweetActivities, `${label}: Retweet activities must remain unchanged`);
+    assert.strictEqual(candidate.replies, baseline.replies, `${label}: replies must remain unchanged`);
+    assert.strictEqual(candidate.followedUserIds, baseline.followedUserIds, `${label}: Follow graph must remain unchanged`);
+    assert.deepEqual(
+      [candidate.scrollPosition, candidate.mentionsScrollPosition, candidate.messagesScrollPosition, candidate.suggestedUsersScrollPosition, candidate.followingScrollPosition, candidate.revealedTweetId],
+      [baseline.scrollPosition, baseline.mentionsScrollPosition, baseline.messagesScrollPosition, baseline.suggestedUsersScrollPosition, baseline.followingScrollPosition, baseline.revealedTweetId],
+      `${label}: scroll and revealed Timeline action state must remain unchanged`,
+    );
+  };
+  let profileRootOrigin = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "search" });
+  profileRootOrigin = twitter.twitterStateTransition(profileRootOrigin, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "searchLanding" });
+  assert.deepEqual([profileRootOrigin.activeTab, profileRootOrigin.currentView, profileRootOrigin.selectedUserId, profileRootOrigin.profileOriginView], ["search", "userProfile", "session-owner", "searchLanding"]);
+  const profileToTimelineRoot = twitter.twitterStateTransition(profileRootOrigin, { type: "SHOW_TAB", tab: "timeline" });
+  assert.deepEqual([profileToTimelineRoot.activeTab, profileToTimelineRoot.currentView, profileToTimelineRoot.selectedUserId, profileToTimelineRoot.profileOriginView], ["timeline", "timeline", null, null], "My Profile to Timeline tab must select Timeline root and clear Profile route state");
+  assertRootNavigationPreservesTwitterData(profileToTimelineRoot, profileRootOrigin, "Profile to Timeline");
+  const profileToMentionsRoot = twitter.twitterStateTransition(profileRootOrigin, { type: "SHOW_TAB", tab: "mentions" });
+  assert.deepEqual([profileToMentionsRoot.activeTab, profileToMentionsRoot.currentView, profileToMentionsRoot.selectedUserId, profileToMentionsRoot.profileOriginView], ["mentions", "mentions", null, null], "My Profile to Mentions tab must select Mentions root without stale Profile state");
+  assertRootNavigationPreservesTwitterData(profileToMentionsRoot, profileRootOrigin, "Profile to Mentions");
+  const profileToMessagesRoot = twitter.twitterStateTransition(profileRootOrigin, { type: "SHOW_TAB", tab: "messages" });
+  assert.deepEqual([profileToMessagesRoot.activeTab, profileToMessagesRoot.currentView, profileToMessagesRoot.selectedUserId, profileToMessagesRoot.profileOriginView], ["messages", "messagesList", null, null], "My Profile to Messages tab must select Messages root without stale Profile state");
+  assertRootNavigationPreservesTwitterData(profileToMessagesRoot, profileRootOrigin, "Profile to Messages");
+  const profileToSearchRoot = twitter.twitterStateTransition(profileRootOrigin, { type: "SHOW_TAB", tab: "search" });
+  assert.deepEqual([profileToSearchRoot.activeTab, profileToSearchRoot.currentView, profileToSearchRoot.selectedUserId, profileToSearchRoot.profileOriginView], ["search", "searchLanding", null, null], "My Profile to Search tab must select Search root without stale Profile state");
+  assertRootNavigationPreservesTwitterData(profileToSearchRoot, profileRootOrigin, "Profile to Search");
+  const profileToMoreRoot = twitter.twitterStateTransition(profileRootOrigin, { type: "SHOW_TAB", tab: "more" });
+  assert.deepEqual([profileToMoreRoot.activeTab, profileToMoreRoot.currentView, profileToMoreRoot.selectedUserId, profileToMoreRoot.profileOriginView], ["more", "more", null, null], "My Profile to More tab must select the explicit More root without stale Profile state");
+  assertRootNavigationPreservesTwitterData(profileToMoreRoot, profileRootOrigin, "Profile to More");
+  const tweetDetailRootOrigin = twitter.twitterStateTransition(rootNavigationBaseline, { type: "OPEN_TWEET", tweetId: "still-awake", scrollPosition: 144 });
+  const detailToTimelineRoot = twitter.twitterStateTransition(tweetDetailRootOrigin, { type: "SHOW_TAB", tab: "timeline" });
+  assert.deepEqual([detailToTimelineRoot.activeTab, detailToTimelineRoot.currentView, detailToTimelineRoot.selectedTweetId], ["timeline", "timeline", null], "Tweet Detail to Timeline tab must select Timeline root");
+  assertRootNavigationPreservesTwitterData(detailToTimelineRoot, tweetDetailRootOrigin, "Tweet Detail to Timeline");
+  const detailToSearchRoot = twitter.twitterStateTransition(tweetDetailRootOrigin, { type: "SHOW_TAB", tab: "search" });
+  assert.deepEqual([detailToSearchRoot.activeTab, detailToSearchRoot.currentView, detailToSearchRoot.selectedTweetId], ["search", "searchLanding", null], "Tweet Detail to Search tab must select Search root and clear Tweet selection");
+  assertRootNavigationPreservesTwitterData(detailToSearchRoot, tweetDetailRootOrigin, "Tweet Detail to Search");
+  let dmRootOrigin = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "messages" });
+  dmRootOrigin = twitter.twitterStateTransition(dmRootOrigin, { type: "OPEN_DIRECT_MESSAGE", threadId: "dm-katie", scrollPosition: 41 });
+  const dmToTimelineRoot = twitter.twitterStateTransition(dmRootOrigin, { type: "SHOW_TAB", tab: "timeline" });
+  assert.deepEqual([dmToTimelineRoot.activeTab, dmToTimelineRoot.currentView, dmToTimelineRoot.selectedDirectMessageId], ["timeline", "timeline", null], "DM Detail to Timeline tab must select Timeline root and clear DM selection");
+  assertRootNavigationPreservesTwitterData(dmToTimelineRoot, dmRootOrigin, "DM Detail to Timeline");
+  let suggestedRootOrigin = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "search" });
+  suggestedRootOrigin = twitter.twitterStateTransition(suggestedRootOrigin, { type: "OPEN_SUGGESTED_USERS" });
+  const suggestedToMoreRoot = twitter.twitterStateTransition(suggestedRootOrigin, { type: "SHOW_TAB", tab: "more" });
+  assert.deepEqual([suggestedToMoreRoot.activeTab, suggestedToMoreRoot.currentView], ["more", "more"], "Suggested Users to More tab must select More root");
+  assertRootNavigationPreservesTwitterData(suggestedToMoreRoot, suggestedRootOrigin, "Suggested Users to More");
+  let followingRootOrigin = twitter.twitterStateTransition(rootNavigationBaseline, { type: "OPEN_FOLLOWING" });
+  const followingToMoreRoot = twitter.twitterStateTransition(followingRootOrigin, { type: "SHOW_TAB", tab: "more" });
+  assert.deepEqual([followingToMoreRoot.activeTab, followingToMoreRoot.currentView], ["more", "more"], "Following to More tab must select More root");
+  assertRootNavigationPreservesTwitterData(followingToMoreRoot, followingRootOrigin, "Following to More");
+  let programmaticComposerRoot = twitter.twitterStateTransition(tweetDetailRootOrigin, { type: "BEGIN_REPLY", tweetId: "still-awake" });
+  programmaticComposerRoot = twitter.twitterStateTransition(programmaticComposerRoot, { type: "EDIT_REPLY", value: "@june draft" });
+  programmaticComposerRoot = twitter.twitterStateTransition(programmaticComposerRoot, { type: "SHOW_TAB", tab: "mentions" });
+  assert.deepEqual(
+    [programmaticComposerRoot.activeTab, programmaticComposerRoot.currentView, programmaticComposerRoot.selectedTweetId, programmaticComposerRoot.composerKind, programmaticComposerRoot.replyComposerTweetId, programmaticComposerRoot.replyDraft],
+    ["mentions", "mentions", null, null, null, ""],
+    "programmatic root-tab navigation from Composer must normalize stale Composer and Tweet route state",
+  );
+  assertRootNavigationPreservesTwitterData(programmaticComposerRoot, tweetDetailRootOrigin, "Composer to Mentions root");
+  const rootNavigationReset = twitter.twitterStateTransition(profileToMoreRoot, { type: "RESET", displayName: "Alex" });
+  assert.deepEqual([rootNavigationReset.activeTab, rootNavigationReset.currentView, rootNavigationReset.selectedUserId, rootNavigationReset.selectedTweetId, rootNavigationReset.selectedDirectMessageId], ["timeline", "timeline", null, null, null], "RESET must retain the canonical Twitter navigation baseline");
+  assert.deepEqual(rootNavigationReset.mentions.map(item => [item.id, item.unread]), [["mention-alex-conan", true], ["mention-chris-thing", false]], "RESET after root navigation must restore canonical Mention state");
   assert.equal(twitterState.mentions.length, 2);
   assert.deepEqual(twitterState.mentions.map(item => item.unread), [true, false]);
   assert.equal(twitterState.directMessages.length, 2);
@@ -1631,7 +1706,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   twitterState = twitter.twitterStateTransition(twitterState, { type: "OPEN_TWEET", tweetId: "still-awake", scrollPosition: 144 });
   twitterState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab: "messages" });
   assert.equal(twitterState.currentView, "messagesList");
-  assert.equal(twitterState.selectedTweetId, "still-awake", "tab switching must retain the selected Tweet route");
+  assert.equal(twitterState.selectedTweetId, null, "root-tab navigation must clear the selected Tweet route");
   twitterState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab: "timeline" });
   twitterState = twitter.twitterStateTransition(twitterState, { type: "BEGIN_REPLY", tweetId: "still-awake" });
   assert.equal(twitterState.currentView, "composer");

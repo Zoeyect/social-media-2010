@@ -18,6 +18,7 @@ import type {
   CameraCapturedArtifact,
   CameraCaptureFramingSnapshot,
   CameraCaptureSceneSnapshot,
+  CameraCaptureViewportSnapshot,
 } from "../state/cameraCaptureState";
 
 const WORLD_TREATMENT = {
@@ -79,7 +80,17 @@ type PresentedCameraFrame = Readonly<{
   pointerOffset: CameraLookOffset;
   orientationOffset: CameraLookOffset;
   effectiveLookOffset: CameraLookOffset;
+  viewport: CameraCaptureViewportSnapshot;
   sharedScene: CameraCaptureSceneSnapshot;
+}>;
+
+type SceneViewport = Readonly<{
+  canvasWidth: number;
+  canvasHeight: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }>;
 
 function cloneOffset(offset: CameraLookOffset): CameraLookOffset {
@@ -181,7 +192,8 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
   gl.bindVertexArray(vertexArray);
 
   const uniformNames = [
-    "uTexture", "uBloomTex", "uResolution", "uTexResolution", "uTime", "uSceneOffset",
+    "uTexture", "uBloomTex", "uResolution", "uSceneResolution", "uSceneViewport",
+    "uTexResolution", "uTime", "uSceneOffset",
     "uSceneZoom", "uSceneLuma", "uSceneColor", "uSceneRing", "uBlur", "uNoiseAmount",
     "uLuminanceDrift", "uColorDrift", "uBloomAmount", "uExposure", "uOpacity", "uMaxLod",
     "uBloomLod", "uGrainScale", "uGrainRate", "uGrainSeed",
@@ -269,6 +281,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     color: number,
     ring: number,
     grainScale: number,
+    viewport: SceneViewport,
   ) {
     if (!plateTexture || !bloomTexture) return;
     gl.useProgram(layerProgram);
@@ -279,6 +292,8 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
     gl.uniform1i(uniforms.uBloomTex, 1);
     gl.uniform2f(uniforms.uResolution, width, height);
+    gl.uniform2f(uniforms.uSceneResolution, viewport.canvasWidth, viewport.canvasHeight);
+    gl.uniform4f(uniforms.uSceneViewport, viewport.x, viewport.y, viewport.width, viewport.height);
     gl.uniform2f(uniforms.uTexResolution, plateWidth, plateHeight);
     gl.uniform1f(uniforms.uTime, time);
     gl.uniform2f(uniforms.uSceneOffset, offset.x, offset.y);
@@ -463,6 +478,14 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       scene.color,
       scene.ring,
       dpr * 1.25,
+      {
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+      },
     );
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -474,10 +497,21 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       return;
     }
     const cameraLook = effectiveCameraLook(bounds);
+    const normalizedViewfinder = Object.freeze({
+      x: bounds.left / canvas.width,
+      y: (canvas.height - bounds.top - bounds.height) / canvas.height,
+      width: bounds.width / canvas.width,
+      height: bounds.height / canvas.height,
+    });
     lastPresentedCameraFrame = Object.freeze({
       pointerOffset: cloneOffset(cameraLookState.pointerOffset),
       orientationOffset: cloneOffset(cameraLookState.orientationOffset),
       effectiveLookOffset: cloneOffset(cameraLook),
+      viewport: Object.freeze({
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        normalizedViewfinder,
+      }),
       sharedScene: Object.freeze({
         timeSeconds: scene.time,
         swayOffset: cloneOffset({ x: scene.offset[0], y: scene.offset[1] }),
@@ -520,6 +554,11 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       pointerOffset: cloneOffset(presented.pointerOffset),
       orientationOffset: cloneOffset(presented.orientationOffset),
       effectiveLookOffset: cloneOffset(presented.effectiveLookOffset),
+      viewport: Object.freeze({
+        canvasWidth: presented.viewport.canvasWidth,
+        canvasHeight: presented.viewport.canvasHeight,
+        normalizedViewfinder: Object.freeze({ ...presented.viewport.normalizedViewfinder }),
+      }),
       sharedScene: Object.freeze({
         ...presented.sharedScene,
         swayOffset: cloneOffset(presented.sharedScene.swayOffset),
@@ -609,6 +648,11 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
         framing.sharedScene.color,
         framing.sharedScene.ring,
         CAMERA_CAPTURE_GRAIN_SCALE,
+        {
+          canvasWidth: framing.viewport.canvasWidth,
+          canvasHeight: framing.viewport.canvasHeight,
+          ...framing.viewport.normalizedViewfinder,
+        },
       );
       drawLayer(CAMERA_TREATMENT, framing.sharedScene.grainSeed);
 
@@ -649,6 +693,14 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
         framing.sharedScene.color,
         framing.sharedScene.ring,
         Math.min(window.devicePixelRatio || 1, 2) * 1.25,
+        {
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+          x: 0,
+          y: 0,
+          width: 1,
+          height: 1,
+        },
       );
       uploadTreatment(CAMERA_TREATMENT, framing.sharedScene.grainSeed);
       gl.useProgram(previousProgram);

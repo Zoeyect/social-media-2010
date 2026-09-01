@@ -109,6 +109,7 @@ export function App() {
   const [cameraRoll, setCameraRoll] = useState<CameraRollInitialization>(initialCameraRoll);
   const cameraRollRef = useRef<CameraRollInitialization>(initialCameraRoll);
   const cameraRollMounted = useRef(true);
+  const cameraRollPageBootstrapReset = useRef<Promise<void> | null>(null);
   const failNextCameraCapture = useRef(false);
   const cameraCaptureResetActive = useRef(false);
   const setCameraCaptureReady = useCallback((capture: CameraStillCapture | null) => {
@@ -283,10 +284,15 @@ export function App() {
     clearRuntimeCameraRoll("loading");
     if (!experienceSessionId) return () => { cancelled = true; };
 
+    if (!cameraRollPageBootstrapReset.current) {
+      cameraRollPageBootstrapReset.current = eraseCurrentCameraRoll(experienceSessionId);
+    }
     void deleteStalePlayerCameraRolls(experienceSessionId).catch(error => {
       console.error("Stale Camera Roll cleanup failed; owner filtering remains active.", error);
     });
-    void initializeCameraRollPersistence(experienceSessionId).then(durableRecords => {
+    void cameraRollPageBootstrapReset.current
+      .then(() => initializeCameraRollPersistence(experienceSessionId))
+      .then(durableRecords => {
       const restoredRecords: CameraPhotoRecord[] = [];
       try {
         durableRecords.forEach(record => restoredRecords.push(createCameraPhotoRecord(record)));

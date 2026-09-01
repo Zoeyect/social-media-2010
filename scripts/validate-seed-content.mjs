@@ -1841,7 +1841,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(cameraRollPersistence.cameraRollFilename(1), "IMG_0001.JPG", "each experience filename namespace must begin at IMG_0001.JPG");
   assert.notEqual(cameraRollPersistence.cameraRollSequenceMetadataKey(experienceSessionA), cameraRollPersistence.cameraRollSequenceMetadataKey(experienceSessionB), "capture sequence metadata must be owner-scoped");
   assert.equal(cameraRollPersistence.resolveNextCameraRollSequence([], undefined), 1, "a new experience must begin at IMG_0001");
-  assert.equal(cameraRollPersistence.resolveNextCameraRollSequence([{ captureSequence: 1 }, { captureSequence: 2 }], 3), 3, "reloading an experience must continue its owner-scoped sequence");
+  assert.equal(cameraRollPersistence.resolveNextCameraRollSequence([{ captureSequence: 1 }, { captureSequence: 2 }], 3), 3, "the loaded page must continue its owner-scoped sequence");
   assert.equal(cameraRollPersistence.resolveNextCameraRollSequence([], 1), 1, "another experience must not participate in the current owner's sequence");
   const ownershipFixture = { origin: "player-camera", experienceSessionId: experienceSessionA };
   assert.equal(cameraRollPersistence.isCameraRollRecordOwnedByExperience(ownershipFixture, experienceSessionA), true, "the active owner may resolve its own Camera Roll record");
@@ -2683,6 +2683,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const deviceMachineSource = await readFile(resolve(projectRoot, "src/state/deviceMachine.ts"), "utf8");
   const cameraRollPersistenceSource = await readFile(resolve(projectRoot, "src/state/cameraRollPersistence.ts"), "utf8");
   const cameraCaptureStateSource = await readFile(resolve(projectRoot, "src/state/cameraCaptureState.ts"), "utf8");
+  const ambientWorldRendererSource = await readFile(resolve(projectRoot, "src/world/ambientWorldRenderer.ts"), "utf8");
   const lockScreenSource = await readFile(resolve(projectRoot, "src/device/LockScreen.tsx"), "utf8");
   const instagramContainerSource = await readFile(resolve(projectRoot, "src/device/InstagramContainer.tsx"), "utf8");
   const instagramFilteredImageSource = await readFile(resolve(projectRoot, "src/device/instagram/InstagramFilteredImage.tsx"), "utf8");
@@ -2769,6 +2770,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(cameraRollPersistenceSource, /oldVersion < 2[\s\S]+origin === "player-camera"[\s\S]+typeof value\.experienceSessionId !== "string"[\s\S]+cursor\.delete\(\)/, "v1 player-camera records without provable ownership must be deleted rather than assigned to the current player");
   assert.match(cameraRollPersistenceSource, /index\(CAMERA_ROLL_OWNER_INDEX\)\.getAll\(\["player-camera", experienceSessionId\]\)/, "Camera Roll initialization and current-owner erase must query an explicit owner namespace");
   assert.match(cameraRollPersistenceSource, /cameraRollSequenceMetadataKey\(experienceSessionId\)[\s\S]+photoStore\.add\(record\)[\s\S]+nextSequence: sequence \+ 1/, "record insertion and owner-scoped sequence advancement must share one transaction");
+  assert.match(appSource, /cameraRollPageBootstrapReset\.current = eraseCurrentCameraRoll\(experienceSessionId\)[\s\S]+\.then\(\(\) => initializeCameraRollPersistence\(experienceSessionId\)\)/, "page bootstrap must erase the current Camera Roll before hydrating it");
+  assert.match(ambientWorldRendererSource, /normalizedViewfinder[\s\S]+bounds\.left \/ canvas\.width[\s\S]+canvas\.height - bounds\.top - bounds\.height[\s\S]+lastPresentedCameraFrame/, "Camera capture must freeze the live bottom-origin viewfinder mapping");
+  assert.match(ambientWorldRendererSource, /CAMERA_CAPTURE_GRAIN_SCALE,[\s\S]+canvasWidth: framing\.viewport\.canvasWidth[\s\S]+framing\.viewport\.normalizedViewfinder/, "offscreen capture must reuse the frozen live viewport mapping");
   assert.match(appSource, /const experienceSessionId = session\.experienceSessionId;[\s\S]+isCameraCaptureOwnerCurrent\(experienceSessionId, activeExperienceSessionIdRef\.current\)[\s\S]+persistCameraCapturedArtifact\(artifact, experienceSessionId\)[\s\S]+discardPersistedCameraPhoto\(durableRecord\)/, "capture must freeze shutter-time ownership and discard a record if its owner becomes stale before runtime exposure");
   assert.match(appSource, /deleteStalePlayerCameraRolls\(experienceSessionId\)[\s\S]+owner filtering remains active/, "stale cleanup failure must leave explicit owner filtering as the privacy boundary");
   assert.match(ios4KeyboardSource, /activeRegistration = useRef<IOS4InputRegistration \| null>\(null\)/, "the keyboard must enforce one active input owner");

@@ -26,6 +26,8 @@ precision highp float;
 uniform sampler2D uTexture;
 uniform sampler2D uBloomTex;
 uniform vec2 uResolution;
+uniform vec2 uSceneResolution;
+uniform vec4 uSceneViewport;
 uniform vec2 uTexResolution;
 uniform float uTime;
 uniform vec2 uSceneOffset;
@@ -57,7 +59,7 @@ float hash21(vec2 p) {
 }
 
 vec2 coverUV(vec2 uv) {
-  float ca = uResolution.x / uResolution.y;
+  float ca = uSceneResolution.x / uSceneResolution.y;
   float ia = uTexResolution.x / uTexResolution.y;
   vec2 s = (ca > ia) ? vec2(1.0, ia / ca) : vec2(ca / ia, 1.0);
   return (uv - 0.5) * s + 0.5;
@@ -65,7 +67,9 @@ vec2 coverUV(vec2 uv) {
 
 void main() {
   float t = uTime;
-  vec2 uv = coverUV(gl_FragCoord.xy / uResolution);
+  vec2 outputUV = gl_FragCoord.xy / uResolution;
+  vec2 sceneUV = uSceneViewport.xy + outputUV * uSceneViewport.zw;
+  vec2 uv = coverUV(sceneUV);
   uv = (uv - 0.5) / uSceneZoom + 0.5 + uSceneOffset;
   uv = (uv - 0.5) * 0.994 + 0.5;
 

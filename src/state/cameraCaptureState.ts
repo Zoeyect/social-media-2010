@@ -17,10 +17,22 @@ export type CameraCaptureSceneSnapshot = Readonly<{
   grainSeed: number;
 }>;
 
+export type CameraCaptureViewportSnapshot = Readonly<{
+  canvasWidth: number;
+  canvasHeight: number;
+  normalizedViewfinder: Readonly<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
+}>;
+
 export type CameraCaptureFramingSnapshot = Readonly<{
   pointerOffset: CameraLookOffset;
   orientationOffset: CameraLookOffset;
   effectiveLookOffset: CameraLookOffset;
+  viewport: CameraCaptureViewportSnapshot;
   sharedScene: CameraCaptureSceneSnapshot;
 }>;
 

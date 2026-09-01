@@ -29,6 +29,9 @@ import { initialSMSNotificationState, smsNotificationStateTransition } from "../
 import { createSessionIdentity, SessionIdentityContext } from "../state/sessionIdentity";
 import { createStatusBarState } from "../state/statusBarModel";
 import { createInitialTwitterState, twitterStateTransition } from "../state/twitterState";
+import { initialPublicTwitterState, publicTwitterStateTransition } from "../state/publicTwitterState";
+import { selectPublicVisitorPostIds } from "../state/twitterTimelineComposition";
+import { createMockPublicTwitterRepository } from "../data/mockPublicTwitterRepository";
 import { createSMSLockNotification, smsMessageReceived } from "../system/smsNotification";
 import { createInitialFlickrState, flickrStateTransition } from "../state/flickrState";
 import { createInitialTumblrState, tumblrStateTransition } from "../state/tumblrState";
@@ -62,6 +65,7 @@ const TERMINAL_POWERED_OFF_MS = 500;
 const MOM_REPLY_SMS = { id: "mom-sleep-early", sender: "Mom", message: "Good. Sleep early." } as const;
 const MOM_LOVE_REPLY_SMS = { id: "mom-love-you-too", sender: "Mom", message: "I love you too." } as const;
 const DAD_LOVE_REPLY_SMS = { id: "dad-sleep-early", sender: "Dad", message: "Sleep early." } as const;
+const publicTwitterRepository = createMockPublicTwitterRepository();
 
 type CameraCaptureQaHandle = Readonly<{
   latest: () => CameraPhotoRecord | null;
@@ -137,6 +141,7 @@ export function App() {
     session.sessionIdentity.name,
     createInitialTwitterState,
   );
+  const [publicTwitterState, dispatchPublicTwitter] = useReducer(publicTwitterStateTransition, initialPublicTwitterState);
   const [now, setNow] = useState(Date.now());
   const [powerProgress, setPowerProgress] = useState(0);
   const [homePressed, setHomePressed] = useState(false);
@@ -153,6 +158,22 @@ export function App() {
   const deviceStatusTime = formatDeviceTime(deviceDateTime);
   const lockScreenTime = formatLockScreenTime(deviceDateTime);
   const deviceDate = formatDeviceDate(deviceDateTime);
+
+  useEffect(() => {
+    const experienceSessionId = session.experienceSessionId;
+    let cancelled = false;
+    dispatchPublicTwitter({ type: "RESET_PUBLIC_SESSION" });
+    if (!experienceSessionId) return () => { cancelled = true; };
+    dispatchPublicTwitter({ type: "LOAD_STARTED" });
+    void publicTwitterRepository.listApprovedPosts().then(posts => {
+      if (cancelled || experienceSessionId !== activeExperienceSessionIdRef.current) return;
+      dispatchPublicTwitter({ type: "LOAD_SUCCEEDED", posts, selectedArchiveIds: selectPublicVisitorPostIds(posts, experienceSessionId) });
+    }).catch(error => {
+      if (cancelled || experienceSessionId !== activeExperienceSessionIdRef.current) return;
+      dispatchPublicTwitter({ type: "LOAD_FAILED", error: error instanceof Error ? error.message : "Public timeline unavailable" });
+    });
+    return () => { cancelled = true; };
+  }, [session.experienceSessionId]);
   const statusBarState = createStatusBarState({
     signalStrength: 5,
     network: DEVICE_CARRIER_CONFIG.networkType,
@@ -1003,6 +1024,8 @@ export function App() {
           {appRuntime.activeAppId === "twitter" && <TwitterContainer
             state={twitterState}
             dispatch={dispatchTwitter}
+            publicState={publicTwitterState}
+            dispatchPublic={dispatchPublicTwitter}
             currentDeviceDateTime={deviceDateTime}
             currentDeviceTime={deviceStatusTime}
           />}

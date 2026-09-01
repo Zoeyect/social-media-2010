@@ -16,15 +16,19 @@ import {
 import { useSessionIdentity } from "../state/sessionIdentity";
 import { IOS4Textarea } from "./IOS4KeyboardSystem";
 import { SESSION_START_ISO } from "../state/deviceMachine";
+import type { PublicTwitterEvent, PublicTwitterState } from "../state/publicTwitterState";
+import { composeTwitterTimelineActivities } from "../state/twitterTimelineComposition";
 
 type TwitterContainerProps = {
   state: TwitterState;
   dispatch: Dispatch<TwitterEvent>;
+  publicState: PublicTwitterState;
+  dispatchPublic: Dispatch<PublicTwitterEvent>;
   currentDeviceDateTime: Date;
   currentDeviceTime: string;
 };
 
-export function TwitterContainer({ state, dispatch, currentDeviceDateTime, currentDeviceTime }: TwitterContainerProps) {
+export function TwitterContainer({ state, dispatch, publicState, dispatchPublic, currentDeviceDateTime, currentDeviceTime }: TwitterContainerProps) {
   const sessionIdentity = useSessionIdentity();
   const timelineRef = useRef<HTMLDivElement>(null);
   const selectedTweet = [...state.timeline, ...state.mentionTweets, ...state.linkedTweets].find(tweet => tweet.id === state.selectedTweetId) ?? null;
@@ -34,7 +38,7 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
   const composerCanSend = state.composerKind === "new"
     ? composerValue.trim().length > 0
     : state.composerKind === "reply" && Boolean(composerHandle) && composerValue.trim() !== composerHandle;
-  const timelineActivities = selectTwitterTimelineActivities(state);
+  const timelineActivities = composeTwitterTimelineActivities(selectTwitterTimelineActivities(state), publicState.status === "ready" ? publicState.approvedPosts : [], publicState.selectedArchiveIds);
   const suggestedPeople = state.suggestedUsers.map(user => ({
     ...user,
     following: state.followedUserIds.includes(user.id),
@@ -126,17 +130,16 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
         retweetAttribution={activity.retweetAttribution}
         favorite={state.favoriteTweetIds.includes(activity.tweet.id)}
         retweeted={state.retweetedTweetIds.includes(activity.tweet.id)}
-        revealed={state.revealedTweetId === activity.id}
+        revealed={activity.source === "public_visitor" ? publicState.revealedArchiveId === activity.id : state.revealedTweetId === activity.id}
         userActivity={activity.retweetActivity || activity.tweet.origin === "user"}
-        retweetAllowed={activity.tweet.origin !== "user"}
-        onReveal={() => dispatch({ type: "TOGGLE_TWEET_ACTIONS", tweetId: activity.tweet.id, timelineItemId: activity.id })}
-        onOpen={() => dispatch({ type: "OPEN_TWEET", tweetId: activity.tweet.id, scrollPosition: timelineRef.current?.scrollTop ?? state.scrollPosition })}
-        onReply={() => dispatch({ type: "BEGIN_REPLY", tweetId: activity.tweet.id })}
-        onRetweet={() => toggleRetweet(activity.tweet.id)}
+        onReveal={() => activity.source === "public_visitor" ? dispatchPublic({ type: "TOGGLE_ARCHIVE_ACTIONS", archiveId: activity.id }) : dispatch({ type: "TOGGLE_TWEET_ACTIONS", tweetId: activity.tweet.id, timelineItemId: activity.id })}
+        onOpen={activity.capabilities.detail ? () => dispatch({ type: "OPEN_TWEET", tweetId: activity.tweet.id, scrollPosition: timelineRef.current?.scrollTop ?? state.scrollPosition }) : undefined}
+        onReply={activity.capabilities.reply ? () => dispatch({ type: "BEGIN_REPLY", tweetId: activity.tweet.id }) : undefined}
+        onRetweet={activity.capabilities.retweet ? () => toggleRetweet(activity.tweet.id) : undefined}
         onFavorite={() => dispatch({ type: "TOGGLE_FAVORITE", tweetId: activity.tweet.id })}
-        onOpenProfile={(displayNameOrHandle) => activity.tweet.origin === "user"
+        onOpenProfile={activity.capabilities.profile ? (displayNameOrHandle) => activity.tweet.origin === "user"
           ? dispatch({ type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "timeline" })
-          : dispatch({ type: "OPEN_USER_PROFILE", displayName: displayNameOrHandle, originView: "timeline" })}
+          : dispatch({ type: "OPEN_USER_PROFILE", displayName: displayNameOrHandle, originView: "timeline" }) : undefined}
       />)}
     </div>}
 
@@ -224,7 +227,7 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
   </section>;
 }
 
-function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted, revealed, userActivity = false, retweetAllowed, onReveal, onOpen, onReply, onRetweet, onFavorite, onOpenProfile }: {
+function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted, revealed, userActivity = false, onReveal, onOpen, onReply, onRetweet, onFavorite, onOpenProfile }: {
   itemId: string;
   tweet: TwitterTweet;
   retweetAttribution?: string;
@@ -232,13 +235,12 @@ function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted,
   retweeted: boolean;
   revealed: boolean;
   userActivity?: boolean;
-  retweetAllowed: boolean;
   onReveal: () => void;
-  onOpen: () => void;
-  onReply: () => void;
-  onRetweet: () => void;
+  onOpen?: () => void;
+  onReply?: () => void;
+  onRetweet?: () => void;
   onFavorite: () => void;
-  onOpenProfile: (displayNameOrHandle: string) => void;
+  onOpenProfile?: (displayNameOrHandle: string) => void;
 }) {
   const gesture = useRef({ x: 0, y: 0, swiped: false });
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -266,38 +268,38 @@ function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted,
           gesture.current.swiped = false;
           return;
         }
-        onOpen();
+        onOpen?.();
       }}
-      role="button"
-      tabIndex={0}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
       aria-expanded={revealed}
       data-row-anatomy-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT"
       onKeyDown={event => {
         if (event.key === "Enter" || event.key === " ") {
-          onOpen();
+          onOpen?.();
         }
       }}
       data-content-status={tweet.contentStatus}
     >
       <span
-        role="button"
-        aria-label={`Open ${tweet.displayName} profile`}
+        role={onOpenProfile ? "button" : undefined}
+        aria-label={onOpenProfile ? `Open ${tweet.displayName} profile` : undefined}
         className="twitter-avatar-fixture twitter-profile-link twitter-timeline-avatar"
         onClick={event => {
           event.stopPropagation();
-          onOpenProfile(tweet.displayName);
+          onOpenProfile?.(tweet.displayName);
         }}
       >
         {initials(tweet.displayName)}
       </span>
       <span className="twitter-tweet-copy">
         <strong
-          role="button"
-          aria-label={`Open ${tweet.displayName} profile`}
+          role={onOpenProfile ? "button" : undefined}
+          aria-label={onOpenProfile ? `Open ${tweet.displayName} profile` : undefined}
           className="twitter-tweet-profile-name twitter-profile-link"
           onClick={event => {
             event.stopPropagation();
-            onOpenProfile(tweet.displayName);
+            onOpenProfile?.(tweet.displayName);
           }}
         >
           {tweet.displayName}
@@ -309,10 +311,10 @@ function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted,
       {favorite && <span className="twitter-favorite-marker" aria-hidden="true" />}
     </div>
     {revealed && <div className="twitter-tweet-action-row" role="group" aria-label="Tweet actions" data-chrome-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
-      <button type="button" className="twitter-tweet-action is-reply" aria-label="Reply" onClick={onReply}><span aria-hidden="true" /></button>
-      <button type="button" className="twitter-tweet-action is-retweet" aria-label={retweeted ? "Undo Retweet" : "Retweet"} aria-pressed={retweeted} disabled={!retweetAllowed} onClick={onRetweet}><span aria-hidden="true" /></button>
+      {onReply ? <button type="button" className="twitter-tweet-action is-reply" aria-label="Reply" onClick={onReply}><span aria-hidden="true" /></button> : <span className="twitter-tweet-action is-reply" aria-hidden="true"><span /></span>}
+      {onRetweet ? <button type="button" className="twitter-tweet-action is-retweet" aria-label={retweeted ? "Undo Retweet" : "Retweet"} aria-pressed={retweeted} onClick={onRetweet}><span aria-hidden="true" /></button> : <span className="twitter-tweet-action is-retweet" aria-hidden="true"><span /></span>}
       <button type="button" className="twitter-tweet-action is-favorite" aria-label={favorite ? "Remove Favorite" : "Favorite"} aria-pressed={favorite} onClick={onFavorite}><span aria-hidden="true" /></button>
-      <button type="button" className="twitter-tweet-action is-profile" aria-label={`Open ${tweet.displayName} profile`} onClick={() => onOpenProfile(tweet.authorHandle || tweet.displayName)}><span aria-hidden="true" /></button>
+      {onOpenProfile ? <button type="button" className="twitter-tweet-action is-profile" aria-label={`Open ${tweet.displayName} profile`} onClick={() => onOpenProfile(tweet.authorHandle || tweet.displayName)}><span aria-hidden="true" /></button> : <span className="twitter-tweet-action is-profile" aria-hidden="true"><span /></span>}
       <span className="twitter-tweet-action-hold is-slot5" aria-hidden="true"><span /></span>
       <span className="twitter-tweet-action-hold is-slot6" aria-hidden="true"><span /></span>
     </div>}

@@ -3452,6 +3452,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(timelineCellSource, /twitter-(?:retweet-card|native-retweet-card|quote-card)/, "Timeline fidelity must not introduce a native Retweet or Quote card");
   assert.doesNotMatch(timelineCellSource, /twitter-tweet-handle/, "Timeline cells must not render a redundant second @handle line");
   assert.match(twitterContainerSource, /Suggested Users/, "Search must expose the period Suggested Users destination");
+  assert.match(twitterContainerSource, /label="Suggested Users"\s+variant="suggested-users"/, "C1b-1 must scope its typography correction to Suggested Users rather than the shared Following list");
+  assert.match(deviceCssSource, /\.twitter-people-list\.is-suggested-users \.twitter-person-copy strong \{ font-size: 16px; font-weight: 700; line-height: 19px; \}/, "C1b-1 Suggested Users display names must use reconstructed 16/19 bold typography");
+  assert.match(deviceCssSource, /\.twitter-person-copy small \{ color: #777; font-size: 10px; line-height: 13px; \}[\s\S]*\.twitter-person-copy > span \{[^}]*font-size: 11px; line-height: 14px;/, "C1b-1 must preserve the HOLD handle and project-curated subtitle metrics");
   assert.match(twitterContainerSource, /function TwitterMoreLanding[\s\S]*className="twitter-more-landing"[\s\S]*>My Profile<\/button>/, "C3a More root must expose only the canonical My Profile row");
   assert.doesNotMatch(twitterContainerSource.match(/function TwitterMoreLanding[\s\S]*?\n\}/)?.[0] ?? "", /Favorites|Drafts|Lists|Accounts & Settings|Go to User|Settings|Help|About/, "C3a More root must not add unresolved historical rows");
   assert.match(twitterContainerSource, /originView: "more"/, "C3a More must open the canonical Profile with an explicit More origin");

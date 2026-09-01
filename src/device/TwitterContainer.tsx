@@ -191,6 +191,7 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
 
     {state.activeTab === "search" && state.currentView === "suggestedUsers" && <TwitterPeopleList
       label="Suggested Users"
+      variant="suggested-users"
       users={suggestedPeople}
       scrollPosition={state.suggestedUsersScrollPosition}
       onScroll={scrollPosition => dispatch({ type: "SET_PEOPLE_SCROLL_POSITION", view: "suggestedUsers", scrollPosition })}
@@ -479,8 +480,9 @@ function TwitterDMThread({ thread, onOpenLinkedTweet }: { thread: TwitterState["
   return <section className="twitter-dm-thread" aria-label={`Direct messages with ${thread.sender}`}>{thread.messages.map(message => <article key={message.id}><p>{message.text}</p>{message.linkedTweetId && <button type="button" onClick={() => onOpenLinkedTweet(message.linkedTweetId!)}>View Tweet</button>}</article>)}</section>;
 }
 
-function TwitterPeopleList({ label, users, scrollPosition, onScroll, onOpenProfile, onToggleFollow, emptyStateCopy }: {
+function TwitterPeopleList({ label, variant, users, scrollPosition, onScroll, onOpenProfile, onToggleFollow, emptyStateCopy }: {
   label: string;
+  variant?: "suggested-users";
   users: Array<TwitterSuggestedUser & { following: boolean }>;
   scrollPosition: number;
   onScroll: (scrollPosition: number) => void;
@@ -494,7 +496,7 @@ function TwitterPeopleList({ label, users, scrollPosition, onScroll, onOpenProfi
   }, [scrollPosition]);
   return <section
     ref={listRef}
-    className="twitter-people-list"
+    className={`twitter-people-list${variant ? ` is-${variant}` : ""}`}
     aria-label={label}
     onScroll={event => onScroll(event.currentTarget.scrollTop)}
   >

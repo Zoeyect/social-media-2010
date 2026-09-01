@@ -3215,6 +3215,16 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.ok(["Timeline", "Mentions", "Messages", "Search", "More"].every(label => twitterContainerSource.includes(`"${label}"`)), "Twitter must expose the five period tab destinations");
   assert.match(twitterContainerSource, /twitter-tweet-action-row/, "Twitter must render the swipe-revealed action row");
   assert.match(twitterContainerSource, /twitter-avatar-fixture/, "Twitter cells must not leave the avatar column visually empty");
+  assert.match(timelineCellSource, /data-row-anatomy-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT"/, "Timeline row geometry must retain explicit screenshot-reconstruction provenance");
+  assert.match(timelineCellSource, /className="twitter-avatar-fixture twitter-profile-link twitter-timeline-avatar"[\s\S]+className="twitter-tweet-copy"[\s\S]+<strong[\s\S]+<time>[\s\S]+<span>\{tweet\.text\}<\/span>/, "Timeline rows must retain avatar, display name, timestamp, and Tweet text anatomy in period order");
+  assert.match(deviceCssSource, /\.twitter-timeline-row \{[^}]*min-height: 58px; padding: 5px;[^}]*grid-template-columns: 48px minmax\(0,1fr\); gap: 7px;[^}]*align-items: start;/, "Timeline rows must use the measured x=5 avatar and x=60 text geometry with content-driven height");
+  assert.match(deviceCssSource, /\.twitter-avatar-fixture \{ width: 48px; height: 48px;[^}]*border: 1px solid #878787; border-radius: 4px;/, "Timeline avatar fixtures must retain the measured 48-point framed geometry");
+  assert.match(deviceCssSource, /\.twitter-tweet-copy strong \{[^}]*font-size: 14px; line-height: 17px;/, "Timeline display names must retain the reconstructed compact period typography");
+  assert.match(deviceCssSource, /\.twitter-tweet-copy > span \{[^}]*padding-top: 2px;[^}]*font-size: 14px; line-height: 18px;/, "Timeline Tweet bodies must retain the measured two-line 65-point row rhythm");
+  assert.match(deviceCssSource, /\.twitter-tweet-copy time \{[^}]*color: #8a8a8a; font-size: 11px; line-height: 17px;/, "Timeline timestamps must remain compact, light, and top-aligned");
+  assert.match(deviceCssSource, /\.twitter-timeline-item \{[^}]*border-bottom: 1px solid #c5c5c5;/, "Timeline rows must retain a restrained full-width one-pixel separator");
+  assert.match(timelineCellSource, /retweetAttribution && <small>\{retweetAttribution\}<\/small>/, "manual Retweets must remain plain wrapped attribution text");
+  assert.doesNotMatch(timelineCellSource, /twitter-(?:retweet-card|native-retweet-card|quote-card)/, "Timeline fidelity must not introduce a native Retweet or Quote card");
   assert.doesNotMatch(timelineCellSource, /twitter-tweet-handle/, "Timeline cells must not render a redundant second @handle line");
   assert.match(twitterContainerSource, /Suggested Users/, "Search must expose the period Suggested Users destination");
   assert.match(twitterContainerSource, /UNFOLLOW/, "Suggested Users and Profile must expose period-style Follow terminology");

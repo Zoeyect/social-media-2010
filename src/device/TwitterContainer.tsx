@@ -259,6 +259,7 @@ function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted,
       role="button"
       tabIndex={0}
       aria-expanded={revealed}
+      data-row-anatomy-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT"
       onKeyDown={event => {
         if (event.key === "Enter" || event.key === " ") {
           onOpen();

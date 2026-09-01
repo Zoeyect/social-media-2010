@@ -41,7 +41,7 @@ export function TwitterContainer({ state, dispatch, publicState, dispatchPublic,
   const composerCanSend = state.composerKind === "new"
     ? composerValue.trim().length > 0
     : state.composerKind === "reply" && Boolean(composerHandle) && composerValue.trim() !== composerHandle;
-  const timelineActivities = composeTwitterTimelineActivities(selectTwitterTimelineActivities(state), publicState.status === "ready" ? publicState.approvedPosts : [], publicState.selectedArchiveIds);
+  const timelineActivities = composeTwitterTimelineActivities(selectTwitterTimelineActivities(state), publicState.status === "ready" ? publicState.approvedPosts : [], publicState.selectedArchiveIds, currentElapsedMs);
   const suggestedPeople = state.suggestedUsers.map(user => ({
     ...user,
     following: state.followedUserIds.includes(user.id),

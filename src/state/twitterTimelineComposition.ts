@@ -29,22 +29,31 @@ export function composeTwitterTimelineActivities(
   canonical: readonly TwitterTimelineActivity[],
   approvedPosts: readonly PublicVisitorTweet[],
   selectedArchiveIds: readonly string[],
+  currentExperienceElapsedMs: number,
 ): readonly TwitterTimelineViewModel[] {
-  const selected = selectedArchiveIds.flatMap(id => {
+  const selected = selectedArchiveIds.flatMap((id, selectedIndex) => {
     const post = approvedPosts.find(candidate => candidate.id === id);
-    if (!post) return [];
+    if (!post || post.simulatedElapsedMs > currentExperienceElapsedMs) return [];
     const timestamp = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).format(new Date(post.simulated2010CreatedAt));
     const tweet: TwitterTweet = {
       id: post.id, displayName: post.displayName ?? `@${post.publicHandle}`, authorHandle: `@${post.publicHandle}`,
       text: post.body, timestamp, createdAt: Date.parse(post.simulated2010CreatedAt), type: "tweet",
       contentStatus: "HOLD-fictional", origin: "live",
     };
-    return [{ id: post.id, tweet, retweetActivity: false, effectiveAt: tweet.createdAt!, source: "public_visitor" as const, capabilities: PUBLIC_CAPABILITIES }];
+    return [{
+      view: { id: post.id, tweet, retweetActivity: false, effectiveAt: tweet.createdAt!, source: "public_visitor" as const, capabilities: PUBLIC_CAPABILITIES },
+      sourceOrder: 1,
+      originalOrder: selectedIndex,
+    }];
   });
-  const output: TwitterTimelineViewModel[] = [];
-  canonical.forEach((activity, index) => {
-    output.push({ ...activity, source: "canonical", capabilities: { ...CANONICAL_CAPABILITIES, retweet: activity.tweet.origin !== "user" } });
-    if ((index + 1) % 4 === 0 && selected.length) output.push(selected.shift()!);
-  });
-  return output;
+  const canonicalViews = canonical.map((activity, originalOrder) => ({
+    view: { ...activity, source: "canonical" as const, capabilities: { ...CANONICAL_CAPABILITIES, retweet: activity.tweet.origin !== "user" } },
+    sourceOrder: 0,
+    originalOrder,
+  }));
+  return [...canonicalViews, ...selected]
+    .sort((left, right) => right.view.effectiveAt - left.view.effectiveAt
+      || left.sourceOrder - right.sourceOrder
+      || left.originalOrder - right.originalOrder)
+    .map(item => item.view);
 }

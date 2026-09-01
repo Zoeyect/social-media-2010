@@ -58,17 +58,63 @@ try {
   assert.equal(new Set(selectedA).size, selectedA.length, "public sample must not duplicate records");
   assert.notDeepEqual(selectedA, selectedB, "different experience seeds may select a different sample");
 
+  const canonicalStart = Date.parse("2010-10-20T00:01:00-07:00");
   const canonical = Array.from({ length: 13 }, (_, index) => ({
-    id: `canonical-${index}`, tweet: { id: `canonical-${index}`, displayName: "Canonical", text: `${index}`, timestamp: "12:00 AM", contentStatus: "HOLD-fictional", origin: "seed" }, retweetActivity: false, effectiveAt: 1000 - index,
+    id: `canonical-${index}`, tweet: { id: `canonical-${index}`, displayName: "Canonical", text: `${index}`, timestamp: "12:01 AM", contentStatus: "HOLD-fictional", origin: "seed" }, retweetActivity: false, effectiveAt: canonicalStart - index * 60_000,
   }));
-  const composed = composition.composeTwitterTimelineActivities(canonical, first, selectedA);
-  assert.equal(composed[0].source, "canonical", "public visitor content must never be first");
+  const composed = composition.composeTwitterTimelineActivities(canonical, first, selectedA, 15 * 60_000);
   assert.deepEqual(composed.filter(item => item.source === "canonical").map(item => item.id), canonical.map(item => item.id), "composition must preserve canonical relative order");
-  assert.deepEqual(composed.filter(item => item.source === "public_visitor").map(item => item.id), selectedA, "composition must use stored selected IDs");
+  assert.deepEqual(composed.filter(item => item.source === "public_visitor").map(item => item.id).sort(), [...selectedA].sort(), "composition must use stored selected IDs");
   assert.ok(composed.filter(item => item.source === "public_visitor").every(item => !item.capabilities.detail && !item.capabilities.profile && !item.capabilities.reply && !item.capabilities.retweet && item.capabilities.favorite), "P1b visitor capabilities must remain explicit and narrow");
-  const visitorPositions = composed.map((item, index) => item.source === "public_visitor" ? index : -1).filter(index => index >= 0);
-  assert.ok(visitorPositions.slice(1).every((position, index) => position - visitorPositions[index] >= 4), "visitor rows must retain at least three canonical rows between them");
-  assert.deepEqual(composition.composeTwitterTimelineActivities(canonical, [], []), canonical.map(item => ({ ...item, source: "canonical", capabilities: { detail: true, profile: true, reply: true, retweet: true, favorite: true } })), "empty/error public data must leave canonical composition intact");
+  assert.ok(composed.slice(1).every((item, index) => composed[index].effectiveAt >= item.effectiveAt), "combined Timeline must remain monotonically reverse chronological");
+
+  const thresholdPost = first.find(post => post.id === "visitor-dev-0003");
+  assert.ok(thresholdPost, "temporal regression fixture must exist");
+  const thresholdSelection = Object.freeze([thresholdPost.id]);
+  const beforeThreshold = composition.composeTwitterTimelineActivities(canonical, first, thresholdSelection, thresholdPost.simulatedElapsedMs - 1);
+  assert.equal(beforeThreshold.some(item => item.id === thresholdPost.id), false, "future selected visitor must remain hidden");
+  const atThreshold = composition.composeTwitterTimelineActivities(canonical, first, thresholdSelection, thresholdPost.simulatedElapsedMs);
+  assert.equal(atThreshold.some(item => item.id === thresholdPost.id), true, "selected visitor must become visible exactly at its elapsed threshold");
+  assert.deepEqual(thresholdSelection, [thresholdPost.id], "future visibility gating must not mutate selected archive IDs");
+  const visibleSelected = composition.composeTwitterTimelineActivities(canonical, first, selectedA, 240_000).filter(item => item.source === "public_visitor");
+  assert.ok(visibleSelected.every(item => first.find(post => post.id === item.id).simulatedElapsedMs <= 240_000), "no visible visitor may be newer than current simulated elapsed time");
+
+  const midnightCanonical = [
+    { id: "canonical-1149", tweet: { id: "canonical-1149", displayName: "Canonical", text: "11:49", timestamp: "11:49 PM", contentStatus: "HOLD-fictional", origin: "seed" }, retweetActivity: false, effectiveAt: Date.parse("2010-10-19T23:49:00-07:00") },
+    { id: "canonical-1126", tweet: { id: "canonical-1126", displayName: "Canonical", text: "11:26", timestamp: "11:26 PM", contentStatus: "HOLD-fictional", origin: "seed" }, retweetActivity: false, effectiveAt: Date.parse("2010-10-19T23:26:00-07:00") },
+  ];
+  assert.deepEqual(
+    composition.composeTwitterTimelineActivities(midnightCanonical, first, [thresholdPost.id], thresholdPost.simulatedElapsedMs).map(item => item.id),
+    [thresholdPost.id, "canonical-1149", "canonical-1126"],
+    "midnight ordering must compare full simulated epochs rather than display strings",
+  );
+
+  const tieEpoch = Date.parse("2010-10-20T00:04:00-07:00");
+  const tiedVisitors = [
+    { ...first[0], id: "visitor-tie-a", simulated2010CreatedAt: new Date(tieEpoch).toISOString(), simulatedElapsedMs: 120_000 },
+    { ...first[0], id: "visitor-tie-b", simulated2010CreatedAt: new Date(tieEpoch).toISOString(), simulatedElapsedMs: 120_000 },
+  ];
+  const tiedCanonical = [
+    { id: "canonical-tie-b", tweet: { id: "canonical-tie-b", displayName: "Canonical", text: "b", timestamp: "12:04 AM", contentStatus: "HOLD-fictional", origin: "seed" }, retweetActivity: false, effectiveAt: tieEpoch },
+    { id: "canonical-tie-a", tweet: { id: "canonical-tie-a", displayName: "Canonical", text: "a", timestamp: "12:04 AM", contentStatus: "HOLD-fictional", origin: "seed" }, retweetActivity: false, effectiveAt: tieEpoch },
+  ];
+  assert.deepEqual(
+    composition.composeTwitterTimelineActivities(tiedCanonical, tiedVisitors, ["visitor-tie-b", "visitor-tie-a"], 120_000).map(item => item.id),
+    ["canonical-tie-b", "canonical-tie-a", "visitor-tie-b", "visitor-tie-a"],
+    "equal-time merge must explicitly preserve canonical precedence/input order and selected visitor order",
+  );
+
+  const mixedCanonical = [
+    { id: "realtime", tweet: { id: "realtime", displayName: "Realtime", text: "live", timestamp: "12:12 AM", contentStatus: "HOLD-fictional", origin: "live" }, retweetActivity: false, effectiveAt: Date.parse("2010-10-20T00:12:00-07:00") },
+    { id: "player", tweet: { id: "player", displayName: "Player", text: "local", timestamp: "12:08 AM", contentStatus: "HOLD-fictional", origin: "user" }, retweetActivity: false, effectiveAt: Date.parse("2010-10-20T00:08:00-07:00") },
+    midnightCanonical[0],
+  ];
+  assert.deepEqual(
+    composition.composeTwitterTimelineActivities(mixedCanonical, first, [thresholdPost.id], 15 * 60_000).map(item => item.id),
+    ["realtime", thresholdPost.id, "player", "canonical-1149"],
+    "realtime, visitor, player, and canonical activities must share one chronological merge without mutating their records",
+  );
+  assert.deepEqual(composition.composeTwitterTimelineActivities(canonical, [], [], 15 * 60_000), canonical.map(item => ({ ...item, source: "canonical", capabilities: { detail: true, profile: true, reply: true, retweet: true, favorite: true } })), "empty/error public data must leave canonical composition intact");
 
   const loaded = publicState.publicTwitterStateTransition(publicState.initialPublicTwitterState, { type: "LOAD_SUCCEEDED", posts: first, selectedArchiveIds: selectedA });
   assert.equal(loaded.status, "ready");
@@ -119,7 +165,7 @@ try {
   await assert.rejects(writeRepository.submit({ ...payload, body: "conflict" }), /conflicting/);
   const nextSnapshot = { ...snapshot, localTweetId: "twitter-user-tweet-2", idempotencyKey: "00000000-0000-4000-8000-000000000002" };
   assert.notEqual(nextSnapshot.idempotencyKey, snapshot.idempotencyKey, "new Tweet must receive a new idempotency key");
-  assert.deepEqual(composition.composeTwitterTimelineActivities(canonical, first, selectedA).filter(item => item.source === "public_visitor").map(item => item.id), selectedA, "P1c submission must not enter or alter the approved P1b sample");
+  assert.deepEqual(composition.composeTwitterTimelineActivities(canonical, first, selectedA, 15 * 60_000).filter(item => item.source === "public_visitor").map(item => item.id).sort(), [...selectedA].sort(), "P1c submission must not enter or alter the approved P1b sample");
   const resetSubmission = publicState.publicTwitterStateTransition(failed, { type: "RESET_PUBLIC_SESSION" });
   assert.equal(resetSubmission.publicHandle, null);
   assert.equal(resetSubmission.submissionStatus, "idle");
@@ -149,7 +195,7 @@ try {
   const withdrawnResult = await withdrawRepository.withdraw(withdrawAccepted.submissionId);
   assert.equal(withdrawnResult.status, "withdrawn");
   assert.equal(withdrawRepository.isWithdrawn(withdrawAccepted.submissionId), true, "mock withdrawal must mark only the mock submission");
-  assert.deepEqual(composition.composeTwitterTimelineActivities(canonical, first, selectedA).filter(item => item.source === "public_visitor").map(item => item.id), selectedA, "outro submit/withdraw must not affect P1b sample");
+  assert.deepEqual(composition.composeTwitterTimelineActivities(canonical, first, selectedA, 15 * 60_000).filter(item => item.source === "public_visitor").map(item => item.id).sort(), [...selectedA].sort(), "outro submit/withdraw must not affect P1b sample");
 
   const appSource = readFileSync(new URL("../src/device/App.tsx", import.meta.url), "utf8");
   assert.match(appSource, /session\.shutdownReason !== "battery"[\s\S]+performCanonicalShutdownReset/, "manual shutdown must use canonical reset without outro");

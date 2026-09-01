@@ -17,6 +17,7 @@ import { useSessionIdentity } from "../state/sessionIdentity";
 import { IOS4Textarea } from "./IOS4KeyboardSystem";
 import { SESSION_START_ISO } from "../state/deviceMachine";
 import type { PublicTwitterEvent, PublicTwitterState } from "../state/publicTwitterState";
+import type { PublicTwitterPendingSubmission } from "../state/publicTwitterState";
 import { composeTwitterTimelineActivities } from "../state/twitterTimelineComposition";
 
 type TwitterContainerProps = {
@@ -24,11 +25,13 @@ type TwitterContainerProps = {
   dispatch: Dispatch<TwitterEvent>;
   publicState: PublicTwitterState;
   dispatchPublic: Dispatch<PublicTwitterEvent>;
+  currentElapsedMs: number;
+  onLocalTweetSubmitted: (snapshot: PublicTwitterPendingSubmission) => void;
   currentDeviceDateTime: Date;
   currentDeviceTime: string;
 };
 
-export function TwitterContainer({ state, dispatch, publicState, dispatchPublic, currentDeviceDateTime, currentDeviceTime }: TwitterContainerProps) {
+export function TwitterContainer({ state, dispatch, publicState, dispatchPublic, currentElapsedMs, onLocalTweetSubmitted, currentDeviceDateTime, currentDeviceTime }: TwitterContainerProps) {
   const sessionIdentity = useSessionIdentity();
   const timelineRef = useRef<HTMLDivElement>(null);
   const selectedTweet = [...state.timeline, ...state.mentionTweets, ...state.linkedTweets].find(tweet => tweet.id === state.selectedTweetId) ?? null;
@@ -179,12 +182,19 @@ export function TwitterContainer({ state, dispatch, publicState, dispatchPublic,
       canSend={composerCanSend}
       onChange={value => dispatch({ type: "EDIT_COMPOSER", value })}
       onSubmit={() => state.composerKind === "new"
-        ? dispatch({
-          type: "SUBMIT_NEW_TWEET",
-          displayName: sessionIdentity.name,
-          createdAt: currentDeviceDateTime.getTime(),
-          timestamp: currentDeviceTime,
-        })
+        ? (() => {
+          const body = state.newTweetDraft.trim();
+          const createdAt = currentDeviceDateTime.getTime();
+          const snapshot: PublicTwitterPendingSubmission = Object.freeze({
+            localTweetId: `twitter-user-tweet-${state.nextUserTweetSequence}`,
+            body,
+            simulated2010CreatedAt: new Date(createdAt).toISOString(),
+            simulatedElapsedMs: currentElapsedMs,
+            idempotencyKey: crypto.randomUUID(),
+          });
+          dispatch({ type: "SUBMIT_NEW_TWEET", displayName: sessionIdentity.name, createdAt, timestamp: currentDeviceTime });
+          onLocalTweetSubmitted(snapshot);
+        })()
         : dispatch({ type: "SUBMIT_REPLY", displayName: sessionIdentity.name })}
     />}
 

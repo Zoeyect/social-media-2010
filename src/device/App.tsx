@@ -29,9 +29,11 @@ import { initialSMSNotificationState, smsNotificationStateTransition } from "../
 import { createSessionIdentity, SessionIdentityContext } from "../state/sessionIdentity";
 import { createStatusBarState } from "../state/statusBarModel";
 import { createInitialTwitterState, twitterStateTransition } from "../state/twitterState";
-import { initialPublicTwitterState, publicTwitterStateTransition } from "../state/publicTwitterState";
+import { initialPublicTwitterState, normalizePublicTwitterHandle, publicTwitterStateTransition } from "../state/publicTwitterState";
+import type { PublicTwitterEvent, PublicTwitterPendingSubmission, PublicTwitterState } from "../state/publicTwitterState";
 import { selectPublicVisitorPostIds } from "../state/twitterTimelineComposition";
 import { createMockPublicTwitterRepository } from "../data/mockPublicTwitterRepository";
+import { createMockPublicTwitterSubmissionRepository } from "../data/mockPublicTwitterSubmissionRepository";
 import { createSMSLockNotification, smsMessageReceived } from "../system/smsNotification";
 import { createInitialFlickrState, flickrStateTransition } from "../state/flickrState";
 import { createInitialTumblrState, tumblrStateTransition } from "../state/tumblrState";
@@ -66,6 +68,18 @@ const MOM_REPLY_SMS = { id: "mom-sleep-early", sender: "Mom", message: "Good. Sl
 const MOM_LOVE_REPLY_SMS = { id: "mom-love-you-too", sender: "Mom", message: "I love you too." } as const;
 const DAD_LOVE_REPLY_SMS = { id: "dad-sleep-early", sender: "Dad", message: "Sleep early." } as const;
 const publicTwitterRepository = createMockPublicTwitterRepository();
+const publicTwitterSubmissionRepository = createMockPublicTwitterSubmissionRepository();
+
+type PublicTwitterQaHandle = Readonly<{
+  state: () => PublicTwitterState;
+  localTweetIds: () => readonly string[];
+  begin: (localTweetId?: string) => boolean;
+  setHandle: (input: string) => boolean;
+  submit: () => Promise<boolean>;
+  retry: () => Promise<boolean>;
+  failNextSubmission: () => void;
+}>;
+type PublicTwitterQaWindow = Window & { __SM2010_PUBLIC_TWITTER_QA__?: PublicTwitterQaHandle };
 
 type CameraCaptureQaHandle = Readonly<{
   latest: () => CameraPhotoRecord | null;
@@ -142,6 +156,13 @@ export function App() {
     createInitialTwitterState,
   );
   const [publicTwitterState, dispatchPublicTwitter] = useReducer(publicTwitterStateTransition, initialPublicTwitterState);
+  const publicTwitterStateRef = useRef(publicTwitterState);
+  publicTwitterStateRef.current = publicTwitterState;
+  const localTweetSnapshotsRef = useRef(new Map<string, PublicTwitterPendingSubmission>());
+  const dispatchPublicTwitterEvent = useCallback((event: PublicTwitterEvent) => {
+    publicTwitterStateRef.current = publicTwitterStateTransition(publicTwitterStateRef.current, event);
+    dispatchPublicTwitter(event);
+  }, []);
   const [now, setNow] = useState(Date.now());
   const [powerProgress, setPowerProgress] = useState(0);
   const [homePressed, setHomePressed] = useState(false);
@@ -162,18 +183,65 @@ export function App() {
   useEffect(() => {
     const experienceSessionId = session.experienceSessionId;
     let cancelled = false;
-    dispatchPublicTwitter({ type: "RESET_PUBLIC_SESSION" });
+    localTweetSnapshotsRef.current.clear();
+    dispatchPublicTwitterEvent({ type: "RESET_PUBLIC_SESSION" });
     if (!experienceSessionId) return () => { cancelled = true; };
-    dispatchPublicTwitter({ type: "LOAD_STARTED" });
+    dispatchPublicTwitterEvent({ type: "LOAD_STARTED" });
     void publicTwitterRepository.listApprovedPosts().then(posts => {
       if (cancelled || experienceSessionId !== activeExperienceSessionIdRef.current) return;
-      dispatchPublicTwitter({ type: "LOAD_SUCCEEDED", posts, selectedArchiveIds: selectPublicVisitorPostIds(posts, experienceSessionId) });
+      dispatchPublicTwitterEvent({ type: "LOAD_SUCCEEDED", posts, selectedArchiveIds: selectPublicVisitorPostIds(posts, experienceSessionId) });
     }).catch(error => {
       if (cancelled || experienceSessionId !== activeExperienceSessionIdRef.current) return;
-      dispatchPublicTwitter({ type: "LOAD_FAILED", error: error instanceof Error ? error.message : "Public timeline unavailable" });
+      dispatchPublicTwitterEvent({ type: "LOAD_FAILED", error: error instanceof Error ? error.message : "Public timeline unavailable" });
     });
     return () => { cancelled = true; };
-  }, [session.experienceSessionId]);
+  }, [dispatchPublicTwitterEvent, session.experienceSessionId]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const qaWindow = window as PublicTwitterQaWindow;
+    const submitPending = async () => {
+      const current = publicTwitterStateRef.current;
+      if (!current.pendingSubmission || !current.publicHandle) return false;
+      dispatchPublicTwitterEvent({ type: "SUBMISSION_STARTED" });
+      try {
+        const result = await publicTwitterSubmissionRepository.submit({
+          publicHandle: current.publicHandle,
+          body: current.pendingSubmission.body,
+          simulated2010CreatedAt: current.pendingSubmission.simulated2010CreatedAt,
+          simulatedElapsedMs: current.pendingSubmission.simulatedElapsedMs,
+          idempotencyKey: current.pendingSubmission.idempotencyKey,
+        });
+        dispatchPublicTwitterEvent({ type: "SUBMISSION_SUCCEEDED", submissionId: result.submissionId });
+        return true;
+      } catch (error) {
+        dispatchPublicTwitterEvent({ type: "SUBMISSION_FAILED", error: error instanceof Error ? error.message : "Public submission failed" });
+        return false;
+      }
+    };
+    qaWindow.__SM2010_PUBLIC_TWITTER_QA__ = Object.freeze({
+      state: () => publicTwitterStateRef.current,
+      localTweetIds: () => Object.freeze([...localTweetSnapshotsRef.current.keys()]),
+      begin: (localTweetId) => {
+        const localTweetIds = [...localTweetSnapshotsRef.current.keys()];
+        const id = localTweetId ?? localTweetIds[localTweetIds.length - 1];
+        const snapshot = id ? localTweetSnapshotsRef.current.get(id) : undefined;
+        if (!snapshot) return false;
+        dispatchPublicTwitterEvent({ type: "BEGIN_PUBLIC_INTENT", snapshot });
+        return true;
+      },
+      setHandle: (input) => {
+        const publicHandle = normalizePublicTwitterHandle(input);
+        if (!publicHandle) return false;
+        dispatchPublicTwitterEvent({ type: "SET_PUBLIC_HANDLE", publicHandle });
+        return true;
+      },
+      submit: submitPending,
+      retry: submitPending,
+      failNextSubmission: () => publicTwitterSubmissionRepository.failNextSubmission(),
+    });
+    return () => { delete qaWindow.__SM2010_PUBLIC_TWITTER_QA__; };
+  }, [dispatchPublicTwitterEvent]);
   const statusBarState = createStatusBarState({
     signalStrength: 5,
     network: DEVICE_CARRIER_CONFIG.networkType,
@@ -1025,7 +1093,9 @@ export function App() {
             state={twitterState}
             dispatch={dispatchTwitter}
             publicState={publicTwitterState}
-            dispatchPublic={dispatchPublicTwitter}
+            dispatchPublic={dispatchPublicTwitterEvent}
+            currentElapsedMs={elapsed}
+            onLocalTweetSubmitted={snapshot => localTweetSnapshotsRef.current.set(snapshot.localTweetId, snapshot)}
             currentDeviceDateTime={deviceDateTime}
             currentDeviceTime={deviceStatusTime}
           />}

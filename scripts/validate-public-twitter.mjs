@@ -11,6 +11,8 @@ try {
   const composition = await vite.ssrLoadModule("/src/state/twitterTimelineComposition.ts");
   const seed = await vite.ssrLoadModule("/src/data/sessionSeedContent.ts");
   const timeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
+  const submissionMock = await vite.ssrLoadModule("/src/data/mockPublicTwitterSubmissionRepository.ts");
+  const twitter = await vite.ssrLoadModule("/src/state/twitterState.ts");
 
   const repository = mockModule.createMockPublicTwitterRepository();
   const first = await repository.listApprovedPosts();
@@ -77,7 +79,51 @@ try {
   assert.equal(reset.publicHandle, null);
   assert.deepEqual(reset.selectedArchiveIds, []);
 
-  console.log("Public Visitor Twitter P1b checks: PASS");
+  assert.equal(publicState.initialPublicTwitterState.publicHandle, null, "public handle must start empty and independent of Hero identity");
+  assert.equal(publicState.normalizePublicTwitterHandle(" @Coffee_Run "), "coffee_run");
+  for (const invalidHandle of ["", "two words", "bad!", "abcdefghijklmnop"]) {
+    assert.equal(publicState.normalizePublicTwitterHandle(invalidHandle), null, `invalid public handle must be rejected: ${invalidHandle}`);
+  }
+
+  let local = twitter.createInitialTwitterState("Hero Name");
+  local = twitter.twitterStateTransition(local, { type: "BEGIN_NEW_TWEET" });
+  local = twitter.twitterStateTransition(local, { type: "EDIT_COMPOSER", value: "same local and public body" });
+  const localMoment = Date.parse("2010-10-20T00:08:00-07:00");
+  local = twitter.twitterStateTransition(local, { type: "SUBMIT_NEW_TWEET", displayName: "Hero Name", createdAt: localMoment, timestamp: "12:08 AM" });
+  const localTweet = local.timeline.find(tweet => tweet.id === "twitter-user-tweet-1");
+  assert.ok(localTweet, "ordinary local Tweet must exist before any public submission");
+  assert.equal(local.currentView, "timeline");
+  assert.equal(local.composerKind, null);
+  assert.equal(publicState.initialPublicTwitterState.submissionStatus, "idle", "ordinary Send must not create public intent");
+
+  const snapshot = Object.freeze({ localTweetId: localTweet.id, body: localTweet.text, simulated2010CreatedAt: new Date(localMoment).toISOString(), simulatedElapsedMs: 360_000, idempotencyKey: "00000000-0000-4000-8000-000000000001" });
+  let publicFlow = publicState.publicTwitterStateTransition(loaded, { type: "BEGIN_PUBLIC_INTENT", snapshot });
+  assert.equal(publicFlow.submissionStatus, "awaiting_handle");
+  assert.equal(publicFlow.publicHandle, null, "Hero identity must never initialize public handle");
+  assert.equal(publicFlow.pendingSubmission.body, localTweet.text);
+  assert.equal(publicFlow.pendingSubmission.simulated2010CreatedAt, new Date(localTweet.createdAt).toISOString());
+  publicFlow = publicState.publicTwitterStateTransition(publicFlow, { type: "SET_PUBLIC_HANDLE", publicHandle: "coffee_run" });
+  assert.equal(publicFlow.submissionStatus, "idle");
+
+  const writeRepository = submissionMock.createMockPublicTwitterSubmissionRepository();
+  const payload = { publicHandle: publicFlow.publicHandle, body: snapshot.body, simulated2010CreatedAt: snapshot.simulated2010CreatedAt, simulatedElapsedMs: snapshot.simulatedElapsedMs, idempotencyKey: snapshot.idempotencyKey };
+  writeRepository.failNextSubmission();
+  await assert.rejects(writeRepository.submit(payload), /Mock public submission failed/);
+  assert.ok(local.timeline.some(tweet => tweet.id === localTweet.id), "public failure must not remove the local Tweet");
+  const failed = publicState.publicTwitterStateTransition(publicFlow, { type: "SUBMISSION_FAILED", error: "Mock public submission failed" });
+  assert.equal(failed.pendingSubmission.idempotencyKey, snapshot.idempotencyKey, "retry must retain idempotency key");
+  const accepted = await writeRepository.submit(payload);
+  assert.deepEqual(await writeRepository.submit(payload), accepted, "same key and payload must return the same result");
+  await assert.rejects(writeRepository.submit({ ...payload, body: "conflict" }), /conflicting/);
+  const nextSnapshot = { ...snapshot, localTweetId: "twitter-user-tweet-2", idempotencyKey: "00000000-0000-4000-8000-000000000002" };
+  assert.notEqual(nextSnapshot.idempotencyKey, snapshot.idempotencyKey, "new Tweet must receive a new idempotency key");
+  assert.deepEqual(composition.composeTwitterTimelineActivities(canonical, first, selectedA).filter(item => item.source === "public_visitor").map(item => item.id), selectedA, "P1c submission must not enter or alter the approved P1b sample");
+  const resetSubmission = publicState.publicTwitterStateTransition(failed, { type: "RESET_PUBLIC_SESSION" });
+  assert.equal(resetSubmission.publicHandle, null);
+  assert.equal(resetSubmission.submissionStatus, "idle");
+  assert.equal(resetSubmission.pendingSubmission, null);
+
+  console.log("Public Visitor Twitter P1c checks: PASS");
 } finally {
   await vite.close();
 }

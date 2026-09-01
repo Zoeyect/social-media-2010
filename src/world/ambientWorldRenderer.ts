@@ -464,12 +464,13 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       scene.ring,
       dpr * 1.25,
     );
-    drawLayer(WORLD_TREATMENT, 0);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     const bounds = cameraBounds();
     if (!bounds) {
       lastPresentedCameraFrame = null;
-      canvas.dataset.drawCalls = "1";
+      canvas.dataset.drawCalls = "0";
       return;
     }
     const cameraLook = effectiveCameraLook(bounds);
@@ -497,7 +498,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     drawLayer(CAMERA_TREATMENT, 137);
     gl.disable(gl.SCISSOR_TEST);
     presentCamera(bounds, dpr);
-    canvas.dataset.drawCalls = "2";
+    canvas.dataset.drawCalls = "1";
   }
 
   async function captureCameraStill(request: CameraStillCaptureRequest): Promise<CameraCapturedArtifact> {

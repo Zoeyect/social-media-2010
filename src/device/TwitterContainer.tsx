@@ -25,6 +25,7 @@ import composeToolGeotagSrc from "../assets/twitter/chrome/twitter-compose-tool-
 import composeToolUsernamesSrc from "../assets/twitter/chrome/twitter-compose-tool-usernames-2010-reconstructed.svg";
 import composeToolHashtagsSrc from "../assets/twitter/chrome/twitter-compose-tool-hashtags-2010-reconstructed.svg";
 import composeToolShrinkUrlsSrc from "../assets/twitter/chrome/twitter-compose-tool-shrink-urls-2010-reconstructed.svg";
+import { TwitterAvatar } from "./TwitterAvatar";
 
 type TwitterContainerProps = {
   state: TwitterState;
@@ -154,6 +155,7 @@ export function TwitterContainer({ state, dispatch, publicState, dispatchPublic,
         onOpenProfile={activity.capabilities.profile ? (displayNameOrHandle) => activity.tweet.origin === "user"
           ? dispatch({ type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "timeline" })
           : dispatch({ type: "OPEN_USER_PROFILE", displayName: displayNameOrHandle, originView: "timeline" }) : undefined}
+        allowAvatarNameBridge={activity.source === "canonical" && activity.tweet.origin !== "user"}
       />)}
     </div>}
 
@@ -248,7 +250,7 @@ export function TwitterContainer({ state, dispatch, publicState, dispatchPublic,
   </section>;
 }
 
-function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted, revealed, userActivity = false, onReveal, onOpen, onReply, onRetweet, onFavorite, onOpenProfile }: {
+function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted, revealed, userActivity = false, onReveal, onOpen, onReply, onRetweet, onFavorite, onOpenProfile, allowAvatarNameBridge }: {
   itemId: string;
   tweet: TwitterTweet;
   retweetAttribution?: string;
@@ -262,6 +264,7 @@ function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted,
   onRetweet?: () => void;
   onFavorite: () => void;
   onOpenProfile?: (displayNameOrHandle: string) => void;
+  allowAvatarNameBridge: boolean;
 }) {
   const gesture = useRef({ x: 0, y: 0, swiped: false });
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -302,17 +305,19 @@ function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted,
       }}
       data-content-status={tweet.contentStatus}
     >
-      <span
+      <TwitterAvatar
+        identityId={tweet.friendId}
+        displayName={tweet.displayName}
+        fallbackText={initials(tweet.displayName)}
+        allowNameBridge={allowAvatarNameBridge}
         role={onOpenProfile ? "button" : undefined}
         aria-label={onOpenProfile ? `Open ${tweet.displayName} profile` : undefined}
-        className="twitter-avatar-fixture twitter-profile-link twitter-timeline-avatar"
+        className="twitter-profile-link twitter-timeline-avatar"
         onClick={event => {
           event.stopPropagation();
           onOpenProfile?.(tweet.displayName);
         }}
-      >
-        {initials(tweet.displayName)}
-      </span>
+      />
       <span className="twitter-tweet-copy">
         <strong
           role={onOpenProfile ? "button" : undefined}
@@ -356,12 +361,16 @@ function TweetDetail({ tweet, favorite, retweeted, replies, retweetAllowed, onRe
 }) {
   return <article className="twitter-tweet-detail" data-content-status={tweet.contentStatus}>
     <header>
-      <span
+      <TwitterAvatar
+        identityId={tweet.friendId}
+        displayName={tweet.displayName}
+        fallbackText={initials(tweet.displayName)}
+        allowNameBridge={tweet.origin !== "user"}
         role="button"
         aria-label={`Open ${tweet.displayName} profile`}
-        className="twitter-avatar-fixture twitter-profile-link"
+        className="twitter-profile-link"
         onClick={() => onOpenProfile(tweet.displayName)}
-      >{initials(tweet.displayName)}</span>
+      />
       <div>
         <strong
           role="button"
@@ -439,7 +448,7 @@ function TwitterProfile({ profile, sessionOwner, profileBio, onToggleFollow, onO
   const hasMetadata = Boolean(bio || location || web);
   return <section className="twitter-profile-view" aria-label="User profile">
     <header className="twitter-profile-header">
-      <span className="twitter-avatar-fixture" aria-label={`${profile.displayName} avatar fixture`} data-avatar-status="DEV">{profile.avatarSeed}</span>
+      <TwitterAvatar identityId={sessionOwner ? null : profile.id} displayName={profile.displayName} fallbackText={profile.avatarSeed} allowNameBridge={!sessionOwner} aria-label={`${profile.displayName} avatar`} />
       <div className="twitter-profile-identity">
         <h2>{profile.displayName}</h2>
         <p className="twitter-profile-handle">{profile.handle}</p>
@@ -492,14 +501,14 @@ function TwitterMentions({ mentions, tweets, scrollPosition, onScroll, onOpen }:
   return <section ref={ref} className="twitter-social-list twitter-mentions-list" aria-label="Mentions" onScroll={event => onScroll(event.currentTarget.scrollTop)}>{mentions.map(item => {
     const tweet = tweets.find(candidate => candidate.id === item.tweetId);
     if (!tweet) return null;
-    return <button key={item.id} type="button" className={`twitter-social-row twitter-mention-row ${item.unread ? "is-unread" : ""}`} onClick={() => onOpen(item.id, ref.current?.scrollTop ?? scrollPosition)}><span className="twitter-avatar-fixture">{initials(tweet.displayName)}</span><span className="twitter-mention-copy"><strong>{tweet.displayName}</strong><small>{tweet.timestamp}</small><span className="twitter-mention-body">{tweet.text}</span></span></button>;
+    return <button key={item.id} type="button" className={`twitter-social-row twitter-mention-row ${item.unread ? "is-unread" : ""}`} onClick={() => onOpen(item.id, ref.current?.scrollTop ?? scrollPosition)}><TwitterAvatar identityId={item.friendId} displayName={tweet.displayName} fallbackText={initials(tweet.displayName)} /><span className="twitter-mention-copy"><strong>{tweet.displayName}</strong><small>{tweet.timestamp}</small><span className="twitter-mention-body">{tweet.text}</span></span></button>;
   })}</section>;
 }
 
 function TwitterMessages({ threads, scrollPosition, onScroll, onOpen }: { threads: TwitterState["directMessages"]; scrollPosition: number; onScroll: (position: number) => void; onOpen: (id: string, position: number) => void }) {
   const ref = useRef<HTMLElement>(null);
   useLayoutEffect(() => { if (ref.current) ref.current.scrollTop = scrollPosition; }, [scrollPosition]);
-  return <section ref={ref} className="twitter-social-list twitter-messages-list" aria-label="Direct Messages" onScroll={event => onScroll(event.currentTarget.scrollTop)}>{threads.map(thread => <button key={thread.id} type="button" className={`twitter-social-row twitter-message-row ${thread.unread ? "is-unread" : ""}`} onClick={() => onOpen(thread.id, ref.current?.scrollTop ?? scrollPosition)}><span className="twitter-avatar-fixture">{initials(thread.sender)}</span><span className="twitter-message-copy"><strong className="twitter-message-sender">{thread.sender}</strong><small className="twitter-message-timestamp">{thread.timestamp}</small><span className="twitter-message-preview">{thread.messages[thread.messages.length - 1]?.text}</span></span></button>)}</section>;
+  return <section ref={ref} className="twitter-social-list twitter-messages-list" aria-label="Direct Messages" onScroll={event => onScroll(event.currentTarget.scrollTop)}>{threads.map(thread => <button key={thread.id} type="button" className={`twitter-social-row twitter-message-row ${thread.unread ? "is-unread" : ""}`} onClick={() => onOpen(thread.id, ref.current?.scrollTop ?? scrollPosition)}><TwitterAvatar identityId={thread.friendId} displayName={thread.sender} fallbackText={initials(thread.sender)} /><span className="twitter-message-copy"><strong className="twitter-message-sender">{thread.sender}</strong><small className="twitter-message-timestamp">{thread.timestamp}</small><span className="twitter-message-preview">{thread.messages[thread.messages.length - 1]?.text}</span></span></button>)}</section>;
 }
 
 function TwitterDMThread({ thread, onOpenLinkedTweet }: { thread: TwitterState["directMessages"][number] | null; onOpenLinkedTweet: (id: string) => void }) {
@@ -530,14 +539,14 @@ function TwitterPeopleList({ label, variant, users, scrollPosition, onScroll, on
     {users.length === 0 && emptyStateCopy && <p className="twitter-people-empty">{emptyStateCopy}</p>}
     {users.map(user => <article key={user.id} className="twitter-person-row" data-provenance={user.provenance}>
       {onOpenProfile ? <button type="button" className="twitter-person-profile" onClick={() => onOpenProfile(user.id, listRef.current?.scrollTop ?? scrollPosition)}>
-        <span className="twitter-avatar-fixture" data-avatar-status={user.avatarStatus}>{user.avatarSeed}</span>
+        <TwitterAvatar identityId={user.id} displayName={user.displayName} fallbackText={user.avatarSeed} data-avatar-status={user.avatarStatus} />
         <span className="twitter-person-copy">
           <strong>{user.displayName}</strong>
           <small>{user.handle}</small>
           {user.subtitle && <span>{user.subtitle}</span>}
         </span>
       </button> : <div className="twitter-person-profile">
-        <span className="twitter-avatar-fixture" data-avatar-status={user.avatarStatus}>{user.avatarSeed}</span>
+        <TwitterAvatar identityId={user.id} displayName={user.displayName} fallbackText={user.avatarSeed} data-avatar-status={user.avatarStatus} />
         <span className="twitter-person-copy">
           <strong>{user.displayName}</strong>
           <small>{user.handle}</small>

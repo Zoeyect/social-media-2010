@@ -333,7 +333,9 @@ button, input { font: inherit; }
 .twitter-timeline-item { position: relative; display: grid; grid-template-columns: minmax(0,1fr); overflow: hidden; border-bottom: 1px solid #c5c5c5; background: #fff; }
 .twitter-timeline-row { position: relative; z-index: 2; grid-area: 1 / 1; width: 100%; min-height: 58px; padding: 5px; display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 7px; align-items: start; color: #222; border: 0; background: #fff; text-align: left; touch-action: pan-y; transform: translateX(0); transition: transform 160ms cubic-bezier(.25,.1,.25,1); }
 .twitter-timeline-item.is-revealed .twitter-timeline-row { transform: translateX(320px); }
-.twitter-avatar-fixture { width: 48px; height: 48px; display: grid; place-items: center; color: #fff; border: 1px solid #878787; border-radius: 4px; background: #a2a2a2; font-size: 14px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.35); }
+.twitter-avatar-fixture { width: 48px; height: 48px; display: grid; place-items: center; overflow: hidden; color: #fff; border: 1px solid #878787; border-radius: 4px; background: #a2a2a2; font-size: 14px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.35); }
+.twitter-avatar-fixture.is-image { background: #777; text-shadow: none; }
+.twitter-avatar-fixture > img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .twitter-tweet-copy { min-width: 0; display: grid; align-content: start; grid-template-columns: 1fr auto; column-gap: 7px; }
 .twitter-tweet-copy strong { overflow: hidden; color: #222; font-size: 14px; line-height: 17px; text-overflow: ellipsis; white-space: nowrap; }
 .twitter-tweet-copy > span { grid-column: 1 / -1; padding-top: 2px; color: #222; font-size: 14px; line-height: 18px; overflow-wrap: break-word; }

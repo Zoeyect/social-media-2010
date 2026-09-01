@@ -28,6 +28,7 @@ try {
   const facebookActorMedia = await vite.ssrLoadModule("/src/data/facebookActorMedia.ts");
   const facebookPages = await vite.ssrLoadModule("/src/data/facebookPages.ts");
   const sharedCharacterMedia = await vite.ssrLoadModule("/src/data/sharedCharacterMedia.ts");
+  const twitterAvatars = await vite.ssrLoadModule("/src/data/twitterAvatarRegistry.ts");
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
@@ -63,6 +64,27 @@ try {
   );
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.katie, coreSocialFriends.CORE_SOCIAL_CHARACTERS.katie, "compatibility views must reuse canonical identity objects");
   assert.strictEqual(coreSocialFriends.CORE_SOCIAL_FRIENDS.jay, coreSocialFriends.CORE_SOCIAL_CHARACTERS.jay, "compatibility views must not duplicate character records");
+  const expectedTwitterAvatars = [
+    ["june", "june-profile-avatar", "June01.PNG", "50% 35%"],
+    ["matt", "matt-profile-current", "Matt03.JPG", "50% 34%"],
+    ["jack", "jack-profile-picture", "Jack01.PNG", "50% 35%"],
+    ["alex", "alex-profile-picture", "Alex.png", "50% 24%"],
+    ["ben", "ben-profile-current", "Ben01.JPG", "50% 30%"],
+    ["katie", "katie-profile-picture", "Katie03.PNG", "50% 35%"],
+    ["chris", "chris-profile-picture", "Chris01.PNG", "50% 30%"],
+    ["luca", "luca-profile-picture", "Luca.png", "50% 50%"],
+  ];
+  assert.deepEqual(Object.values(twitterAvatars.TWITTER_AVATAR_REGISTRY).map(record => [record.identityId, record.mediaId, sharedCharacterMedia.getSharedCharacterMedia(record.mediaId).originalFilename, record.objectPosition]), expectedTwitterAvatars, "Twitter Avatar Pass A must contain exactly the eight approved canonical media mappings and deterministic crops");
+  for (const [identityId, mediaId, , objectPosition] of expectedTwitterAvatars) {
+    const stable = twitterAvatars.resolveTwitterAvatar({ identityId, displayName: "irrelevant" });
+    const bridged = twitterAvatars.resolveTwitterAvatar({ displayName: coreSocialFriends.CORE_SOCIAL_CHARACTERS[identityId].displayName });
+    assert.deepEqual([stable.mediaId, stable.objectPosition], [mediaId, objectPosition], `${identityId} must resolve from its stable identity ID`);
+    assert.deepEqual([bridged.mediaId, bridged.objectPosition], [mediaId, objectPosition], `${identityId} temporary name bridge must resolve the identical avatar and crop`);
+  }
+  for (const identityId of ["jay", "dana", "nora", "mia", "marcus", "eli", "claire", "sam", "priya", "eva", "session-owner", "cnn", "nytimes", "nasa"]) {
+    assert.equal(twitterAvatars.resolveTwitterAvatar({ identityId, displayName: identityId }), null, `${identityId} must remain on the Pass A fallback`);
+  }
+  assert.equal(twitterAvatars.resolveTwitterAvatar({ displayName: "June", allowNameBridge: false }), null, "session-owner and public-visitor resolution must be able to disable the canonical name bridge");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => [relationship.id, relationship.participantIds, relationship.kind]), [
     ["katie-ben-siblings", ["katie", "ben"], "SIBLINGS"],
     ["chris-luca-basketball-friends", ["chris", "luca"], "BASKETBALL_FRIENDS"],
@@ -3425,9 +3447,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.twitter-tweet-action-hold \{ pointer-events: none; \}/, "B2 HOLD slots must reject pointer interaction");
   assert.match(deviceCssSource, /\.twitter-tweet-action\.is-favorite\[aria-pressed="true"\] > span \{[^}]*twitter-action-favorite-selected-2010-reconstructed\.svg/, "B2 selected Favorite state must use its filled reconstructed star asset");
   assert.match(deviceCssSource, /\.twitter-favorite-marker \{[^}]*top: 0; right: 0; width: 15px; height: 15px;[^}]*twitter-favorite-corner-2010-reconstructed\.svg/, "B2 favorited Timeline marker must retain the reconstructed 15-point corner geometry");
-  assert.match(twitterContainerSource, /twitter-avatar-fixture/, "Twitter cells must not leave the avatar column visually empty");
+  assert.match(twitterContainerSource, /import \{ TwitterAvatar \} from "\.\/TwitterAvatar";/, "Twitter surfaces must use the shared avatar renderer");
   assert.match(timelineCellSource, /data-row-anatomy-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT"/, "Timeline row geometry must retain explicit screenshot-reconstruction provenance");
-  assert.match(timelineCellSource, /className="twitter-avatar-fixture twitter-profile-link twitter-timeline-avatar"[\s\S]+className="twitter-tweet-copy"[\s\S]+<strong[\s\S]+<time>[\s\S]+<span>\{tweet\.text\}<\/span>/, "Timeline rows must retain avatar, display name, timestamp, and Tweet text anatomy in period order");
+  assert.match(timelineCellSource, /<TwitterAvatar[\s\S]+className="twitter-profile-link twitter-timeline-avatar"[\s\S]+className="twitter-tweet-copy"[\s\S]+<strong[\s\S]+<time>[\s\S]+<span>\{tweet\.text\}<\/span>/, "Timeline rows must retain avatar, display name, timestamp, and Tweet text anatomy in period order");
   assert.match(deviceCssSource, /\.twitter-timeline-row \{[^}]*min-height: 58px; padding: 5px;[^}]*grid-template-columns: 48px minmax\(0,1fr\); gap: 7px;[^}]*align-items: start;/, "Timeline rows must use the measured x=5 avatar and x=60 text geometry with content-driven height");
   assert.match(deviceCssSource, /\.twitter-avatar-fixture \{ width: 48px; height: 48px;[^}]*border: 1px solid #878787; border-radius: 4px;/, "Timeline avatar fixtures must retain the measured 48-point framed geometry");
   assert.match(deviceCssSource, /\.twitter-tweet-copy strong \{[^}]*font-size: 14px; line-height: 17px;/, "Timeline display names must retain the reconstructed compact period typography");
@@ -3436,14 +3458,14 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.twitter-timeline-item \{[^}]*border-bottom: 1px solid #c5c5c5;/, "Timeline rows must retain a restrained full-width one-pixel separator");
   assert.match(twitterMentionsSource, /className=\{`twitter-social-row twitter-mention-row \$\{item\.unread \? "is-unread" : ""\}`\}[\s\S]*onClick=\{\(\) => onOpen\(item\.id, ref\.current\?\.scrollTop \?\? scrollPosition\)\}/, "B3 Mention rows must derive pale-blue presentation from canonical unread state while remaining whole-row Detail controls");
   assert.doesNotMatch(twitterMentionsSource, /View Tweet|twitter-tweet-action-row|twitter-tweet-action is-/, "B3 Mentions must not restore the list CTA or add Timeline-only swipe actions");
-  assert.match(twitterMentionsSource, /twitter-avatar-fixture[\s\S]*twitter-mention-copy[\s\S]*<strong>\{tweet\.displayName\}<\/strong>[\s\S]*<small>\{tweet\.timestamp\}<\/small>[\s\S]*twitter-mention-body[^>]*>\{tweet\.text\}/, "B3 Mentions must retain avatar, display name, timestamp, and Tweet body anatomy");
+  assert.match(twitterMentionsSource, /TwitterAvatar[\s\S]*twitter-mention-copy[\s\S]*<strong>\{tweet\.displayName\}<\/strong>[\s\S]*<small>\{tweet\.timestamp\}<\/small>[\s\S]*twitter-mention-body[^>]*>\{tweet\.text\}/, "B3 Mentions must retain avatar, display name, timestamp, and Tweet body anatomy");
   assert.match(deviceCssSource, /\.twitter-social-row\.twitter-mention-row \{[^}]*min-height: 58px; padding: 5px;[^}]*grid-template-columns: 48px minmax\(0,1fr\); gap: 7px;[^}]*align-items: start;[^}]*border-bottom-color: #c5c5c5;/, "B3 Mentions must use the approved content-driven 58-point minimum, x=5 avatar, x=60 copy origin, and separator");
   assert.match(deviceCssSource, /\.twitter-social-row\.twitter-mention-row\.is-unread \{ background: #edf4fa; \}/, "B3 unread Mentions must retain the approved pale-blue row without changing Tweet-list geometry");
   assert.match(deviceCssSource, /\.twitter-mention-row strong \{[^}]*font-size: 14px;[^}]*line-height: 17px;/, "B3 Mention display names must use 14/17 bold typography");
   assert.match(deviceCssSource, /\.twitter-mention-row small \{[^}]*grid-column: 2; grid-row: 1;[^}]*font-size: 11px; line-height: 17px;/, "B3 Mention timestamps must remain compact and upper-right");
   assert.match(deviceCssSource, /\.twitter-mention-row \.twitter-mention-body \{[^}]*padding-top: 2px;[^}]*font-size: 14px; line-height: 18px;/, "B3 Mention bodies must use the approved 14/18 Tweet typography");
   assert.match(twitterMessagesSource, /className=\{`twitter-social-row twitter-message-row \$\{thread\.unread \? "is-unread" : ""\}`\}[\s\S]*onClick=\{\(\) => onOpen\(thread\.id, ref\.current\?\.scrollTop \?\? scrollPosition\)\}/, "B4a Message rows must remain whole-row controls driven by canonical unread state");
-  assert.match(twitterMessagesSource, /twitter-avatar-fixture[\s\S]*twitter-message-copy[\s\S]*twitter-message-sender[^>]*>\{thread\.sender\}[\s\S]*twitter-message-timestamp[^>]*>\{thread\.timestamp\}[\s\S]*twitter-message-preview[^>]*>\{thread\.messages\[thread\.messages\.length - 1\]\?\.text\}/, "B4a Messages must retain avatar, sender, timestamp, and latest-preview anatomy");
+  assert.match(twitterMessagesSource, /TwitterAvatar[\s\S]*twitter-message-copy[\s\S]*twitter-message-sender[^>]*>\{thread\.sender\}[\s\S]*twitter-message-timestamp[^>]*>\{thread\.timestamp\}[\s\S]*twitter-message-preview[^>]*>\{thread\.messages\[thread\.messages\.length - 1\]\?\.text\}/, "B4a Messages must retain avatar, sender, timestamp, and latest-preview anatomy");
   assert.match(deviceCssSource, /\.twitter-social-row \{[^}]*min-height: 62px;[^}]*grid-template-columns: 42px 1fr; gap: 8px; padding: 7px 10px;[^}]*border-bottom: 1px solid #c7c7c7; background: #fff;/, "B4a must preserve the intentional 62-point row, 42-point track/48-point avatar relationship, 7/10 padding, white field, and separator");
   assert.match(deviceCssSource, /\.twitter-social-row\.is-unread \{ background: #edf4fa; \}/, "B4a unread Messages must retain the reconstructed pale-blue field");
   assert.match(deviceCssSource, /\.twitter-message-sender \{ font-size: 15px; font-weight: 700; line-height: 18px; \}/, "B4a Message senders must use deterministic 15/18 bold typography");

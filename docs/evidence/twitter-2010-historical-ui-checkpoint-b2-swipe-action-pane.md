@@ -48,16 +48,37 @@ Final displacement is 320px and approved from the fully exposed historical pane.
 
 ## Six-slot action set
 
-| Slot | Visual identity | Runtime behavior | Classification |
+| Slot | Visual identity | Runtime behavior | Evidence classification |
 | --- | --- | --- | --- |
-| 1 | Reply arrow | Existing Reply composer | Semantics CONFIRMED; artwork RECONSTRUCTED |
-| 2 | Retweet arrows | Existing Retweet toggle | Semantics CONFIRMED; artwork RECONSTRUCTED |
-| 3 | Favorite star | Existing Favorite toggle | Semantics CONFIRMED; artwork RECONSTRUCTED |
-| 4 | Person silhouette | Existing user Profile route | Semantics CONFIRMED at category level; artwork RECONSTRUCTED |
-| 5 | Paperclip-like form | Decorative only | Shape RECONSTRUCTED; semantics HOLD |
-| 6 | Final action-like form | Decorative only | Shape RECONSTRUCTED; semantics HOLD |
+| 1 | Reply arrow | Existing Reply composer | Reply: `CONFIRMED`; artwork: `RECONSTRUCTED_FROM_PERIOD_SCREENSHOT` |
+| 2 | Official Retweet arrows | Existing Retweet toggle | Official Retweet: `CONFIRMED`; artwork: `RECONSTRUCTED_FROM_PERIOD_SCREENSHOT` |
+| 3 | Favorite star | Existing Favorite toggle | Favorite: `CONFIRMED`; artwork: `RECONSTRUCTED_FROM_PERIOD_SCREENSHOT` |
+| 4 | User Profile silhouette | Existing user Profile route | User Profile: `CONFIRMED`; artwork: `RECONSTRUCTED_FROM_PERIOD_SCREENSHOT` |
+| 5 | Paperclip / link-actions icon | Decorative and inert | Link-actions category: `CONFIRMED`; exact Twitter 3.0.x menu contents: `HOLD`; artwork: `RECONSTRUCTED_FROM_PERIOD_SCREENSHOT` |
+| 6 | Arrow leaving a box / general action route | Decorative and inert | Visual identity: `CONFIRMED`; broad action category: `PROBABLE`; Quote Reply / unofficial Retweet availability: `CONFIRMED`; mail/export-related actions: `PERIOD-SUPPORTED`; exact Twitter 3.0.x menu/action sheet: `HOLD`; artwork: `RECONSTRUCTED_FROM_PERIOD_SCREENSHOT` |
 
-Slots 5 and 6 are non-button spans with `aria-hidden="true"`, no label/title/tab index/handler, and `pointer-events: none`. Their internal names remain neutral. They reproduce directly visible geometry without claiming or inventing functionality.
+The locked runtime order remains Reply, Official Retweet, Favorite, User Profile, Link Actions, then General Action/Export. No slot is reordered by the B2.1 evidence update.
+
+### Interaction-contract boundary
+
+Visual slot identity or category is not an authenticated complete interaction contract. The direct Twitter for iPhone evidence confirms the visible six-slot ordering and supports the categories above, but does not recover the complete target-build menus.
+
+For Slot 5, the paperclip identifies a link-actions control. It must not be reduced to Open in Safari, Copy Link, Mail Link, Read Later, or any other single direct action while the exact Twitter 3.0.x menu remains `HOLD`.
+
+For Slot 6, the arrow-leaving-box artwork is confirmed as the visible identity of a broader action route. Period evidence confirms Quote Reply / unofficial Retweet availability and supports mail/export-related actions, but the exact target-build action sheet remains `HOLD`.
+
+Tweetie 2 evidence supports product lineage and category interpretation only. It is not an exact specification of the Twitter for iPhone 3.0.x Link Actions or General Action menus.
+
+Slots 5 and 6 remain non-button spans with `aria-hidden="true"`, no label/title/tab index/handler, and `pointer-events: none`. They remain inert: no click handlers, state events, menus, tooltips, modern Share behavior, or shortcuts are implied or implemented.
+
+### Focused future evidence HOLD
+
+Functional implementation remains blocked pending stronger target-build evidence, specifically:
+
+- `tw_for_iphone_056234.PNG`;
+- equivalent Twitter 3.0.x action-sheet captures;
+- a target-build Link action menu;
+- a target-build rightmost Action/Quote menu.
 
 ## Pane material
 

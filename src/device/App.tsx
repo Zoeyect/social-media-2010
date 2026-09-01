@@ -34,6 +34,7 @@ import type { PublicTwitterEvent, PublicTwitterPendingSubmission, PublicTwitterS
 import { selectPublicVisitorPostIds } from "../state/twitterTimelineComposition";
 import { createMockPublicTwitterRepository } from "../data/mockPublicTwitterRepository";
 import { createMockPublicTwitterSubmissionRepository } from "../data/mockPublicTwitterSubmissionRepository";
+import { initialPublicTwitterOutroState, publicTwitterOutroTransition, selectEligibleLocalTweetIds } from "../state/publicTwitterOutroState";
 import { createSMSLockNotification, smsMessageReceived } from "../system/smsNotification";
 import { createInitialFlickrState, flickrStateTransition } from "../state/flickrState";
 import { createInitialTumblrState, tumblrStateTransition } from "../state/tumblrState";
@@ -53,6 +54,7 @@ import { SMSAlertOverlay } from "./SMSAlertOverlay";
 import { SpringBoard } from "./SpringBoard";
 import { StatusBar } from "./StatusBar";
 import { TwitterContainer } from "./TwitterContainer";
+import { PublicTwitterOutro } from "./PublicTwitterOutro";
 import { IOS4KeyboardSystem } from "./IOS4KeyboardSystem";
 import { AmbientWorld } from "../world/AmbientWorld";
 import type { CameraStillCapture } from "../world/AmbientWorld";
@@ -156,6 +158,7 @@ export function App() {
     createInitialTwitterState,
   );
   const [publicTwitterState, dispatchPublicTwitter] = useReducer(publicTwitterStateTransition, initialPublicTwitterState);
+  const [publicTwitterOutro, dispatchPublicTwitterOutro] = useReducer(publicTwitterOutroTransition, initialPublicTwitterOutroState);
   const publicTwitterStateRef = useRef(publicTwitterState);
   publicTwitterStateRef.current = publicTwitterState;
   const localTweetSnapshotsRef = useRef(new Map<string, PublicTwitterPendingSubmission>());
@@ -174,6 +177,7 @@ export function App() {
   const pendingAppHomePress = useRef<number | null>(null);
   const devAutoOpenConsumed = useRef(false);
   const deliveredEventClaims = useRef(new Set<string>());
+  const shutdownResetStarted = useRef(false);
   const elapsed = elapsedMs(session, now);
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
   const deviceStatusTime = formatDeviceTime(deviceDateTime);
@@ -253,6 +257,39 @@ export function App() {
     clock: deviceStatusTime,
   });
   const lockScreenModel = createLockScreenModel(lockScreenTime, deviceDate, statusBarState);
+
+  const performCanonicalShutdownReset = useCallback((shutdownReason: Session["shutdownReason"]) => {
+    if (shutdownResetStarted.current) return;
+    shutdownResetStarted.current = true;
+    deliveredEventClaims.current.clear();
+    dispatchMessages({ type: "RESET_RUNTIME" });
+    dispatchMessagesBadge({ type: "RESET" });
+    dispatchSMSNotification({ type: "RESET" });
+    dispatchLockNotification({ type: "RESET" });
+    dispatchFacebook({ type: "RESET" });
+    dispatchInstagram({ type: "RESET" });
+    dispatchFoursquare({ type: "RESET" });
+    dispatchFlickr({ type: "RESET" });
+    dispatchTumblr({ type: "RESET" });
+    dispatchTwitter({ type: "RESET" });
+    dispatchAppRuntime({ type: "RESET" });
+    dispatchCameraRuntime({ type: "RESET", owner: "cameraApp" });
+    dispatchCameraRuntime({ type: "RESET", owner: "cameraPicker" });
+    dispatchMultitaskingBar("RESET");
+    dispatchFolderEvent("CLOSE");
+    dispatchFolderEvent("ANIMATION_COMPLETE");
+    setActiveFolderSlotIndex(0);
+    setUnlockReturnAppId(null);
+    setSpringBoardPage(0);
+    setActivityRevision(0);
+    window.setTimeout(() => setSession({
+      ...initialSession,
+      sessionIdentity: initialSession.sessionIdentity,
+      phase: "poweredOff",
+      shutdownReason,
+      returnToHeroPending: true,
+    }), SHUTDOWN_BLACK_SCREEN_MS);
+  }, []);
 
   const captureCameraPhoto = async () => {
     const capture = cameraCapture.current;
@@ -442,6 +479,7 @@ export function App() {
   }, []);
   useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id); }, []);
   useEffect(() => {
+    if (session.phase === "shutdown") return;
     const event = nextDueDeviceEvent(session.deviceEvents, elapsed);
     if (!event) return;
     const isMessagesReplyEvent = event.type === "momReply" || event.type === "momLoveReply" || event.type === "dadLoveReply";
@@ -678,37 +716,18 @@ export function App() {
   }, [session.phase]);
   useEffect(() => {
     if (session.phase !== "shutdown") return;
-    deliveredEventClaims.current.clear();
-    dispatchMessages({ type: "RESET_RUNTIME" });
-    dispatchMessagesBadge({ type: "RESET" });
-    dispatchSMSNotification({ type: "RESET" });
-    dispatchLockNotification({ type: "RESET" });
-    dispatchFacebook({ type: "RESET" });
-    dispatchInstagram({ type: "RESET" });
-    dispatchFoursquare({ type: "RESET" });
-    dispatchFlickr({ type: "RESET" });
-    dispatchTumblr({ type: "RESET" });
-    dispatchTwitter({ type: "RESET" });
-    dispatchAppRuntime({ type: "RESET" });
-    dispatchCameraRuntime({ type: "RESET", owner: "cameraApp" });
-    dispatchCameraRuntime({ type: "RESET", owner: "cameraPicker" });
-    dispatchMultitaskingBar("RESET");
-    dispatchFolderEvent("CLOSE");
-    dispatchFolderEvent("ANIMATION_COMPLETE");
-    setActiveFolderSlotIndex(0);
-    setUnlockReturnAppId(null);
-    setSpringBoardPage(0);
-    setActivityRevision(0);
-    const shutdownReason = session.shutdownReason;
-    const id = window.setTimeout(() => setSession({
-      ...initialSession,
-      sessionIdentity: initialSession.sessionIdentity,
-      phase: "poweredOff",
-      shutdownReason,
-      returnToHeroPending: true,
-    }), SHUTDOWN_BLACK_SCREEN_MS);
-    return () => clearTimeout(id);
-  }, [session.phase, session.shutdownReason]);
+    if (session.shutdownReason !== "battery") {
+      performCanonicalShutdownReset(session.shutdownReason);
+      return;
+    }
+    if (publicTwitterOutro.phase !== "idle") return;
+    const eligibleTweetIds = selectEligibleLocalTweetIds(twitterState.timeline);
+    if (eligibleTweetIds.length === 0) {
+      performCanonicalShutdownReset(session.shutdownReason);
+      return;
+    }
+    dispatchPublicTwitterOutro({ type: "START", eligibleTweetIds });
+  }, [performCanonicalShutdownReset, publicTwitterOutro.phase, session.phase, session.shutdownReason, twitterState.timeline]);
   useEffect(() => {
     if (session.phase !== "poweredOff" || !session.returnToHeroPending) return;
     const id = window.setTimeout(() => setSession({ ...initialSession }), TERMINAL_POWERED_OFF_MS);
@@ -827,6 +846,8 @@ export function App() {
     const data = new FormData(event.currentTarget);
     const name = String(data.get("name") || "").trim();
     if (name) {
+      shutdownResetStarted.current = false;
+      dispatchPublicTwitterOutro({ type: "RESET" });
       const experienceSessionId = createExperienceSessionId();
       cameraCaptureNamespace.current += 1;
       activeExperienceSessionIdRef.current = experienceSessionId;
@@ -841,6 +862,54 @@ export function App() {
         returnToHeroPending: false,
       });
     }
+  };
+
+  const enterPublicTwitterOutroHandle = () => {
+    const selectedTweetId = publicTwitterOutro.selectedTweetId;
+    const snapshot = selectedTweetId ? localTweetSnapshotsRef.current.get(selectedTweetId) : undefined;
+    if (!snapshot) return;
+    dispatchPublicTwitterEvent({ type: "BEGIN_PUBLIC_INTENT", snapshot });
+    dispatchPublicTwitterOutro({ type: "ENTER_HANDLE" });
+  };
+  const confirmPublicTwitterOutroHandle = () => {
+    const publicHandle = normalizePublicTwitterHandle(publicTwitterOutro.handleInput);
+    if (!publicHandle) {
+      dispatchPublicTwitterOutro({ type: "HANDLE_INVALID" });
+      return;
+    }
+    dispatchPublicTwitterEvent({ type: "SET_PUBLIC_HANDLE", publicHandle });
+    dispatchPublicTwitterOutro({ type: "CONFIRM_HANDLE", publicHandle });
+  };
+  const submitPublicTwitterOutro = async (retry = false) => {
+    const current = publicTwitterStateRef.current;
+    if (!current.pendingSubmission || !current.publicHandle) return;
+    dispatchPublicTwitterOutro({ type: retry ? "RETRY" : "SUBMIT" });
+    dispatchPublicTwitterEvent({ type: "SUBMISSION_STARTED" });
+    try {
+      // Future historical and safety preflights belong immediately before this repository boundary.
+      const result = await publicTwitterSubmissionRepository.submit({
+        publicHandle: current.publicHandle,
+        body: current.pendingSubmission.body,
+        simulated2010CreatedAt: current.pendingSubmission.simulated2010CreatedAt,
+        simulatedElapsedMs: current.pendingSubmission.simulatedElapsedMs,
+        idempotencyKey: current.pendingSubmission.idempotencyKey,
+      });
+      dispatchPublicTwitterEvent({ type: "SUBMISSION_SUCCEEDED", submissionId: result.submissionId });
+      dispatchPublicTwitterOutro({ type: "SUBMIT_SUCCEEDED", submissionId: result.submissionId });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Public submission failed";
+      dispatchPublicTwitterEvent({ type: "SUBMISSION_FAILED", error: message });
+      dispatchPublicTwitterOutro({ type: "SUBMIT_FAILED", error: message });
+    }
+  };
+  const withdrawPublicTwitterOutro = async () => {
+    if (!publicTwitterOutro.submissionId) return;
+    await publicTwitterSubmissionRepository.withdraw(publicTwitterOutro.submissionId);
+    dispatchPublicTwitterOutro({ type: "WITHDRAW" });
+  };
+  const completePublicTwitterOutro = () => {
+    dispatchPublicTwitterOutro({ type: "COMPLETE" });
+    performCanonicalShutdownReset(session.shutdownReason);
   };
 
   const beginPower = () => {
@@ -954,6 +1023,12 @@ export function App() {
     <main className="hero"><form onSubmit={submitName}><label htmlFor="name">What was your name?</label><input id="name" name="name" autoFocus autoComplete="name" /><span>Press Enter</span></form></main>
     <AppDevAccess appId={devAppId} disabled onOpen={() => {}} />
   </>;
+
+  const outroTweets = publicTwitterOutro.eligibleTweetIds.flatMap(id => {
+    const tweet = twitterState.timeline.find(candidate => candidate.id === id && candidate.origin === "user");
+    return tweet ? [tweet] : [];
+  });
+  const selectedOutroTweet = outroTweets.find(tweet => tweet.id === publicTwitterOutro.selectedTweetId) ?? null;
 
   return <SessionIdentityContext.Provider value={session.sessionIdentity}>
     {ambientWorldEnabled && <AmbientWorld
@@ -1176,6 +1251,19 @@ export function App() {
       ><i /></button>
     </section>
       <aside><strong>SOCIAL MEDIA, 2010</strong><span>Z.tokyo</span></aside>
+      {session.phase === "shutdown" && session.shutdownReason === "battery" && publicTwitterOutro.phase !== "idle" && publicTwitterOutro.phase !== "complete" && <PublicTwitterOutro
+        state={publicTwitterOutro}
+        tweets={outroTweets}
+        selectedTweet={selectedOutroTweet}
+        onSelect={tweetId => dispatchPublicTwitterOutro({ type: "SELECT", tweetId })}
+        onContinue={enterPublicTwitterOutroHandle}
+        onHandleChange={value => dispatchPublicTwitterOutro({ type: "EDIT_HANDLE", value })}
+        onConfirmHandle={confirmPublicTwitterOutroHandle}
+        onSubmit={() => { void submitPublicTwitterOutro(); }}
+        onRetry={() => { void submitPublicTwitterOutro(true); }}
+        onWithdraw={() => { void withdrawPublicTwitterOutro(); }}
+        onComplete={completePublicTwitterOutro}
+      />}
     </main>
     <AppDevAccess
       appId={devAppId}

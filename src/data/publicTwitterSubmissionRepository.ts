@@ -13,4 +13,5 @@ export type PublicTwitterSubmissionResult = Readonly<{
 
 export interface PublicTwitterSubmissionRepository {
   submit(draft: PublicTwitterSubmissionDraft): Promise<PublicTwitterSubmissionResult>;
+  withdraw(submissionId: string): Promise<Readonly<{ status: "withdrawn" }>>;
 }

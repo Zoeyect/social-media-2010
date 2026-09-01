@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createServer } from "vite";
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: "custom", logLevel: "silent" });
@@ -13,6 +14,7 @@ try {
   const timeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const submissionMock = await vite.ssrLoadModule("/src/data/mockPublicTwitterSubmissionRepository.ts");
   const twitter = await vite.ssrLoadModule("/src/state/twitterState.ts");
+  const outro = await vite.ssrLoadModule("/src/state/publicTwitterOutroState.ts");
 
   const repository = mockModule.createMockPublicTwitterRepository();
   const first = await repository.listApprovedPosts();
@@ -123,7 +125,40 @@ try {
   assert.equal(resetSubmission.submissionStatus, "idle");
   assert.equal(resetSubmission.pendingSubmission, null);
 
-  console.log("Public Visitor Twitter P1c checks: PASS");
+  assert.equal(outro.publicTwitterOutroTransition(outro.initialPublicTwitterOutroState, { type: "START", eligibleTweetIds: [] }).phase, "complete", "zero local Tweets must bypass selection");
+  const eligibleOnly = outro.selectEligibleLocalTweetIds([
+    { id: "seed", origin: "seed" }, { id: "live", origin: "live" }, { id: "visitor", origin: "public_visitor" }, { id: "local-1", origin: "user" }, { id: "local-2", origin: "user" },
+  ]);
+  assert.deepEqual(eligibleOnly, ["local-1", "local-2"], "outro eligibility must include only origin=user Tweets");
+  let outroFlow = outro.publicTwitterOutroTransition(outro.initialPublicTwitterOutroState, { type: "START", eligibleTweetIds: eligibleOnly });
+  assert.equal(outroFlow.phase, "selecting");
+  assert.equal(outroFlow.selectedTweetId, null, "one or many eligible Tweets must start unselected");
+  outroFlow = outro.publicTwitterOutroTransition(outroFlow, { type: "SELECT", tweetId: "local-1" });
+  outroFlow = outro.publicTwitterOutroTransition(outroFlow, { type: "SELECT", tweetId: "local-2" });
+  assert.equal(outroFlow.selectedTweetId, "local-2", "selection must remain max-one");
+  assert.equal(outro.publicTwitterOutroTransition(outroFlow, { type: "SUBMIT" }).phase, "selecting", "final confirmation stage must be required before submission");
+  outroFlow = outro.publicTwitterOutroTransition(outroFlow, { type: "ENTER_HANDLE" });
+  outroFlow = outro.publicTwitterOutroTransition(outroFlow, { type: "EDIT_HANDLE", value: " @Coffee_Run " });
+  const outroHandle = publicState.normalizePublicTwitterHandle(outroFlow.handleInput);
+  outroFlow = outro.publicTwitterOutroTransition(outroFlow, { type: "CONFIRM_HANDLE", publicHandle: outroHandle });
+  assert.equal(outroFlow.phase, "confirming");
+  outroFlow = outro.publicTwitterOutroTransition(outroFlow, { type: "SUBMIT" });
+  assert.equal(outroFlow.phase, "submitting");
+  const withdrawRepository = submissionMock.createMockPublicTwitterSubmissionRepository();
+  const withdrawAccepted = await withdrawRepository.submit({ ...payload, idempotencyKey: "00000000-0000-4000-8000-000000000003" });
+  const withdrawnResult = await withdrawRepository.withdraw(withdrawAccepted.submissionId);
+  assert.equal(withdrawnResult.status, "withdrawn");
+  assert.equal(withdrawRepository.isWithdrawn(withdrawAccepted.submissionId), true, "mock withdrawal must mark only the mock submission");
+  assert.deepEqual(composition.composeTwitterTimelineActivities(canonical, first, selectedA).filter(item => item.source === "public_visitor").map(item => item.id), selectedA, "outro submit/withdraw must not affect P1b sample");
+
+  const appSource = readFileSync(new URL("../src/device/App.tsx", import.meta.url), "utf8");
+  assert.match(appSource, /session\.shutdownReason !== "battery"[\s\S]+performCanonicalShutdownReset/, "manual shutdown must use canonical reset without outro");
+  assert.match(appSource, /session\.phase === "shutdown"\) return;[\s\S]+nextDueDeviceEvent/, "scheduler delivery must freeze during shutdown/outro");
+  assert.match(appSource, /performCanonicalShutdownReset\(session\.shutdownReason\)/, "outro completion must converge on canonical reset");
+  const twitterContainerSource = readFileSync(new URL("../src/device/TwitterContainer.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(twitterContainerSource, /PublicTwitterOutro|Leave a Tweet for other visitors/, "P1d must not modify or enter historical Twitter UI");
+
+  console.log("Public Visitor Twitter P1d checks: PASS");
 } finally {
   await vite.close();
 }

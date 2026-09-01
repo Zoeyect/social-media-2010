@@ -1540,6 +1540,34 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual([dmState.activeTab, dmState.currentView, dmState.selectedDirectMessageId], ["messages", "dmThread", "dm-katie"]);
   dmState = twitter.twitterStateTransition(dmState, { type: "BACK_TO_MESSAGES" });
   assert.deepEqual([dmState.currentView, dmState.messagesScrollPosition], ["messagesList", 41]);
+  const canonicalDirectMessageSummary = [
+    ["dm-katie", "Katie Dawson", "11:46 PM", "crazy ahaha", true],
+    ["dm-matt", "Matt Ricci", "10:21 PM", "see you tomorrow", false],
+  ];
+  const summarizeDirectMessages = state => state.directMessages.map(thread => [thread.id, thread.sender, thread.timestamp, thread.messages.at(-1)?.text, thread.unread]);
+  let b4MessagesState = twitter.twitterStateTransition(twitter.createInitialTwitterState("Zoey"), { type: "SHOW_TAB", tab: "messages" });
+  assert.deepEqual(summarizeDirectMessages(b4MessagesState), canonicalDirectMessageSummary, "B4a Messages must begin in canonical Katie/Matt order with locked copy, timestamps, and unread state");
+  assert.equal(twitter.selectTwitterDirectMessagesUnreadCount(b4MessagesState), 1, "B4a Messages tab indicator must derive from the one initial unread thread");
+  b4MessagesState = twitter.twitterStateTransition(b4MessagesState, { type: "OPEN_DIRECT_MESSAGE", threadId: "dm-katie", scrollPosition: 41 });
+  assert.deepEqual(summarizeDirectMessages(b4MessagesState), canonicalDirectMessageSummary.map(summary => summary[0] === "dm-katie" ? [...summary.slice(0, 4), false] : summary), "opening Katie must mark only Katie read without changing either DM record or its order");
+  assert.equal(twitter.selectTwitterDirectMessagesUnreadCount(b4MessagesState), 0, "reading Katie must clear the state-driven Messages tab indicator");
+  b4MessagesState = twitter.twitterStateTransition(b4MessagesState, { type: "BACK_TO_MESSAGES" });
+  assert.deepEqual([b4MessagesState.activeTab, b4MessagesState.currentView, b4MessagesState.messagesScrollPosition], ["messages", "messagesList", 41], "Back from Katie must retain the Messages root and saved scroll position");
+  assert.deepEqual(b4MessagesState.directMessages.map(thread => [thread.sender, thread.unread]), [["Katie Dawson", false], ["Matt Ricci", false]], "Back must retain both rows in order and render each as read");
+  b4MessagesState = twitter.twitterStateTransition(b4MessagesState, { type: "OPEN_DIRECT_MESSAGE", threadId: "dm-matt", scrollPosition: 23 });
+  assert.deepEqual(b4MessagesState.directMessages.map(thread => [thread.sender, thread.unread]), [["Katie Dawson", false], ["Matt Ricci", false]], "opening Matt must not change either read state");
+  b4MessagesState = twitter.twitterStateTransition(b4MessagesState, { type: "SHOW_TAB", tab: "timeline" });
+  b4MessagesState = twitter.twitterStateTransition(b4MessagesState, { type: "SHOW_TAB", tab: "messages" });
+  b4MessagesState = twitter.twitterStateTransition(b4MessagesState, { type: "SHOW_TAB", tab: "search" });
+  b4MessagesState = twitter.twitterStateTransition(b4MessagesState, { type: "SHOW_TAB", tab: "messages" });
+  assert.deepEqual(b4MessagesState.directMessages.map(thread => [thread.sender, thread.unread]), [["Katie Dawson", false], ["Matt Ricci", false]], "Timeline, Messages, Search, and Messages root navigation must preserve DM records and read state");
+  const b4MessagesBeforeSuspend = b4MessagesState;
+  twitterAppRuntime = appRuntime.appRuntimeStateTransition(twitterAppRuntime, { type: "SUSPEND" });
+  twitterAppRuntime = appRuntime.appRuntimeStateTransition(twitterAppRuntime, { type: "RESUME", appId: "twitter" });
+  twitterAppRuntime = appRuntime.appRuntimeStateTransition(twitterAppRuntime, { type: "ANIMATION_COMPLETE" });
+  assert.strictEqual(b4MessagesState, b4MessagesBeforeSuspend, "ordinary Twitter suspend/resume must preserve B4a DM records and read state");
+  const b4MessagesReset = twitter.twitterStateTransition(b4MessagesState, { type: "RESET", displayName: "Alex" });
+  assert.deepEqual(summarizeDirectMessages(b4MessagesReset), canonicalDirectMessageSummary, "RESET must restore the canonical Katie unread and Matt read Messages baseline");
   const socialReset = twitter.twitterStateTransition(dmState, { type: "RESET", displayName: "Alex" });
   assert.deepEqual(socialReset.mentions.map(item => item.unread), [true, false]);
   assert.deepEqual(socialReset.directMessages.map(item => item.unread), [true, false]);
@@ -2903,6 +2931,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const tweetDetailSource = twitterContainerSource.match(/function TweetDetail[\s\S]*?function TwitterComposer/)?.[0] ?? "";
   const twitterMentionsSource = twitterContainerSource.match(/function TwitterMentions[\s\S]*?function TwitterMessages/)?.[0] ?? "";
   const twitterMessagesSource = twitterContainerSource.match(/function TwitterMessages[\s\S]*?function TwitterDMThread/)?.[0] ?? "";
+  const twitterDMThreadSource = twitterContainerSource.match(/function TwitterDMThread[\s\S]*?function TwitterPeopleList/)?.[0] ?? "";
   const facebookProfileSource = facebookContainerSource.match(/function FacebookProfile[\s\S]*?function FacebookCommentRow/)?.[0] ?? "";
   const facebookProfileIdentitySource = facebookProfileSource.match(/<header className="facebook-profile-header"[\s\S]*?<\/header>/)?.[0] ?? "";
   assert.doesNotMatch(seedSource, /DeviceAudio|deviceEventScheduler|smsNotification/, "seed definitions must not depend on delivery systems");
@@ -3290,7 +3319,15 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.twitter-mention-row strong \{[^}]*font-size: 14px;[^}]*line-height: 17px;/, "B3 Mention display names must use 14/17 bold typography");
   assert.match(deviceCssSource, /\.twitter-mention-row small \{[^}]*grid-column: 2; grid-row: 1;[^}]*font-size: 11px; line-height: 17px;/, "B3 Mention timestamps must remain compact and upper-right");
   assert.match(deviceCssSource, /\.twitter-mention-row \.twitter-mention-body \{[^}]*padding-top: 2px;[^}]*font-size: 14px; line-height: 18px;/, "B3 Mention bodies must use the approved 14/18 Tweet typography");
-  assert.match(twitterMessagesSource, /className=\{`twitter-social-row \$\{thread\.unread \? "is-unread" : ""\}`\}/, "B3 must leave Messages row-level unread presentation unchanged");
+  assert.match(twitterMessagesSource, /className=\{`twitter-social-row twitter-message-row \$\{thread\.unread \? "is-unread" : ""\}`\}[\s\S]*onClick=\{\(\) => onOpen\(thread\.id, ref\.current\?\.scrollTop \?\? scrollPosition\)\}/, "B4a Message rows must remain whole-row controls driven by canonical unread state");
+  assert.match(twitterMessagesSource, /twitter-avatar-fixture[\s\S]*twitter-message-copy[\s\S]*twitter-message-sender[^>]*>\{thread\.sender\}[\s\S]*twitter-message-timestamp[^>]*>\{thread\.timestamp\}[\s\S]*twitter-message-preview[^>]*>\{thread\.messages\[thread\.messages\.length - 1\]\?\.text\}/, "B4a Messages must retain avatar, sender, timestamp, and latest-preview anatomy");
+  assert.match(deviceCssSource, /\.twitter-social-row \{[^}]*min-height: 62px;[^}]*grid-template-columns: 42px 1fr; gap: 8px; padding: 7px 10px;[^}]*border-bottom: 1px solid #c7c7c7; background: #fff;/, "B4a must preserve the intentional 62-point row, 42-point track/48-point avatar relationship, 7/10 padding, white field, and separator");
+  assert.match(deviceCssSource, /\.twitter-social-row\.is-unread \{ background: #edf4fa; \}/, "B4a unread Messages must retain the reconstructed pale-blue field");
+  assert.match(deviceCssSource, /\.twitter-message-sender \{ font-size: 15px; font-weight: 700; line-height: 18px; \}/, "B4a Message senders must use deterministic 15/18 bold typography");
+  assert.match(deviceCssSource, /\.twitter-message-timestamp \{[^}]*grid-column: 2; grid-row: 1;[^}]*font-size: 11px; font-weight: 400; line-height: 17px;/, "B4a Message timestamps must use deterministic upper-right 11/17 regular typography");
+  assert.match(deviceCssSource, /\.twitter-message-preview \{ grid-column: 1 \/ -1; font-size: 13px; font-weight: 400; line-height: 17px; \}/, "B4a Message previews must use deterministic 13/17 regular typography");
+  assert.doesNotMatch(deviceCssSource, /\.twitter-message-row\.is-unread[^}]*(?:font-weight|::before|::after)/, "B4a unread rows must not introduce weight changes, dots, or badges");
+  assert.equal(createHash("sha256").update(twitterDMThreadSource).digest("hex"), "2ed96e1e645730d649f1572f98a212fd977776a70db4ce328a97b22b97457a7c", "B4a must leave the known-HOLD DM detail renderer source unchanged");
   assert.match(tweetDetailSource, /className="twitter-linked-status"[\s\S]*>View linked Tweet<\/button>/, "B3 must leave the existing Detail-level linked Tweet route and HOLD presentation untouched");
   assert.match(timelineCellSource, /retweetAttribution && <small>\{retweetAttribution\}<\/small>/, "manual Retweets must remain plain wrapped attribution text");
   assert.doesNotMatch(timelineCellSource, /twitter-(?:retweet-card|native-retweet-card|quote-card)/, "Timeline fidelity must not introduce a native Retweet or Quote card");

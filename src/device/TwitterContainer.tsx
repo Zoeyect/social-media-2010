@@ -447,10 +447,10 @@ function TwitterSearchLanding({ onOpenSuggested, onOpenProfile }: { onOpenSugges
 function TwitterMentions({ mentions, tweets, scrollPosition, onScroll, onOpen }: { mentions: TwitterState["mentions"]; tweets: TwitterState["mentionTweets"]; scrollPosition: number; onScroll: (position: number) => void; onOpen: (id: string, position: number) => void }) {
   const ref = useRef<HTMLElement>(null);
   useLayoutEffect(() => { if (ref.current) ref.current.scrollTop = scrollPosition; }, [scrollPosition]);
-  return <section ref={ref} className="twitter-social-list" aria-label="Mentions" onScroll={event => onScroll(event.currentTarget.scrollTop)}>{mentions.map(item => {
+  return <section ref={ref} className="twitter-social-list twitter-mentions-list" aria-label="Mentions" onScroll={event => onScroll(event.currentTarget.scrollTop)}>{mentions.map(item => {
     const tweet = tweets.find(candidate => candidate.id === item.tweetId);
     if (!tweet) return null;
-    return <button key={item.id} type="button" className={`twitter-social-row ${item.unread ? "is-unread" : ""}`} onClick={() => onOpen(item.id, ref.current?.scrollTop ?? scrollPosition)}><span className="twitter-avatar-fixture">{initials(tweet.displayName)}</span><span><strong>{tweet.displayName}</strong><small>{tweet.timestamp}</small><span>{tweet.text}</span>{tweet.linkedTweetId && <em>View Tweet</em>}</span></button>;
+    return <button key={item.id} type="button" className={`twitter-social-row twitter-mention-row ${item.unread ? "is-unread" : ""}`} onClick={() => onOpen(item.id, ref.current?.scrollTop ?? scrollPosition)}><span className="twitter-avatar-fixture">{initials(tweet.displayName)}</span><span className="twitter-mention-copy"><strong>{tweet.displayName}</strong><small>{tweet.timestamp}</small><span className="twitter-mention-body">{tweet.text}</span></span></button>;
   })}</section>;
 }
 

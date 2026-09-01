@@ -1504,6 +1504,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   mentionState = twitter.twitterStateTransition(mentionState, { type: "SHOW_TAB", tab: "timeline" });
   mentionState = twitter.twitterStateTransition(mentionState, { type: "SHOW_TAB", tab: "mentions" });
   assert.deepEqual([mentionState.activeTab, mentionState.currentView, mentionState.mentions.map(item => item.id)], ["mentions", "mentions", canonicalMentionIds], "Timeline to Mentions switching must retain both Mention records after Reply return");
+  mentionState = twitter.twitterStateTransition(mentionState, { type: "SHOW_TAB", tab: "search" });
+  mentionState = twitter.twitterStateTransition(mentionState, { type: "SHOW_TAB", tab: "mentions" });
+  assert.deepEqual([mentionState.activeTab, mentionState.currentView, mentionState.mentions.map(item => item.id), mentionState.mentions.map(item => item.unread)], ["mentions", "mentions", canonicalMentionIds, [false, false]], "B3 Timeline to Mentions to Search to Mentions navigation must preserve Mention order and read state");
   mentionState = twitter.twitterStateTransition(mentionState, { type: "OPEN_MENTION", mentionId: "mention-chris-thing", scrollPosition: 0 });
   assert.deepEqual(mentionState.mentions.map(item => item.id), canonicalMentionIds, "opening Chris must not clear Alex or change Mention order");
   mentionState = twitter.twitterStateTransition(mentionState, { type: "BACK_TO_TIMELINE" });
@@ -2898,6 +2901,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(appSource, /className=\{`home\$\{homePressed \? " is-pressed" : ""\}`\}[\s\S]+onPointerDown=\{beginHomePress\}[\s\S]+onPointerUp=\{endHomePress\}/, "the refined Home control must retain its existing runtime handlers");
   const timelineCellSource = twitterContainerSource.match(/function TimelineTweet[\s\S]*?function TweetDetail/)?.[0] ?? "";
   const tweetDetailSource = twitterContainerSource.match(/function TweetDetail[\s\S]*?function TwitterComposer/)?.[0] ?? "";
+  const twitterMentionsSource = twitterContainerSource.match(/function TwitterMentions[\s\S]*?function TwitterMessages/)?.[0] ?? "";
+  const twitterMessagesSource = twitterContainerSource.match(/function TwitterMessages[\s\S]*?function TwitterDMThread/)?.[0] ?? "";
   const facebookProfileSource = facebookContainerSource.match(/function FacebookProfile[\s\S]*?function FacebookCommentRow/)?.[0] ?? "";
   const facebookProfileIdentitySource = facebookProfileSource.match(/<header className="facebook-profile-header"[\s\S]*?<\/header>/)?.[0] ?? "";
   assert.doesNotMatch(seedSource, /DeviceAudio|deviceEventScheduler|smsNotification/, "seed definitions must not depend on delivery systems");
@@ -3277,6 +3282,16 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.twitter-tweet-copy > span \{[^}]*padding-top: 2px;[^}]*font-size: 14px; line-height: 18px;/, "Timeline Tweet bodies must retain the measured two-line 65-point row rhythm");
   assert.match(deviceCssSource, /\.twitter-tweet-copy time \{[^}]*color: #8a8a8a; font-size: 11px; line-height: 17px;/, "Timeline timestamps must remain compact, light, and top-aligned");
   assert.match(deviceCssSource, /\.twitter-timeline-item \{[^}]*border-bottom: 1px solid #c5c5c5;/, "Timeline rows must retain a restrained full-width one-pixel separator");
+  assert.match(twitterMentionsSource, /className=\{`twitter-social-row twitter-mention-row \$\{item\.unread \? "is-unread" : ""\}`\}[\s\S]*onClick=\{\(\) => onOpen\(item\.id, ref\.current\?\.scrollTop \?\? scrollPosition\)\}/, "B3 Mention rows must derive pale-blue presentation from canonical unread state while remaining whole-row Detail controls");
+  assert.doesNotMatch(twitterMentionsSource, /View Tweet|twitter-tweet-action-row|twitter-tweet-action is-/, "B3 Mentions must not restore the list CTA or add Timeline-only swipe actions");
+  assert.match(twitterMentionsSource, /twitter-avatar-fixture[\s\S]*twitter-mention-copy[\s\S]*<strong>\{tweet\.displayName\}<\/strong>[\s\S]*<small>\{tweet\.timestamp\}<\/small>[\s\S]*twitter-mention-body[^>]*>\{tweet\.text\}/, "B3 Mentions must retain avatar, display name, timestamp, and Tweet body anatomy");
+  assert.match(deviceCssSource, /\.twitter-social-row\.twitter-mention-row \{[^}]*min-height: 58px; padding: 5px;[^}]*grid-template-columns: 48px minmax\(0,1fr\); gap: 7px;[^}]*align-items: start;[^}]*border-bottom-color: #c5c5c5;/, "B3 Mentions must use the approved content-driven 58-point minimum, x=5 avatar, x=60 copy origin, and separator");
+  assert.match(deviceCssSource, /\.twitter-social-row\.twitter-mention-row\.is-unread \{ background: #edf4fa; \}/, "B3 unread Mentions must retain the approved pale-blue row without changing Tweet-list geometry");
+  assert.match(deviceCssSource, /\.twitter-mention-row strong \{[^}]*font-size: 14px;[^}]*line-height: 17px;/, "B3 Mention display names must use 14/17 bold typography");
+  assert.match(deviceCssSource, /\.twitter-mention-row small \{[^}]*grid-column: 2; grid-row: 1;[^}]*font-size: 11px; line-height: 17px;/, "B3 Mention timestamps must remain compact and upper-right");
+  assert.match(deviceCssSource, /\.twitter-mention-row \.twitter-mention-body \{[^}]*padding-top: 2px;[^}]*font-size: 14px; line-height: 18px;/, "B3 Mention bodies must use the approved 14/18 Tweet typography");
+  assert.match(twitterMessagesSource, /className=\{`twitter-social-row \$\{thread\.unread \? "is-unread" : ""\}`\}/, "B3 must leave Messages row-level unread presentation unchanged");
+  assert.match(tweetDetailSource, /className="twitter-linked-status"[\s\S]*>View linked Tweet<\/button>/, "B3 must leave the existing Detail-level linked Tweet route and HOLD presentation untouched");
   assert.match(timelineCellSource, /retweetAttribution && <small>\{retweetAttribution\}<\/small>/, "manual Retweets must remain plain wrapped attribution text");
   assert.doesNotMatch(timelineCellSource, /twitter-(?:retweet-card|native-retweet-card|quote-card)/, "Timeline fidelity must not introduce a native Retweet or Quote card");
   assert.doesNotMatch(timelineCellSource, /twitter-tweet-handle/, "Timeline cells must not render a redundant second @handle line");

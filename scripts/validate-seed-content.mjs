@@ -3528,7 +3528,13 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.twitter-new-tweet-navigation \.twitter-close-button \{ left: 5px; width: 50px;[^}]*\}/, "D1 Close must use its deterministic reconstructed 50-by-30 Compose frame");
   assert.match(deviceCssSource, /\.twitter-new-tweet-navigation \.twitter-send-button \{ right: 5px; width: 48px;[^}]*\}/, "D1 Send must use its deterministic reconstructed 48-by-30 Compose frame");
   assert.match(deviceCssSource, /\.twitter-composer \{[^}]*grid-row: 2 \/ 4;/, "D1 Compose must span the hidden tab row so the white field and frozen lower controls retain their historical vertical bounds");
-  assert.match(twitterContainerSource, /attachments \(\.\.\.\)/, "New Tweet must expose the period attachment disclosure structure");
+  assert.match(twitterContainerSource, /<span className="twitter-attachments-capsule" aria-hidden="true">[\s\S]*twitter-attachments-paperclip[\s\S]*<span>attachments<\/span>[\s\S]*twitter-attachments-disclosure/, "D2 must expose a count-neutral inert attachments capsule with reconstructed period artwork");
+  assert.doesNotMatch(twitterContainerSource, /attachments \((?:0|3|\.\.\.)\)/, "D2 must not fabricate attachment count state");
+  assert.doesNotMatch(twitterContainerSource, /twitter-attachments-capsule[^>]*onClick|<button[^>]*twitter-attachments-capsule/, "D2 unsupported attachment control must remain non-interactive and unfocusable");
+  assert.match(twitterContainerSource, /twitter-character-count" aria-label=\{`\$\{140 - value\.length\} characters remaining`\}>\{140 - value\.length\}/, "D2 counter must preserve the existing remaining UTF-16 code-unit calculation");
+  assert.match(deviceCssSource, /\.twitter-attachments-capsule \{[^}]*width: 148px; height: 26px;[^}]*border-radius: 13px;/, "D2 attachments capsule must retain reconstructed native-scale geometry");
+  assert.match(deviceCssSource, /\.twitter-character-count \{[^}]*width: 52px; height: 26px;[^}]*font-size: 13px; font-weight: 700; line-height: 16px;/, "D2 counter must retain reconstructed capsule geometry and compact typography");
+  assert.match(deviceCssSource, /\.twitter-character-count::before \{[^}]*border-right: 5px solid #dce5ea;/, "D2 counter detail must remain decorative filled artwork without behavior");
   assert.doesNotMatch(twitterContainerSource, /Quote Tweet|Explore|Spaces|Notifications/, "Twitter IA must not introduce later navigation/features");
   assert.ok(Object.isFrozen(seed) && Object.isFrozen(seed.messages) && Object.isFrozen(seed.twitter), "seed definitions must remain immutable");
 

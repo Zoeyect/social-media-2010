@@ -402,8 +402,12 @@ function TwitterComposer({ identity, value, replyTarget, canSend, onChange, onSu
     </div>}
     <IOS4Textarea keyboardInputId={replyTarget ? `twitter-reply-${replyTarget.id}` : "twitter-compose"} autoFocus={false} aria-label="Tweet" maxLength={140} value={value} onValueChange={onChange} />
     <div className="twitter-composer-disclosure" data-chrome-status="HOLD">
-      <button type="button" disabled>attachments (...)</button>
-      <span className="twitter-character-count">{140 - value.length}</span>
+      <span className="twitter-attachments-capsule" aria-hidden="true">
+        <span className="twitter-attachments-paperclip" />
+        <span>attachments</span>
+        <span className="twitter-attachments-disclosure" />
+      </span>
+      <span className="twitter-character-count" aria-label={`${140 - value.length} characters remaining`}>{140 - value.length}</span>
     </div>
     <div className="twitter-composer-tools" aria-label="Compose tools" data-chrome-status="HOLD">
       <button type="button" disabled>Camera</button>

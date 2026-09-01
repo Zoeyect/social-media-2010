@@ -2663,6 +2663,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const facebookStoryTimeSource = await readFile(resolve(projectRoot, "src/data/facebookStoryTime.ts"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
   const deviceCssSource = await readFile(resolve(projectRoot, "src/styles/device.css"), "utf8");
+  const twitterProfileSource = twitterContainerSource.match(/function TwitterProfile[\s\S]*?\n\}\n\nfunction TwitterSearchLanding/)?.[0] ?? "";
   const twitterChromeSources = await Promise.all([
     "twitter-tab-timeline-2010-reconstructed.svg",
     "twitter-tab-mentions-2010-reconstructed.svg",
@@ -3385,6 +3386,31 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(twitterContainerSource.match(/function TwitterMoreLanding[\s\S]*?\n\}/)?.[0] ?? "", /Favorites|Drafts|Lists|Accounts & Settings|Go to User|Settings|Help|About/, "C3a More root must not add unresolved historical rows");
   assert.match(twitterContainerSource, /originView: "more"/, "C3a More must open the canonical Profile with an explicit More origin");
   assert.match(deviceCssSource, /\.twitter-more-landing > button \{[^}]*height: 44px;[^}]*padding: 0 34px 0 15px;[^}]*border-bottom: 1px solid #b8b8b8;[^}]*font-size: 17px;[^}]*line-height: 20px;/, "C3a More row must retain the reconstructed 44-point period table geometry");
+  assert.doesNotMatch(twitterProfileSource, /✓ verified|Session owner profile\.|Account counts are session-local CURATED values\.|Public figure timeline \(partial profile metadata\)\./, "C2a Profile must not expose verification text or project/provenance explanations");
+  assert.match(twitterContainerSource, /profileBio=\{state\.suggestedUsers\.some\(user => user\.id === selectedProfile\.id\) \|\| selectedProfile\.statsHold \? undefined : selectedProfile\.bio\}/, "C2a must not reinterpret Suggested Users category copy or public-figure provenance copy as Profile biography");
+  assert.match(twitterProfileSource, /const bio = sessionOwner \? undefined : profileBio;[\s\S]*const location = sessionOwner \? undefined : profile\.location;[\s\S]*const web = sessionOwner \? undefined : profile\.web;/, "C2a owner Profile must omit noncanonical fallback metadata without altering the underlying record");
+  assert.match(twitterProfileSource, /bio && <div className="twitter-profile-metadata-row is-bio">[\s\S]*location && <div className="twitter-profile-metadata-row is-location">[\s\S]*web && <div className="twitter-profile-metadata-row is-web">/, "C2a grouped metadata must render only rows backed by available Profile values");
+  assert.doesNotMatch(twitterProfileSource, /twitter-profile-verified|>location<|>web</, "C2a must omit the unresolved badge and avoid unsupported metadata labels");
+  assert.deepEqual(
+    [twitter.getTwitterUserProfile("session-owner", "Zoey").bio, twitter.getTwitterUserProfile("session-owner", "Zoey").location],
+    ["Session owner profile.", "United States"],
+    "C2a must preserve underlying owner data while suppressing noncanonical fallback metadata in presentation",
+  );
+  assert.equal(twitter.getTwitterUserProfile("Kanye West", "Zoey").verified, true, "C2a must preserve underlying verified account data while holding visible badge presentation");
+  assert.deepEqual(
+    [twitter.getTwitterUserProfile("June", "Zoey").followingCount, twitter.getTwitterUserProfile("June", "Zoey").tweetCount, twitter.getTwitterUserProfile("June", "Zoey").followerCount, twitter.getTwitterUserProfile("June", "Zoey").favoriteCount],
+    [84, 814, 220, 96],
+    "C2a must leave canonical Profile statistic values unchanged",
+  );
+  assert.match(deviceCssSource, /\.twitter-profile-view \{[^}]*padding: 0;[^}]*repeating-linear-gradient\(90deg,#e9ebec 0,#e9ebec 1px,#eff0f1 1px,#eff0f1 3px\);/, "C2a Profile content must use the scoped restrained vertical pinstripe material");
+  assert.match(deviceCssSource, /\.twitter-profile-header \{ height: 74px; padding: 13px 12px;[^}]*grid-template-columns: 48px minmax\(0,1fr\); gap: 10px;/, "C2a identity must place the 48-point avatar at x=12/y=13 and text at x=70");
+  assert.match(deviceCssSource, /\.twitter-profile-header h2 \{[^}]*font-size: 17px; font-weight: 700; line-height: 20px;/, "C2a Profile display name must use reconstructed 17/20 bold typography");
+  assert.match(deviceCssSource, /\.twitter-profile-handle \{ font-size: 14px; line-height: 17px; \}/, "C2a Profile handle must use reconstructed subdued 14/17 typography");
+  assert.match(deviceCssSource, /\.twitter-profile-metadata \{ width: 300px; margin: 9px 9px 0;[^}]*border: 1px solid #afb3b6; border-radius: 7px;/, "C2a metadata must use the reconstructed 300-point grouped period container");
+  assert.match(deviceCssSource, /\.twitter-profile-metadata-row \{ min-height: 44px;[^}]*border-bottom: 1px solid #c9ccce;[\s\S]*?\.twitter-profile-metadata-row\.is-bio \{ min-height: 56px;/, "C2a metadata rows must retain reconstructed 44-point detail and 56-point biography minima");
+  assert.match(deviceCssSource, /\.twitter-profile-stats \{ width: 300px; height: 90px; margin: 9px 9px 0;[^}]*grid-template-columns: repeat\(2, minmax\(0,1fr\)\); grid-template-rows: repeat\(2,minmax\(0,1fr\)\);/, "C2a Profile stats must use the reconstructed 300-by-90 two-by-two geometry");
+  assert.match(deviceCssSource, /\.twitter-profile-stats strong \{[^}]*font-size: 21px; font-weight: 700; line-height: 23px;[^}]*\}[\s\S]*?\.twitter-profile-stats span \{[^}]*color: #36779c; font-size: 12px;[^}]*line-height: 14px;/, "C2a statistics must use reconstructed 21/23 number and 12/14 label typography");
+  assert.match(deviceCssSource, /\.twitter-profile-control button,\.twitter-follow-button \{ height: 27px; padding: 0 8px;/, "C2a must leave the existing Follow control geometry unchanged for C2b");
   assert.match(twitterContainerSource, /UNFOLLOW/, "Suggested Users and Profile must expose period-style Follow terminology");
   assert.match(twitterContainerSource, /toLocaleString\("en-US"/, "Twitter profile counts must use full en-US integer grouping");
   assert.match(deviceCssSource, /\.twitter-profile-stats \{[^}]*grid-template-columns: repeat\(2,/, "Twitter Profile stats must use a 2-column grid");

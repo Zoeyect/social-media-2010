@@ -350,23 +350,27 @@ button, input { font: inherit; }
 .twitter-reply-activity article { padding: 9px 0; border-bottom: 1px solid #ddd; }
 .twitter-reply-activity strong { font-size: 14px; }
 .twitter-reply-activity p { margin: 3px 0 0; color: #222; font-size: 14px; line-height: 18px; overflow-wrap: break-word; }
-.twitter-profile-view { flex: 1 1 auto; min-height: 0; padding: 12px; overflow-y: auto; background: #fff; }
-.twitter-profile-header { display: grid; grid-template-columns: 56px 1fr; gap: 10px; }
-.twitter-profile-header h2 { margin: 0; font-size: 24px; line-height: 1.1; }
-.twitter-profile-header p { margin: 4px 0 0; color: #777; font-size: 13px; line-height: 1.2; }
-.twitter-profile-handle { font-size: 13px; }
-.twitter-profile-verified { color: #286d91; font-size: 11px; }
-.twitter-profile-metadata { margin-top: 12px; color: #222; }
-.twitter-profile-metadata > p { margin: 0 0 8px; color: #222; font-size: 14px; line-height: 20px; }
-.twitter-profile-metadata-grid { display: grid; grid-template-columns: 80px 1fr; gap: 4px 8px; font-size: 12px; }
-.twitter-profile-metadata-grid span { color: #888; }
-.twitter-profile-stats { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); text-align: center; border-top: 1px solid #c7c7c7; border-left: 1px solid #c7c7c7; }
-.twitter-profile-stats > * { min-height: 48px; padding: 6px 3px; display: grid; align-content: center; border: 0; border-right: 1px solid #c7c7c7; border-bottom: 1px solid #c7c7c7; background: #fff; }
+.twitter-profile-view { flex: 1 1 auto; min-height: 0; padding: 0; overflow-y: auto; background: repeating-linear-gradient(90deg,#e9ebec 0,#e9ebec 1px,#eff0f1 1px,#eff0f1 3px); }
+.twitter-profile-header { height: 74px; padding: 13px 12px; display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 10px; background: rgba(255,255,255,.18); }
+.twitter-profile-identity { min-width: 0; padding-top: 1px; }
+.twitter-profile-header h2 { margin: 0; overflow: hidden; font-size: 17px; font-weight: 700; line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
+.twitter-profile-header p { margin: 3px 0 0; color: #747474; font-size: 14px; font-weight: 400; line-height: 17px; }
+.twitter-profile-handle { font-size: 14px; line-height: 17px; }
+.twitter-profile-metadata { width: 300px; margin: 9px 9px 0; overflow: hidden; color: #222; border: 1px solid #afb3b6; border-radius: 7px; background: #fff; }
+.twitter-profile-metadata-row { min-height: 44px; padding: 8px 10px; display: flex; align-items: center; border-bottom: 1px solid #c9ccce; }
+.twitter-profile-metadata-row:last-child { border-bottom: 0; }
+.twitter-profile-metadata-row.is-bio { min-height: 56px; align-items: flex-start; }
+.twitter-profile-metadata-row p { margin: 0; color: #222; font-size: 13px; font-weight: 400; line-height: 18px; overflow-wrap: anywhere; }
+.twitter-profile-metadata-row.is-web p { color: #28739d; }
+.twitter-profile-stats { width: 300px; height: 90px; margin: 9px 9px 0; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); grid-template-rows: repeat(2,minmax(0,1fr)); overflow: hidden; text-align: center; border: 1px solid #afb3b6; border-radius: 7px; background: #fff; }
+.twitter-profile-stats > * { min-height: 0; padding: 3px; display: grid; align-content: center; border: 0; background: linear-gradient(#fff,#f3f4f5); }
+.twitter-profile-stats > :nth-child(odd) { border-right: 1px solid #c9ccce; }
+.twitter-profile-stats > :nth-child(-n+2) { border-bottom: 1px solid #c9ccce; }
 .twitter-profile-stats button { min-width: 0; color: inherit; font: inherit; }
 .twitter-profile-stats button:disabled { opacity: 1; }
-.twitter-profile-stats strong { display: block; color: #111; font-size: 17px; }
-.twitter-profile-stats span { display: block; margin-top: 2px; color: #777; font-size: 10px; }
-.twitter-profile-control { margin-top: 14px; padding-top: 10px; border-top: 1px solid #d9d9d9; color: #777; font-size: 11px; }
+.twitter-profile-stats strong { display: block; color: #111; font-size: 21px; font-weight: 700; line-height: 23px; }
+.twitter-profile-stats span { display: block; color: #36779c; font-size: 12px; font-weight: 400; line-height: 14px; }
+.twitter-profile-control { margin: 14px 12px 0; padding-top: 10px; border-top: 1px solid #d9d9d9; color: #777; font-size: 11px; }
 .twitter-profile-control button,.twitter-follow-button { height: 27px; padding: 0 8px; color: #286d91; border: 1px solid #999; border-radius: 4px; background: linear-gradient(#fff,#dedede); font-size: 10px; font-weight: bold; }
 .twitter-search-landing { flex: 1 1 auto; min-height: 0; background: #eee; }
 .twitter-search-landing > button { position: relative; width: 100%; min-height: 54px; padding: 7px 28px 7px 12px; display: grid; gap: 2px; color: #222; border: 0; border-bottom: 1px solid #aaa; background: #fff; text-align: left; }

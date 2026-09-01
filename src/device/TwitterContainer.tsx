@@ -157,6 +157,7 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
     {state.currentView === "userProfile" && (state.activeTab === "timeline" || state.activeTab === "search" || state.activeTab === "more") && <TwitterProfile
       profile={selectedProfile}
       sessionOwner={state.selectedUserId === "session-owner"}
+      profileBio={state.suggestedUsers.some(user => user.id === selectedProfile.id) || selectedProfile.statsHold ? undefined : selectedProfile.bio}
       onToggleFollow={state.selectedUserId && state.selectedUserId !== "session-owner"
         ? () => dispatch({ type: "SET_FOLLOW", profileId: state.selectedUserId!, following: !selectedProfile.following })
         : undefined}
@@ -394,29 +395,29 @@ function TwitterComposer({ identity, value, replyTarget, canSend, onChange, onSu
   </form>;
 }
 
-function TwitterProfile({ profile, sessionOwner, onToggleFollow, onOpenFollowing }: {
+function TwitterProfile({ profile, sessionOwner, profileBio, onToggleFollow, onOpenFollowing }: {
   profile: TwitterUserProfile;
   sessionOwner: boolean;
+  profileBio?: string;
   onToggleFollow?: () => void;
   onOpenFollowing: () => void;
 }) {
+  const bio = sessionOwner ? undefined : profileBio;
+  const location = sessionOwner ? undefined : profile.location;
+  const web = sessionOwner ? undefined : profile.web;
+  const hasMetadata = Boolean(bio || location || web);
   return <section className="twitter-profile-view" aria-label="User profile">
     <header className="twitter-profile-header">
       <span className="twitter-avatar-fixture" aria-label={`${profile.displayName} avatar fixture`} data-avatar-status="DEV">{profile.avatarSeed}</span>
-      <div>
+      <div className="twitter-profile-identity">
         <h2>{profile.displayName}</h2>
         <p className="twitter-profile-handle">{profile.handle}</p>
-        {profile.verified ? <p className="twitter-profile-verified">✓ verified</p> : null}
       </div>
     </header>
-    {(profile.bio || profile.location || profile.web) && <section className="twitter-profile-metadata">
-      {profile.bio && <p>{profile.bio}</p>}
-      <div className="twitter-profile-metadata-grid">
-        {profile.location && <span>location</span>}
-        {profile.location && <strong>{profile.location}</strong>}
-        {profile.web && <span>web</span>}
-        {profile.web && <strong>{profile.web}</strong>}
-      </div>
+    {hasMetadata && <section className="twitter-profile-metadata" aria-label="Profile details">
+      {bio && <div className="twitter-profile-metadata-row is-bio"><p>{bio}</p></div>}
+      {location && <div className="twitter-profile-metadata-row is-location"><p>{location}</p></div>}
+      {web && <div className="twitter-profile-metadata-row is-web"><p>{web}</p></div>}
     </section>}
     <section className="twitter-profile-stats" aria-label="Profile statistics">
       <button type="button" disabled={!sessionOwner} onClick={sessionOwner ? onOpenFollowing : undefined}>
@@ -436,11 +437,9 @@ function TwitterProfile({ profile, sessionOwner, onToggleFollow, onOpenFollowing
         <span>favorites</span>
       </div>
     </section>
-    <section className="twitter-profile-control" aria-label="Profile controls" data-chrome-status="HOLD">
-      {sessionOwner
-        ? <p>Account counts are session-local CURATED values.</p>
-        : onToggleFollow && <button type="button" onClick={onToggleFollow}>{profile.following ? "UNFOLLOW" : "FOLLOW"}</button>}
-    </section>
+    {!sessionOwner && onToggleFollow && <section className="twitter-profile-control" aria-label="Profile controls" data-chrome-status="HOLD">
+      <button type="button" onClick={onToggleFollow}>{profile.following ? "UNFOLLOW" : "FOLLOW"}</button>
+    </section>}
   </section>;
 }
 

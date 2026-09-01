@@ -165,7 +165,7 @@ News intentionally contains no activity rows, fabricated identities, badges, exp
 | --- | --- | --- |
 | Navigation title | existing account-label-derived handle such as `@zoey` | **RECONSTRUCTED**; no new persisted username |
 | Overall architecture | summary followed by chronological vertical photo stream | **CONFIRMED** period structure |
-| Summary geometry | approximately 104pt dark summary, 74×74pt avatar, three 46pt steel-blue statistic blocks | **PROBABLE / RECONSTRUCTED** screenshot measurement and material approximation |
+| Summary geometry | approximately 96pt dark summary, 74×74pt avatar, three 67×48pt steel-blue statistic blocks with approximately 7pt gaps | **PROBABLE** screenshot measurement; material remains **RECONSTRUCTED_FROM_PERIOD_SCREENSHOT** |
 | Player avatar | neutral initial placeholder derived from the existing identity name | **RECONSTRUCTED** |
 | Find Friends control | centered 190×28pt steel-blue beveled button with 7pt vertical margins | **RECONSTRUCTED** placement and material |
 | Profile post media | existing stable Camera Roll source IDs resolved through the current experience's authorized collection | existing functional behavior, unchanged |
@@ -177,7 +177,7 @@ No profile grid, biography, website, Edit Profile, stories, highlights, modern s
 
 The known-account path retains the shared Profile architecture and all existing June behavior: `junepark` navigation title, Back control, curated avatar/media, statistic values, Follow/Following control, and vertical chronological stream. The shared summary proportions are **PROBABLE / RECONSTRUCTED**. Follow-control geometry and exact early-build relationship chrome remain **RECONSTRUCTED / HOLD**. No reducer, follow-state, or navigation behavior changed.
 
-### Instagram 2010 Architecture / Geometry v1.0 — LOCKED
+### Instagram 2010 Architecture v1.0 — LOCKED
 
 The following Instagram 2010 v1.0 architecture and geometry remain locked:
 
@@ -185,7 +185,7 @@ The following Instagram 2010 v1.0 architecture and geometry remain locked:
 - five 64pt tab divisions and the 64×36pt raised Share housing frame with 6pt protrusion
 - approved Feed metadata/avatar/photo proportions and Popular four-column geometry
 - approved Filters navigation, 320×320 preview, and 96pt filmstrip proportions
-- News root presentation and player/known-account Profile architecture and proportions documented above
+- News root presentation and player/known-account Profile architecture; Profile internal geometry is governed by the later direct-raster v1.1c measurement below
 
 Locking architecture does not upgrade evidence confidence or freeze unresolved artwork, behavior or content. The following remain outside the lock:
 
@@ -341,7 +341,7 @@ All stops are opaque. There is no filter, blur, shadow, glow, backdrop treatment
 
 ## Visual Authenticity v1.1 — Wordmark fidelity correction
 
-**Status: Instagram 2010 Wordmark v1.0 — FROZEN.**
+**Status: Instagram 2010 Wordmark — RESTORED TO STABLE BASELINE. Further reconstruction: HOLD.**
 
 The surviving Web Design Museum native 320×480 Feed capture places the visible wordmark at approximately x=98…219 and y=28…56 in screenshot coordinates, with an optical center near x=158.5, y=42. JPEG antialiasing makes the terminal edges uncertain by about 1px. The locked 320×44pt navigation geometry is unchanged.
 
@@ -368,3 +368,19 @@ One shared renderer is used by the 48×48pt filter thumbnails, 320×320pt previe
 Instagram state stores only the selected filter identity beside the stable Camera Roll source ID. Every surface resolves the same authorized Camera Roll object URL, so selection and posting do not alter the source JPEG, create a derivative Blob, or change IndexedDB ownership. A new Camera Roll selection begins at internal `Original` / visible `Normal`; Filters → Share → Back preserves the current identity; a new Share draft resets to Normal.
 
 The locked Filters surface remains 320×44pt navigation, 320×320pt preview, and 320×96pt filmstrip. The filmstrip uses five 70pt options on a real 350pt horizontal track, exposing the first four options and approximately 40pt of `1977` at the initial left position. Each option uses a 48×48pt image within a reconstructed 58×58pt frame and an approximately 10px period label. The dark textured strip and pale-rim/muted-blue-gray selected state are **RECONSTRUCTED**. There are no arrows, snapping, carousel logic, fake inertia, or visible scrollbar.
+
+## Instagram Profile Fidelity v1.1c
+
+The direct Web Design Museum 320×480 Profile raster supersedes the earlier reconstructed 104pt/46pt measurements without changing the locked vertical-stream architecture, information hierarchy, account behavior, navigation, media ownership or Instagram state.
+
+The Profile summary now occupies global y≈64…160, or 96pt beneath the 44pt Instagram navigation. Its 10pt inset places the locked 74×74pt avatar at local x=10, y=10. The name/statistics column begins at local x=95: a 74pt avatar column plus an 11pt gap. The 20px/24px bold display-name row occupies local y=10…34; a 4pt gap places the statistics at local y=38…86.
+
+The summary material is **RECONSTRUCTED_FROM_PERIOD_SCREENSHOT**: an even `#303335` charcoal field with one deterministic, low-contrast 2×2pt radial micro-pattern. It contains no random noise or heavy vertical gradient. The avatar retains its **CONFIRMED** 74×74pt outer geometry and moves from a 2px dark border to the **PROBABLE** 1px `#c4c4c4` pale-gray boundary, without rounding, shadow or glow.
+
+Each statistic block is 67×48pt at local x=95, 169 and 243, with 7pt gaps. A 1px `#183a58` boundary encloses a solid muted-steel-blue `#386b98` upper field, restrained inset highlight and separate 16pt `#214d76` lower label field. Exact colors/material remain **RECONSTRUCTED_FROM_PERIOD_SCREENSHOT**. Number type changes from 16px/18px to 24px/27px bold; label type changes from 8px/10px to 11px/14px.
+
+Profile post metadata rows change from 38pt to 42pt while preserving the 27×27pt stream avatar, 8pt horizontal padding and 7pt grid gap. Usernames change from 12px to 14px/16px. Both player-created and known-account posts now render a simulated-time relative label at 14px/16px with the existing reconstructed 9×9pt clock immediately before it. The relative form and clock presence are **CONFIRMED**; exact typography and shared-asset reuse are **PROBABLE**; the clock artwork remains **RECONSTRUCTED_FROM_PERIOD_SCREENSHOT**. Player filter identity continues to affect the media but no longer occupies the timestamp slot. Host time is not used.
+
+Player Profile retains its reconstructed identity placeholder, Find Friends behavior, Camera Roll-backed filtered posts and `state.photos.length` count. Known-account Profile retains curated avatar/media, deterministic counts, Follow/Following behavior and navigation. Find Friends and Follow geometry remain **RECONSTRUCTED / HOLD**.
+
+**KNOWN OPEN MISMATCH:** the direct Profile raster appears to inset stream media by approximately 8pt horizontally, while the current Profile stream media remains full-width. Media width is intentionally unchanged in v1.1c and remains **HOLD** pending a dedicated geometry correction. Full-width Profile media must not be classified as historically confirmed.

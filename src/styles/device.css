@@ -880,22 +880,23 @@ button, input { font: inherit; }
 .instagram-known-profile-stats dt { color: #666; font-size: 10px; text-transform: uppercase; }
 .instagram-known-profile-stats dd { margin: 0; color: #222; font-size: 15px; font-weight: bold; }
 .instagram-period-profile { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
-.instagram-profile-summary { min-height: 104px; padding: 10px; display: grid; grid-template-columns: 74px 1fr; gap: 9px; color: #fff; background: linear-gradient(#454545,#242424); border-bottom: 1px solid #111; }
-.instagram-profile-avatar,.instagram-profile-avatar-placeholder { width: 74px; height: 74px; display: grid; place-items: center; overflow: hidden; color: #ddd; border: 2px solid #777; background: #333; font-size: 28px; font-weight: bold; }
+.instagram-profile-summary { height: 96px; min-height: 96px; padding: 10px; display: grid; grid-template-columns: 74px 215px; gap: 11px; color: #fff; border-bottom: 1px solid #111; background-color: #303335; background-image: radial-gradient(circle at 1px 1px,rgba(255,255,255,.06) 0,rgba(255,255,255,.06) .5px,transparent .7px); background-size: 2px 2px; }
+.instagram-profile-avatar,.instagram-profile-avatar-placeholder { width: 74px; height: 74px; display: grid; place-items: center; overflow: hidden; color: #ddd; border: 1px solid #c4c4c4; background: #333; font-size: 28px; font-weight: bold; }
 .instagram-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.instagram-profile-summary-content { min-width: 0; display: grid; align-content: start; gap: 8px; }
-.instagram-profile-summary-content > strong { overflow: hidden; font-size: 16px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
-.instagram-profile-stats { margin: 0; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 2px; }
-.instagram-profile-stats > div { min-width: 0; height: 46px; display: grid; place-items: center; align-content: center; color: #fff; border: 1px solid #244869; background: linear-gradient(#5f8db3,#38658c); text-align: center; text-shadow: 0 -1px rgba(0,0,0,.5); }
-.instagram-profile-stats dt,.instagram-profile-stats button strong { font-size: 16px; line-height: 18px; }
-.instagram-profile-stats dd,.instagram-profile-stats button span { margin: 0; font-size: 8px; line-height: 10px; text-transform: lowercase; }
-.instagram-profile-stats button { width: 100%; height: 100%; padding: 0; display: grid; place-items: center; align-content: center; color: inherit; border: 0; background: transparent; text-shadow: inherit; }
+.instagram-profile-summary-content { min-width: 0; display: grid; grid-template-rows: 24px 48px; align-content: start; gap: 4px; }
+.instagram-profile-summary-content > strong { overflow: hidden; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 20px; font-weight: bold; line-height: 24px; text-overflow: ellipsis; white-space: nowrap; }
+.instagram-profile-stats { width: 215px; height: 48px; margin: 0; display: grid; grid-template-columns: repeat(3,67px); gap: 7px; }
+.instagram-profile-stats > div { min-width: 0; height: 48px; display: grid; grid-template-rows: 30px 16px; overflow: hidden; color: #fff; border: 1px solid #183a58; border-radius: 3px; background: #386b98; box-shadow: inset 0 1px rgba(255,255,255,.28),0 1px 1px rgba(0,0,0,.42); text-align: center; text-shadow: 0 -1px rgba(0,0,0,.58); }
+.instagram-profile-stats dt,.instagram-profile-stats button strong { width: 100%; display: grid; place-items: center; font-size: 24px; font-weight: bold; line-height: 27px; }
+.instagram-profile-stats dd,.instagram-profile-stats button span { width: 100%; height: 16px; margin: 0; display: grid; place-items: center; border-top: 1px solid rgba(12,43,67,.85); background: #214d76; font-size: 11px; font-weight: normal; line-height: 14px; text-transform: lowercase; }
+.instagram-profile-stats button { width: 100%; height: 46px; padding: 0; grid-row: 1 / -1; display: grid; grid-template-rows: 30px 16px; color: inherit; border: 0; background: transparent; text-shadow: inherit; }
 .instagram-profile-photo-stream { background: #e8e8e8; }
 .instagram-profile-photo-stream article { margin: 0 0 8px; background: #fff; border-bottom: 1px solid #aaa; }
-.instagram-profile-photo-stream article > header { height: 38px; padding: 5px 8px; display: grid; grid-template-columns: 27px 1fr auto; align-items: center; gap: 7px; color: #333; }
-.instagram-profile-photo-stream article > header img,.instagram-stream-avatar-placeholder { width: 27px; height: 27px; display: block; object-fit: cover; border: 1px solid #aaa; background: #555; }
-.instagram-profile-photo-stream article > header strong { color: #2f5f88; font-size: 12px; }
-.instagram-profile-photo-stream article > header time { color: #777; font-size: 10px; }
+.instagram-profile-photo-stream article > header { height: 42px; padding: 5px 8px; display: grid; grid-template-columns: 27px 1fr auto; align-items: center; gap: 7px; color: #333; }
+.instagram-profile-photo-stream article > header > img,.instagram-stream-avatar-placeholder { width: 27px; height: 27px; display: block; object-fit: cover; border: 1px solid #aaa; background: #555; }
+.instagram-profile-photo-stream article > header strong { color: #2f5f88; font-size: 14px; line-height: 16px; }
+.instagram-profile-photo-stream article > header time { display: flex; align-items: center; gap: 3px; color: #777; font-size: 14px; line-height: 16px; white-space: nowrap; }
+.instagram-profile-photo-stream article > header time > img { width: 9px; height: 9px; display: block; }
 .instagram-period-empty-stream { margin: 0; padding: 32px 12px; color: #666; background: #fff; text-align: center; }
 .instagram-owner-profile > .instagram-find-facebook-friends { width: 190px; min-width: 190px; height: 28px; min-height: 28px; margin: 7px auto; padding: 0 10px; color: #fff; border: 1px solid #284d69; border-radius: 4px; background: linear-gradient(#709abd,#47779d 49%,#38688e 51%,#3d6b8f); box-shadow: inset 0 1px rgba(255,255,255,.35),0 1px rgba(255,255,255,.55); font-size: 10px; line-height: 26px; text-shadow: 0 -1px rgba(0,0,0,.55); }
 .instagram-profile-relationship-control { max-width: 68px; overflow: hidden; text-overflow: ellipsis; }

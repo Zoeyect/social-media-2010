@@ -70,7 +70,7 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
   const rightControl = state.currentView === "filter"
     ? <button className="instagram-navigation-next" type="button" disabled={!selectedDraftPhoto} onClick={() => dispatch({ type: "CONTINUE_TO_SHARE" })}>Next</button>
     : state.currentView === "share"
-      ? <button className="instagram-navigation-next" type="button" disabled={!selectedDraftPhoto} onClick={() => dispatch({ type: "POST_FIRST_PHOTO", owner: identity.name || "Owner", createdAt: Date.now() })}>Post</button>
+      ? <button className="instagram-navigation-next" type="button" disabled={!selectedDraftPhoto} onClick={() => dispatch({ type: "POST_FIRST_PHOTO", owner: identity.name || "Owner", createdAt: currentDeviceDateTime.getTime() })}>Post</button>
     : state.currentView === "feed"
       ? <InstagramRefreshButton label="Refresh Feed" onClick={() => dispatch({ type: "SHOW_FEED" })} />
       : state.currentView === "popular"
@@ -145,7 +145,7 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
         ? <p className="instagram-period-empty-stream">No photos yet.</p>
         : state.photos.map(photo => {
           const sourcePhoto = cameraRoll.records.find(record => record.id === photo.sourcePhotoId) ?? null;
-          return <article key={photo.id}><header><span className="instagram-stream-avatar-placeholder" aria-hidden="true" /><strong>{identity.name || "Owner"}</strong><time>{instagramVisibleFilterLabel(photo.filter)}</time></header>{sourcePhoto
+          return <article key={photo.id}><header><span className="instagram-stream-avatar-placeholder" aria-hidden="true" /><strong>{identity.name || "Owner"}</strong><time><img src={instagramClockSrc} alt="" aria-hidden="true" />{formatInstagramRelativeTimestamp(photo.createdAt, currentDeviceDateTime)}</time></header>{sourcePhoto
             ? <div className="instagram-square-photo"><InstagramFilteredImage src={sourcePhoto.objectUrl} alt={sourcePhoto.filename} filter={photo.filter} /></div>
             : <div className="instagram-square-photo instagram-unavailable-photo" role="img" aria-label="Photo unavailable" />}</article>;
         })}</div>
@@ -178,7 +178,7 @@ export function InstagramContainer({ state, dispatch, currentDeviceDateTime, cam
         {selectedKnownPosts.length === 0 && <p className="instagram-period-empty-stream">No photos.</p>}
         {selectedKnownPosts.map(post => {
           const media = getSharedCharacterMedia(post.mediaId);
-          return <article key={post.id}><header>{selectedKnownAvatar ? <img src={selectedKnownAvatar.src} alt="" /> : <span className="instagram-stream-avatar-placeholder" aria-hidden="true" />}<strong>{post.username}</strong><time>{formatInstagramProfileTimestamp(post.timestamp)}</time></header><div className="instagram-square-photo"><img src={media.src} alt="" /></div></article>;
+          return <article key={post.id}><header>{selectedKnownAvatar ? <img src={selectedKnownAvatar.src} alt="" /> : <span className="instagram-stream-avatar-placeholder" aria-hidden="true" />}<strong>{post.username}</strong><time><img src={instagramClockSrc} alt="" aria-hidden="true" />{formatInstagramRelativeTimestamp(post.timestamp, currentDeviceDateTime)}</time></header><div className="instagram-square-photo"><img src={media.src} alt="" /></div></article>;
         })}
       </div>
     </section>}
@@ -232,16 +232,8 @@ function InstagramProfileStats({ photos, followers, following, onFollowers, onFo
   </dl>;
 }
 
-function formatInstagramProfileTimestamp(timestamp: string): string {
-  if (timestamp === "2010-10-20T00:05:30-07:00") return "moments ago";
-  if (timestamp.startsWith("2010-10-20")) return "Oct 20";
-  if (timestamp === "2010-10-16") return "Oct 16";
-  if (timestamp === "2010-10-15") return "Oct 15";
-  return timestamp;
-}
-
-function formatInstagramRelativeTimestamp(timestamp: string, currentDeviceDateTime: Date): string {
-  const timestampMs = Date.parse(timestamp);
+function formatInstagramRelativeTimestamp(timestamp: string | number, currentDeviceDateTime: Date): string {
+  const timestampMs = typeof timestamp === "number" ? timestamp : Date.parse(timestamp);
   if (!Number.isFinite(timestampMs)) return "now";
   const elapsedSeconds = Math.max(0, Math.floor((currentDeviceDateTime.getTime() - timestampMs) / 1000));
   if (elapsedSeconds < 60) return "1m";

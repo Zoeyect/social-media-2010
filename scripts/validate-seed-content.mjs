@@ -1508,15 +1508,6 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(c2bFollowRemoved.followedUserIds, moreProfileFollowing.followedUserIds, "C2b-2 Unfollow must remove only the selected truthful row");
   const c2bReset = twitter.twitterStateTransition(c2bFollowAdded, { type: "RESET", displayName: "Alex" });
   assert.deepEqual(c2bReset.followedUserIds, twitter.createInitialTwitterState("Alex").followedUserIds, "C2b-2 RESET must restore the canonical owner Following graph");
-  let searchCompatibilityState = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "search" });
-  searchCompatibilityState = twitter.twitterStateTransition(searchCompatibilityState, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "searchLanding" });
-  searchCompatibilityState = twitter.twitterStateTransition(searchCompatibilityState, { type: "BACK_FROM_PROFILE" });
-  assert.deepEqual(
-    [searchCompatibilityState.activeTab, searchCompatibilityState.currentView, searchCompatibilityState.selectedUserId, searchCompatibilityState.profileOriginView],
-    ["search", "searchLanding", null, null],
-    "C3a must preserve the temporary Search to My Profile compatibility route",
-  );
-  assertRootNavigationPreservesTwitterData(searchCompatibilityState, rootNavigationBaseline, "C3a Search compatibility route");
   const moreRouteReset = twitter.twitterStateTransition(moreProfileState, { type: "RESET", displayName: "Alex" });
   assert.deepEqual(
     [moreRouteReset.activeTab, moreRouteReset.currentView, moreRouteReset.selectedUserId, moreRouteReset.profileOriginView],

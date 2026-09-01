@@ -187,7 +187,6 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
 
     {state.activeTab === "search" && state.currentView === "searchLanding" && <TwitterSearchLanding
       onOpenSuggested={() => dispatch({ type: "OPEN_SUGGESTED_USERS" })}
-      onOpenProfile={() => dispatch({ type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "searchLanding" })}
     />}
 
     {state.activeTab === "search" && state.currentView === "suggestedUsers" && <TwitterPeopleList
@@ -447,10 +446,9 @@ function TwitterProfile({ profile, sessionOwner, profileBio, onToggleFollow, onO
   </section>;
 }
 
-function TwitterSearchLanding({ onOpenSuggested, onOpenProfile }: { onOpenSuggested: () => void; onOpenProfile: () => void }) {
+function TwitterSearchLanding({ onOpenSuggested }: { onOpenSuggested: () => void }) {
   return <section className="twitter-search-landing" aria-label="Search and discovery">
-    <button type="button" onClick={onOpenSuggested}><strong>Suggested Users</strong><span>Browse accounts</span></button>
-    <button type="button" onClick={onOpenProfile}><strong>My Profile</strong><span>Account and Following</span></button>
+    <button type="button" onClick={onOpenSuggested}><strong>Suggested Users</strong></button>
   </section>;
 }
 

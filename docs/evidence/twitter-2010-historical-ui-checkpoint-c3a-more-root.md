@@ -31,7 +31,7 @@ The row dispatches the existing `OPEN_USER_PROFILE_BY_ID` event for `session-own
 
 ## Compatibility boundary
 
-The existing `Search → My Profile` row remains a **TEMPORARY COMPATIBILITY ROUTE**. Its parent is historically incorrect, but it remains available until the canonical More-origin route passes runtime QA and a later migration explicitly removes it.
+`Search → My Profile` is no longer rendered on the Search root after canonical `More → My Profile` validation confirmed the intended origin. The Search root now preserves only the Suggested Users discovery route for local profile access.
 
 The historical profile-local toolbar remains `HOLD`. C3a preserves the existing five root tabs on Profile.
 

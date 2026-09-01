@@ -3520,7 +3520,14 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     "Twitter Profile stats order must be following/tweets then followers/favorites",
   );
   assert.doesNotMatch(twitterContainerSource, /twitter-composer-identity/, "New Tweet must not use the rejected large avatar/name composer row");
-  assert.match(twitterContainerSource, /twitter-composer-account/, "New Tweet must expose compact current-account context");
+  assert.match(twitterContainerSource, /twitter-new-tweet-title[\s\S]*<strong>New Tweet<\/strong>[\s\S]*twitterReplyHandle\(sessionIdentity\.name \|\| "owner"\)/, "D1 New Tweet must place its title and session-derived handle together inside the Compose navigation bar");
+  assert.match(twitterContainerSource, /\{replyTarget && <div className="twitter-composer-account">/, "D1 must preserve the existing Reply recipient context without retaining a standalone New Tweet account strip");
+  assert.match(deviceCssSource, /\.twitter-new-tweet-title \{[^}]*top: 5px;[^}]*grid-template-rows: 19px 12px;/, "D1 New Tweet title stack must retain reconstructed 17\/19 and 10\/12 navigation geometry");
+  assert.match(deviceCssSource, /\.twitter-new-tweet-title > strong \{[^}]*font-size: 17px; font-weight: 700; line-height: 19px;/, "D1 New Tweet title must use reconstructed 17\/19 bold typography");
+  assert.match(deviceCssSource, /\.twitter-new-tweet-title > small \{[^}]*font-size: 10px; font-weight: 400; line-height: 12px;/, "D1 New Tweet handle must use reconstructed 10\/12 subdued typography");
+  assert.match(deviceCssSource, /\.twitter-new-tweet-navigation \.twitter-close-button \{ left: 5px; width: 50px;[^}]*\}/, "D1 Close must use its deterministic reconstructed 50-by-30 Compose frame");
+  assert.match(deviceCssSource, /\.twitter-new-tweet-navigation \.twitter-send-button \{ right: 5px; width: 48px;[^}]*\}/, "D1 Send must use its deterministic reconstructed 48-by-30 Compose frame");
+  assert.match(deviceCssSource, /\.twitter-composer \{[^}]*grid-row: 2 \/ 4;/, "D1 Compose must span the hidden tab row so the white field and frozen lower controls retain their historical vertical bounds");
   assert.match(twitterContainerSource, /attachments \(\.\.\.\)/, "New Tweet must expose the period attachment disclosure structure");
   assert.doesNotMatch(twitterContainerSource, /Quote Tweet|Explore|Spaces|Notifications/, "Twitter IA must not introduce later navigation/features");
   assert.ok(Object.isFrozen(seed) && Object.isFrozen(seed.messages) && Object.isFrozen(seed.twitter), "seed definitions must remain immutable");

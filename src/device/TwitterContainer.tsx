@@ -72,7 +72,7 @@ export function TwitterContainer({ state, dispatch, publicState, dispatchPublic,
   });
 
   return <section className="twitter-container" aria-label="Twitter" data-chrome-status="HOLD">
-    <header className="twitter-navigation-bar">
+    <header className={`twitter-navigation-bar${state.currentView === "composer" && state.composerKind === "new" ? " twitter-new-tweet-navigation" : ""}`}>
       {state.activeTab === "timeline" && state.currentView === "timeline" && <>
         <button type="button" className="twitter-account-button" onClick={() => dispatch({ type: "SHOW_TAB", tab: "more" })}>Accounts</button>
         <strong>{sessionIdentity.name ? twitterReplyHandle(sessionIdentity.name).slice(1) : "Tweets"}</strong>
@@ -115,7 +115,12 @@ export function TwitterContainer({ state, dispatch, publicState, dispatchPublic,
       </>}
       {state.currentView === "composer" && <>
         <button type="button" className="twitter-close-button" onClick={() => dispatch({ type: "CANCEL_REPLY" })}>Close</button>
-        <strong>New Tweet</strong>
+        {state.composerKind === "new"
+          ? <span className="twitter-new-tweet-title">
+            <strong>New Tweet</strong>
+            <small>{twitterReplyHandle(sessionIdentity.name || "owner")}</small>
+          </span>
+          : <strong>New Tweet</strong>}
         <button type="submit" form="twitter-composer-form" className="twitter-send-button" disabled={!composerCanSend}>Send</button>
       </>}
       {state.activeTab !== "timeline" && state.activeTab !== "search" && state.activeTab !== "more" && state.currentView !== "composer" && <strong>{tabTitle(state.activeTab)}</strong>}
@@ -391,10 +396,10 @@ function TwitterComposer({ identity, value, replyTarget, canSend, onChange, onSu
     event.preventDefault();
     if (canSend) onSubmit();
   }}>
-    <div className="twitter-composer-account">
+    {replyTarget && <div className="twitter-composer-account">
       <strong>{twitterReplyHandle(identity || "owner")}</strong>
-      {replyTarget && <small>Reply to {twitterReplyHandle(replyTarget.displayName)}</small>}
-    </div>
+      <small>Reply to {twitterReplyHandle(replyTarget.displayName)}</small>
+    </div>}
     <IOS4Textarea keyboardInputId={replyTarget ? `twitter-reply-${replyTarget.id}` : "twitter-compose"} autoFocus={false} aria-label="Tweet" maxLength={140} value={value} onValueChange={onChange} />
     <div className="twitter-composer-disclosure" data-chrome-status="HOLD">
       <button type="button" disabled>attachments (...)</button>

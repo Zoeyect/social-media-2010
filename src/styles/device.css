@@ -321,6 +321,12 @@ button, input { font: inherit; }
 .twitter-close-button { left: 7px; }
 .twitter-compose-button { right: 5px; width: 34px; padding: 0 !important; }
 .twitter-send-button { right: 7px; }
+.twitter-new-tweet-navigation .twitter-close-button { left: 5px; width: 50px; padding: 0; }
+.twitter-new-tweet-navigation .twitter-send-button { right: 5px; width: 48px; padding: 0; }
+.twitter-new-tweet-navigation .twitter-send-button:not(:disabled) { border-color: #2e607f; background: linear-gradient(#96bed7 0%,#70a2c1 48%,#5389aa 52%,#407697 100%); box-shadow: inset 0 1px rgba(255,255,255,.52),inset 0 -1px rgba(18,53,75,.34); }
+.twitter-new-tweet-title { position: absolute; top: 5px; left: 60px; right: 60px; height: 31px; display: grid; grid-template-rows: 19px 12px; place-items: center; overflow: hidden; }
+.twitter-new-tweet-title > strong { max-width: 100%; overflow: hidden; font-size: 17px; font-weight: 700; line-height: 19px; text-overflow: ellipsis; white-space: nowrap; }
+.twitter-new-tweet-title > small { max-width: 100%; overflow: hidden; color: #d5e2ea; font-size: 10px; font-weight: 400; line-height: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .twitter-compose-glyph { position: absolute; left: 6px; top: 4px; width: 20px; height: 20px; background: linear-gradient(#fff,#d7e2e8); -webkit-mask: url("../assets/twitter/chrome/twitter-compose-2010-reconstructed.svg") center / 20px 20px no-repeat; mask: url("../assets/twitter/chrome/twitter-compose-2010-reconstructed.svg") center / 20px 20px no-repeat; filter: drop-shadow(0 -1px rgba(0,0,0,.4)); }
 .twitter-navigation-bar > button:disabled { color: rgba(255,255,255,.55); }
 .twitter-timeline { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
@@ -408,7 +414,7 @@ button, input { font: inherit; }
 .twitter-person-row > .twitter-follow-button { position: absolute; right: 8px; top: 18px; min-width: 66px; }
 .twitter-person-row > .twitter-follow-button[aria-pressed="true"] { color: #555; }
 .twitter-people-empty { margin: 0; padding: 20px 12px; color: #777; font-size: 13px; text-align: center; }
-.twitter-composer { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #f3f3f3; }
+.twitter-composer { position: relative; grid-row: 2 / 4; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #f3f3f3; }
 .twitter-composer-account { flex: 0 0 28px; min-height: 28px; padding: 0 10px; display: flex; align-items: center; gap: 8px; color: #555; border-bottom: 1px solid #b5b5b5; background: #e7e7e7; }
 .twitter-composer-account strong { font-size: 12px; }
 .twitter-composer-account small { color: #777; font-size: 10px; }

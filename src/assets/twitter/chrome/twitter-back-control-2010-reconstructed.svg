@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="70" height="30" viewBox="0 0 70 30" preserveAspectRatio="none">
+  <!-- RECONSTRUCTED_FROM_PERIOD_SCREENSHOT: Twitter for iPhone, 2010. -->
+  <defs>
+    <linearGradient id="backFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fa9c5"/>
+      <stop offset="0.48" stop-color="#5d8eb0"/>
+      <stop offset="0.52" stop-color="#477c9f"/>
+      <stop offset="1" stop-color="#356b90"/>
+    </linearGradient>
+  </defs>
+  <path d="M10.5.5h54A5 5 0 0 1 69.5 5.5v19a5 5 0 0 1-5 5h-54L.5 15 10.5.5Z" fill="url(#backFill)" stroke="#274f69"/>
+  <path d="M11.3 2h52.8c1.8 0 3.2.8 3.7 2.1H11.9L3.2 15l-1-1.1L11.3 2Z" fill="#fff" opacity=".26"/>
+  <path d="M10.8 28h53.7c1.8 0 3.2-.9 3.8-2.4H9.9L2.2 15l-1 1.3L10.8 28Z" fill="#173f5a" opacity=".33"/>
+</svg>

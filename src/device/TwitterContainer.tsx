@@ -67,8 +67,10 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
     <header className="twitter-navigation-bar">
       {state.activeTab === "timeline" && state.currentView === "timeline" && <>
         <button type="button" className="twitter-account-button" onClick={() => dispatch({ type: "SHOW_TAB", tab: "more" })}>Accounts</button>
-        <strong>{sessionIdentity.name || "Tweets"}</strong>
-        <button type="button" className="twitter-compose-button" onClick={() => dispatch({ type: "BEGIN_NEW_TWEET" })}>Compose</button>
+        <strong>{sessionIdentity.name ? twitterReplyHandle(sessionIdentity.name).slice(1) : "Tweets"}</strong>
+        <button type="button" className="twitter-compose-button" aria-label="New Tweet" onClick={() => dispatch({ type: "BEGIN_NEW_TWEET" })}>
+          <span className="twitter-compose-glyph" aria-hidden="true" />
+        </button>
       </>}
       {state.activeTab === "timeline" && state.currentView === "tweetDetail" && <>
         <button type="button" className="twitter-back-button" onClick={() => dispatch({ type: "BACK_TO_TIMELINE" })}>Tweets</button>
@@ -94,12 +96,12 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
         <button type="button" className="twitter-back-button" onClick={() => dispatch({ type: "BACK_FROM_PROFILE" })}>Back</button>
         <strong>Profile</strong>
       </>}
-      {state.activeTab === "timeline" && state.currentView === "composer" && <>
+      {state.currentView === "composer" && <>
         <button type="button" className="twitter-close-button" onClick={() => dispatch({ type: "CANCEL_REPLY" })}>Close</button>
         <strong>New Tweet</strong>
         <button type="submit" form="twitter-composer-form" className="twitter-send-button" disabled={!composerCanSend}>Send</button>
       </>}
-      {state.activeTab !== "timeline" && state.activeTab !== "search" && <strong>{tabTitle(state.activeTab)}</strong>}
+      {state.activeTab !== "timeline" && state.activeTab !== "search" && state.currentView !== "composer" && <strong>{tabTitle(state.activeTab)}</strong>}
     </header>
 
     {state.activeTab === "timeline" && state.currentView === "timeline" && <div
@@ -156,7 +158,7 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
       onOpenFollowing={() => dispatch({ type: "OPEN_FOLLOWING" })}
     />}
 
-    {state.activeTab === "timeline" && state.currentView === "composer" && <TwitterComposer
+    {state.currentView === "composer" && <TwitterComposer
       identity={sessionIdentity.name}
       value={composerValue}
       replyTarget={composerTarget}
@@ -510,7 +512,10 @@ function TwitterTabBar({ activeTab, mentionsUnreadCount, messagesUnreadCount, on
   return <nav className="twitter-tab-bar" aria-label="Twitter sections" data-chrome-status="HOLD">
     {tabs.map(([tab, label]) => {
       const unread = tab === "mentions" ? mentionsUnreadCount : tab === "messages" ? messagesUnreadCount : 0;
-      return <button type="button" key={tab} aria-current={activeTab === tab ? "page" : undefined} onClick={() => onSelect(tab)}>{label}{unread > 0 && <span className="twitter-tab-unread-indicator" aria-label={`${label} has unread items`} />}</button>;
+      return <button type="button" key={tab} data-tab={tab} aria-label={label} aria-current={activeTab === tab ? "page" : undefined} onClick={() => onSelect(tab)}>
+        <span className="twitter-tab-icon" aria-hidden="true" />
+        {unread > 0 && <span className="twitter-tab-unread-indicator" aria-label={`${label} has unread items`} />}
+      </button>;
     })}
   </nav>;
 }

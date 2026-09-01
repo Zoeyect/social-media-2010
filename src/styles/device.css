@@ -294,13 +294,17 @@ button, input { font: inherit; }
 .mobilesms-composer button:disabled { color: #eee; border-color: #858585; background: linear-gradient(#c7c7c7,#9d9d9d); box-shadow: inset 0 1px rgba(255,255,255,.48); text-shadow: 0 -1px rgba(0,0,0,.25); }
 .mobilesms-composer .mobilesms-camera-slot { width: 30px; height: 30px; display: block; padding: 0; appearance: none; -webkit-appearance: none; border: 0; border-radius: 0; background: transparent url("../assets/historical/ios4.1/mobilesms/PhotoButton@2x~iphone.png") center / 26px 27px no-repeat; box-shadow: none; }
 .mobilesms-composer .mobilesms-camera-slot:active { background-image: url("../assets/historical/ios4.1/mobilesms/PhotoButtonPressed@2x~iphone.png"); box-shadow: none; }
-.twitter-container { position: relative; width: 320px; height: 460px; display: grid; grid-template-rows: 44px minmax(0,1fr) 49px; overflow: hidden; color: #222; background: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.twitter-container { position: relative; width: 320px; height: 460px; display: grid; grid-template-rows: 44px minmax(0,1fr) 43px; overflow: hidden; color: #222; background: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
 .twitter-container > header { grid-row: 1; }.twitter-container > section { grid-row: 2; min-height: 0; }.twitter-container > nav { grid-row: 3; }
-.twitter-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-bottom: 1px solid #274f68; background: linear-gradient(#79bad9,#3b8fb8 50%,#277ca7 51%,#3189b3); box-shadow: inset 0 1px rgba(255,255,255,.45); text-shadow: 0 -1px rgba(0,0,0,.55); }
-.twitter-navigation-bar > strong { max-width: 142px; overflow: hidden; font-size: 20px; line-height: 44px; text-overflow: ellipsis; white-space: nowrap; }
-.twitter-navigation-bar > button { position: absolute; top: 7px; height: 30px; padding: 0 8px; color: #fff; border: 1px solid #245b78; border-radius: 5px; background: linear-gradient(#75b5d4,#3387ae); box-shadow: inset 0 1px rgba(255,255,255,.35); font-size: 12px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.55); }
-.twitter-account-button,.twitter-back-button,.twitter-close-button { left: 7px; }
-.twitter-compose-button,.twitter-send-button { right: 7px; }
+.twitter-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-bottom: 1px solid #315c77; background: linear-gradient(#bdceda 0%,#9cb7ca 44%,#739db9 49%,#5689ab 51%,#477a9c 100%); box-shadow: inset 0 1px rgba(255,255,255,.72),inset 0 -1px rgba(18,55,79,.42); text-shadow: 0 -1px rgba(0,0,0,.62); }
+.twitter-navigation-bar > strong { max-width: 160px; overflow: hidden; font-size: 20px; font-weight: 700; line-height: 44px; text-overflow: ellipsis; white-space: nowrap; transform: translateY(-1px); }
+.twitter-navigation-bar > button { position: absolute; top: 7px; height: 30px; padding: 0 8px; color: #fff; border: 1px solid #315b76; border-radius: 5px; background: linear-gradient(#84abc4 0%,#6594b3 48%,#4e81a2 52%,#3d7092 100%); box-shadow: inset 0 1px rgba(255,255,255,.42),inset 0 -1px rgba(18,53,75,.34); font-size: 12px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.62); }
+.twitter-account-button { left: 5px; width: 75px; padding: 0; }
+.twitter-back-button { left: 5px; min-width: 70px; padding: 0 9px 0 14px; border: 0 !important; border-radius: 0 !important; background: transparent url("../assets/twitter/chrome/twitter-back-control-2010-reconstructed.svg") center / 100% 30px no-repeat !important; box-shadow: none !important; }
+.twitter-close-button { left: 7px; }
+.twitter-compose-button { right: 5px; width: 34px; padding: 0 !important; }
+.twitter-send-button { right: 7px; }
+.twitter-compose-glyph { position: absolute; left: 6px; top: 4px; width: 20px; height: 20px; background: linear-gradient(#fff,#d7e2e8); -webkit-mask: url("../assets/twitter/chrome/twitter-compose-2010-reconstructed.svg") center / 20px 20px no-repeat; mask: url("../assets/twitter/chrome/twitter-compose-2010-reconstructed.svg") center / 20px 20px no-repeat; filter: drop-shadow(0 -1px rgba(0,0,0,.4)); }
 .twitter-navigation-bar > button:disabled { color: rgba(255,255,255,.55); }
 .twitter-timeline { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
 .twitter-timeline-item { position: relative; border-bottom: 1px solid #c9c9c9; background: #fff; }
@@ -385,11 +389,25 @@ button, input { font: inherit; }
 .twitter-social-row.is-unread { background: #edf4fa; }.twitter-social-row > span:last-child { display: grid; grid-template-columns: 1fr auto; align-content: center; min-width: 0; }
 .twitter-social-row strong { font-size: 15px; }.twitter-social-row small { color: #777; }.twitter-social-row span span { grid-column: 1 / -1; font-size: 13px; }.twitter-social-row em { grid-column: 1 / -1; color: #315f91; font-size: 12px; font-style: normal; }
 .twitter-dm-thread { position: relative; inset: auto; padding: 12px; background: #e7ebee; overflow-y: auto; }.twitter-dm-thread article { margin-bottom: 10px; padding: 8px 10px; border: 1px solid #c2c6c9; border-radius: 7px; background: #fff; color: #111; font-size: 14px; }.twitter-dm-thread p { margin: 0 0 5px; }.twitter-dm-thread button { border: 0; padding: 0; background: none; color: #315f91; font-weight: 700; }
-.twitter-tab-bar { flex: 0 0 49px; height: 49px; display: grid; grid-template-columns: repeat(5,1fr); border-top: 1px solid #222; background: #292929; }
-.twitter-tab-bar button { position: relative; padding: 0 2px; color: #bbb; border: 0; border-right: 1px solid #111; background: transparent; font-size: 9px; }
-.twitter-tab-bar button:last-child { border-right: 0; }
-.twitter-tab-bar button[aria-current="page"] { color: #fff; background: #111; font-weight: bold; }
-.twitter-tab-unread-indicator { position: absolute; top: 6px; right: 8px; width: 6px; height: 6px; border: 1px solid #5fa7cf; border-radius: 50%; background: #2d83b4; box-shadow: inset 0 1px rgba(255,255,255,.45); }
+.twitter-tab-bar { position: relative; flex: 0 0 43px; height: 43px; display: grid; grid-template-columns: repeat(5,64px); overflow: visible; border-top: 1px solid #171717; background: linear-gradient(#424242 0%,#2d2d2d 14%,#181818 100%); box-shadow: inset 0 1px rgba(255,255,255,.17); }
+.twitter-tab-bar button { --twitter-tab-icon: none; position: relative; width: 64px; height: 42px; padding: 0; overflow: visible; color: #bfc1c2; border: 0; background: linear-gradient(rgba(255,255,255,.035),rgba(0,0,0,.08)); box-shadow: inset -1px 0 rgba(0,0,0,.52),inset 1px 0 rgba(255,255,255,.035); }
+.twitter-tab-bar button:first-child { box-shadow: inset -1px 0 rgba(0,0,0,.52); }
+.twitter-tab-bar button:last-child { box-shadow: inset 1px 0 rgba(255,255,255,.035); }
+.twitter-tab-bar button[aria-current="page"] { z-index: 1; color: #30c7ed; background: linear-gradient(#303030 0%,#181818 18%,#080808 100%); box-shadow: inset 1px 0 rgba(255,255,255,.08),inset -1px 0 rgba(0,0,0,.82),inset 0 2px rgba(255,255,255,.045); }
+.twitter-tab-bar button[aria-current="page"]::before { content: ""; position: absolute; left: 25px; top: -7px; width: 14px; height: 7px; clip-path: polygon(50% 0,100% 100%,0 100%); background: #181818; box-shadow: inset 0 -1px rgba(255,255,255,.08); }
+.twitter-tab-icon { position: absolute; left: 50%; top: 6px; width: 30px; height: 26px; transform: translateX(-50%); background: linear-gradient(#e2e3e4,#8f9294); -webkit-mask: var(--twitter-tab-icon) center / contain no-repeat; mask: var(--twitter-tab-icon) center / contain no-repeat; filter: drop-shadow(0 -1px rgba(0,0,0,.7)); }
+.twitter-tab-bar button[aria-current="page"] .twitter-tab-icon { background: linear-gradient(#6ee8ff 0%,#2bc6ec 54%,#0799ce 100%); }
+.twitter-tab-bar button[data-tab="timeline"] { --twitter-tab-icon: url("../assets/twitter/chrome/twitter-tab-timeline-2010-reconstructed.svg"); }
+.twitter-tab-bar button[data-tab="mentions"] { --twitter-tab-icon: url("../assets/twitter/chrome/twitter-tab-mentions-2010-reconstructed.svg"); }
+.twitter-tab-bar button[data-tab="messages"] { --twitter-tab-icon: url("../assets/twitter/chrome/twitter-tab-messages-2010-reconstructed.svg"); }
+.twitter-tab-bar button[data-tab="search"] { --twitter-tab-icon: url("../assets/twitter/chrome/twitter-tab-search-2010-reconstructed.svg"); }
+.twitter-tab-bar button[data-tab="more"] { --twitter-tab-icon: url("../assets/twitter/chrome/twitter-tab-more-2010-reconstructed.svg"); }
+.twitter-tab-bar button[data-tab="timeline"] .twitter-tab-icon { width: 30px; height: 24px; top: 7px; }
+.twitter-tab-bar button[data-tab="mentions"] .twitter-tab-icon { width: 28px; height: 28px; top: 4px; }
+.twitter-tab-bar button[data-tab="messages"] .twitter-tab-icon { width: 30px; height: 24px; top: 7px; }
+.twitter-tab-bar button[data-tab="search"] .twitter-tab-icon { width: 26px; height: 26px; top: 5px; }
+.twitter-tab-bar button[data-tab="more"] .twitter-tab-icon { width: 30px; height: 12px; top: 12px; }
+.twitter-tab-unread-indicator { position: absolute; z-index: 2; left: 50%; bottom: 2px; width: 13px; height: 4px; transform: translateX(-50%); border: 0; border-radius: 50%; background: radial-gradient(ellipse,#70e9ff 0%,#1cb9e9 48%,rgba(0,116,178,.15) 100%); box-shadow: 0 0 3px rgba(34,197,242,.82); }
 .facebook-container { --facebook-blue: #3b5998; --facebook-blue-dark: #29447e; --facebook-toolbar-top: #6d84b4; --facebook-toolbar-bottom: #304c80; --facebook-button-top: #7388b4; --facebook-button-bottom: #3b5998; --facebook-nav-button-border: #203a69; --facebook-nav-button-top: #758ab5; --facebook-nav-button-mid: #506ba0; --facebook-nav-button-bottom: #385786; --facebook-nav-button-radius: 4px; --facebook-avatar-radius: 2px; --facebook-micro-glyph-blue: #71839a; --facebook-engagement-height: 22px; --facebook-engagement-radius: 2px; --facebook-engagement-notch-size: 5px; --facebook-engagement-padding-x: 5px; --facebook-engagement-glyph-gap: 3px; --facebook-engagement-group-gap: 8px; --facebook-separator: #c6c9cf; --facebook-secondary-text: #777; --facebook-story-padding-x: 8px; --facebook-avatar-size: 42px; width: 320px; height: 460px; display: flex; flex-direction: column; overflow: hidden; color: #222; background: #fff; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
 .facebook-navigation-bar { position: relative; flex: 0 0 44px; height: 44px; display: grid; place-items: center; color: #fff; border-top: 1px solid #8194b8; border-bottom: 1px solid #1d365f; background: linear-gradient(var(--facebook-toolbar-top),#49679d 49%,var(--facebook-toolbar-bottom) 50%,#294778); box-shadow: inset 0 1px rgba(255,255,255,.22),inset 0 -1px rgba(0,0,0,.1); text-shadow: 0 -1px rgba(0,0,0,.65); }
 .facebook-title-control { height: 44px; padding: 0 50px; color: #fff; border: 0; background: none; font-size: 18px; font-weight: bold; text-shadow: 0 -1px rgba(0,0,0,.65); }

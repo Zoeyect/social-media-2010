@@ -31,6 +31,7 @@ try {
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
+  const appRuntime = await vite.ssrLoadModule("/src/state/appRuntimeState.ts");
   const cameraRollPersistence = await vite.ssrLoadModule("/src/state/cameraRollPersistence.ts");
 
   const seed = seedContent.SESSION_SEED_CONTENT;
@@ -1371,6 +1372,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.ok(alexMentionTweet && homeActivities.some(activity => activity.tweet === alexMentionTweet), "Home Timeline must reference the same Alex Tweet object used by Mentions");
   assert.ok(chrisMentionTweet && !homeActivities.some(activity => activity.tweet.id === chrisMentionTweet.id), "Chris @reply must remain absent from Home Timeline");
   assert.deepEqual(twitterState.linkedTweets.map(tweet => [tweet.displayName, tweet.text, tweet.contentStatus]), [["Conan O'Brien", "Saw Jackass 3D. Not as good as the book.", "PERIOD-EVIDENCE"]]);
+  const canonicalMentionIds = twitterState.mentions.map(item => item.id);
+  const canonicalMentionTweetIds = twitterState.mentionTweets.map(tweet => tweet.id);
+  const canonicalLinkedTweetIds = twitterState.linkedTweets.map(tweet => tweet.id);
   let mentionState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab: "mentions" });
   assert.equal(twitter.selectTwitterMentionsUnreadCount(mentionState), 1, "opening Mentions tab alone must not clear unread state");
   mentionState = twitter.twitterStateTransition(mentionState, { type: "OPEN_MENTION", mentionId: "mention-alex-conan", scrollPosition: 73 });
@@ -1382,8 +1386,46 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.ok(mentionState.favoriteTweetIds.includes("tweet-mention-alex-conan"), "Favorite must be shared by Mentions and Timeline through the Tweet ID");
   mentionState = twitter.twitterStateTransition(mentionState, { type: "TOGGLE_RETWEET", tweetId: "tweet-mention-alex-conan", retweetedBy: "Zoey", retweetActionTimestamp: 100 });
   assert.ok(mentionState.retweetedTweetIds.includes("tweet-mention-alex-conan"), "Retweet must be shared by Mentions and Timeline through the Tweet ID");
+  mentionState = twitter.twitterStateTransition(mentionState, { type: "OPEN_LINKED_TWEET", tweetId: "historical-conan-jackass-3d", origin: "mentions" });
+  assert.deepEqual([mentionState.activeTab, mentionState.currentView, mentionState.selectedTweetId, mentionState.tweetDetailOrigin], ["mentions", "tweetDetail", "historical-conan-jackass-3d", "mentions"], "Alex's historical linked Tweet must retain its Mentions origin");
+  mentionState = twitter.twitterStateTransition(mentionState, { type: "BEGIN_REPLY", tweetId: "historical-conan-jackass-3d" });
+  assert.deepEqual([mentionState.activeTab, mentionState.currentView, mentionState.replyComposerTweetId], ["mentions", "composer", "historical-conan-jackass-3d"], "Reply from a Mention-linked Tweet must keep Mentions active while opening Composer");
+  assert.deepEqual(mentionState.mentions.map(item => item.id), canonicalMentionIds, "opening Mention Reply must retain Alex and Chris in canonical order");
+  assert.deepEqual(mentionState.mentionTweets.map(tweet => tweet.id), canonicalMentionTweetIds, "opening Mention Reply must retain both canonical Mention Tweet records");
+  assert.deepEqual(mentionState.linkedTweets.map(tweet => tweet.id), canonicalLinkedTweetIds, "opening Mention Reply must retain the linked historical Tweet");
+  mentionState = twitter.twitterStateTransition(mentionState, { type: "CANCEL_REPLY" });
+  assert.deepEqual([mentionState.activeTab, mentionState.currentView, mentionState.selectedTweetId, mentionState.tweetDetailOrigin], ["mentions", "tweetDetail", "historical-conan-jackass-3d", "mentions"], "Cancel Reply must restore the linked Tweet Detail and its Mentions origin");
   mentionState = twitter.twitterStateTransition(mentionState, { type: "BACK_TO_TIMELINE" });
   assert.deepEqual([mentionState.activeTab, mentionState.currentView, mentionState.mentionsScrollPosition], ["mentions", "mentions", 73], "linked Tweet Back must restore Mentions origin and scroll");
+  assert.deepEqual(mentionState.mentions.map(item => [item.id, item.unread]), [["mention-alex-conan", false], ["mention-chris-thing", false]], "Mention Reply return must preserve order and change only Alex's expected read state");
+  assert.deepEqual(mentionState.mentionTweets.map(tweet => tweet.id), canonicalMentionTweetIds, "Mention Reply return must retain both Mention Tweet records");
+  assert.deepEqual(mentionState.linkedTweets.map(tweet => tweet.id), canonicalLinkedTweetIds, "Mention Reply return must retain the linked historical Tweet");
+  mentionState = twitter.twitterStateTransition(mentionState, { type: "SHOW_TAB", tab: "timeline" });
+  mentionState = twitter.twitterStateTransition(mentionState, { type: "SHOW_TAB", tab: "mentions" });
+  assert.deepEqual([mentionState.activeTab, mentionState.currentView, mentionState.mentions.map(item => item.id)], ["mentions", "mentions", canonicalMentionIds], "Timeline to Mentions switching must retain both Mention records after Reply return");
+  mentionState = twitter.twitterStateTransition(mentionState, { type: "OPEN_MENTION", mentionId: "mention-chris-thing", scrollPosition: 0 });
+  assert.deepEqual(mentionState.mentions.map(item => item.id), canonicalMentionIds, "opening Chris must not clear Alex or change Mention order");
+  mentionState = twitter.twitterStateTransition(mentionState, { type: "BACK_TO_TIMELINE" });
+  assert.deepEqual([mentionState.activeTab, mentionState.currentView], ["mentions", "mentions"], "Chris Back must restore Mentions through the same origin model");
+  const mentionStateBeforeRuntimeSuspend = mentionState;
+  let twitterAppRuntime = appRuntime.appRuntimeStateTransition(appRuntime.initialAppRuntimeState, { type: "LAUNCH", appId: "twitter" });
+  twitterAppRuntime = appRuntime.appRuntimeStateTransition(twitterAppRuntime, { type: "ANIMATION_COMPLETE" });
+  twitterAppRuntime = appRuntime.appRuntimeStateTransition(twitterAppRuntime, { type: "SUSPEND" });
+  twitterAppRuntime = appRuntime.appRuntimeStateTransition(twitterAppRuntime, { type: "RESUME", appId: "twitter" });
+  twitterAppRuntime = appRuntime.appRuntimeStateTransition(twitterAppRuntime, { type: "ANIMATION_COMPLETE" });
+  assert.deepEqual([twitterAppRuntime.phase, twitterAppRuntime.activeAppId], ["running", "twitter"], "Twitter must complete the ordinary suspend/resume lifecycle");
+  assert.strictEqual(mentionState, mentionStateBeforeRuntimeSuspend, "App Runtime suspend/resume must not replace or reset Twitter state");
+  assert.deepEqual(mentionState.mentions.map(item => item.id), canonicalMentionIds, "Twitter suspend/resume must retain both Mention records");
+  const mentionReset = twitter.twitterStateTransition(mentionState, { type: "RESET", displayName: "Alex" });
+  assert.deepEqual(mentionReset.mentions.map(item => [item.id, item.unread]), [["mention-alex-conan", true], ["mention-chris-thing", false]], "RESET must restore the canonical Mention baseline and unread state");
+  assert.deepEqual(mentionReset.mentionTweets.map(tweet => tweet.id), canonicalMentionTweetIds, "RESET must restore the canonical Mention Tweet records");
+  let timelineReplyState = twitter.twitterStateTransition(twitter.createInitialTwitterState("Zoey"), { type: "OPEN_TWEET", tweetId: "still-awake", scrollPosition: 64 });
+  timelineReplyState = twitter.twitterStateTransition(timelineReplyState, { type: "BEGIN_REPLY", tweetId: "still-awake" });
+  assert.deepEqual([timelineReplyState.activeTab, timelineReplyState.currentView], ["timeline", "composer"], "Timeline Reply must continue to open Composer from Timeline");
+  timelineReplyState = twitter.twitterStateTransition(timelineReplyState, { type: "CANCEL_REPLY" });
+  assert.deepEqual([timelineReplyState.activeTab, timelineReplyState.currentView, timelineReplyState.selectedTweetId], ["timeline", "tweetDetail", "still-awake"], "canceling a Timeline Reply must restore its Tweet Detail");
+  timelineReplyState = twitter.twitterStateTransition(timelineReplyState, { type: "BACK_TO_TIMELINE" });
+  assert.deepEqual([timelineReplyState.activeTab, timelineReplyState.currentView, timelineReplyState.selectedTweetId], ["timeline", "timeline", null], "Timeline-origin Reply must return to Timeline after Cancel and Back");
   let dmState = twitter.twitterStateTransition(twitterState, { type: "SHOW_TAB", tab: "messages" });
   assert.equal(twitter.selectTwitterDirectMessagesUnreadCount(dmState), 1, "opening Messages tab alone must not clear unread state");
   dmState = twitter.twitterStateTransition(dmState, { type: "OPEN_DIRECT_MESSAGE", threadId: "dm-katie", scrollPosition: 41 });
@@ -2441,6 +2483,15 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const facebookStoryTimeSource = await readFile(resolve(projectRoot, "src/data/facebookStoryTime.ts"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
   const deviceCssSource = await readFile(resolve(projectRoot, "src/styles/device.css"), "utf8");
+  const twitterChromeSources = await Promise.all([
+    "twitter-tab-timeline-2010-reconstructed.svg",
+    "twitter-tab-mentions-2010-reconstructed.svg",
+    "twitter-tab-messages-2010-reconstructed.svg",
+    "twitter-tab-search-2010-reconstructed.svg",
+    "twitter-tab-more-2010-reconstructed.svg",
+    "twitter-compose-2010-reconstructed.svg",
+    "twitter-back-control-2010-reconstructed.svg",
+  ].map(fileName => readFile(resolve(projectRoot, "src/assets/twitter/chrome", fileName), "utf8")));
   const springBoardSource = await readFile(resolve(projectRoot, "src/device/SpringBoard.tsx"), "utf8");
   const springBoardSocialAppsSource = await readFile(resolve(projectRoot, "src/data/springBoardSocialApps.ts"), "utf8");
   const ios4KeyboardSource = await readFile(resolve(projectRoot, "src/device/IOS4KeyboardSystem.tsx"), "utf8");
@@ -3094,12 +3145,22 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(twitterContainerSource, /UNFOLLOW/, "Suggested Users and Profile must expose period-style Follow terminology");
   assert.match(twitterContainerSource, /toLocaleString\("en-US"/, "Twitter profile counts must use full en-US integer grouping");
   assert.match(deviceCssSource, /\.twitter-profile-stats \{[^}]*grid-template-columns: repeat\(2,/, "Twitter Profile stats must use a 2-column grid");
-  assert.match(deviceCssSource, /\.twitter-container \{[^}]*display: grid;[^}]*grid-template-rows: 44px minmax\(0,1fr\) 49px;/, "Twitter shell must reserve a stable header/content/footer grid");
+  assert.match(deviceCssSource, /\.twitter-container \{[^}]*display: grid;[^}]*grid-template-rows: 44px minmax\(0,1fr\) 43px;/, "Twitter shell must reserve the measured 44/373/43 header/content/footer grid");
   assert.match(deviceCssSource, /\.twitter-container > nav \{ grid-row: 3; \}/, "Twitter tab bar must remain in the fixed third shell row");
+  assert.match(deviceCssSource, /\.twitter-tab-bar \{[^}]*height: 43px;[^}]*grid-template-columns: repeat\(5,64px\);/, "Twitter must retain five fixed icon-only 64-point tab slots in a 43-point body");
+  assert.match(deviceCssSource, /\.twitter-tab-bar button\[aria-current="page"\]::before \{[^}]*top: -7px;[^}]*width: 14px; height: 7px;/, "Twitter selected tabs must retain the conservative six-to-seven-point upper pointer");
+  assert.match(twitterContainerSource, /<span className="twitter-tab-icon" aria-hidden="true" \/>/, "Twitter tabs must render reconstructed icon artwork instead of visible text labels");
+  assert.equal(twitterChromeSources.every(source => source.includes("RECONSTRUCTED_FROM_PERIOD_SCREENSHOT")), true, "every Twitter chrome asset must retain explicit screenshot-reconstruction provenance");
+  assert.match(deviceCssSource, /\.twitter-account-button \{ left: 5px; width: 75px;/, "Twitter Accounts must retain the measured 75-point navigation frame");
+  assert.match(deviceCssSource, /\.twitter-compose-button \{ right: 5px; width: 34px;/, "Twitter Compose must retain the measured 34-point icon-control frame");
+  assert.match(deviceCssSource, /\.twitter-back-button \{ left: 5px; min-width: 70px;[^}]*twitter-back-control-2010-reconstructed\.svg/, "Twitter Back controls must use the local reconstructed chevron material");
+  assert.match(twitterContainerSource, /\{state\.currentView === "composer" && <>/, "Twitter Composer navigation must mount from the active view regardless of originating tab");
+  assert.match(twitterContainerSource, /\{state\.currentView === "composer" && <TwitterComposer/, "Twitter Composer content must mount from the active view regardless of originating tab");
+  assert.doesNotMatch(twitterContainerSource, /state\.activeTab === "timeline" && state\.currentView === "composer"/, "Twitter Composer rendering must not regress to Timeline-only gating");
   assert.match(deviceCssSource, /\.twitter-social-list \{ position: relative; inset: auto; overflow-y: auto;/, "Mentions and Messages must scroll inside the bounded content row");
   assert.match(twitterContainerSource, /selectTwitterMentionsUnreadCount\(state\)/, "Mentions tab indicator must derive from unread records");
   assert.match(twitterContainerSource, /selectTwitterDirectMessagesUnreadCount\(state\)/, "Messages tab indicator must derive from unread records");
-  assert.match(deviceCssSource, /\.twitter-tab-unread-indicator \{[^}]*background: #2d83b4;/, "Twitter unread treatment must remain a small blue period-style indicator");
+  assert.match(deviceCssSource, /\.twitter-tab-unread-indicator \{[^}]*left: 50%; bottom: 2px; width: 13px; height: 4px;[^}]*radial-gradient\(ellipse,#70e9ff/, "Twitter unread treatment must remain an icon-associated electric-blue dock indicator");
   const profileStatsSource = twitterContainerSource.match(/<section className="twitter-profile-stats"[\s\S]*?<\/section>/)?.[0] ?? "";
   assert.ok(
     profileStatsSource.indexOf("following") < profileStatsSource.indexOf("tweets")

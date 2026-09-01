@@ -42,6 +42,7 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
   const followingPeople = selectTwitterFollowingUsers(state, sessionIdentity.name).map(user => ({
     ...user,
     following: true,
+    subtitle: "",
   }));
   const simulatedSecond = Math.max(0, Math.floor((currentDeviceDateTime.getTime() - Date.parse(SESSION_START_ISO)) / 1000));
   const selectedProfile: TwitterUserProfile = selectTwitterUserProfile(
@@ -88,9 +89,9 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
         <strong>Profile</strong>
       </>}
       {state.activeTab === "search" && state.currentView === "searchLanding" && <strong>Search</strong>}
-      {state.activeTab === "search" && (state.currentView === "suggestedUsers" || state.currentView === "following") && <>
+      {state.activeTab === "search" && state.currentView === "suggestedUsers" && <>
         <button type="button" className="twitter-back-button" onClick={() => dispatch({ type: "BACK_TO_SEARCH" })}>Search</button>
-        <strong>{state.currentView === "following" ? "Following" : "Suggested Users"}</strong>
+        <strong>Suggested Users</strong>
       </>}
       {state.activeTab === "search" && state.currentView === "userProfile" && <>
         <button type="button" className="twitter-back-button" onClick={() => dispatch({ type: "BACK_FROM_PROFILE" })}>Back</button>
@@ -100,6 +101,10 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
       {state.activeTab === "more" && state.currentView === "userProfile" && <>
         <button type="button" className="twitter-back-button" onClick={() => dispatch({ type: "BACK_FROM_PROFILE" })}>More</button>
         <strong>Profile</strong>
+      </>}
+      {state.currentView === "profileFollowing" && <>
+        <button type="button" className="twitter-back-button" onClick={() => dispatch({ type: "BACK_FROM_PROFILE_FOLLOWING" })}>Profile</button>
+        <strong>Following</strong>
       </>}
       {state.currentView === "composer" && <>
         <button type="button" className="twitter-close-button" onClick={() => dispatch({ type: "CANCEL_REPLY" })}>Close</button>
@@ -196,12 +201,11 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
       }}
     />}
 
-    {state.activeTab === "search" && state.currentView === "following" && <TwitterPeopleList
+    {state.currentView === "profileFollowing" && state.selectedUserId === "session-owner" && <TwitterPeopleList
       label="Following"
       users={followingPeople}
       scrollPosition={state.followingScrollPosition}
       onScroll={scrollPosition => dispatch({ type: "SET_PEOPLE_SCROLL_POSITION", view: "following", scrollPosition })}
-      onOpenProfile={(profileId, scrollPosition) => dispatch({ type: "OPEN_USER_PROFILE_BY_ID", profileId, originView: "following", scrollPosition })}
       onToggleFollow={profileId => {
         dispatch({ type: "SET_FOLLOW", profileId, following: !state.followedUserIds.includes(profileId) });
       }}
@@ -477,13 +481,14 @@ function TwitterDMThread({ thread, onOpenLinkedTweet }: { thread: TwitterState["
   return <section className="twitter-dm-thread" aria-label={`Direct messages with ${thread.sender}`}>{thread.messages.map(message => <article key={message.id}><p>{message.text}</p>{message.linkedTweetId && <button type="button" onClick={() => onOpenLinkedTweet(message.linkedTweetId!)}>View Tweet</button>}</article>)}</section>;
 }
 
-function TwitterPeopleList({ label, users, scrollPosition, onScroll, onOpenProfile, onToggleFollow }: {
+function TwitterPeopleList({ label, users, scrollPosition, onScroll, onOpenProfile, onToggleFollow, emptyStateCopy }: {
   label: string;
   users: Array<TwitterSuggestedUser & { following: boolean }>;
   scrollPosition: number;
   onScroll: (scrollPosition: number) => void;
-  onOpenProfile: (profileId: string, scrollPosition: number) => void;
+  onOpenProfile?: (profileId: string, scrollPosition: number) => void;
   onToggleFollow: (profileId: string) => void;
+  emptyStateCopy?: string;
 }) {
   const listRef = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
@@ -495,16 +500,23 @@ function TwitterPeopleList({ label, users, scrollPosition, onScroll, onOpenProfi
     aria-label={label}
     onScroll={event => onScroll(event.currentTarget.scrollTop)}
   >
-    {users.length === 0 && <p className="twitter-people-empty">No accounts followed.</p>}
+    {users.length === 0 && emptyStateCopy && <p className="twitter-people-empty">{emptyStateCopy}</p>}
     {users.map(user => <article key={user.id} className="twitter-person-row" data-provenance={user.provenance}>
-      <button type="button" className="twitter-person-profile" onClick={() => onOpenProfile(user.id, listRef.current?.scrollTop ?? scrollPosition)}>
+      {onOpenProfile ? <button type="button" className="twitter-person-profile" onClick={() => onOpenProfile(user.id, listRef.current?.scrollTop ?? scrollPosition)}>
         <span className="twitter-avatar-fixture" data-avatar-status={user.avatarStatus}>{user.avatarSeed}</span>
         <span className="twitter-person-copy">
           <strong>{user.displayName}</strong>
           <small>{user.handle}</small>
-          <span>{user.subtitle}</span>
+          {user.subtitle && <span>{user.subtitle}</span>}
         </span>
-      </button>
+      </button> : <div className="twitter-person-profile">
+        <span className="twitter-avatar-fixture" data-avatar-status={user.avatarStatus}>{user.avatarSeed}</span>
+        <span className="twitter-person-copy">
+          <strong>{user.displayName}</strong>
+          <small>{user.handle}</small>
+          {user.subtitle && <span>{user.subtitle}</span>}
+        </span>
+      </div>}
       <button type="button" className="twitter-follow-button" aria-pressed={user.following} onClick={() => onToggleFollow(user.id)}>
         {user.following ? "UNFOLLOW" : "FOLLOW"}
       </button>

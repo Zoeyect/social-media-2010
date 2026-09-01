@@ -1312,14 +1312,22 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(twitter.selectTwitterUserProfile(followGraphState, "npr", "Zoey").following, true, "Suggested list and Profile must share one follow graph");
   const duplicateFollow = twitter.twitterStateTransition(followGraphState, { type: "SET_FOLLOW", profileId: "npr", following: true });
   assert.strictEqual(duplicateFollow, followGraphState, "repeated Follow must be idempotent");
+  followGraphState = twitter.twitterStateTransition(followGraphState, { type: "SHOW_TAB", tab: "search" });
+  followGraphState = twitter.twitterStateTransition(followGraphState, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "searchLanding" });
   followGraphState = twitter.twitterStateTransition(followGraphState, { type: "OPEN_FOLLOWING" });
-  assert.equal(followGraphState.currentView, "following");
+  assert.deepEqual(
+    [followGraphState.activeTab, followGraphState.currentView, followGraphState.selectedUserId, followGraphState.profileOriginView],
+    ["search", "profileFollowing", "session-owner", "searchLanding"],
+    "Following must be a Profile-owned child that preserves the selected owner and original Profile origin",
+  );
   assert.ok(twitter.selectTwitterFollowingUsers(followGraphState, "Zoey").some(user => user.id === "npr"));
   followGraphState = twitter.twitterStateTransition(followGraphState, { type: "SET_PEOPLE_SCROLL_POSITION", view: "following", scrollPosition: 61 });
-  followGraphState = twitter.twitterStateTransition(followGraphState, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "npr", originView: "following", scrollPosition: 64 });
-  followGraphState = twitter.twitterStateTransition(followGraphState, { type: "BACK_FROM_PROFILE" });
-  assert.equal(followGraphState.currentView, "following");
-  assert.equal(followGraphState.followingScrollPosition, 64, "Following Profile Back must restore the captured list position");
+  followGraphState = twitter.twitterStateTransition(followGraphState, { type: "BACK_FROM_PROFILE_FOLLOWING" });
+  assert.deepEqual(
+    [followGraphState.activeTab, followGraphState.currentView, followGraphState.selectedUserId, followGraphState.profileOriginView, followGraphState.followingScrollPosition],
+    ["search", "userProfile", "session-owner", "searchLanding", 61],
+    "Profile Following Back must restore the same owner Profile and retain its original Search origin",
+  );
   followGraphState = twitter.twitterStateTransition(followGraphState, { type: "SET_FOLLOW", profileId: "npr", following: false });
   assert.equal(twitter.selectTwitterUserProfile(followGraphState, "session-owner", "Zoey").followingCount, baselineFollowingCount);
   assert.equal(followGraphState.followedUserIds.includes("npr"), false);
@@ -1330,12 +1338,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(twitter.selectTwitterUserProfile(universalFollowState, "june", "Zoey").followerCount, 221, "an initially-unfollowed target gains one displayed follower");
   assert.ok(twitter.selectTwitterFollowingUsers(universalFollowState, "Zoey").some(user => user.id === "june"), "universal follows must appear in Following");
   assert.equal(twitter.selectTwitterUserProfile(universalFollowState, "session-owner", "Zoey").followingCount, baselineFollowingCount + 1);
-  const universalFollowingProfile = twitter.twitterStateTransition(
-    twitter.twitterStateTransition(universalFollowState, { type: "OPEN_FOLLOWING" }),
-    { type: "OPEN_USER_PROFILE_BY_ID", profileId: "june", originView: "following", scrollPosition: 88 },
+  assert.deepEqual(
+    twitter.selectTwitterFollowingUsers(universalFollowState, "Zoey").map(user => user.id),
+    universalFollowState.followedUserIds,
+    "owner Following must enumerate exactly the canonical followedUserIds graph, including profiles outside Suggested Users",
   );
-  assert.equal(universalFollowingProfile.selectedUserId, "june", "Following must open profiles that are outside Suggested Users");
-  assert.equal(universalFollowingProfile.followingScrollPosition, 88);
   const repeatedUniversalFollow = twitter.twitterStateTransition(universalFollowState, { type: "SET_FOLLOW", profileId: "june", following: true });
   assert.strictEqual(repeatedUniversalFollow, universalFollowState, "universal Follow must remain idempotent");
   assert.equal(twitter.selectTwitterUserProfile(repeatedUniversalFollow, "june", "Zoey").followerCount, 221, "repeated Follow must not stack follower deltas");
@@ -1431,6 +1438,76 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     "C3a More-origin Profile to Mentions tab must select Mentions root",
   );
   assertRootNavigationPreservesTwitterData(moreProfileToMentions, moreProfileState, "C3a More Profile to Mentions root");
+  const moreProfileFollowing = twitter.twitterStateTransition(moreProfileState, { type: "OPEN_FOLLOWING" });
+  assert.deepEqual(
+    [moreProfileFollowing.activeTab, moreProfileFollowing.currentView, moreProfileFollowing.selectedUserId, moreProfileFollowing.profileOriginView],
+    ["more", "profileFollowing", "session-owner", "more"],
+    "C2b-2 More-origin owner Profile must open a Profile-owned Following child without destroying Profile identity or origin",
+  );
+  assertRootNavigationPreservesTwitterData(moreProfileFollowing, moreProfileState, "C2b-2 More Profile to Following");
+  const moreFollowingBack = twitter.twitterStateTransition(moreProfileFollowing, { type: "BACK_FROM_PROFILE_FOLLOWING" });
+  assert.deepEqual(
+    [moreFollowingBack.activeTab, moreFollowingBack.currentView, moreFollowingBack.selectedUserId, moreFollowingBack.profileOriginView],
+    ["more", "userProfile", "session-owner", "more"],
+    "C2b-2 Following Back must restore the same More-origin owner Profile",
+  );
+  const moreFollowingSecondBack = twitter.twitterStateTransition(moreFollowingBack, { type: "BACK_FROM_PROFILE" });
+  assert.deepEqual(
+    [moreFollowingSecondBack.activeTab, moreFollowingSecondBack.currentView, moreFollowingSecondBack.selectedUserId, moreFollowingSecondBack.profileOriginView],
+    ["more", "more", null, null],
+    "C2b-2 the second Back step must restore More root",
+  );
+  let searchProfileFollowing = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "search" });
+  searchProfileFollowing = twitter.twitterStateTransition(searchProfileFollowing, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "searchLanding" });
+  searchProfileFollowing = twitter.twitterStateTransition(searchProfileFollowing, { type: "OPEN_FOLLOWING" });
+  assert.deepEqual(
+    [searchProfileFollowing.activeTab, searchProfileFollowing.currentView, searchProfileFollowing.selectedUserId, searchProfileFollowing.profileOriginView],
+    ["search", "profileFollowing", "session-owner", "searchLanding"],
+    "C2b-2 Search-origin owner Profile must retain Search as the Profile origin inside Following",
+  );
+  const searchFollowingBack = twitter.twitterStateTransition(searchProfileFollowing, { type: "BACK_FROM_PROFILE_FOLLOWING" });
+  const searchFollowingSecondBack = twitter.twitterStateTransition(searchFollowingBack, { type: "BACK_FROM_PROFILE" });
+  assert.deepEqual(
+    [searchFollowingBack.currentView, searchFollowingBack.selectedUserId, searchFollowingBack.profileOriginView],
+    ["userProfile", "session-owner", "searchLanding"],
+    "C2b-2 Search-origin Following Back must restore the same owner Profile",
+  );
+  assert.deepEqual(
+    [searchFollowingSecondBack.activeTab, searchFollowingSecondBack.currentView, searchFollowingSecondBack.selectedUserId, searchFollowingSecondBack.profileOriginView],
+    ["search", "searchLanding", null, null],
+    "C2b-2 the second Search-origin Back step must restore Search root",
+  );
+  let timelineProfileFollowing = twitter.twitterStateTransition(rootNavigationBaseline, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "timeline" });
+  timelineProfileFollowing = twitter.twitterStateTransition(timelineProfileFollowing, { type: "OPEN_FOLLOWING" });
+  const timelineFollowingBack = twitter.twitterStateTransition(timelineProfileFollowing, { type: "BACK_FROM_PROFILE_FOLLOWING" });
+  assert.deepEqual(
+    [timelineFollowingBack.activeTab, timelineFollowingBack.currentView, timelineFollowingBack.selectedUserId, timelineFollowingBack.profileOriginView],
+    ["timeline", "userProfile", "session-owner", "timeline"],
+    "C2b-2 Timeline-origin Following Back must restore the same owner Profile and Timeline origin",
+  );
+  const externalProfile = twitter.twitterStateTransition(rootNavigationBaseline, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "june", originView: "timeline" });
+  assert.strictEqual(
+    twitter.twitterStateTransition(externalProfile, { type: "OPEN_FOLLOWING" }),
+    externalProfile,
+    "C2b-2 external Profile Following statistics must remain inert at the reducer boundary",
+  );
+  for (const [tab, rootView] of [["timeline", "timeline"], ["mentions", "mentions"], ["messages", "messagesList"], ["search", "searchLanding"], ["more", "more"]]) {
+    const rootFromProfileFollowing = twitter.twitterStateTransition(moreProfileFollowing, { type: "SHOW_TAB", tab });
+    assert.deepEqual(
+      [rootFromProfileFollowing.activeTab, rootFromProfileFollowing.currentView, rootFromProfileFollowing.selectedUserId, rootFromProfileFollowing.profileOriginView],
+      [tab, rootView, null, null],
+      `C2b-2 Profile Following to ${tab} tab must select its strict root and clear Profile-child state`,
+    );
+    assertRootNavigationPreservesTwitterData(rootFromProfileFollowing, moreProfileFollowing, `C2b-2 Profile Following to ${tab} root`);
+  }
+  const truthfulFollowingIds = twitter.selectTwitterFollowingUsers(moreProfileFollowing, "Zoey").map(user => user.id);
+  assert.deepEqual(truthfulFollowingIds, moreProfileFollowing.followedUserIds, "C2b-2 Following rows must map one-to-one to actual followedUserIds without fabricated identities");
+  const c2bFollowAdded = twitter.twitterStateTransition(moreProfileFollowing, { type: "SET_FOLLOW", profileId: "june", following: true });
+  assert.deepEqual(twitter.selectTwitterFollowingUsers(c2bFollowAdded, "Zoey").map(user => user.id), c2bFollowAdded.followedUserIds, "C2b-2 existing Follow must add exactly the truthful graph-backed row");
+  const c2bFollowRemoved = twitter.twitterStateTransition(c2bFollowAdded, { type: "SET_FOLLOW", profileId: "june", following: false });
+  assert.deepEqual(c2bFollowRemoved.followedUserIds, moreProfileFollowing.followedUserIds, "C2b-2 Unfollow must remove only the selected truthful row");
+  const c2bReset = twitter.twitterStateTransition(c2bFollowAdded, { type: "RESET", displayName: "Alex" });
+  assert.deepEqual(c2bReset.followedUserIds, twitter.createInitialTwitterState("Alex").followedUserIds, "C2b-2 RESET must restore the canonical owner Following graph");
   let searchCompatibilityState = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "search" });
   searchCompatibilityState = twitter.twitterStateTransition(searchCompatibilityState, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "searchLanding" });
   searchCompatibilityState = twitter.twitterStateTransition(searchCompatibilityState, { type: "BACK_FROM_PROFILE" });
@@ -1483,9 +1560,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const suggestedToMoreRoot = twitter.twitterStateTransition(suggestedRootOrigin, { type: "SHOW_TAB", tab: "more" });
   assert.deepEqual([suggestedToMoreRoot.activeTab, suggestedToMoreRoot.currentView], ["more", "more"], "Suggested Users to More tab must select More root");
   assertRootNavigationPreservesTwitterData(suggestedToMoreRoot, suggestedRootOrigin, "Suggested Users to More");
-  let followingRootOrigin = twitter.twitterStateTransition(rootNavigationBaseline, { type: "OPEN_FOLLOWING" });
+  let followingRootOrigin = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "more" });
+  followingRootOrigin = twitter.twitterStateTransition(followingRootOrigin, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "more" });
+  followingRootOrigin = twitter.twitterStateTransition(followingRootOrigin, { type: "OPEN_FOLLOWING" });
   const followingToMoreRoot = twitter.twitterStateTransition(followingRootOrigin, { type: "SHOW_TAB", tab: "more" });
-  assert.deepEqual([followingToMoreRoot.activeTab, followingToMoreRoot.currentView], ["more", "more"], "Following to More tab must select More root");
+  assert.deepEqual([followingToMoreRoot.activeTab, followingToMoreRoot.currentView, followingToMoreRoot.selectedUserId, followingToMoreRoot.profileOriginView], ["more", "more", null, null], "Profile Following child to More tab must select More root and clear child state");
   assertRootNavigationPreservesTwitterData(followingToMoreRoot, followingRootOrigin, "Following to More");
   let programmaticComposerRoot = twitter.twitterStateTransition(tweetDetailRootOrigin, { type: "BEGIN_REPLY", tweetId: "still-awake" });
   programmaticComposerRoot = twitter.twitterStateTransition(programmaticComposerRoot, { type: "EDIT_REPLY", value: "@june draft" });
@@ -3411,6 +3490,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.twitter-profile-stats \{ width: 300px; height: 90px; margin: 9px 9px 0;[^}]*grid-template-columns: repeat\(2, minmax\(0,1fr\)\); grid-template-rows: repeat\(2,minmax\(0,1fr\)\);/, "C2a Profile stats must use the reconstructed 300-by-90 two-by-two geometry");
   assert.match(deviceCssSource, /\.twitter-profile-stats strong \{[^}]*font-size: 21px; font-weight: 700; line-height: 23px;[^}]*\}[\s\S]*?\.twitter-profile-stats span \{[^}]*color: #36779c; font-size: 12px;[^}]*line-height: 14px;/, "C2a statistics must use reconstructed 21/23 number and 12/14 label typography");
   assert.match(deviceCssSource, /\.twitter-profile-control button,\.twitter-follow-button \{ height: 27px; padding: 0 8px;/, "C2a must leave the existing Follow control geometry unchanged for C2b");
+  assert.match(twitterContainerSource, /state\.currentView === "profileFollowing"[\s\S]*BACK_FROM_PROFILE_FOLLOWING[\s\S]*>Profile<\/button>[\s\S]*<strong>Following<\/strong>/, "C2b-2 Profile Following must use the existing Back silhouette with reconstructed Profile wording and a Following title");
+  assert.match(twitterContainerSource, /state\.currentView === "profileFollowing" && state\.selectedUserId === "session-owner"[\s\S]*label="Following"[\s\S]*users=\{followingPeople\}/, "C2b-2 must mount the truthful Following collection only for the selected session owner");
+  assert.match(twitterContainerSource, /const followingPeople = selectTwitterFollowingUsers\(state, sessionIdentity\.name\)\.map\(user => \(\{[\s\S]*subtitle: "",/, "C2b-2 Following rows must omit Suggested Users category and generic placeholder subtitles");
+  assert.match(twitterProfileSource, /<button type="button" disabled=\{!sessionOwner\} onClick=\{sessionOwner \? onOpenFollowing : undefined\}>/, "C2b-2 Following statistics must remain interactive only for the session owner");
+  assert.doesNotMatch(twitterContainerSource, /profileFollowing[\s\S]{0,500}No accounts followed\./, "C2b-2 owner Following must not expose unsupported empty-state copy");
   assert.match(twitterContainerSource, /UNFOLLOW/, "Suggested Users and Profile must expose period-style Follow terminology");
   assert.match(twitterContainerSource, /toLocaleString\("en-US"/, "Twitter profile counts must use full en-US integer grouping");
   assert.match(deviceCssSource, /\.twitter-profile-stats \{[^}]*grid-template-columns: repeat\(2,/, "Twitter Profile stats must use a 2-column grid");

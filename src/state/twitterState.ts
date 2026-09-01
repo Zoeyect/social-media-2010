@@ -3,8 +3,8 @@ import type { ContentOrigin } from "../data/sessionSeedContent";
 import type { CoreSocialFriendId } from "../data/coreSocialFriends";
 
 export type TwitterTab = "timeline" | "mentions" | "messages" | "search" | "more";
-export type TwitterView = "timeline" | "tweetDetail" | "composer" | "userProfile" | "searchLanding" | "suggestedUsers" | "following" | "mentions" | "messagesList" | "dmThread" | "more";
-export type TwitterProfileOrigin = "timeline" | "tweetDetail" | "suggestedUsers" | "following" | "searchLanding" | "more";
+export type TwitterView = "timeline" | "tweetDetail" | "composer" | "userProfile" | "profileFollowing" | "searchLanding" | "suggestedUsers" | "mentions" | "messagesList" | "dmThread" | "more";
+export type TwitterProfileOrigin = "timeline" | "tweetDetail" | "suggestedUsers" | "searchLanding" | "more";
 export type TwitterComposerKind = "new" | "reply";
 export type TwitterSuggestedUserProvenance = "PERIOD-EVIDENCE" | "CURATED" | "HOLD";
 export type TwitterHistoricalStatProvenance = "EXACT" | "NEAR-DATE" | "ESTIMATED" | "ESTIMATED-DISPLAY" | "CURATED-FILL";
@@ -335,6 +335,7 @@ export type TwitterEvent =
   | { type: "OPEN_USER_PROFILE_BY_ID"; profileId: string; originView: TwitterProfileOrigin; scrollPosition?: number }
   | { type: "OPEN_SUGGESTED_USERS" }
   | { type: "OPEN_FOLLOWING" }
+  | { type: "BACK_FROM_PROFILE_FOLLOWING" }
   | { type: "BACK_TO_SEARCH" }
   | { type: "SET_PEOPLE_SCROLL_POSITION"; view: "suggestedUsers" | "following"; scrollPosition: number }
   | { type: "SET_FOLLOW"; profileId: string; following: boolean }
@@ -424,7 +425,7 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
           profileOriginView: null,
         };
       }
-      if (state.profileOriginView === "suggestedUsers" || state.profileOriginView === "following" || state.profileOriginView === "searchLanding") {
+      if (state.profileOriginView === "suggestedUsers" || state.profileOriginView === "searchLanding") {
         return {
           ...state,
           activeTab: "search",
@@ -535,14 +536,15 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
         ...(event.originView === "suggestedUsers" && typeof event.scrollPosition === "number"
           ? { suggestedUsersScrollPosition: Math.max(0, event.scrollPosition) }
           : {}),
-        ...(event.originView === "following" && typeof event.scrollPosition === "number"
-          ? { followingScrollPosition: Math.max(0, event.scrollPosition) }
-          : {}),
       };
     case "OPEN_SUGGESTED_USERS":
       return { ...state, activeTab: "search", currentView: "suggestedUsers", selectedUserId: null, profileOriginView: null };
     case "OPEN_FOLLOWING":
-      return { ...state, activeTab: "search", currentView: "following", selectedUserId: null, profileOriginView: null };
+      if (state.currentView !== "userProfile" || state.selectedUserId !== "session-owner") return state;
+      return { ...state, currentView: "profileFollowing" };
+    case "BACK_FROM_PROFILE_FOLLOWING":
+      if (state.currentView !== "profileFollowing" || state.selectedUserId !== "session-owner") return state;
+      return { ...state, currentView: "userProfile" };
     case "BACK_TO_SEARCH":
       return { ...state, activeTab: "search", currentView: "searchLanding", selectedUserId: null, profileOriginView: null };
     case "SET_PEOPLE_SCROLL_POSITION":

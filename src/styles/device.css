@@ -373,6 +373,9 @@ button, input { font: inherit; }
 .twitter-search-landing > button::after { content: "›"; position: absolute; right: 12px; color: #888; font-size: 22px; }
 .twitter-search-landing strong { font-size: 15px; }
 .twitter-search-landing span { color: #777; font-size: 11px; }
+.twitter-more-landing { flex: 1 1 auto; min-height: 0; background: repeating-linear-gradient(90deg,#e7e9eb 0,#e7e9eb 1px,#eef0f1 1px,#eef0f1 3px); }
+.twitter-more-landing > button { position: relative; width: 100%; height: 44px; padding: 0 34px 0 15px; color: #222; border: 0; border-bottom: 1px solid #b8b8b8; background: #fff; font-size: 17px; font-weight: 700; line-height: 20px; text-align: left; }
+.twitter-more-landing > button::after { content: "›"; position: absolute; top: 10px; right: 11px; color: #777; font-size: 22px; font-weight: 700; line-height: 22px; }
 .twitter-people-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: #fff; }
 .twitter-person-row { position: relative; min-height: 64px; border-bottom: 1px solid #bbb; background: #fff; }
 .twitter-person-profile { width: 100%; min-height: 64px; padding: 8px 82px 8px 9px; display: grid; grid-template-columns: 46px minmax(0,1fr); gap: 8px; color: #222; border: 0; background: transparent; text-align: left; }

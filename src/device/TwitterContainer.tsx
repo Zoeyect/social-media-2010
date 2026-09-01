@@ -96,12 +96,17 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
         <button type="button" className="twitter-back-button" onClick={() => dispatch({ type: "BACK_FROM_PROFILE" })}>Back</button>
         <strong>Profile</strong>
       </>}
+      {state.activeTab === "more" && state.currentView === "more" && <strong>More</strong>}
+      {state.activeTab === "more" && state.currentView === "userProfile" && <>
+        <button type="button" className="twitter-back-button" onClick={() => dispatch({ type: "BACK_FROM_PROFILE" })}>More</button>
+        <strong>Profile</strong>
+      </>}
       {state.currentView === "composer" && <>
         <button type="button" className="twitter-close-button" onClick={() => dispatch({ type: "CANCEL_REPLY" })}>Close</button>
         <strong>New Tweet</strong>
         <button type="submit" form="twitter-composer-form" className="twitter-send-button" disabled={!composerCanSend}>Send</button>
       </>}
-      {state.activeTab !== "timeline" && state.activeTab !== "search" && state.currentView !== "composer" && <strong>{tabTitle(state.activeTab)}</strong>}
+      {state.activeTab !== "timeline" && state.activeTab !== "search" && state.activeTab !== "more" && state.currentView !== "composer" && <strong>{tabTitle(state.activeTab)}</strong>}
     </header>
 
     {state.activeTab === "timeline" && state.currentView === "timeline" && <div
@@ -149,7 +154,7 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
     {state.activeTab === "messages" && state.currentView === "messagesList" && <TwitterMessages threads={state.directMessages} scrollPosition={state.messagesScrollPosition} onScroll={scrollPosition => dispatch({ type: "SET_SOCIAL_SCROLL_POSITION", view: "messages", scrollPosition })} onOpen={(threadId, scrollPosition) => dispatch({ type: "OPEN_DIRECT_MESSAGE", threadId, scrollPosition })} />}
     {state.activeTab === "messages" && state.currentView === "dmThread" && <TwitterDMThread thread={state.directMessages.find(thread => thread.id === state.selectedDirectMessageId) ?? null} onOpenLinkedTweet={tweetId => dispatch({ type: "OPEN_LINKED_TWEET", tweetId, origin: "dmThread" })} />}
 
-    {state.currentView === "userProfile" && (state.activeTab === "timeline" || state.activeTab === "search") && <TwitterProfile
+    {state.currentView === "userProfile" && (state.activeTab === "timeline" || state.activeTab === "search" || state.activeTab === "more") && <TwitterProfile
       profile={selectedProfile}
       sessionOwner={state.selectedUserId === "session-owner"}
       onToggleFollow={state.selectedUserId && state.selectedUserId !== "session-owner"
@@ -201,7 +206,9 @@ export function TwitterContainer({ state, dispatch, currentDeviceDateTime, curre
       }}
     />}
 
-    {state.activeTab !== "timeline" && state.activeTab !== "search" && state.activeTab !== "mentions" && state.activeTab !== "messages" && <section className="twitter-tab-shell" aria-label={`${tabTitle(state.activeTab)} shell`} data-content-status="HOLD" />}
+    {state.activeTab === "more" && state.currentView === "more" && <TwitterMoreLanding
+      onOpenProfile={() => dispatch({ type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "more" })}
+    />}
 
     {state.currentView !== "composer" && <TwitterTabBar
       activeTab={state.activeTab}
@@ -441,6 +448,12 @@ function TwitterSearchLanding({ onOpenSuggested, onOpenProfile }: { onOpenSugges
   return <section className="twitter-search-landing" aria-label="Search and discovery">
     <button type="button" onClick={onOpenSuggested}><strong>Suggested Users</strong><span>Browse accounts</span></button>
     <button type="button" onClick={onOpenProfile}><strong>My Profile</strong><span>Account and Following</span></button>
+  </section>;
+}
+
+function TwitterMoreLanding({ onOpenProfile }: { onOpenProfile: () => void }) {
+  return <section className="twitter-more-landing" aria-label="More">
+    <button type="button" onClick={onOpenProfile}>My Profile</button>
   </section>;
 }
 

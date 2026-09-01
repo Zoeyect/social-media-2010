@@ -4,7 +4,7 @@ import type { CoreSocialFriendId } from "../data/coreSocialFriends";
 
 export type TwitterTab = "timeline" | "mentions" | "messages" | "search" | "more";
 export type TwitterView = "timeline" | "tweetDetail" | "composer" | "userProfile" | "searchLanding" | "suggestedUsers" | "following" | "mentions" | "messagesList" | "dmThread" | "more";
-export type TwitterProfileOrigin = "timeline" | "tweetDetail" | "suggestedUsers" | "following" | "searchLanding";
+export type TwitterProfileOrigin = "timeline" | "tweetDetail" | "suggestedUsers" | "following" | "searchLanding" | "more";
 export type TwitterComposerKind = "new" | "reply";
 export type TwitterSuggestedUserProvenance = "PERIOD-EVIDENCE" | "CURATED" | "HOLD";
 export type TwitterHistoricalStatProvenance = "EXACT" | "NEAR-DATE" | "ESTIMATED" | "ESTIMATED-DISPLAY" | "CURATED-FILL";
@@ -415,6 +415,15 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
       if (state.tweetDetailOrigin === "dmThread") return { ...state, activeTab: "messages", currentView: "dmThread", selectedTweetId: null };
       return { ...state, activeTab: "timeline", currentView: "timeline", selectedTweetId: null };
     case "BACK_FROM_PROFILE":
+      if (state.profileOriginView === "more") {
+        return {
+          ...state,
+          activeTab: "more",
+          currentView: "more",
+          selectedUserId: null,
+          profileOriginView: null,
+        };
+      }
       if (state.profileOriginView === "suggestedUsers" || state.profileOriginView === "following" || state.profileOriginView === "searchLanding") {
         return {
           ...state,

@@ -1400,6 +1400,54 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
       `${label}: scroll and revealed Timeline action state must remain unchanged`,
     );
   };
+  const moreRootState = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "more" });
+  assert.deepEqual([moreRootState.activeTab, moreRootState.currentView], ["more", "more"], "C3a More tab must select the explicit More root");
+  assertRootNavigationPreservesTwitterData(moreRootState, rootNavigationBaseline, "C3a More root");
+  const moreProfileState = twitter.twitterStateTransition(moreRootState, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "more" });
+  assert.deepEqual(
+    [moreProfileState.activeTab, moreProfileState.currentView, moreProfileState.selectedUserId, moreProfileState.profileOriginView],
+    ["more", "userProfile", "session-owner", "more"],
+    "C3a More must open the existing session-owner Profile with More as its origin",
+  );
+  assertRootNavigationPreservesTwitterData(moreProfileState, moreRootState, "C3a More to My Profile");
+  const moreProfileBackState = twitter.twitterStateTransition(moreProfileState, { type: "BACK_FROM_PROFILE" });
+  assert.deepEqual(
+    [moreProfileBackState.activeTab, moreProfileBackState.currentView, moreProfileBackState.selectedUserId, moreProfileBackState.profileOriginView],
+    ["more", "more", null, null],
+    "C3a Profile Back must restore More root and clear only transient Profile route state",
+  );
+  assertRootNavigationPreservesTwitterData(moreProfileBackState, moreProfileState, "C3a My Profile Back to More");
+  const moreProfileToTimeline = twitter.twitterStateTransition(moreProfileState, { type: "SHOW_TAB", tab: "timeline" });
+  assert.deepEqual(
+    [moreProfileToTimeline.activeTab, moreProfileToTimeline.currentView, moreProfileToTimeline.selectedUserId, moreProfileToTimeline.profileOriginView],
+    ["timeline", "timeline", null, null],
+    "C3a More-origin Profile to Timeline tab must select Timeline root",
+  );
+  assertRootNavigationPreservesTwitterData(moreProfileToTimeline, moreProfileState, "C3a More Profile to Timeline root");
+  const moreProfileToMentions = twitter.twitterStateTransition(moreProfileState, { type: "SHOW_TAB", tab: "mentions" });
+  assert.deepEqual(
+    [moreProfileToMentions.activeTab, moreProfileToMentions.currentView, moreProfileToMentions.selectedUserId, moreProfileToMentions.profileOriginView],
+    ["mentions", "mentions", null, null],
+    "C3a More-origin Profile to Mentions tab must select Mentions root",
+  );
+  assertRootNavigationPreservesTwitterData(moreProfileToMentions, moreProfileState, "C3a More Profile to Mentions root");
+  let searchCompatibilityState = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "search" });
+  searchCompatibilityState = twitter.twitterStateTransition(searchCompatibilityState, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "searchLanding" });
+  searchCompatibilityState = twitter.twitterStateTransition(searchCompatibilityState, { type: "BACK_FROM_PROFILE" });
+  assert.deepEqual(
+    [searchCompatibilityState.activeTab, searchCompatibilityState.currentView, searchCompatibilityState.selectedUserId, searchCompatibilityState.profileOriginView],
+    ["search", "searchLanding", null, null],
+    "C3a must preserve the temporary Search to My Profile compatibility route",
+  );
+  assertRootNavigationPreservesTwitterData(searchCompatibilityState, rootNavigationBaseline, "C3a Search compatibility route");
+  const moreRouteReset = twitter.twitterStateTransition(moreProfileState, { type: "RESET", displayName: "Alex" });
+  assert.deepEqual(
+    [moreRouteReset.activeTab, moreRouteReset.currentView, moreRouteReset.selectedUserId, moreRouteReset.profileOriginView],
+    ["timeline", "timeline", null, null],
+    "C3a RESET must restore the canonical Twitter root and clear the More-origin Profile route",
+  );
+  assert.deepEqual(moreRouteReset.mentions.map(item => [item.id, item.unread]), [["mention-alex-conan", true], ["mention-chris-thing", false]], "C3a RESET must restore canonical Mention state");
+  assert.deepEqual(moreRouteReset.directMessages.map(item => [item.id, item.unread]), [["dm-katie", true], ["dm-matt", false]], "C3a RESET must restore canonical DM state");
   let profileRootOrigin = twitter.twitterStateTransition(rootNavigationBaseline, { type: "SHOW_TAB", tab: "search" });
   profileRootOrigin = twitter.twitterStateTransition(profileRootOrigin, { type: "OPEN_USER_PROFILE_BY_ID", profileId: "session-owner", originView: "searchLanding" });
   assert.deepEqual([profileRootOrigin.activeTab, profileRootOrigin.currentView, profileRootOrigin.selectedUserId, profileRootOrigin.profileOriginView], ["search", "userProfile", "session-owner", "searchLanding"]);
@@ -3333,6 +3381,10 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(timelineCellSource, /twitter-(?:retweet-card|native-retweet-card|quote-card)/, "Timeline fidelity must not introduce a native Retweet or Quote card");
   assert.doesNotMatch(timelineCellSource, /twitter-tweet-handle/, "Timeline cells must not render a redundant second @handle line");
   assert.match(twitterContainerSource, /Suggested Users/, "Search must expose the period Suggested Users destination");
+  assert.match(twitterContainerSource, /function TwitterMoreLanding[\s\S]*className="twitter-more-landing"[\s\S]*>My Profile<\/button>/, "C3a More root must expose only the canonical My Profile row");
+  assert.doesNotMatch(twitterContainerSource.match(/function TwitterMoreLanding[\s\S]*?\n\}/)?.[0] ?? "", /Favorites|Drafts|Lists|Accounts & Settings|Go to User|Settings|Help|About/, "C3a More root must not add unresolved historical rows");
+  assert.match(twitterContainerSource, /originView: "more"/, "C3a More must open the canonical Profile with an explicit More origin");
+  assert.match(deviceCssSource, /\.twitter-more-landing > button \{[^}]*height: 44px;[^}]*padding: 0 34px 0 15px;[^}]*border-bottom: 1px solid #b8b8b8;[^}]*font-size: 17px;[^}]*line-height: 20px;/, "C3a More row must retain the reconstructed 44-point period table geometry");
   assert.match(twitterContainerSource, /UNFOLLOW/, "Suggested Users and Profile must expose period-style Follow terminology");
   assert.match(twitterContainerSource, /toLocaleString\("en-US"/, "Twitter profile counts must use full en-US integer grouping");
   assert.match(deviceCssSource, /\.twitter-profile-stats \{[^}]*grid-template-columns: repeat\(2,/, "Twitter Profile stats must use a 2-column grid");

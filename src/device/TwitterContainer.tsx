@@ -19,6 +19,12 @@ import { SESSION_START_ISO } from "../state/deviceMachine";
 import type { PublicTwitterEvent, PublicTwitterState } from "../state/publicTwitterState";
 import type { PublicTwitterPendingSubmission } from "../state/publicTwitterState";
 import { composeTwitterTimelineActivities } from "../state/twitterTimelineComposition";
+import composeToolCameraSrc from "../assets/twitter/chrome/twitter-compose-tool-camera-2010-reconstructed.svg";
+import composeToolPhotoLibrarySrc from "../assets/twitter/chrome/twitter-compose-tool-photo-library-2010-reconstructed.svg";
+import composeToolGeotagSrc from "../assets/twitter/chrome/twitter-compose-tool-geotag-2010-reconstructed.svg";
+import composeToolUsernamesSrc from "../assets/twitter/chrome/twitter-compose-tool-usernames-2010-reconstructed.svg";
+import composeToolHashtagsSrc from "../assets/twitter/chrome/twitter-compose-tool-hashtags-2010-reconstructed.svg";
+import composeToolShrinkUrlsSrc from "../assets/twitter/chrome/twitter-compose-tool-shrink-urls-2010-reconstructed.svg";
 
 type TwitterContainerProps = {
   state: TwitterState;
@@ -409,13 +415,13 @@ function TwitterComposer({ identity, value, replyTarget, canSend, onChange, onSu
       </span>
       <span className="twitter-character-count" aria-label={`${140 - value.length} characters remaining`}>{140 - value.length}</span>
     </div>
-    <div className="twitter-composer-tools" aria-label="Compose tools" data-chrome-status="HOLD">
-      <button type="button" disabled>Camera</button>
-      <button type="button" disabled>Photo Library</button>
-      <button type="button" disabled>Geotag</button>
-      <button type="button" disabled>Usernames</button>
-      <button type="button" disabled>Hashtags</button>
-      <button type="button" disabled>Shrink URLs</button>
+    <div className="twitter-composer-tools" aria-hidden="true" data-chrome-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
+      <span className="twitter-compose-tool is-camera"><img src={composeToolCameraSrc} alt="" />Camera</span>
+      <span className="twitter-compose-tool is-photo-library"><img src={composeToolPhotoLibrarySrc} alt="" />Photo Library</span>
+      <span className="twitter-compose-tool is-geotag"><img src={composeToolGeotagSrc} alt="" />Geotag</span>
+      <span className="twitter-compose-tool is-usernames"><img src={composeToolUsernamesSrc} alt="" />Usernames</span>
+      <span className="twitter-compose-tool is-hashtags"><img src={composeToolHashtagsSrc} alt="" />Hashtags</span>
+      <span className="twitter-compose-tool is-shrink-urls"><img src={composeToolShrinkUrlsSrc} alt="" />Shrink URLs</span>
     </div>
   </form>;
 }

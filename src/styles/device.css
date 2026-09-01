@@ -425,8 +425,17 @@ button, input { font: inherit; }
 .twitter-attachments-disclosure { width: 6px; height: 9px; background: #dce6ec; -webkit-mask: url("../assets/twitter/chrome/twitter-compose-disclosure-2010-reconstructed.svg") center / contain no-repeat; mask: url("../assets/twitter/chrome/twitter-compose-disclosure-2010-reconstructed.svg") center / contain no-repeat; }
 .twitter-character-count { box-sizing: border-box; width: 52px; height: 26px; display: grid; grid-template-columns: 10px 1fr; place-items: center; padding: 0 5px 0 3px; color: #f0f4f6; border: 1px solid #364f60; border-radius: 7px; background: linear-gradient(#738a99 0%,#566f80 48%,#405a6b 52%,#304958 100%); box-shadow: inset 0 1px rgba(255,255,255,.32),inset 0 -1px rgba(11,28,39,.35); font-size: 13px; font-weight: 700; line-height: 16px; text-align: center; text-shadow: 0 -1px rgba(0,0,0,.7); }
 .twitter-character-count::before { content: ""; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-right: 5px solid #dce5ea; }
-.twitter-composer-tools { flex: 0 0 92px; display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(2,46px); border-top: 1px solid #111; background: #292929; }
-.twitter-composer-tools button { min-height: 46px; padding: 2px 4px; color: #aaa; border: 0; border-right: 1px solid #171717; border-bottom: 1px solid #171717; background: #303030; font-size: 9px; text-shadow: 0 -1px #000; }
+.twitter-composer-tools { flex: 0 0 92px; width: 320px; height: 92px; display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(2,46px); border-top: 1px solid #253643; background: radial-gradient(circle,rgba(255,255,255,.035) 0 .55px,transparent .7px) 0 0 / 2px 2px,radial-gradient(circle,rgba(0,0,0,.035) 0 .55px,transparent .7px) 1px 1px / 2px 2px,linear-gradient(#526571 0%,#465965 48%,#3d505c 52%,#344752 100%); box-shadow: inset 0 1px rgba(255,255,255,.16),inset 0 -1px rgba(0,0,0,.32); }
+.twitter-compose-tool { min-width: 0; height: 46px; display: grid; grid-template-rows: 31px 13px; place-items: center; align-content: center; color: #e4e9eb; font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 11px; font-weight: 500; line-height: 13px; text-align: center; text-shadow: 0 -1px rgba(0,0,0,.66); }
+.twitter-compose-tool:not(:nth-child(3n)) { border-right: 1px solid rgba(20,36,46,.16); }
+.twitter-compose-tool:nth-child(-n+3) { border-bottom: 1px solid rgba(20,36,46,.18); box-shadow: inset 0 -1px rgba(255,255,255,.025); }
+.twitter-compose-tool > img { display: block; align-self: center; object-fit: contain; opacity: .98; }
+.twitter-compose-tool.is-camera > img { width: 28px; height: 21px; }
+.twitter-compose-tool.is-photo-library > img { width: 30px; height: 24px; }
+.twitter-compose-tool.is-geotag > img { width: 25px; height: 27px; }
+.twitter-compose-tool.is-usernames > img { width: 29px; height: 27px; }
+.twitter-compose-tool.is-hashtags > img { width: 28px; height: 27px; }
+.twitter-compose-tool.is-shrink-urls > img { width: 30px; height: 24px; }
 .twitter-tab-shell { flex: 1 1 auto; min-height: 0; background: #fff; }
 .twitter-social-list { position: relative; inset: auto; overflow-y: auto; background: #fff; }
 .twitter-social-row { width: 100%; min-height: 62px; display: grid; grid-template-columns: 42px 1fr; gap: 8px; padding: 7px 10px; border: 0; border-bottom: 1px solid #c7c7c7; background: #fff; color: #111; text-align: left; }

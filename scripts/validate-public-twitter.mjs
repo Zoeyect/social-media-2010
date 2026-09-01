@@ -203,6 +203,9 @@ try {
   assert.match(appSource, /performCanonicalShutdownReset\(session\.shutdownReason\)/, "outro completion must converge on canonical reset");
   const twitterContainerSource = readFileSync(new URL("../src/device/TwitterContainer.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(twitterContainerSource, /PublicTwitterOutro|Leave a Tweet for other visitors/, "P1d must not modify or enter historical Twitter UI");
+  const outroSource = readFileSync(new URL("../src/device/PublicTwitterOutro.tsx", import.meta.url), "utf8");
+  assert.match(outroSource, /Your Tweet won't be left for other visitors\./, "withdrawn outro must use player-facing project UX wording");
+  assert.doesNotMatch(outroSource, /This Tweet has been withdrawn from this prototype submission\./, "withdrawn outro must not restore implementation-language copy");
 
   console.log("Public Visitor Twitter P1d checks: PASS");
 } finally {

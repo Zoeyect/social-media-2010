@@ -53,7 +53,7 @@ export function PublicTwitterOutro({ state, tweets, selectedTweet, onSelect, onC
       {state.phase === "submitting" && <p>Sending…</p>}
       {state.phase === "success" && <><p>{PUBLIC_TWITTER_OUTRO_COPY.success}</p><button type="button" className="public-twitter-outro-secondary" onClick={onWithdraw}>Withdraw</button><button type="button" className="public-twitter-outro-primary" onClick={onComplete}>Continue</button></>}
       {state.phase === "failed" && <><p>{PUBLIC_TWITTER_OUTRO_COPY.failure}</p><button type="button" className="public-twitter-outro-primary" onClick={onRetry}>Try Again</button><button type="button" className="public-twitter-outro-secondary" onClick={onComplete}>Cancel</button></>}
-      {state.phase === "withdrawn" && <><p>This Tweet has been withdrawn from this prototype submission.</p><button type="button" className="public-twitter-outro-primary" onClick={onComplete}>Continue</button></>}
+      {state.phase === "withdrawn" && <><p>Your Tweet won't be left for other visitors.</p><button type="button" className="public-twitter-outro-primary" onClick={onComplete}>Continue</button></>}
     </div>
   </aside>;
 }

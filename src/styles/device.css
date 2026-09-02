@@ -777,6 +777,15 @@ button, input { font: inherit; }
 .foursquare-quiet-root { min-height: 100%; background: #eef1f1; }
 .foursquare-profile-root { min-height: 74px; padding: 12px; display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 10px; background: #fff; }
 .foursquare-profile-root > strong { color: #286f8b; font-size: 17px; }
+.foursquare-profile-leaderboard-row { width: 100%; height: 44px; padding: 0 12px 0 15px; display: flex; align-items: center; justify-content: space-between; color: #286b87; border: 0; border-top: 1px solid #d2d7d9; border-bottom: 1px solid #aeb8bc; background: linear-gradient(#fff,#f3f5f5); text-align: left; }
+.foursquare-profile-leaderboard-row strong { font-size: 15px; line-height: 18px; }
+.foursquare-profile-leaderboard-row span { color: #87969d; font-size: 22px; font-weight: 400; line-height: 1; }
+.foursquare-leaderboard { height: 100%; margin: 0; padding: 0; overflow-y: auto; list-style: none; background: #fff; }
+.foursquare-leaderboard-row { width: 100%; height: 52px; padding: 0 12px 0 0; display: grid; grid-template-columns: 32px 36px minmax(0,1fr) auto; align-items: center; column-gap: 8px; border-bottom: 1px solid #c4c9cb; background: #fff; }
+.foursquare-leaderboard-row .foursquare-avatar { box-sizing: border-box; width: 36px; height: 36px; }
+.foursquare-leaderboard-rank { color: #53646b; font-size: 13px; line-height: 16px; text-align: center; }
+.foursquare-leaderboard-name { overflow: hidden; color: #286b87; font-size: 15px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.foursquare-leaderboard-score { min-width: 20px; color: #343a3d; font-size: 15px; line-height: 18px; text-align: right; }
 .foursquare-venue-row { width: 100%; min-height: 58px; padding: 7px 8px; display: grid; grid-template-columns: 36px minmax(0, 1fr) 8px; align-items: center; column-gap: 8px; color: #252525; border: 0; border-bottom: 1px solid #b9c2c7; background: #fff; text-align: left; }
 .foursquare-venue-category-icon { width: 36px; height: 36px; display: block; }
 .foursquare-venue-copy { min-width: 0; display: grid; align-content: center; gap: 1px; }

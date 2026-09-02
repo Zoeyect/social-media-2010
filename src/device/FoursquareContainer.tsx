@@ -6,6 +6,7 @@ import todosIcon from "../assets/foursquare/icons/todos-2010-reconstructed.svg";
 import profileIcon from "../assets/foursquare/icons/profile-2010-reconstructed.svg";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import { FOURSQUARE_F1_PERIPHERAL_PEOPLE, FOURSQUARE_F1_REFERENCE_NOW, selectFoursquareVenueTips, type FoursquareCheckinActivity } from "../data/foursquareContent";
+import { buildLeaderboard, type FoursquareLeaderboardEntry } from "../data/foursquareGameModel";
 import { createFoursquareVenueViewModels, type FoursquareVenueViewModel } from "../data/foursquareVenueAdapter";
 import { FOURSQUARE_ROOT_TABS, FoursquareEvent, FoursquareRootTab, FoursquareState, FoursquareVenue } from "../state/foursquareState";
 import { useSessionIdentity } from "../state/sessionIdentity";
@@ -26,10 +27,11 @@ export function FoursquareContainer({ state, dispatch, currentDeviceDateTime }: 
     if (state.currentView === "root" && rootRef.current) rootRef.current.scrollTop = state.rootScrollPositions[state.activeTab];
   }, [state.activeTab, state.currentView, state.rootScrollPositions]);
 
-  const title = state.currentView === "venue" ? state.venueSubview === "summary" ? venue?.name ?? "Venue" : state.venueSubview === "checkIn" ? "Check In" : state.venueSubview === "info" ? "Info" : "Tips" : state.activeTab === "friends" ? "foursquare" : TAB_PRESENTATION[state.activeTab].label;
+  const title = state.currentView === "leaderboard" ? "Leaderboard" : state.currentView === "venue" ? state.venueSubview === "summary" ? venue?.name ?? "Venue" : state.venueSubview === "checkIn" ? "Check In" : state.venueSubview === "info" ? "Info" : "Tips" : state.activeTab === "friends" ? "foursquare" : TAB_PRESENTATION[state.activeTab].label;
   return <section className="foursquare-container" aria-label="Foursquare" data-chrome-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
     <header className="foursquare-navigation-bar">
       {state.currentView === "venue" && <button type="button" onClick={() => dispatch({ type: state.venueSubview === "summary" ? "SHOW_PLACES" : "SHOW_VENUE_SUMMARY" })}>{state.venueSubview === "summary" ? "Places" : venue?.name ?? "Venue"}</button>}
+      {state.currentView === "leaderboard" && <button type="button" onClick={() => dispatch({ type: "SHOW_PROFILE" })}>Profile</button>}
       <strong className={state.activeTab === "friends" && state.currentView === "root" ? "is-wordmark" : ""}>{title}</strong>
     </header>
     <main className="foursquare-content">
@@ -38,9 +40,10 @@ export function FoursquareContainer({ state, dispatch, currentDeviceDateTime }: 
         {state.activeTab === "places" && <PlacesRoot state={state} onOpen={(venueId, scrollPosition) => dispatch({ type: "OPEN_VENUE", venueId, scrollPosition })} scrollHost={rootRef} />}
         {state.activeTab === "tips" && <QuietRoot label="Tips" />}
         {state.activeTab === "todos" && <QuietRoot label="To-Dos" />}
-        {state.activeTab === "profile" && <section className="foursquare-profile-root"><FoursquareAvatar identityId="session-owner" displayName={identity.name} /><strong>{identity.name}</strong></section>}
+        {state.activeTab === "profile" && <><section className="foursquare-profile-root"><FoursquareAvatar identityId="session-owner" displayName={identity.name} /><strong>{identity.name}</strong></section><button type="button" className="foursquare-profile-leaderboard-row" onClick={() => dispatch({ type: "SHOW_LEADERBOARD" })}><strong>Leaderboard</strong><span aria-hidden="true">›</span></button></>}
       </div>}
       {state.currentView === "venue" && venue && venueViewModel && <VenueDetail venue={venue} venueViewModel={venueViewModel} state={state} identityName={identity.name} currentDeviceDateTime={currentDeviceDateTime} dispatch={dispatch} />}
+      {state.currentView === "leaderboard" && <Leaderboard entries={buildLeaderboard(state.pointEvents)} playerDisplayName={identity.name} />}
     </main>
     <nav className="foursquare-tab-bar" aria-label="Foursquare sections">
       {FOURSQUARE_ROOT_TABS.map(tab => <button key={tab} type="button" aria-current={state.activeTab === tab ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_TAB", tab })}>
@@ -48,6 +51,19 @@ export function FoursquareContainer({ state, dispatch, currentDeviceDateTime }: 
       </button>)}
     </nav>
   </section>;
+}
+
+function Leaderboard({ entries, playerDisplayName }: { entries: readonly FoursquareLeaderboardEntry[]; playerDisplayName: string }) {
+  return <ol className="foursquare-leaderboard" aria-label="Leaderboard">{entries.map(entry => {
+    const person = entry.identityId === "session-owner" ? { displayName: playerDisplayName } : entry.identityId === "foursquare-mia" ? FOURSQUARE_F1_PERIPHERAL_PEOPLE[entry.identityId] : CORE_SOCIAL_CHARACTERS[entry.identityId as keyof typeof CORE_SOCIAL_CHARACTERS];
+    if (!person) return null;
+    return <li key={entry.identityId} className="foursquare-leaderboard-row">
+      <strong className="foursquare-leaderboard-rank">#{entry.rank}</strong>
+      <FoursquareAvatar identityId={entry.identityId} displayName={person.displayName} />
+      <strong className="foursquare-leaderboard-name">{person.displayName}</strong>
+      <strong className="foursquare-leaderboard-score">{entry.weeklyPoints}</strong>
+    </li>;
+  })}</ol>;
 }
 
 function FriendsRoot({ activities, venues, onOpenVenue }: { activities: FoursquareCheckinActivity[]; venues: FoursquareVenue[]; onOpenVenue: (venueId: string) => void }) {

@@ -5,7 +5,7 @@ import type { ContentOrigin } from "../data/sessionSeedContent";
 
 export const FOURSQUARE_ROOT_TABS = ["friends", "places", "tips", "todos", "profile"] as const;
 export type FoursquareRootTab = typeof FOURSQUARE_ROOT_TABS[number];
-export type FoursquareView = "root" | "venue";
+export type FoursquareView = "root" | "venue" | "leaderboard";
 export type FoursquareVenueSubview = "summary" | "info" | "tips" | "checkIn";
 export type FoursquareMayorState = "otherUser";
 export type FoursquareCheckInRecord = { checkedIn: true; checkedInBy: string; checkInTimestamp: number; shout: string | null; pointsAwarded: number };
@@ -26,6 +26,8 @@ export type FoursquareEvent =
   | { type: "SHOW_VENUE_INFO" }
   | { type: "SHOW_VENUE_TIPS" }
   | { type: "SHOW_VENUE_CHECK_IN" }
+  | { type: "SHOW_LEADERBOARD" }
+  | { type: "SHOW_PROFILE" }
   | { type: "SET_ROOT_SCROLL_POSITION"; tab: FoursquareRootTab; scrollPosition: number }
   | { type: "EDIT_CHECK_IN_SHOUT"; venueId: string; value: string }
   | { type: "CHECK_IN"; venueId: string; checkedInBy: string; checkInTimestamp: number }
@@ -56,6 +58,8 @@ export function foursquareStateTransition(state: FoursquareState, event: Foursqu
     case "SHOW_VENUE_INFO": return state.currentView === "venue" && state.selectedVenueId ? { ...state, venueSubview: "info" } : state;
     case "SHOW_VENUE_TIPS": return state.currentView === "venue" && state.selectedVenueId ? { ...state, venueSubview: "tips" } : state;
     case "SHOW_VENUE_CHECK_IN": return state.currentView === "venue" && state.selectedVenueId ? { ...state, venueSubview: "checkIn" } : state;
+    case "SHOW_LEADERBOARD": return { ...state, activeTab: "profile", currentView: "leaderboard", venueSubview: "summary", selectedVenueId: null };
+    case "SHOW_PROFILE": return { ...state, activeTab: "profile", currentView: "root", venueSubview: "summary", selectedVenueId: null };
     case "SET_ROOT_SCROLL_POSITION": return { ...state, rootScrollPositions: { ...state.rootScrollPositions, [event.tab]: Math.max(0, event.scrollPosition) } };
     case "EDIT_CHECK_IN_SHOUT":
       if (!state.venues.some(venue => venue.id === event.venueId) || state.checkIns[event.venueId]) return state;

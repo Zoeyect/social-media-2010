@@ -3066,6 +3066,17 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(foursquareVenueDetailSource, /state\.venueSubview === "checkIn"/, "F2b-1 must gate the existing functional form behind the Check In subview");
   assert.match(foursquareVenueDetailSource, /<IOS4Textarea[\s\S]*EDIT_CHECK_IN_SHOUT/, "F2b-1 must preserve the shared textarea and venue-keyed draft event");
   assert.match(foursquareVenueDetailSource, /<form className="foursquare-checkin-form"[\s\S]*type: "CHECK_IN"/, "F2b-1 must preserve the existing Check In submit event");
+  const foursquareCheckInSource = foursquareVenueDetailSource.match(/state\.venueSubview === "checkIn"[\s\S]*?<\/article>/)?.[0] ?? "";
+  assert.match(appSource, /<FoursquareContainer[\s\S]*currentDeviceDateTime=\{deviceDateTime\}/, "F2c-1 must pass the existing simulated device datetime into Foursquare");
+  assert.match(foursquareCheckInSource, /currentDeviceDateTime\.getTime\(\)[\s\S]*type: "CHECK_IN"[\s\S]*checkInTimestamp/, "F2c-1 must freeze the simulated device timestamp at check-in submission");
+  assert.doesNotMatch(foursquareCheckInSource, /Date\.now\(|new Date\(/, "F2c-1 check-in submission must not use the host clock");
+  assert.match(foursquareCheckInSource, /foursquare-checkin-venue-context[\s\S]*venueViewModel\.name[\s\S]*venueViewModel\.categoryLabel/, "F2c-1 must render the truthful text-only venue context");
+  assert.doesNotMatch(foursquareCheckInSource, /address|distance|coordinates|map|mayor|people here/i, "F2c-1 venue context must omit unsupported location and presence claims");
+  assert.match(foursquareCheckInSource, /maxLength=\{140\}[\s\S]*Check-in here/, "F2c-1 must retain the project-canonical shout limit and reconstructed action label");
+  assert.doesNotMatch(foursquareCheckInSource, /Twitter|Facebook|sharing|socialActivities|DELIVER_SOCIAL_ACTIVITY/, "F2c-1 must not invent sharing controls or player social-activity insertion");
+  assert.match(deviceCssSource, /\.foursquare-checkin-venue-context \{[^}]*min-height: 50px;[^}]*padding: 7px 12px;/, "F2c-1 venue context must retain its compact reconstructed geometry");
+  assert.match(deviceCssSource, /\.foursquare-checkin-form textarea \{[^}]*min-height: 72px;[^}]*padding: 7px;/, "F2c-1 shout field must retain its reconstructed geometry");
+  assert.match(deviceCssSource, /\.foursquare-checkin-button \{[^}]*height: 38px;[^}]*margin: 14px 13px 0;[^}]*linear-gradient/, "F2c-1 action must retain its 294x38 effective geometry and skeuomorphic material");
   assert.match(deviceCssSource, /\.foursquare-venue-summary-header \{[^}]*min-height: 62px;[^}]*grid-template-columns: 36px minmax\(0,1fr\);/, "F2b-1 venue identity must use its compact reconstructed header geometry");
   assert.match(foursquareVenueDetailSource, /state\.venueSubview === "info"[\s\S]*Category[\s\S]*venueViewModel\.categoryLabel/, "F2b-2 Info must render only the truthful adapter category");
   assert.match(foursquareVenueDetailSource, /state\.venueSubview === "tips"[\s\S]*tips\.map[\s\S]*tip\.authorDisplayName[\s\S]*tip\.text/, "F2b-2 Tips must render structured author identity and Tip text");

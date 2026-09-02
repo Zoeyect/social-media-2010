@@ -1197,6 +1197,7 @@ export function App() {
           {appRuntime.activeAppId === "foursquare" && <FoursquareContainer
             state={foursquareState}
             dispatch={dispatchFoursquare}
+            currentDeviceDateTime={deviceDateTime}
           />}
           </IOS4KeyboardSystem>
         </AppLaunchContainer>}

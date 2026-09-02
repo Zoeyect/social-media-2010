@@ -12,12 +12,12 @@ import { useSessionIdentity } from "../state/sessionIdentity";
 import { IOS4Textarea } from "./IOS4KeyboardSystem";
 import { FoursquareAvatar } from "./FoursquareAvatar";
 
-type Props = { state: FoursquareState; dispatch: Dispatch<FoursquareEvent> };
+type Props = { state: FoursquareState; dispatch: Dispatch<FoursquareEvent>; currentDeviceDateTime: Date };
 const TAB_PRESENTATION: Readonly<Record<FoursquareRootTab, { label: string; icon: string }>> = Object.freeze({
   friends: { label: "Friends", icon: friendsIcon }, places: { label: "Places", icon: placesIcon }, tips: { label: "Tips", icon: tipsIcon }, todos: { label: "To-Dos", icon: todosIcon }, profile: { label: "Profile", icon: profileIcon },
 });
 
-export function FoursquareContainer({ state, dispatch }: Props) {
+export function FoursquareContainer({ state, dispatch, currentDeviceDateTime }: Props) {
   const identity = useSessionIdentity();
   const rootRef = useRef<HTMLDivElement>(null);
   const venue = state.venues.find(candidate => candidate.id === state.selectedVenueId) ?? null;
@@ -40,7 +40,7 @@ export function FoursquareContainer({ state, dispatch }: Props) {
         {state.activeTab === "todos" && <QuietRoot label="To-Dos" />}
         {state.activeTab === "profile" && <section className="foursquare-profile-root"><FoursquareAvatar identityId="session-owner" displayName={identity.name} /><strong>{identity.name}</strong></section>}
       </div>}
-      {state.currentView === "venue" && venue && venueViewModel && <VenueDetail venue={venue} venueViewModel={venueViewModel} state={state} identityName={identity.name} dispatch={dispatch} />}
+      {state.currentView === "venue" && venue && venueViewModel && <VenueDetail venue={venue} venueViewModel={venueViewModel} state={state} identityName={identity.name} currentDeviceDateTime={currentDeviceDateTime} dispatch={dispatch} />}
     </main>
     <nav className="foursquare-tab-bar" aria-label="Foursquare sections">
       {FOURSQUARE_ROOT_TABS.map(tab => <button key={tab} type="button" aria-current={state.activeTab === tab ? "page" : undefined} onClick={() => dispatch({ type: "SHOW_TAB", tab })}>
@@ -81,7 +81,7 @@ function PlacesRoot({ state, onOpen, scrollHost }: { state: FoursquareState; onO
 
 function QuietRoot({ label }: { label: string }) { return <section className="foursquare-quiet-root" aria-label={label} />; }
 
-function VenueDetail({ venue, venueViewModel, state, identityName, dispatch }: { venue: FoursquareVenue; venueViewModel: FoursquareVenueViewModel; state: FoursquareState; identityName: string; dispatch: Dispatch<FoursquareEvent> }) {
+function VenueDetail({ venue, venueViewModel, state, identityName, currentDeviceDateTime, dispatch }: { venue: FoursquareVenue; venueViewModel: FoursquareVenueViewModel; state: FoursquareState; identityName: string; currentDeviceDateTime: Date; dispatch: Dispatch<FoursquareEvent> }) {
   const tips = selectFoursquareVenueTips(venue.id);
   return <article className={`foursquare-venue-detail is-${state.venueSubview}`} data-content-status={venue.contentStatus} data-fidelity-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
     {state.venueSubview === "summary" && <><header className="foursquare-venue-summary-header"><img src={venueViewModel.categoryIcon} alt="" aria-hidden="true" /><span><strong>{venueViewModel.name}</strong><small>{venueViewModel.categoryLabel}</small></span></header><nav className="foursquare-venue-actions" aria-label={`${venueViewModel.name} actions`}>
@@ -91,7 +91,7 @@ function VenueDetail({ venue, venueViewModel, state, identityName, dispatch }: {
     </nav></>}
     {state.venueSubview === "info" && <section className="foursquare-venue-info" aria-label="Venue information"><div><span>Category</span><strong>{venueViewModel.categoryLabel}</strong></div></section>}
     {state.venueSubview === "tips" && <section className="foursquare-venue-tips" aria-label="Venue tips">{tips.map(tip => <article key={tip.id} className="foursquare-venue-tip" data-content-status={tip.classification}><strong>{tip.authorDisplayName}</strong><p>{tip.text}</p></article>)}</section>}
-    {state.venueSubview === "checkIn" && (state.checkIns[venue.id] ? <section className="foursquare-checkin-confirmation" role="status"><strong>Checked in.</strong><span>{state.checkIns[venue.id].checkedInBy} earned {state.checkIns[venue.id].pointsAwarded} point.</span>{state.checkIns[venue.id].shout && <p>{state.checkIns[venue.id].shout}</p>}</section> : <form className="foursquare-checkin-form" onSubmit={event => { event.preventDefault(); dispatch({ type: "CHECK_IN", venueId: venue.id, checkedInBy: identityName, checkInTimestamp: Date.now() }); }}><label htmlFor={`foursquare-shout-${venue.id}`}>Shout (optional)</label><IOS4Textarea keyboardInputId={`foursquare-shout-${venue.id}`} id={`foursquare-shout-${venue.id}`} maxLength={140} value={state.shoutDrafts[venue.id] ?? ""} onValueChange={value => dispatch({ type: "EDIT_CHECK_IN_SHOUT", venueId: venue.id, value })} /><button className="foursquare-checkin-button" type="submit">Check In</button></form>)}
+    {state.venueSubview === "checkIn" && <><header className="foursquare-checkin-venue-context"><strong>{venueViewModel.name}</strong><small>{venueViewModel.categoryLabel}</small></header>{state.checkIns[venue.id] ? <section className="foursquare-checkin-confirmation" role="status"><strong>Checked in.</strong><span>{state.checkIns[venue.id].checkedInBy} earned {state.checkIns[venue.id].pointsAwarded} point.</span>{state.checkIns[venue.id].shout && <p>{state.checkIns[venue.id].shout}</p>}</section> : <form className="foursquare-checkin-form" onSubmit={event => { event.preventDefault(); const checkInTimestamp = currentDeviceDateTime.getTime(); dispatch({ type: "CHECK_IN", venueId: venue.id, checkedInBy: identityName, checkInTimestamp }); }}><label htmlFor={`foursquare-shout-${venue.id}`}>Shout (optional)</label><IOS4Textarea keyboardInputId={`foursquare-shout-${venue.id}`} id={`foursquare-shout-${venue.id}`} maxLength={140} value={state.shoutDrafts[venue.id] ?? ""} onValueChange={value => dispatch({ type: "EDIT_CHECK_IN_SHOUT", venueId: venue.id, value })} /><button className="foursquare-checkin-button" type="submit">Check-in here</button></form>}</>}
   </article>;
 }
 

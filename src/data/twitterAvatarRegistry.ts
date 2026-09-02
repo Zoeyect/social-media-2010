@@ -1,15 +1,26 @@
 import type { CoreSocialCharacterId } from "./coreSocialFriends";
 import { getSharedCharacterMedia, type SharedCharacterMediaId } from "./sharedCharacterMedia";
 import twitterDefaultEggSrc from "../assets/twitter/avatar/twitter-default-egg-2010-reconstructed.svg";
+import cnn2010AvatarSrc from "../assets/twitter/avatar/public/cnn-2010-reconstructed.png";
+import nasa2010AvatarSrc from "../assets/twitter/avatar/public/nasa-2010-reconstructed.png";
+
+export type TwitterAvatarIdentityId = CoreSocialCharacterId | "cnn" | "nasa";
+export type TwitterAvatarMediaId = SharedCharacterMediaId
+  | "cnn-2010-reconstructed"
+  | "nasa-2010-reconstructed";
+export type TwitterAvatarClassification = "CANONICAL_AVATAR_CANDIDATE"
+  | "RECONSTRUCTED_FROM_PERIOD_SCREENSHOT"
+  | "RECONSTRUCTED_FROM_PERIOD_EVIDENCE";
 
 export type TwitterAvatarRecord = Readonly<{
-  identityId: CoreSocialCharacterId;
-  mediaId: SharedCharacterMediaId;
-  classification: "CANONICAL_AVATAR_CANDIDATE";
+  identityId: TwitterAvatarIdentityId;
+  mediaId: TwitterAvatarMediaId;
+  classification: TwitterAvatarClassification;
   objectPosition: string;
+  src?: string;
 }>;
 
-export const TWITTER_AVATAR_REGISTRY: Readonly<Partial<Record<CoreSocialCharacterId, TwitterAvatarRecord>>> = Object.freeze({
+export const TWITTER_AVATAR_REGISTRY: Readonly<Partial<Record<TwitterAvatarIdentityId, TwitterAvatarRecord>>> = Object.freeze({
   june: Object.freeze({ identityId: "june", mediaId: "june-profile-avatar", classification: "CANONICAL_AVATAR_CANDIDATE", objectPosition: "50% 35%" }),
   matt: Object.freeze({ identityId: "matt", mediaId: "matt-profile-current", classification: "CANONICAL_AVATAR_CANDIDATE", objectPosition: "50% 34%" }),
   jack: Object.freeze({ identityId: "jack", mediaId: "jack-profile-picture", classification: "CANONICAL_AVATAR_CANDIDATE", objectPosition: "50% 35%" }),
@@ -18,6 +29,8 @@ export const TWITTER_AVATAR_REGISTRY: Readonly<Partial<Record<CoreSocialCharacte
   katie: Object.freeze({ identityId: "katie", mediaId: "katie-profile-picture", classification: "CANONICAL_AVATAR_CANDIDATE", objectPosition: "50% 35%" }),
   chris: Object.freeze({ identityId: "chris", mediaId: "chris-profile-picture", classification: "CANONICAL_AVATAR_CANDIDATE", objectPosition: "50% 30%" }),
   luca: Object.freeze({ identityId: "luca", mediaId: "luca-profile-picture", classification: "CANONICAL_AVATAR_CANDIDATE", objectPosition: "50% 50%" }),
+  cnn: Object.freeze({ identityId: "cnn", mediaId: "cnn-2010-reconstructed", classification: "RECONSTRUCTED_FROM_PERIOD_SCREENSHOT", objectPosition: "50% 50%", src: cnn2010AvatarSrc }),
+  nasa: Object.freeze({ identityId: "nasa", mediaId: "nasa-2010-reconstructed", classification: "RECONSTRUCTED_FROM_PERIOD_EVIDENCE", objectPosition: "50% 50%", src: nasa2010AvatarSrc }),
 });
 
 const TEMPORARY_NAME_BRIDGE: Readonly<Record<string, CoreSocialCharacterId>> = Object.freeze({
@@ -40,10 +53,10 @@ const TEMPORARY_NAME_BRIDGE: Readonly<Record<string, CoreSocialCharacterId>> = O
 });
 
 export type ResolvedTwitterAvatar = Readonly<{
-  identityId: CoreSocialCharacterId | "twitter-default";
+  identityId: TwitterAvatarIdentityId | "twitter-default";
   src: string;
-  mediaId: SharedCharacterMediaId | "twitter-default-egg-2010-reconstructed";
-  classification: "CANONICAL_AVATAR_CANDIDATE" | "RECONSTRUCTED_FROM_PERIOD_SCREENSHOT";
+  mediaId: TwitterAvatarMediaId | "twitter-default-egg-2010-reconstructed";
+  classification: TwitterAvatarClassification;
   objectPosition: string;
 }>;
 
@@ -61,7 +74,7 @@ export function resolveTwitterAvatar({ identityId, displayName, allowNameBridge 
   allowNameBridge?: boolean;
 }): ResolvedTwitterAvatar {
   const stableIdentity = identityId && identityId in TWITTER_AVATAR_REGISTRY
-    ? identityId as CoreSocialCharacterId
+    ? identityId as TwitterAvatarIdentityId
     : null;
   const bridgedIdentity = !stableIdentity && allowNameBridge && displayName
     ? TEMPORARY_NAME_BRIDGE[displayName.trim().replace(/^@/, "").toLowerCase()] ?? null
@@ -72,7 +85,7 @@ export function resolveTwitterAvatar({ identityId, displayName, allowNameBridge 
   if (!record) return TWITTER_DEFAULT_AVATAR;
   return Object.freeze({
     identityId: record.identityId,
-    src: getSharedCharacterMedia(record.mediaId).src,
+    src: record.src ?? getSharedCharacterMedia(record.mediaId as SharedCharacterMediaId).src,
     mediaId: record.mediaId,
     classification: record.classification,
     objectPosition: record.objectPosition,

@@ -75,7 +75,9 @@ try {
     ["chris", "chris-profile-picture", "Chris01.PNG", "50% 30%"],
     ["luca", "luca-profile-picture", "Luca.png", "50% 50%"],
   ];
-  assert.deepEqual(Object.values(twitterAvatars.TWITTER_AVATAR_REGISTRY).map(record => [record.identityId, record.mediaId, sharedCharacterMedia.getSharedCharacterMedia(record.mediaId).originalFilename, record.objectPosition]), expectedTwitterAvatars, "Twitter Avatar Pass A must contain exactly the eight approved canonical media mappings and deterministic crops");
+  assert.deepEqual(Object.values(twitterAvatars.TWITTER_AVATAR_REGISTRY)
+    .filter(record => record.classification === "CANONICAL_AVATAR_CANDIDATE")
+    .map(record => [record.identityId, record.mediaId, sharedCharacterMedia.getSharedCharacterMedia(record.mediaId).originalFilename, record.objectPosition]), expectedTwitterAvatars, "Twitter Avatar Pass A must contain exactly the eight approved canonical media mappings and deterministic crops");
   for (const [identityId, mediaId, , objectPosition] of expectedTwitterAvatars) {
     const stable = twitterAvatars.resolveTwitterAvatar({ identityId, displayName: "irrelevant" });
     const bridged = twitterAvatars.resolveTwitterAvatar({ displayName: coreSocialFriends.CORE_SOCIAL_CHARACTERS[identityId].displayName });
@@ -87,9 +89,22 @@ try {
     ["twitter-default", "twitter-default-egg-2010-reconstructed", "RECONSTRUCTED_FROM_PERIOD_SCREENSHOT", "50% 50%"],
     "Twitter Avatar Pass C must expose one centralized reconstructed default descriptor",
   );
-  for (const identityId of ["jay", "dana", "nora", "mia", "marcus", "eli", "claire", "sam", "priya", "eva", "session-owner", "cnn", "nytimes", "nasa", "npr", "time", "bbcworld", "conan-obrien"]) {
+  assert.deepEqual(
+    ["cnn", "nasa"].map(identityId => {
+      const resolved = twitterAvatars.resolveTwitterAvatar({ identityId, displayName: "must-not-drive-resolution" });
+      return [resolved.identityId, resolved.mediaId, resolved.classification, resolved.objectPosition];
+    }),
+    [
+      ["cnn", "cnn-2010-reconstructed", "RECONSTRUCTED_FROM_PERIOD_SCREENSHOT", "50% 50%"],
+      ["nasa", "nasa-2010-reconstructed", "RECONSTRUCTED_FROM_PERIOD_EVIDENCE", "50% 50%"],
+    ],
+    "Pass B1 must resolve only the approved CNN and NASA public-account avatars by stable identity ID",
+  );
+  for (const identityId of ["jay", "dana", "nora", "mia", "marcus", "eli", "claire", "sam", "priya", "eva", "session-owner", "nytimes", "npr", "time", "bbcworld", "conan-obrien"]) {
     assert.equal(twitterAvatars.resolveTwitterAvatar({ identityId, displayName: identityId }).mediaId, "twitter-default-egg-2010-reconstructed", `${identityId} must resolve to the Pass C egg fallback`);
   }
+  assert.equal(twitterAvatars.TWITTER_AVATAR_REGISTRY.nprnews, undefined, "@nprnews period media must not be cross-mapped onto the project's @NPR account");
+  assert.equal(twitterAvatars.TWITTER_AVATAR_REGISTRY.bbcbreaking, undefined, "@bbcbreaking period media must not be cross-mapped onto the project's @BBCWorld account");
   assert.equal(twitterAvatars.resolveTwitterAvatar({ displayName: "June", allowNameBridge: false }).mediaId, "twitter-default-egg-2010-reconstructed", "session-owner and public-visitor resolution must disable the canonical name bridge and use the egg");
   const publicAvatarProbe = twitterTimelineComposition.composeTwitterTimelineActivities([], [{ id: "public-avatar-probe", publicHandle: "june", displayName: "June", body: "probe", simulated2010CreatedAt: "2010-10-20T07:03:00.000Z", simulatedElapsedMs: 60 }], ["public-avatar-probe"], 60)[0];
   assert.deepEqual(publicAvatarProbe.capabilities, { detail: false, profile: false, reply: false, retweet: false, favorite: true }, "egg fallback must not grant public visitors account or Profile capabilities");

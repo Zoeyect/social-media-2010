@@ -5,13 +5,14 @@ import type { ContentOrigin } from "../data/sessionSeedContent";
 export const FOURSQUARE_ROOT_TABS = ["friends", "places", "tips", "todos", "profile"] as const;
 export type FoursquareRootTab = typeof FOURSQUARE_ROOT_TABS[number];
 export type FoursquareView = "root" | "venue";
+export type FoursquareVenueSubview = "summary" | "info" | "tips" | "checkIn";
 export type FoursquareMayorState = "otherUser";
 export type FoursquareCheckInRecord = { checkedIn: true; checkedInBy: string; checkInTimestamp: number; shout: string | null; pointsAwarded: number };
 export type FoursquareVenue = { id: string; name: string; category: string; address: string; distance: string; mayor: string; tip: { id: string; author: string; text: string; origin: ContentOrigin } | null; contentStatus: "HOLD-fictional"; origin: ContentOrigin };
 export type FoursquareRootScrollPositions = Record<FoursquareRootTab, number>;
 
 export type FoursquareState = {
-  activeTab: FoursquareRootTab; currentView: FoursquareView; selectedVenueId: string | null; rootScrollPositions: FoursquareRootScrollPositions;
+  activeTab: FoursquareRootTab; currentView: FoursquareView; venueSubview: FoursquareVenueSubview; selectedVenueId: string | null; rootScrollPositions: FoursquareRootScrollPositions;
   checkIns: Record<string, FoursquareCheckInRecord>; shoutDrafts: Record<string, string>; points: number; mayorState: FoursquareMayorState; earnedBadges: string[]; selectedTipId: string | null;
   venues: FoursquareVenue[]; socialActivities: FoursquareCheckinActivity[]; unreadActivityCount: number;
 };
@@ -20,6 +21,10 @@ export type FoursquareEvent =
   | { type: "SHOW_TAB"; tab: FoursquareRootTab }
   | { type: "OPEN_VENUE"; venueId: string; scrollPosition: number }
   | { type: "SHOW_PLACES" }
+  | { type: "SHOW_VENUE_SUMMARY" }
+  | { type: "SHOW_VENUE_INFO" }
+  | { type: "SHOW_VENUE_TIPS" }
+  | { type: "SHOW_VENUE_CHECK_IN" }
   | { type: "SET_ROOT_SCROLL_POSITION"; tab: FoursquareRootTab; scrollPosition: number }
   | { type: "EDIT_CHECK_IN_SHOUT"; venueId: string; value: string }
   | { type: "CHECK_IN"; venueId: string; checkedInBy: string; checkInTimestamp: number }
@@ -32,7 +37,7 @@ const emptyScrollPositions = (): FoursquareRootScrollPositions => ({ friends: 0,
 
 export function createInitialFoursquareState(): FoursquareState {
   return {
-    activeTab: "friends", currentView: "root", selectedVenueId: null, rootScrollPositions: emptyScrollPositions(),
+    activeTab: "friends", currentView: "root", venueSubview: "summary", selectedVenueId: null, rootScrollPositions: emptyScrollPositions(),
     checkIns: {}, shoutDrafts: {}, points: 0, mayorState: "otherUser", earnedBadges: [], selectedTipId: null,
     venues: SESSION_SEED_CONTENT.foursquare.venues.map(venue => ({ ...venue, tip: venue.tip ? { ...venue.tip } : null, contentStatus: "HOLD-fictional" })),
     socialActivities: FOURSQUARE_F1_CHECKIN_ACTIVITIES.map(activity => ({ ...activity })), unreadActivityCount: 0,
@@ -43,11 +48,15 @@ export const initialFoursquareState = createInitialFoursquareState();
 
 export function foursquareStateTransition(state: FoursquareState, event: FoursquareEvent): FoursquareState {
   switch (event.type) {
-    case "SHOW_TAB": return { ...state, activeTab: event.tab, currentView: "root", selectedVenueId: null, selectedTipId: null };
+    case "SHOW_TAB": return { ...state, activeTab: event.tab, currentView: "root", venueSubview: "summary", selectedVenueId: null, selectedTipId: null };
     case "OPEN_VENUE":
       if (!state.venues.some(venue => venue.id === event.venueId)) return state;
-      return { ...state, activeTab: "places", currentView: "venue", selectedVenueId: event.venueId, selectedTipId: null, rootScrollPositions: { ...state.rootScrollPositions, places: Math.max(0, event.scrollPosition) } };
-    case "SHOW_PLACES": return { ...state, activeTab: "places", currentView: "root", selectedVenueId: null, selectedTipId: null };
+      return { ...state, activeTab: "places", currentView: "venue", venueSubview: "summary", selectedVenueId: event.venueId, selectedTipId: null, rootScrollPositions: { ...state.rootScrollPositions, places: Math.max(0, event.scrollPosition) } };
+    case "SHOW_PLACES": return { ...state, activeTab: "places", currentView: "root", venueSubview: "summary", selectedVenueId: null, selectedTipId: null };
+    case "SHOW_VENUE_SUMMARY": return state.currentView === "venue" && state.selectedVenueId ? { ...state, venueSubview: "summary", selectedTipId: null } : state;
+    case "SHOW_VENUE_INFO": return state.currentView === "venue" && state.selectedVenueId ? { ...state, venueSubview: "info", selectedTipId: null } : state;
+    case "SHOW_VENUE_TIPS": return state.currentView === "venue" && state.selectedVenueId ? { ...state, venueSubview: "tips", selectedTipId: null } : state;
+    case "SHOW_VENUE_CHECK_IN": return state.currentView === "venue" && state.selectedVenueId ? { ...state, venueSubview: "checkIn", selectedTipId: null } : state;
     case "SET_ROOT_SCROLL_POSITION": return { ...state, rootScrollPositions: { ...state.rootScrollPositions, [event.tab]: Math.max(0, event.scrollPosition) } };
     case "EDIT_CHECK_IN_SHOUT":
       if (!state.venues.some(venue => venue.id === event.venueId) || state.checkIns[event.venueId]) return state;

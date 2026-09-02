@@ -784,14 +784,16 @@ button, input { font: inherit; }
 .foursquare-venue-copy small { overflow: hidden; color: #6b6b6b; font-size: 11px; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .foursquare-venue-disclosure { width: 7px; height: 7px; border-top: 2px solid #8b979d; border-right: 2px solid #8b979d; transform: rotate(45deg); }
 .foursquare-venue-detail { flex: 1 1 auto; min-height: 0; padding-bottom: 12px; overflow-y: auto; background: #fff; }
-.foursquare-venue-detail > header { padding: 15px 13px 12px; border-bottom: 1px solid #bbb; }
-.foursquare-venue-detail > header strong { display: block; color: #245f7d; font-size: 19px; }
-.foursquare-venue-detail > header span,.foursquare-venue-detail address { display: block; padding-top: 4px; color: #666; font-size: 12px; font-style: normal; }
-.foursquare-venue-detail dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #bbb; text-align: center; }
-.foursquare-venue-detail dl div { padding: 9px; border-right: 1px solid #bbb; }
-.foursquare-venue-detail dl div:last-child { border-right: 0; }
-.foursquare-venue-detail dt { color: #777; font-size: 10px; text-transform: uppercase; }
-.foursquare-venue-detail dd { margin: 3px 0 0; font-size: 15px; font-weight: bold; }
+.foursquare-venue-summary-header { min-height: 62px; padding: 8px; display: grid; grid-template-columns: 36px minmax(0,1fr); align-items: center; gap: 8px; border-bottom: 1px solid #aeb9be; background: linear-gradient(#f8faf9,#e8edee); }
+.foursquare-venue-summary-header > img { width: 36px; height: 36px; display: block; }
+.foursquare-venue-summary-header > span { min-width: 0; display: grid; align-content: center; }
+.foursquare-venue-summary-header strong { overflow: hidden; color: #245f7d; font-size: 17px; line-height: 20px; white-space: nowrap; text-overflow: ellipsis; }
+.foursquare-venue-summary-header small { color: #666f73; font-size: 11px; line-height: 15px; }
+.foursquare-venue-actions { border-bottom: 1px solid #aeb9be; }
+.foursquare-venue-actions button { width: 100%; height: 42px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; color: #286b87; border: 0; border-bottom: 1px solid #c2c9cc; background: linear-gradient(#fff,#f2f4f4); font-size: 14px; font-weight: 700; text-align: left; }
+.foursquare-venue-actions button:last-child { border-bottom: 0; }
+.foursquare-venue-actions button span { color: #87969d; font-size: 22px; font-weight: 400; line-height: 1; }
+.foursquare-venue-structural-field { min-height: 100%; background: #f5f6f5; }
 .foursquare-tip { padding: 11px 13px; border-bottom: 1px solid #bbb; }
 .foursquare-tip strong { color: #245f7d; font-size: 12px; }
 .foursquare-tip p { margin: 5px 0 0; font-size: 13px; line-height: 17px; }

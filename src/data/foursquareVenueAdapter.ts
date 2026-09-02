@@ -15,6 +15,7 @@ export type FoursquareVenueViewModel = Readonly<{
   categoryLabel: string;
   categoryIcon: string;
   tipIds: readonly string[];
+  mayorCharacterId?: string;
   priorFriendActivityIds: readonly string[];
   currentFriendIds: readonly string[];
   contentStatus: FoursquareVenue["contentStatus"];

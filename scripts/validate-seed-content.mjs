@@ -2113,20 +2113,25 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     checkedInBy: "Zoey",
     checkInTimestamp: 1_287_552_600_000,
   });
+  const firstVenueResult = { venueId: "night-owl", simulatedCreatedAt: 1_287_552_600_000, pointEventIds: ["check-in:night-owl"], pointDelta: 1, weeklyPointsAfter: 1, rankBefore: null, rankAfter: 6, badgeIdsUnlocked: [], mayorshipChange: null };
   assert.deepEqual(foursquarePlayability.checkIns["night-owl"], {
     checkedIn: true,
     checkedInBy: "Zoey",
     checkInTimestamp: 1_287_552_600_000,
     shout: "late coffee",
     pointsAwarded: 1,
+    result: firstVenueResult,
   });
   assert.deepEqual(foursquarePlayability.pointEvents, [{ id: "check-in:night-owl", reason: "check_in", delta: 1, venueId: "night-owl", simulatedCreatedAt: 1_287_552_600_000 }]);
   assert.equal(foursquareGameModel.getPlayerWeeklyPoints(foursquarePlayability.pointEvents), 1);
-  assert.deepEqual(foursquarePlayability.latestCheckinResult, { venueId: "night-owl", simulatedCreatedAt: 1_287_552_600_000, pointEventIds: ["check-in:night-owl"], pointDelta: 1, weeklyPointsAfter: 1, rankBefore: null, rankAfter: 6, badgeIdsUnlocked: [], mayorshipChange: null });
+  assert.deepEqual(foursquarePlayability.latestCheckinResult, firstVenueResult);
+  assert.strictEqual(foursquarePlayability.checkIns["night-owl"].result, foursquarePlayability.latestCheckinResult, "F3c-1 must store the one canonical result snapshot in both latest and venue-keyed state");
+  assert.equal(foursquarePlayability.checkIns["night-owl"].pointsAwarded, foursquarePlayability.checkIns["night-owl"].result.pointDelta, "compatibility pointsAwarded must derive from the frozen result delta");
   assert.equal(foursquarePlayability.venueSubview, "tips", "check-in state changes must not mutate the selected venue subview");
   assert.equal(foursquarePlayability.mayorState, "otherUser", "one check-in must not promote the session owner to Mayor");
   assert.deepEqual(foursquarePlayability.earnedBadges, [], "check-in must not award a badge");
   const afterFirstCheckIn = foursquarePlayability;
+  const firstVenueRecord = afterFirstCheckIn.checkIns["night-owl"];
   assert.deepEqual(foursquareGameModel.buildLeaderboard(afterFirstCheckIn.pointEvents).map(entry => [entry.rank, entry.identityId, entry.weeklyPoints]), [[1, "alex", 18], [2, "katie", 15], [3, "june", 9], [4, "luca", 4], [5, "foursquare-mia", 2], [6, "session-owner", 1]], "F3b first unique check-in must add the player at #6 with 1");
   foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, {
     type: "CHECK_IN",
@@ -2135,6 +2140,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     checkInTimestamp: 1_287_552_660_000,
   });
   assert.strictEqual(foursquarePlayability, afterFirstCheckIn, "duplicate venue check-in must not mutate state or award points");
+  assert.strictEqual(foursquarePlayability.checkIns["night-owl"], firstVenueRecord, "duplicate check-in must not replace its venue record or frozen result");
   assert.deepEqual(foursquareGameModel.buildLeaderboard(foursquarePlayability.pointEvents), foursquareGameModel.buildLeaderboard(afterFirstCheckIn.pointEvents), "F3b duplicate check-in must leave leaderboard output unchanged");
   foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "OPEN_VENUE", venueId: "main-street-diner", scrollPosition: 73 });
   foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, {
@@ -2144,16 +2150,27 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     checkInTimestamp: 1_287_552_720_000,
   });
   assert.equal(foursquarePlayability.checkIns["main-street-diner"].shout, null, "empty shout must still permit check-in");
+  const secondVenueResult = { venueId: "main-street-diner", simulatedCreatedAt: 1_287_552_720_000, pointEventIds: ["check-in:main-street-diner"], pointDelta: 1, weeklyPointsAfter: 2, rankBefore: 6, rankAfter: 6, badgeIdsUnlocked: [], mayorshipChange: null };
+  assert.deepEqual(foursquarePlayability.checkIns["main-street-diner"].result, secondVenueResult, "F3c-1 must freeze Venue B's own result on Venue B");
+  assert.strictEqual(foursquarePlayability.checkIns["main-street-diner"].result, foursquarePlayability.latestCheckinResult, "latestCheckinResult must point to the same Venue B snapshot");
+  assert.strictEqual(foursquarePlayability.checkIns["night-owl"], firstVenueRecord, "Venue A record must remain unchanged after Venue B");
+  assert.deepEqual(foursquarePlayability.checkIns["night-owl"].result, firstVenueResult, "Venue A must retain its original weekly total and rank after Venue B");
   assert.equal(foursquareGameModel.getPlayerWeeklyPoints(foursquarePlayability.pointEvents), 2);
   assert.deepEqual(foursquareGameModel.buildLeaderboard(foursquarePlayability.pointEvents).slice(-2).map(entry => [entry.rank, entry.identityId, entry.weeklyPoints]), [[5, "foursquare-mia", 2], [6, "session-owner", 2]], "F3b frozen tie order must keep Mia above the two-point player");
-  assert.deepEqual(foursquarePlayability.latestCheckinResult, { venueId: "main-street-diner", simulatedCreatedAt: 1_287_552_720_000, pointEventIds: ["check-in:main-street-diner"], pointDelta: 1, weeklyPointsAfter: 2, rankBefore: 6, rankAfter: 6, badgeIdsUnlocked: [], mayorshipChange: null });
+  assert.deepEqual(foursquarePlayability.latestCheckinResult, secondVenueResult);
   foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "CHECK_IN", venueId: "cedar-books", checkedInBy: "Zoey", checkInTimestamp: 1_287_552_780_000 });
   assert.equal(foursquareGameModel.getPlayerWeeklyPoints(foursquarePlayability.pointEvents), 3);
+  const thirdVenueResult = { venueId: "cedar-books", simulatedCreatedAt: 1_287_552_780_000, pointEventIds: ["check-in:cedar-books"], pointDelta: 1, weeklyPointsAfter: 3, rankBefore: 6, rankAfter: 5, badgeIdsUnlocked: [], mayorshipChange: null };
+  assert.deepEqual(foursquarePlayability.checkIns["cedar-books"].result, thirdVenueResult, "F3c-1 must freeze the third venue result at weekly 3 / rank 5");
+  assert.strictEqual(foursquarePlayability.checkIns["cedar-books"].result, foursquarePlayability.latestCheckinResult, "latestCheckinResult must point to the same third-venue snapshot");
+  assert.strictEqual(foursquarePlayability.checkIns["night-owl"], firstVenueRecord, "Venue A must remain immutable after a third result");
+  assert.deepEqual(foursquarePlayability.checkIns["main-street-diner"].result, secondVenueResult, "Venue B must remain frozen after a third result");
   assert.deepEqual(foursquareGameModel.buildLeaderboard(foursquarePlayability.pointEvents).slice(-2).map(entry => [entry.rank, entry.identityId, entry.weeklyPoints]), [[5, "session-owner", 3], [6, "foursquare-mia", 2]], "F3b third unique check-in must rank the player above Mia");
-  assert.deepEqual(foursquarePlayability.latestCheckinResult, { venueId: "cedar-books", simulatedCreatedAt: 1_287_552_780_000, pointEventIds: ["check-in:cedar-books"], pointDelta: 1, weeklyPointsAfter: 3, rankBefore: 6, rankAfter: 5, badgeIdsUnlocked: [], mayorshipChange: null });
+  assert.deepEqual(foursquarePlayability.latestCheckinResult, thirdVenueResult);
   assert.deepEqual(foursquareGameSeed.FOURSQUARE_LEADERBOARD_SEED.map(entry => entry.baseWeeklyPoints), [18, 15, 9, 4, 2], "player scoring must never mutate the friend baseline");
   assert.equal(foursquarePlayability.socialActivities.length, 6, "user check-in must remain separate from ambient seed/live activity");
   const foursquareGameReset = foursquare.foursquareStateTransition(foursquarePlayability, { type: "RESET" });
+  assert.deepEqual(foursquareGameReset.checkIns, {}, "F3c-1 RESET must remove every venue record and frozen result snapshot");
   assert.deepEqual(foursquareGameReset.pointEvents, [], "F3a RESET must clear session point events");
   assert.equal(foursquareGameReset.latestCheckinResult, null, "F3a RESET must clear the frozen result");
   assert.equal(foursquareGameModel.getPlayerWeeklyPoints(foursquareGameReset.pointEvents), 0, "F3a RESET must restore the zero player baseline");
@@ -3117,6 +3134,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(foursquareStateSource, /pointEvents: FoursquarePointEvent\[\]; latestCheckinResult: FoursquareCheckinResult \| null/, "F3a state must store events and its frozen latest result");
   assert.doesNotMatch(foursquareStateSource, /\bpoints:\s*number|points:\s*state\.points|state\.points\s*\+/, "F3a must retire independently mutable aggregate scoring");
   assert.match(foursquareStateSource, /createCheckInPointEvent\(event\.venueId, event\.checkInTimestamp\)[\s\S]*buildCheckinResult\(state\.pointEvents, pointEvent\)/, "F3a CHECK_IN must atomically derive its event and frozen result from the F2c timestamp");
+  assert.match(foursquareStateSource, /const result = buildCheckinResult\(state\.pointEvents, pointEvent\)[\s\S]*pointsAwarded: result\.pointDelta, result \}[\s\S]*latestCheckinResult: result \};/, "F3c-1 must derive compatibility points and both result references from one canonical local snapshot");
+  assert.doesNotMatch(foursquareContainerSource, /checkIns\[venue\.id\]\.result/, "F3c-1 must not expose the new result contract in visible UI yet");
   assert.doesNotMatch(`${foursquareStateSource}\n${foursquareGameModelSource}`, /Date\.now\(|new Date\(|performance\.now\(/, "F3a game chronology must not use a host clock");
   assert.doesNotMatch(foursquareStateSource.match(/case "CHECK_IN":[\s\S]*?case "DELIVER_SOCIAL_ACTIVITY"/)?.[0] ?? "", /socialActivities/, "F3a player check-in must not enter the Friends activity feed");
   assert.match(foursquareStateSource, /type FoursquareView = "root" \| "venue" \| "leaderboard"/, "F3b must add only the dedicated Leaderboard child view");

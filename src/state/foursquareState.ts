@@ -8,7 +8,7 @@ export type FoursquareRootTab = typeof FOURSQUARE_ROOT_TABS[number];
 export type FoursquareView = "root" | "venue" | "leaderboard";
 export type FoursquareVenueSubview = "summary" | "info" | "tips" | "checkIn";
 export type FoursquareMayorState = "otherUser";
-export type FoursquareCheckInRecord = { checkedIn: true; checkedInBy: string; checkInTimestamp: number; shout: string | null; pointsAwarded: number };
+export type FoursquareCheckInRecord = { checkedIn: true; checkedInBy: string; checkInTimestamp: number; shout: string | null; pointsAwarded: number; result: FoursquareCheckinResult };
 export type FoursquareVenue = { id: string; name: string; category: string; address: string; distance: string; mayor: string; contentStatus: "HOLD-fictional"; origin: ContentOrigin };
 export type FoursquareRootScrollPositions = Record<FoursquareRootTab, number>;
 
@@ -67,8 +67,8 @@ export function foursquareStateTransition(state: FoursquareState, event: Foursqu
     case "CHECK_IN": {
       if (!state.venues.some(venue => venue.id === event.venueId) || state.checkIns[event.venueId]) return state;
       const pointEvent = createCheckInPointEvent(event.venueId, event.checkInTimestamp);
-      const latestCheckinResult = buildCheckinResult(state.pointEvents, pointEvent);
-      return { ...state, checkIns: { ...state.checkIns, [event.venueId]: { checkedIn: true, checkedInBy: event.checkedInBy, checkInTimestamp: event.checkInTimestamp, shout: state.shoutDrafts[event.venueId]?.trim() || null, pointsAwarded: latestCheckinResult.pointDelta } }, shoutDrafts: Object.fromEntries(Object.entries(state.shoutDrafts).filter(([venueId]) => venueId !== event.venueId)), pointEvents: [...state.pointEvents, pointEvent], latestCheckinResult };
+      const result = buildCheckinResult(state.pointEvents, pointEvent);
+      return { ...state, checkIns: { ...state.checkIns, [event.venueId]: { checkedIn: true, checkedInBy: event.checkedInBy, checkInTimestamp: event.checkInTimestamp, shout: state.shoutDrafts[event.venueId]?.trim() || null, pointsAwarded: result.pointDelta, result } }, shoutDrafts: Object.fromEntries(Object.entries(state.shoutDrafts).filter(([venueId]) => venueId !== event.venueId)), pointEvents: [...state.pointEvents, pointEvent], latestCheckinResult: result };
     }
     case "DELIVER_SOCIAL_ACTIVITY": {
       if (state.socialActivities.some(activity => activity.id === event.activity.id)) return state;

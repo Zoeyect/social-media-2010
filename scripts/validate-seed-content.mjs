@@ -13,6 +13,7 @@ try {
   const messagesBadge = await vite.ssrLoadModule("/src/state/messagesBadgeState.ts");
   const facebook = await vite.ssrLoadModule("/src/state/facebookState.ts");
   const twitter = await vite.ssrLoadModule("/src/state/twitterState.ts");
+  const twitterTimelineComposition = await vite.ssrLoadModule("/src/state/twitterTimelineComposition.ts");
   const foursquare = await vite.ssrLoadModule("/src/state/foursquareState.ts");
   const tumblr = await vite.ssrLoadModule("/src/state/tumblrState.ts");
   const flickr = await vite.ssrLoadModule("/src/state/flickrState.ts");
@@ -81,10 +82,22 @@ try {
     assert.deepEqual([stable.mediaId, stable.objectPosition], [mediaId, objectPosition], `${identityId} must resolve from its stable identity ID`);
     assert.deepEqual([bridged.mediaId, bridged.objectPosition], [mediaId, objectPosition], `${identityId} temporary name bridge must resolve the identical avatar and crop`);
   }
-  for (const identityId of ["jay", "dana", "nora", "mia", "marcus", "eli", "claire", "sam", "priya", "eva", "session-owner", "cnn", "nytimes", "nasa"]) {
-    assert.equal(twitterAvatars.resolveTwitterAvatar({ identityId, displayName: identityId }), null, `${identityId} must remain on the Pass A fallback`);
+  assert.deepEqual(
+    [twitterAvatars.TWITTER_DEFAULT_AVATAR.identityId, twitterAvatars.TWITTER_DEFAULT_AVATAR.mediaId, twitterAvatars.TWITTER_DEFAULT_AVATAR.classification, twitterAvatars.TWITTER_DEFAULT_AVATAR.objectPosition],
+    ["twitter-default", "twitter-default-egg-2010-reconstructed", "RECONSTRUCTED_FROM_PERIOD_SCREENSHOT", "50% 50%"],
+    "Twitter Avatar Pass C must expose one centralized reconstructed default descriptor",
+  );
+  for (const identityId of ["jay", "dana", "nora", "mia", "marcus", "eli", "claire", "sam", "priya", "eva", "session-owner", "cnn", "nytimes", "nasa", "npr", "time", "bbcworld", "conan-obrien"]) {
+    assert.equal(twitterAvatars.resolveTwitterAvatar({ identityId, displayName: identityId }).mediaId, "twitter-default-egg-2010-reconstructed", `${identityId} must resolve to the Pass C egg fallback`);
   }
-  assert.equal(twitterAvatars.resolveTwitterAvatar({ displayName: "June", allowNameBridge: false }), null, "session-owner and public-visitor resolution must be able to disable the canonical name bridge");
+  assert.equal(twitterAvatars.resolveTwitterAvatar({ displayName: "June", allowNameBridge: false }).mediaId, "twitter-default-egg-2010-reconstructed", "session-owner and public-visitor resolution must disable the canonical name bridge and use the egg");
+  const publicAvatarProbe = twitterTimelineComposition.composeTwitterTimelineActivities([], [{ id: "public-avatar-probe", publicHandle: "june", displayName: "June", body: "probe", simulated2010CreatedAt: "2010-10-20T07:03:00.000Z", simulatedElapsedMs: 60 }], ["public-avatar-probe"], 60)[0];
+  assert.deepEqual(publicAvatarProbe.capabilities, { detail: false, profile: false, reply: false, retweet: false, favorite: true }, "egg fallback must not grant public visitors account or Profile capabilities");
+  assert.equal(twitterAvatars.resolveTwitterAvatar({ displayName: publicAvatarProbe.tweet.displayName, allowNameBridge: false }).mediaId, "twitter-default-egg-2010-reconstructed", "a public visitor whose name matches a fictional character must still use the egg");
+  const twitterDefaultEggSource = await readFile(resolve(projectRoot, "src/assets/twitter/avatar/twitter-default-egg-2010-reconstructed.svg"), "utf8");
+  assert.match(twitterDefaultEggSource, /width="48" height="48" viewBox="0 0 48 48"/, "Pass C egg must use its deterministic native 48-point canvas");
+  assert.match(twitterDefaultEggSource, /fill="#91b7ca"[\s\S]*fill="#f3f0e7"/, "Pass C egg must retain the approved reconstructed blue-field and pale-egg colors");
+  assert.doesNotMatch(twitterDefaultEggSource, /<text|<circle|filter=|gradient|shadow/i, "Pass C egg must not contain initials, circular avatar construction, filters, gradients, or shadows");
   assert.deepEqual(coreSocialFriends.CORE_SOCIAL_RELATIONSHIPS.map(relationship => [relationship.id, relationship.participantIds, relationship.kind]), [
     ["katie-ben-siblings", ["katie", "ben"], "SIBLINGS"],
     ["chris-luca-basketball-friends", ["chris", "luca"], "BASKETBALL_FRIENDS"],
@@ -2755,6 +2768,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const facebookStateSource = await readFile(resolve(projectRoot, "src/state/facebookState.ts"), "utf8");
   const facebookStoryTimeSource = await readFile(resolve(projectRoot, "src/data/facebookStoryTime.ts"), "utf8");
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
+  const twitterAvatarSource = await readFile(resolve(projectRoot, "src/device/TwitterAvatar.tsx"), "utf8");
   const deviceCssSource = await readFile(resolve(projectRoot, "src/styles/device.css"), "utf8");
   const twitterProfileSource = twitterContainerSource.match(/function TwitterProfile[\s\S]*?\n\}\n\nfunction TwitterSearchLanding/)?.[0] ?? "";
   const twitterChromeSources = await Promise.all([
@@ -3448,6 +3462,10 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.twitter-tweet-action\.is-favorite\[aria-pressed="true"\] > span \{[^}]*twitter-action-favorite-selected-2010-reconstructed\.svg/, "B2 selected Favorite state must use its filled reconstructed star asset");
   assert.match(deviceCssSource, /\.twitter-favorite-marker \{[^}]*top: 0; right: 0; width: 15px; height: 15px;[^}]*twitter-favorite-corner-2010-reconstructed\.svg/, "B2 favorited Timeline marker must retain the reconstructed 15-point corner geometry");
   assert.match(twitterContainerSource, /import \{ TwitterAvatar \} from "\.\/TwitterAvatar";/, "Twitter surfaces must use the shared avatar renderer");
+  assert.doesNotMatch(twitterContainerSource, /fallbackText=|function initials\(/, "production Twitter surfaces must not retain visible generated-initial fallback paths");
+  assert.doesNotMatch(twitterAvatarSource, /fallbackText|avatar fixture|DEV-HOLD|>\{[^}]*initial/i, "shared Twitter avatar rendering must not expose prototype fallback language or initials");
+  assert.match(twitterAvatarSource, /alt=""[\s\S]*aria-hidden="true"/, "Twitter avatar images must remain decorative when adjacent identity text is present");
+  assert.match(twitterContainerSource, /aria-label=\{`Profile image for \$\{profile\.displayName\}`\}/, "Profile fallback accessibility must use neutral identity-aware image wording");
   assert.match(timelineCellSource, /data-row-anatomy-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT"/, "Timeline row geometry must retain explicit screenshot-reconstruction provenance");
   assert.match(timelineCellSource, /<TwitterAvatar[\s\S]+className="twitter-profile-link twitter-timeline-avatar"[\s\S]+className="twitter-tweet-copy"[\s\S]+<strong[\s\S]+<time>[\s\S]+<span>\{tweet\.text\}<\/span>/, "Timeline rows must retain avatar, display name, timestamp, and Tweet text anatomy in period order");
   assert.match(deviceCssSource, /\.twitter-timeline-row \{[^}]*min-height: 58px; padding: 5px;[^}]*grid-template-columns: 48px minmax\(0,1fr\); gap: 7px;[^}]*align-items: start;/, "Timeline rows must use the measured x=5 avatar and x=60 text geometry with content-driven height");

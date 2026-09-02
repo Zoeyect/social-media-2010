@@ -308,7 +308,6 @@ function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted,
       <TwitterAvatar
         identityId={tweet.friendId}
         displayName={tweet.displayName}
-        fallbackText={initials(tweet.displayName)}
         allowNameBridge={allowAvatarNameBridge}
         role={onOpenProfile ? "button" : undefined}
         aria-label={onOpenProfile ? `Open ${tweet.displayName} profile` : undefined}
@@ -364,7 +363,6 @@ function TweetDetail({ tweet, favorite, retweeted, replies, retweetAllowed, onRe
       <TwitterAvatar
         identityId={tweet.friendId}
         displayName={tweet.displayName}
-        fallbackText={initials(tweet.displayName)}
         allowNameBridge={tweet.origin !== "user"}
         role="button"
         aria-label={`Open ${tweet.displayName} profile`}
@@ -448,7 +446,7 @@ function TwitterProfile({ profile, sessionOwner, profileBio, onToggleFollow, onO
   const hasMetadata = Boolean(bio || location || web);
   return <section className="twitter-profile-view" aria-label="User profile">
     <header className="twitter-profile-header">
-      <TwitterAvatar identityId={sessionOwner ? null : profile.id} displayName={profile.displayName} fallbackText={profile.avatarSeed} allowNameBridge={!sessionOwner} aria-label={`${profile.displayName} avatar`} />
+      <TwitterAvatar identityId={sessionOwner ? null : profile.id} displayName={profile.displayName} allowNameBridge={!sessionOwner} aria-label={`Profile image for ${profile.displayName}`} />
       <div className="twitter-profile-identity">
         <h2>{profile.displayName}</h2>
         <p className="twitter-profile-handle">{profile.handle}</p>
@@ -501,14 +499,14 @@ function TwitterMentions({ mentions, tweets, scrollPosition, onScroll, onOpen }:
   return <section ref={ref} className="twitter-social-list twitter-mentions-list" aria-label="Mentions" onScroll={event => onScroll(event.currentTarget.scrollTop)}>{mentions.map(item => {
     const tweet = tweets.find(candidate => candidate.id === item.tweetId);
     if (!tweet) return null;
-    return <button key={item.id} type="button" className={`twitter-social-row twitter-mention-row ${item.unread ? "is-unread" : ""}`} onClick={() => onOpen(item.id, ref.current?.scrollTop ?? scrollPosition)}><TwitterAvatar identityId={item.friendId} displayName={tweet.displayName} fallbackText={initials(tweet.displayName)} /><span className="twitter-mention-copy"><strong>{tweet.displayName}</strong><small>{tweet.timestamp}</small><span className="twitter-mention-body">{tweet.text}</span></span></button>;
+    return <button key={item.id} type="button" className={`twitter-social-row twitter-mention-row ${item.unread ? "is-unread" : ""}`} onClick={() => onOpen(item.id, ref.current?.scrollTop ?? scrollPosition)}><TwitterAvatar identityId={item.friendId} displayName={tweet.displayName} /><span className="twitter-mention-copy"><strong>{tweet.displayName}</strong><small>{tweet.timestamp}</small><span className="twitter-mention-body">{tweet.text}</span></span></button>;
   })}</section>;
 }
 
 function TwitterMessages({ threads, scrollPosition, onScroll, onOpen }: { threads: TwitterState["directMessages"]; scrollPosition: number; onScroll: (position: number) => void; onOpen: (id: string, position: number) => void }) {
   const ref = useRef<HTMLElement>(null);
   useLayoutEffect(() => { if (ref.current) ref.current.scrollTop = scrollPosition; }, [scrollPosition]);
-  return <section ref={ref} className="twitter-social-list twitter-messages-list" aria-label="Direct Messages" onScroll={event => onScroll(event.currentTarget.scrollTop)}>{threads.map(thread => <button key={thread.id} type="button" className={`twitter-social-row twitter-message-row ${thread.unread ? "is-unread" : ""}`} onClick={() => onOpen(thread.id, ref.current?.scrollTop ?? scrollPosition)}><TwitterAvatar identityId={thread.friendId} displayName={thread.sender} fallbackText={initials(thread.sender)} /><span className="twitter-message-copy"><strong className="twitter-message-sender">{thread.sender}</strong><small className="twitter-message-timestamp">{thread.timestamp}</small><span className="twitter-message-preview">{thread.messages[thread.messages.length - 1]?.text}</span></span></button>)}</section>;
+  return <section ref={ref} className="twitter-social-list twitter-messages-list" aria-label="Direct Messages" onScroll={event => onScroll(event.currentTarget.scrollTop)}>{threads.map(thread => <button key={thread.id} type="button" className={`twitter-social-row twitter-message-row ${thread.unread ? "is-unread" : ""}`} onClick={() => onOpen(thread.id, ref.current?.scrollTop ?? scrollPosition)}><TwitterAvatar identityId={thread.friendId} displayName={thread.sender} /><span className="twitter-message-copy"><strong className="twitter-message-sender">{thread.sender}</strong><small className="twitter-message-timestamp">{thread.timestamp}</small><span className="twitter-message-preview">{thread.messages[thread.messages.length - 1]?.text}</span></span></button>)}</section>;
 }
 
 function TwitterDMThread({ thread, onOpenLinkedTweet }: { thread: TwitterState["directMessages"][number] | null; onOpenLinkedTweet: (id: string) => void }) {
@@ -539,14 +537,14 @@ function TwitterPeopleList({ label, variant, users, scrollPosition, onScroll, on
     {users.length === 0 && emptyStateCopy && <p className="twitter-people-empty">{emptyStateCopy}</p>}
     {users.map(user => <article key={user.id} className="twitter-person-row" data-provenance={user.provenance}>
       {onOpenProfile ? <button type="button" className="twitter-person-profile" onClick={() => onOpenProfile(user.id, listRef.current?.scrollTop ?? scrollPosition)}>
-        <TwitterAvatar identityId={user.id} displayName={user.displayName} fallbackText={user.avatarSeed} data-avatar-status={user.avatarStatus} />
+        <TwitterAvatar identityId={user.id} displayName={user.displayName} />
         <span className="twitter-person-copy">
           <strong>{user.displayName}</strong>
           <small>{user.handle}</small>
           {user.subtitle && <span>{user.subtitle}</span>}
         </span>
       </button> : <div className="twitter-person-profile">
-        <TwitterAvatar identityId={user.id} displayName={user.displayName} fallbackText={user.avatarSeed} data-avatar-status={user.avatarStatus} />
+        <TwitterAvatar identityId={user.id} displayName={user.displayName} />
         <span className="twitter-person-copy">
           <strong>{user.displayName}</strong>
           <small>{user.handle}</small>
@@ -592,8 +590,4 @@ function tabTitle(tab: TwitterTab): string {
     case "search": return "Search";
     case "more": return "More";
   }
-}
-
-function initials(displayName: string): string {
-  return displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "?";
 }

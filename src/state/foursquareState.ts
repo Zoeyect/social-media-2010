@@ -1,4 +1,5 @@
 import { FOURSQUARE_F1_CHECKIN_ACTIVITIES, FOURSQUARE_HIDDEN_LIVE_ACTIVITIES, type FoursquareCheckinActivity } from "../data/foursquareContent";
+import { buildCheckinResult, createCheckInPointEvent, type FoursquareCheckinResult, type FoursquarePointEvent } from "../data/foursquareGameModel";
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
 
@@ -13,7 +14,7 @@ export type FoursquareRootScrollPositions = Record<FoursquareRootTab, number>;
 
 export type FoursquareState = {
   activeTab: FoursquareRootTab; currentView: FoursquareView; venueSubview: FoursquareVenueSubview; selectedVenueId: string | null; rootScrollPositions: FoursquareRootScrollPositions;
-  checkIns: Record<string, FoursquareCheckInRecord>; shoutDrafts: Record<string, string>; points: number; mayorState: FoursquareMayorState; earnedBadges: string[];
+  checkIns: Record<string, FoursquareCheckInRecord>; shoutDrafts: Record<string, string>; pointEvents: FoursquarePointEvent[]; latestCheckinResult: FoursquareCheckinResult | null; mayorState: FoursquareMayorState; earnedBadges: string[];
   venues: FoursquareVenue[]; socialActivities: FoursquareCheckinActivity[]; unreadActivityCount: number;
 };
 
@@ -36,7 +37,7 @@ const emptyScrollPositions = (): FoursquareRootScrollPositions => ({ friends: 0,
 export function createInitialFoursquareState(): FoursquareState {
   return {
     activeTab: "friends", currentView: "root", venueSubview: "summary", selectedVenueId: null, rootScrollPositions: emptyScrollPositions(),
-    checkIns: {}, shoutDrafts: {}, points: 0, mayorState: "otherUser", earnedBadges: [],
+    checkIns: {}, shoutDrafts: {}, pointEvents: [], latestCheckinResult: null, mayorState: "otherUser", earnedBadges: [],
     venues: SESSION_SEED_CONTENT.foursquare.venues.map(({ tip: _legacyTip, ...venue }) => ({ ...venue, contentStatus: "HOLD-fictional" })),
     socialActivities: FOURSQUARE_F1_CHECKIN_ACTIVITIES.map(activity => ({ ...activity })), unreadActivityCount: 0,
   };
@@ -59,9 +60,12 @@ export function foursquareStateTransition(state: FoursquareState, event: Foursqu
     case "EDIT_CHECK_IN_SHOUT":
       if (!state.venues.some(venue => venue.id === event.venueId) || state.checkIns[event.venueId]) return state;
       return { ...state, shoutDrafts: { ...state.shoutDrafts, [event.venueId]: event.value.slice(0, 140) } };
-    case "CHECK_IN":
+    case "CHECK_IN": {
       if (!state.venues.some(venue => venue.id === event.venueId) || state.checkIns[event.venueId]) return state;
-      return { ...state, checkIns: { ...state.checkIns, [event.venueId]: { checkedIn: true, checkedInBy: event.checkedInBy, checkInTimestamp: event.checkInTimestamp, shout: state.shoutDrafts[event.venueId]?.trim() || null, pointsAwarded: 1 } }, shoutDrafts: Object.fromEntries(Object.entries(state.shoutDrafts).filter(([venueId]) => venueId !== event.venueId)), points: state.points + 1 };
+      const pointEvent = createCheckInPointEvent(event.venueId, event.checkInTimestamp);
+      const latestCheckinResult = buildCheckinResult(state.pointEvents, pointEvent);
+      return { ...state, checkIns: { ...state.checkIns, [event.venueId]: { checkedIn: true, checkedInBy: event.checkedInBy, checkInTimestamp: event.checkInTimestamp, shout: state.shoutDrafts[event.venueId]?.trim() || null, pointsAwarded: latestCheckinResult.pointDelta } }, shoutDrafts: Object.fromEntries(Object.entries(state.shoutDrafts).filter(([venueId]) => venueId !== event.venueId)), pointEvents: [...state.pointEvents, pointEvent], latestCheckinResult };
+    }
     case "DELIVER_SOCIAL_ACTIVITY": {
       if (state.socialActivities.some(activity => activity.id === event.activity.id)) return state;
       const structured = FOURSQUARE_HIDDEN_LIVE_ACTIVITIES[event.activity.id];

@@ -3174,6 +3174,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(foursquareStateSource, /case "SHOW_LEADERBOARD":[^\n]+activeTab: "profile", currentView: "leaderboard"[^\n]+selectedVenueId: null/, "F3b Leaderboard route must be profile-owned and venue-neutral");
   assert.match(foursquareStateSource, /case "SHOW_PROFILE":[^\n]+activeTab: "profile", currentView: "root"/, "F3b Back must return to Profile root");
   assert.match(foursquareContainerSource, /foursquare-profile-leaderboard-row[\s\S]*SHOW_LEADERBOARD/, "F3b Profile root must expose the minimal Leaderboard route row");
+  const foursquareProfileRootSource = foursquareContainerSource.match(/\{state\.activeTab === "profile"[\s\S]*?<\/button><\/>\}/)?.[0] ?? "";
+  assert.match(foursquareProfileRootSource, /foursquare-profile-root[\s\S]*FoursquareAvatar identityId="session-owner"[\s\S]*identity\.name[\s\S]*foursquare-profile-leaderboard-row[\s\S]*SHOW_LEADERBOARD[\s\S]*>Leaderboard</, "F3d Profile must contain its frozen identity block and exactly one Leaderboard entry");
+  assert.equal((foursquareProfileRootSource.match(/<button\b/g) ?? []).length, 1, "F3d Profile must retain exactly one interactive Leaderboard entry");
+  assert.doesNotMatch(foursquareProfileRootSource, /pointEvents|checkIns|latestCheckinResult|getPlayerWeeklyPoints|getPlayerRank|buildLeaderboard/, "F3d Profile DOM must remain structurally independent of live game values before and after check-ins");
+  assert.doesNotMatch(foursquareProfileRootSource, />\s*(?:Points|Score|Weekly(?: Points)?|This Week|Rank|Unranked|Badges|Mayorships|Check-ins|History)\s*</i, "F3d Profile must omit unsupported game statistics and history copy");
   const foursquareLeaderboardSource = foursquareContainerSource.match(/function Leaderboard\([\s\S]*?\n\}/)?.[0] ?? "";
   assert.match(foursquareLeaderboardSource, /entries\.map[\s\S]*#\{entry\.rank\}[\s\S]*FoursquareAvatar[\s\S]*person\.displayName[\s\S]*entry\.weeklyPoints/, "F3b rows must render rank, reused avatar, name, and numeric score from the game model output");
   assert.doesNotMatch(foursquareLeaderboardSource, /<button|onClick|This Week|>Weekly<|>pts<|>points<|highlight|disclosure|movement|medal/i, "F3b leaderboard rows must remain inert and omit unsupported week, suffix, highlight, and navigation treatments");

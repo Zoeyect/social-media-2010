@@ -224,6 +224,8 @@ export async function persistCameraCapturedArtifact(
     origin: "player-camera",
     cameraFacing: artifact.snapshot.cameraFacing,
     cameraMode: artifact.snapshot.cameraMode,
+    cameraVideoEventType: artifact.snapshot.cameraVideoEventType,
+    cameraVideoSceneId: artifact.snapshot.cameraVideoSceneId,
     framing: artifact.snapshot.framing,
   });
 

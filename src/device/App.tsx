@@ -5,7 +5,11 @@ import { DeviceAudio } from "../audio/deviceAudio";
 import { buildSessionTimelineEvents } from "../data/sessionTimeline";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
 import { DEVICE_CARRIER_CONFIG } from "../state/carrierConfig";
-import { cameraRuntimeTransition, initialCameraRuntimeState, requestCameraCapture } from "../state/cameraRuntime";
+import {
+  cameraRuntimeTransition,
+  createInitialCameraRuntimeState,
+  requestCameraCapture,
+} from "../state/cameraRuntime";
 import type { CameraLookOffset, CameraOwner } from "../state/cameraRuntime";
 import { createCameraPhotoRecord, releaseCameraPhotoRecords } from "../state/cameraCaptureState";
 import type { CameraPhotoRecord } from "../state/cameraCaptureState";
@@ -58,6 +62,7 @@ import { PublicTwitterOutro } from "./PublicTwitterOutro";
 import { IOS4KeyboardSystem } from "./IOS4KeyboardSystem";
 import { AmbientWorld } from "../world/AmbientWorld";
 import type { CameraStillCapture } from "../world/AmbientWorld";
+import { getCameraVideoScene, selectCameraVideoScene, type CameraVideoSceneSelection } from "../world/cameraVideoScenes";
 
 const TERMINAL_DEPLETED_DISPLAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
@@ -71,6 +76,28 @@ const MOM_LOVE_REPLY_SMS = { id: "mom-love-you-too", sender: "Mom", message: "I 
 const DAD_LOVE_REPLY_SMS = { id: "dad-sleep-early", sender: "Dad", message: "Sleep early." } as const;
 const publicTwitterRepository = createMockPublicTwitterRepository();
 const publicTwitterSubmissionRepository = createMockPublicTwitterSubmissionRepository();
+const cameraVideoQuery = import.meta.env.DEV
+  ? new URLSearchParams(window.location.search)
+  : new URLSearchParams();
+const bootstrapCameraVideoSelection: CameraVideoSceneSelection = selectCameraVideoScene({
+  cameraVideo: cameraVideoQuery.get("cameraVideo"),
+  cameraScene: cameraVideoQuery.get("cameraScene"),
+  cameraEvent: cameraVideoQuery.get("cameraEvent"),
+});
+const bootstrapCameraRuntimeState = createInitialCameraRuntimeState(
+  bootstrapCameraVideoSelection.sceneId,
+  bootstrapCameraVideoSelection.eventType,
+);
+if (import.meta.env.DEV) {
+  const selectedScene = getCameraVideoScene(bootstrapCameraVideoSelection.sceneId);
+  console.info("[CameraWorld] session scene selected", {
+    eventType: bootstrapCameraVideoSelection.eventType,
+    sceneId: bootstrapCameraVideoSelection.sceneId,
+    forcedByQuery: bootstrapCameraVideoSelection.forcedByQuery,
+    cropOffsetX: selectedScene.cropOffsetX ?? 0,
+    cropOffsetY: selectedScene.cropOffsetY ?? 0,
+  });
+}
 
 type PublicTwitterQaHandle = Readonly<{
   state: () => PublicTwitterState;
@@ -110,7 +137,6 @@ function loadRuntimeSession(): Session {
 
 export function App() {
   const [session, setSession] = useState<Session>(loadRuntimeSession);
-  const ambientWorldEnabled = import.meta.env.DEV && new URLSearchParams(window.location.search).get("ambientWorld") === "1";
   const [cameraPreviewCanvas, setCameraPreviewCanvas] = useState<HTMLCanvasElement | null>(null);
   const requestedDevApp = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("devApp") : null;
   const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" || requestedDevApp === "foursquare" || requestedDevApp === "flickr" || requestedDevApp === "tumblr" ? requestedDevApp : null;
@@ -119,7 +145,8 @@ export function App() {
   const [folderState, dispatchFolderEvent] = useReducer(folderStateTransition, "closed");
   const [activeFolderSlotIndex, setActiveFolderSlotIndex] = useState(0);
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
-  const [cameraRuntime, dispatchCameraRuntime] = useReducer(cameraRuntimeTransition, initialCameraRuntimeState);
+  const [cameraRuntime, dispatchCameraRuntime] = useReducer(cameraRuntimeTransition, bootstrapCameraRuntimeState);
+  const cameraUiVisible = session.phase === "app" && appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none";
   const [photosState, dispatchPhotos] = useReducer(photosStateTransition, initialPhotosState);
   const cameraCapture = useRef<CameraStillCapture | null>(null);
   const cameraCaptureInFlight = useRef(false);
@@ -183,6 +210,21 @@ export function App() {
   const deviceStatusTime = formatDeviceTime(deviceDateTime);
   const lockScreenTime = formatLockScreenTime(deviceDateTime);
   const deviceDate = formatDeviceDate(deviceDateTime);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.info("[CameraWorld] App mount gating", {
+      cameraUiVisible,
+      cameraAppPhase: cameraRuntime.cameraApp.phase,
+      appActive: appRuntime.activeAppId,
+      sessionPhase: session.phase,
+      cameraPhaseNone: cameraRuntime.cameraApp.phase === "none",
+      cameraVideoQuery: new URLSearchParams(window.location.search).get("cameraVideo"),
+      cameraSceneQuery: new URLSearchParams(window.location.search).get("cameraScene"),
+      cameraSceneId: cameraRuntime.cameraApp.cameraVideoSceneId,
+      cameraEventType: cameraRuntime.cameraApp.cameraVideoEventType,
+    });
+  }, [cameraUiVisible, appRuntime.activeAppId, cameraRuntime.cameraApp.phase, session.phase]);
 
   useEffect(() => {
     const experienceSessionId = session.experienceSessionId;
@@ -314,6 +356,8 @@ export function App() {
         experienceSessionId,
         cameraFacing: cameraSession.cameraDevice,
         cameraMode: cameraSession.mode,
+        cameraVideoEventType: cameraSession.cameraVideoEventType,
+        cameraVideoSceneId: cameraSession.cameraVideoSceneId,
       });
       dispatchCameraRuntime({ type: "CAPTURE_COMPLETE", owner: "cameraApp" });
       const artifact = await pendingArtifact;
@@ -1031,13 +1075,15 @@ export function App() {
   const selectedOutroTweet = outroTweets.find(tweet => tweet.id === publicTwitterOutro.selectedTweetId) ?? null;
 
   return <SessionIdentityContext.Provider value={session.sessionIdentity}>
-    {ambientWorldEnabled && <AmbientWorld
+    <AmbientWorld
       cameraViewfinder={cameraPreviewCanvas}
       cameraLook={cameraRuntime.cameraApp.cameraLook}
+      cameraVideoSceneId={cameraRuntime.cameraApp.cameraVideoSceneId}
+      cameraVideoDisabled={bootstrapCameraVideoSelection.videoDisabled}
       onCameraLookPointerOffsetClamped={setCameraLookPointerOffset}
       onCameraCaptureReady={setCameraCaptureReady}
-    />}
-    <main className={`stage${ambientWorldEnabled ? " has-ambient-world" : ""}`}>
+    />
+    <main className={`stage has-ambient-world`}>
       <section
       className={`device${displayIsLit ? " is-display-lit" : ""}`}
       aria-label="Black iPhone 4"
@@ -1111,9 +1157,9 @@ export function App() {
           {appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none" && <CameraContainer
             owner="cameraApp"
             session={cameraRuntime.cameraApp}
-            previewCanvasRef={ambientWorldEnabled ? setCameraPreviewCanvas : undefined}
-            onLookPointerOffsetChange={ambientWorldEnabled ? setCameraLookPointerOffset : undefined}
-            onCapture={ambientWorldEnabled && cameraRoll.status === "ready" ? captureCameraPhoto : undefined}
+            previewCanvasRef={setCameraPreviewCanvas}
+            onLookPointerOffsetChange={setCameraLookPointerOffset}
+            onCapture={cameraRoll.status === "ready" ? captureCameraPhoto : undefined}
             latestPhoto={cameraRoll.records[cameraRoll.records.length - 1] ?? null}
             onOpenLatestPhoto={openLatestCameraPhoto}
           />}

@@ -6,6 +6,7 @@ import {
 import { createAmbientWorldScene, updateAmbientWorldScene } from "./ambientWorldState";
 import { CAMERA_LOOK_NOMINAL_LIMITS } from "../state/cameraRuntime";
 import type { CameraDevice, CameraLookOffset, CameraLookState, CameraMode } from "../state/cameraRuntime";
+import type { CameraVideoEventType, CameraVideoSceneId } from "./cameraVideoScenes";
 import {
   CAMERA_CAPTURE_GRAIN_SCALE,
   CAMERA_CAPTURE_HEIGHT,
@@ -20,6 +21,8 @@ import type {
   CameraCaptureSceneSnapshot,
   CameraCaptureViewportSnapshot,
 } from "../state/cameraCaptureState";
+
+if (import.meta.env.DEV) console.info("[CameraWorld] ambientWorldRenderer module loaded");
 
 const WORLD_TREATMENT = {
   blur: 0.82,
@@ -62,6 +65,9 @@ export type AmbientWorldRenderer = {
   setCameraViewfinder: (canvas: HTMLCanvasElement | null) => void;
   setCameraLookState: (state: CameraLookState) => void;
   setCameraLookClampHandler: (handler: ((offset: CameraLookOffset) => void) | null) => void;
+  setCameraSceneFramingOffset: (offset: CameraLookOffset) => void;
+  setCameraVideoSource: (video: HTMLVideoElement | null) => void;
+  getCameraFramingDebugState: () => CameraFramingDebugState | null;
   captureCameraStill: (request: CameraStillCaptureRequest) => Promise<CameraCapturedArtifact>;
   dispose: () => void;
 };
@@ -71,6 +77,8 @@ export type CameraStillCaptureRequest = Readonly<{
   experienceSessionId: string;
   cameraFacing: CameraDevice;
   cameraMode: CameraMode;
+  cameraVideoEventType: CameraVideoEventType;
+  cameraVideoSceneId: CameraVideoSceneId;
 }>;
 
 type CameraLookAxisBounds = { minimum: number; maximum: number };
@@ -84,6 +92,29 @@ type PresentedCameraFrame = Readonly<{
   sharedScene: CameraCaptureSceneSnapshot;
 }>;
 
+export type CameraFramingDebugState = Readonly<{
+  sourceWidth: number;
+  sourceHeight: number;
+  sceneWidth: number;
+  sceneHeight: number;
+  sceneOffset: CameraLookOffset;
+  sceneZoom: number;
+  effectiveLookOffset: CameraLookOffset;
+  sceneViewport: SceneViewport;
+  sourceCropRectPx: Readonly<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
+  sourceCropRectUV: Readonly<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
+}>;
+
 type SceneViewport = Readonly<{
   canvasWidth: number;
   canvasHeight: number;
@@ -95,6 +126,17 @@ type SceneViewport = Readonly<{
 
 function cloneOffset(offset: CameraLookOffset): CameraLookOffset {
   return Object.freeze({ x: offset.x, y: offset.y });
+}
+
+function rectSnapshot(rect: DOMRect) {
+  return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+  };
 }
 
 function encodeJpeg(pixels: Uint8Array, width: number, height: number) {
@@ -175,6 +217,7 @@ function createProgram(
 }
 
 export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: string) {
+  if (import.meta.env.DEV) console.info("[CameraWorld] renderer init called", { plateUrl });
   const context = canvas.getContext("webgl2", {
     alpha: false,
     antialias: false,
@@ -183,7 +226,11 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     powerPreference: "low-power",
     preserveDrawingBuffer: false,
   });
-  if (!context) throw new Error("Ambient World requires WebGL2.");
+  if (!context) {
+    if (import.meta.env.DEV) console.info("[CameraWorld] WebGL2 context failure");
+    throw new Error("Ambient World requires WebGL2.");
+  }
+  if (import.meta.env.DEV) console.info("[CameraWorld] WebGL2 context success");
   const gl: WebGL2RenderingContext = context;
 
   const layerProgram = createProgram(gl, AMBIENT_WORLD_VERTEX_SHADER, AMBIENT_WORLD_FRAGMENT_SHADER, "Ambient World layer");
@@ -192,7 +239,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
   gl.bindVertexArray(vertexArray);
 
   const uniformNames = [
-    "uTexture", "uBloomTex", "uResolution", "uSceneResolution", "uSceneViewport",
+    "uTexture", "uBloomTex", "uResolution", "uViewportOrigin", "uViewportSize", "uSceneResolution", "uSceneViewport",
     "uTexResolution", "uTime", "uSceneOffset",
     "uSceneZoom", "uSceneLuma", "uSceneColor", "uSceneRing", "uBlur", "uNoiseAmount",
     "uLuminanceDrift", "uColorDrift", "uBloomAmount", "uExposure", "uOpacity", "uMaxLod",
@@ -202,10 +249,17 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     uniformNames.map(name => [name, gl.getUniformLocation(layerProgram, name)]),
   );
   const scene = createAmbientWorldScene();
-  let plateTexture: WebGLTexture | null = null;
+  let sourceTexture: WebGLTexture | null = null;
   let bloomTexture: WebGLTexture | null = null;
-  let plateWidth = 1;
-  let plateHeight = 1;
+  let sourceWidth = 1;
+  let sourceHeight = 1;
+  let sourceKind: "image" | "video" = "image";
+  let videoSource: HTMLVideoElement | null = null;
+  let videoUploadToken = 0;
+  let bloomWidth = 1;
+  let bloomHeight = 1;
+  let plateImage: HTMLImageElement | null = null;
+  let videoUploadFailureWarned = false;
   let ready = false;
   let disposed = false;
   let animationFrame = 0;
@@ -216,8 +270,107 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
   let cameraPresentation: CanvasRenderingContext2D | null = null;
   let cameraLookState: CameraLookState = ZERO_CAMERA_LOOK;
   let cameraLookClampHandler: ((offset: CameraLookOffset) => void) | null = null;
+  let cameraSceneFramingOffset: CameraLookOffset = { x: 0, y: 0 };
   let lastReportedClampedOffset: CameraLookOffset | null = null;
   let lastPresentedCameraFrame: PresentedCameraFrame | null = null;
+  let lastFramingDebugState: CameraFramingDebugState | null = null;
+  const diagnosticKeys = new Set<string>();
+  let firstCameraDrawLogged = false;
+
+  function sceneOffsetForRender() {
+    return {
+      x: scene.offset[0] + cameraSceneFramingOffset.x,
+      y: scene.offset[1] + cameraSceneFramingOffset.y,
+    };
+  }
+
+  function clamp01(value: number) {
+    if (value <= 0) return 0;
+    if (value >= 1) return 1;
+    return value;
+  }
+
+  function projectSceneToTextureUV(
+    outputUV: Readonly<CameraLookOffset>,
+    viewport: SceneViewport,
+    sourceOffset: CameraLookOffset,
+    zoom: number,
+  ) {
+    const sceneUV = {
+      x: viewport.x + outputUV.x * viewport.width,
+      y: viewport.y + outputUV.y * viewport.height,
+    };
+    const sceneAspect = viewport.canvasWidth / viewport.canvasHeight;
+    const texAspect = sourceWidth / sourceHeight;
+    const coverScale = sceneAspect > texAspect
+      ? { x: 1, y: texAspect / sceneAspect }
+      : { x: sceneAspect / texAspect, y: 1 };
+    let sceneToTex = {
+      x: (sceneUV.x - 0.5) * coverScale.x + 0.5,
+      y: (sceneUV.y - 0.5) * coverScale.y + 0.5,
+    };
+    sceneToTex = {
+      x: (sceneToTex.x - 0.5) / zoom + 0.5 + sourceOffset.x,
+      y: (sceneToTex.y - 0.5) / zoom + 0.5 + sourceOffset.y,
+    };
+    return {
+      x: (sceneToTex.x - 0.5) * CAMERA_LOOK_EDGE_SCALE + 0.5,
+      y: (sceneToTex.y - 0.5) * CAMERA_LOOK_EDGE_SCALE + 0.5,
+    };
+  }
+
+  function computeSourceCropRect(sceneViewport: SceneViewport, sourceOffset: CameraLookOffset, zoom: number) {
+    const topLeft = projectSceneToTextureUV(
+      { x: sceneViewport.x, y: sceneViewport.y + sceneViewport.height },
+      sceneViewport,
+      sourceOffset,
+      zoom,
+    );
+    const topRight = projectSceneToTextureUV(
+      { x: sceneViewport.x + sceneViewport.width, y: sceneViewport.y + sceneViewport.height },
+      sceneViewport,
+      sourceOffset,
+      zoom,
+    );
+    const bottomLeft = projectSceneToTextureUV(
+      { x: sceneViewport.x, y: sceneViewport.y },
+      sceneViewport,
+      sourceOffset,
+      zoom,
+    );
+    const bottomRight = projectSceneToTextureUV(
+      { x: sceneViewport.x + sceneViewport.width, y: sceneViewport.y },
+      sceneViewport,
+      sourceOffset,
+      zoom,
+    );
+    const minUVX = Math.min(topLeft.x, topRight.x, bottomLeft.x, bottomRight.x);
+    const maxUVX = Math.max(topLeft.x, topRight.x, bottomLeft.x, bottomRight.x);
+    const minUVY = Math.min(topLeft.y, topRight.y, bottomLeft.y, bottomRight.y);
+    const maxUVY = Math.max(topLeft.y, topRight.y, bottomLeft.y, bottomRight.y);
+    const sourceRectUV = {
+      x: clamp01(minUVX),
+      y: clamp01(minUVY),
+      width: clamp01(maxUVX) - clamp01(minUVX),
+      height: clamp01(maxUVY) - clamp01(minUVY),
+    };
+    return {
+      sourceRectUV,
+      sourceRectPx: {
+        x: sourceRectUV.x * sourceWidth,
+        y: sourceRectUV.y * sourceHeight,
+        width: sourceRectUV.width * sourceWidth,
+        height: sourceRectUV.height * sourceHeight,
+      },
+    };
+  }
+
+  function diagnosticOnce(key: string, message: string, details?: unknown) {
+    if (!import.meta.env.DEV || diagnosticKeys.has(key)) return;
+    diagnosticKeys.add(key);
+    if (details === undefined) console.info(message);
+    else console.info(message, details);
+  }
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -230,21 +383,93 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     return dpr;
   }
 
-  function uploadPlate(image: HTMLImageElement) {
-    plateWidth = image.naturalWidth;
-    plateHeight = image.naturalHeight;
-    plateTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, plateTexture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  function configureSourceTexture(kind: "image" | "video") {
+    if (!sourceTexture) sourceTexture = gl.createTexture();
+    if (!sourceTexture) throw new Error("Ambient World source texture could not be created.");
+    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, kind === "image" ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+  }
 
-    const bloomWidth = Math.max(2, plateWidth >> 1);
-    const bloomHeight = Math.max(2, plateHeight >> 1);
+  function uploadSourceImage(image: HTMLImageElement) {
+    sourceWidth = image.naturalWidth;
+    sourceHeight = image.naturalHeight;
+    sourceKind = "image";
+    configureSourceTexture("image");
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.generateMipmap(gl.TEXTURE_2D);
+  }
+
+  function uploadSourceVideoFrame(video: HTMLVideoElement) {
+    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || video.videoWidth <= 0 || video.videoHeight <= 0) return false;
+    sourceWidth = video.videoWidth || sourceWidth;
+    sourceHeight = video.videoHeight || sourceHeight;
+    sourceKind = "video";
+    configureSourceTexture("video");
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    diagnosticOnce("video-upload-attempt", "[CameraWorld] video upload attempt", {
+      readyState: video.readyState,
+      videoWidth: video.videoWidth,
+      videoHeight: video.videoHeight,
+    });
+    gl.getError();
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+    const uploadError = gl.getError();
+    diagnosticOnce("video-upload-result", "[CameraWorld] video upload result", { glError: uploadError });
+    if (uploadError !== gl.NO_ERROR) {
+      if (!videoUploadFailureWarned) {
+        videoUploadFailureWarned = true;
+        console.warn(`Camera video frame upload failed (0x${uploadError.toString(16)}); using static plate fallback.`);
+      }
+      if (plateImage) uploadPlate(plateImage);
+      return false;
+    }
+    return true;
+  }
+
+  function syncVideoSourceFrame() {
+    if (!videoSource || videoSource.error) return false;
+    const token = ++videoUploadToken;
+    const uploaded = uploadSourceVideoFrame(videoSource);
+    if (uploaded) {
+      const bloomError = updateBloomTexture();
+      diagnosticOnce("video-bloom", "[CameraWorld] first video-frame bloom regeneration", {
+        success: bloomError === gl.NO_ERROR,
+        glError: bloomError,
+      });
+      diagnosticOnce("video-promoted", "[CameraWorld] video promoted");
+    }
+    return uploaded && token === videoUploadToken;
+  }
+
+  function updateBloomTexture() {
+    if (!sourceTexture || !bloomTexture) return gl.INVALID_OPERATION;
+    const framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, bloomTexture, 0);
+    gl.viewport(0, 0, bloomWidth, bloomHeight);
+    gl.useProgram(brightProgram);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+    gl.uniform1i(gl.getUniformLocation(brightProgram, "uSrc"), 0);
+    gl.uniform1f(gl.getUniformLocation(brightProgram, "uThreshold"), DISPLAY_CONSTANTS.brightThreshold);
+    gl.uniform1f(gl.getUniformLocation(brightProgram, "uKnee"), DISPLAY_CONSTANTS.brightKnee);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.deleteFramebuffer(framebuffer);
+    return gl.getError();
+  }
+
+  function uploadPlate(image: HTMLImageElement) {
+    uploadSourceImage(image);
+    bloomWidth = Math.max(2, sourceWidth >> 1);
+    bloomHeight = Math.max(2, sourceHeight >> 1);
+    if (bloomTexture) gl.deleteTexture(bloomTexture);
     bloomTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, bloomWidth, bloomHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -253,22 +478,13 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    const framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, bloomTexture, 0);
-    gl.viewport(0, 0, bloomWidth, bloomHeight);
-    gl.useProgram(brightProgram);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, plateTexture);
-    gl.uniform1i(gl.getUniformLocation(brightProgram, "uSrc"), 0);
-    gl.uniform1f(gl.getUniformLocation(brightProgram, "uThreshold"), DISPLAY_CONSTANTS.brightThreshold);
-    gl.uniform1f(gl.getUniformLocation(brightProgram, "uKnee"), DISPLAY_CONSTANTS.brightKnee);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.deleteFramebuffer(framebuffer);
-    gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
-    gl.generateMipmap(gl.TEXTURE_2D);
+    const bloomError = updateBloomTexture();
+    diagnosticOnce("static-bloom", "[CameraWorld] static bloom initialized", {
+      success: bloomError === gl.NO_ERROR,
+      glError: bloomError,
+    });
     ready = true;
+    return ready;
   }
 
   function uploadScene(
@@ -282,19 +498,24 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     ring: number,
     grainScale: number,
     viewport: SceneViewport,
+    viewportOrigin: Readonly<{ x: number; y: number }> = { x: 0, y: 0 },
+    source = sourceTexture,
+    bloom = bloomTexture,
   ) {
-    if (!plateTexture || !bloomTexture) return;
+    if (!source || !bloom) return;
     gl.useProgram(layerProgram);
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, plateTexture);
+    gl.bindTexture(gl.TEXTURE_2D, source);
     gl.uniform1i(uniforms.uTexture, 0);
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
+    gl.bindTexture(gl.TEXTURE_2D, bloom);
     gl.uniform1i(uniforms.uBloomTex, 1);
     gl.uniform2f(uniforms.uResolution, width, height);
+    gl.uniform2f(uniforms.uViewportOrigin, viewportOrigin.x, viewportOrigin.y);
+    gl.uniform2f(uniforms.uViewportSize, viewport.canvasWidth, viewport.canvasHeight);
     gl.uniform2f(uniforms.uSceneResolution, viewport.canvasWidth, viewport.canvasHeight);
     gl.uniform4f(uniforms.uSceneViewport, viewport.x, viewport.y, viewport.width, viewport.height);
-    gl.uniform2f(uniforms.uTexResolution, plateWidth, plateHeight);
+    gl.uniform2f(uniforms.uTexResolution, sourceWidth, sourceHeight);
     gl.uniform1f(uniforms.uTime, time);
     gl.uniform2f(uniforms.uSceneOffset, offset.x, offset.y);
     gl.uniform1f(uniforms.uSceneZoom, zoom);
@@ -338,9 +559,9 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     return { left, top, width: right - left, height: bottom - top };
   }
 
-  function coverScale() {
-    const canvasAspect = canvas.width / canvas.height;
-    const imageAspect = plateWidth / plateHeight;
+  function coverScaleForViewport(viewport: SceneViewport) {
+    const canvasAspect = viewport.canvasWidth / viewport.canvasHeight;
+    const imageAspect = sourceWidth / sourceHeight;
     return canvasAspect > imageAspect
       ? { x: 1, y: imageAspect / canvasAspect }
       : { x: canvasAspect / imageAspect, y: 1 };
@@ -375,11 +596,19 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
   }
 
   function cameraLookBounds(bounds: NonNullable<ReturnType<typeof cameraBounds>>): CameraLookBounds {
-    const scale = coverScale();
-    const left = bounds.left / canvas.width;
-    const right = (bounds.left + bounds.width) / canvas.width;
-    const bottom = (canvas.height - bounds.top - bounds.height) / canvas.height;
-    const top = (canvas.height - bounds.top) / canvas.height;
+    const viewport = {
+      canvasWidth: bounds.width,
+      canvasHeight: bounds.height,
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+    };
+    const scale = coverScaleForViewport(viewport);
+    const left = 0;
+    const right = 1;
+    const bottom = 0;
+    const top = 1;
     const sourceX = extremaAcrossZoom(
       (left - 0.5) * scale.x + 0.5,
       (right - 0.5) * scale.x + 0.5,
@@ -389,7 +618,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       (top - 0.5) * scale.y + 0.5,
     );
     const samplingRadius = ((2 ** (CAMERA_TREATMENT.blur * DISPLAY_CONSTANTS.maxLod)) * 0.85)
-      / plateHeight;
+      / sourceHeight;
     return {
       x: safeAxisBounds(
         sourceX.minimum,
@@ -464,7 +693,57 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
   }
 
   function draw(dpr: number) {
-    if (!plateTexture || !bloomTexture) return;
+    const cameraOpen = Boolean(cameraViewfinder && cameraPresentation);
+    const bounds = cameraOpen ? cameraBounds() : null;
+    if (cameraOpen && !firstCameraDrawLogged) {
+      firstCameraDrawLogged = true;
+      diagnosticOnce("first-camera-draw", "[CameraWorld] first camera draw", {
+        ready,
+        cameraOpen,
+        canvas: { width: canvas.width, height: canvas.height },
+        scissor: bounds
+          ? {
+            x: bounds.left,
+            y: canvas.height - bounds.top - bounds.height,
+            width: bounds.width,
+            height: bounds.height,
+          }
+          : null,
+        canvasStyle: (() => {
+          const style = getComputedStyle(canvas);
+          return {
+            display: style.display,
+            visibility: style.visibility,
+            opacity: style.opacity,
+            zIndex: style.zIndex,
+            position: style.position,
+            width: style.width,
+            height: style.height,
+          };
+        })(),
+        canvasBounds: rectSnapshot(canvas.getBoundingClientRect()),
+        cameraViewportBounds: cameraViewfinder ? rectSnapshot(cameraViewfinder.getBoundingClientRect()) : null,
+        sourceTexture: Boolean(sourceTexture),
+        bloomTexture: Boolean(bloomTexture),
+      });
+    }
+    if (!sourceTexture || !bloomTexture) {
+      diagnosticOnce("draw-missing-texture", "[CameraWorld] draw skipped: missing source or bloom texture", {
+        ready,
+        sourceTexture: Boolean(sourceTexture),
+        bloomTexture: Boolean(bloomTexture),
+      });
+      return;
+    }
+    if (cameraViewfinder && cameraPresentation) syncVideoSourceFrame();
+    const fullSceneViewport = Object.freeze({
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+    });
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
@@ -472,31 +751,29 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       canvas.width,
       canvas.height,
       scene.time,
-      { x: scene.offset[0], y: scene.offset[1] },
+      sceneOffsetForRender(),
       scene.zoom,
       scene.luma,
       scene.color,
       scene.ring,
       dpr * 1.25,
-      {
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height,
-        x: 0,
-        y: 0,
-        width: 1,
-        height: 1,
-      },
+      fullSceneViewport,
     );
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    const bounds = cameraBounds();
     if (!bounds) {
+      if (cameraOpen) diagnosticOnce("draw-missing-camera-bounds", "[CameraWorld] draw skipped: Camera bounds unavailable");
       lastPresentedCameraFrame = null;
       canvas.dataset.drawCalls = "0";
       return;
     }
     const cameraLook = effectiveCameraLook(bounds);
+    const sceneOffset = sceneOffsetForRender();
+    const activeSceneOffset = Object.freeze({
+      x: sceneOffset.x + cameraLook.x,
+      y: sceneOffset.y + cameraLook.y,
+    });
     const normalizedViewfinder = Object.freeze({
       x: bounds.left / canvas.width,
       y: (canvas.height - bounds.top - bounds.height) / canvas.height,
@@ -514,7 +791,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       }),
       sharedScene: Object.freeze({
         timeSeconds: scene.time,
-        swayOffset: cloneOffset({ x: scene.offset[0], y: scene.offset[1] }),
+        swayOffset: cloneOffset(sceneOffset),
         zoom: scene.zoom,
         luminance: scene.luma,
         color: scene.color,
@@ -522,21 +799,82 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
         grainSeed: 137,
       }),
     });
-    gl.uniform2f(
-      uniforms.uSceneOffset,
-      scene.offset[0] + cameraLook.x,
-      scene.offset[1] + cameraLook.y,
+    const sceneViewport = Object.freeze({
+      canvasWidth: bounds.width,
+      canvasHeight: bounds.height,
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+    });
+    const cropRect = computeSourceCropRect(sceneViewport, activeSceneOffset, scene.zoom);
+    lastFramingDebugState = Object.freeze({
+      sourceWidth,
+      sourceHeight,
+      sceneWidth: sourceKind === "video" ? (videoSource?.videoWidth || sourceWidth) : sourceWidth,
+      sceneHeight: sourceKind === "video" ? (videoSource?.videoHeight || sourceHeight) : sourceHeight,
+      sceneOffset,
+      sceneZoom: scene.zoom,
+      effectiveLookOffset: cloneOffset(cameraLook),
+      sceneViewport,
+      sourceCropRectPx: Object.freeze({
+        x: Math.max(0, cropRect.sourceRectPx.x),
+        y: Math.max(0, cropRect.sourceRectPx.y),
+        width: Math.max(0, cropRect.sourceRectPx.width),
+        height: Math.max(0, cropRect.sourceRectPx.height),
+      }),
+      sourceCropRectUV: Object.freeze({
+        x: cropRect.sourceRectUV.x,
+        y: cropRect.sourceRectUV.y,
+        width: cropRect.sourceRectUV.width,
+        height: cropRect.sourceRectUV.height,
+      }),
+    });
+    uploadScene(
+      canvas.width,
+      canvas.height,
+      scene.time,
+      activeSceneOffset,
+      scene.zoom,
+      scene.luma,
+      scene.color,
+      scene.ring,
+      dpr * 1.25,
+      sceneViewport,
+      { x: bounds.left, y: canvas.height - bounds.top - bounds.height },
     );
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(bounds.left, canvas.height - bounds.top - bounds.height, bounds.width, bounds.height);
     drawLayer(CAMERA_TREATMENT, 137);
     gl.disable(gl.SCISSOR_TEST);
     presentCamera(bounds, dpr);
+    diagnosticOnce("first-frame-rendered", "[CameraWorld] first frame rendered", {
+      canvasStyle: (() => {
+        const style = getComputedStyle(canvas);
+        return {
+          display: style.display,
+          visibility: style.visibility,
+          opacity: style.opacity,
+          zIndex: style.zIndex,
+          position: style.position,
+          width: style.width,
+          height: style.height,
+        };
+      })(),
+      canvasBounds: rectSnapshot(canvas.getBoundingClientRect()),
+      cameraViewportBounds: cameraViewfinder ? rectSnapshot(cameraViewfinder.getBoundingClientRect()) : null,
+      scissor: {
+        x: bounds.left,
+        y: canvas.height - bounds.top - bounds.height,
+        width: bounds.width,
+        height: bounds.height,
+      },
+    });
     canvas.dataset.drawCalls = "1";
   }
 
   async function captureCameraStill(request: CameraStillCaptureRequest): Promise<CameraCapturedArtifact> {
-    if (disposed || !ready || !plateTexture || !bloomTexture) {
+    if (disposed || !ready || !sourceTexture || !bloomTexture) {
       throw new Error("Camera capture is unavailable before the scene renderer is ready.");
     }
     if (request.cameraMode !== "photo" || request.cameraFacing !== "rear") {
@@ -551,6 +889,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     }
 
     const framing: CameraCaptureFramingSnapshot = Object.freeze({
+      sceneFramingOffset: cloneOffset(cameraSceneFramingOffset),
       pointerOffset: cloneOffset(presented.pointerOffset),
       orientationOffset: cloneOffset(presented.orientationOffset),
       effectiveLookOffset: cloneOffset(presented.effectiveLookOffset),
@@ -573,6 +912,8 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       mimeType: CAMERA_CAPTURE_MIME_TYPE,
       cameraFacing: request.cameraFacing,
       cameraMode: request.cameraMode,
+      cameraVideoEventType: request.cameraVideoEventType,
+      cameraVideoSceneId: request.cameraVideoSceneId,
       framing,
     });
 
@@ -591,6 +932,39 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     const previousTexture1 = gl.getParameter(gl.TEXTURE_BINDING_2D) as WebGLTexture | null;
     gl.activeTexture(previousActiveTexture);
 
+    function copyTexture(texture: WebGLTexture, width: number, height: number) {
+      const frozen = gl.createTexture();
+      const framebuffer = gl.createFramebuffer();
+      if (!frozen || !framebuffer) {
+        if (frozen) gl.deleteTexture(frozen);
+        if (framebuffer) gl.deleteFramebuffer(framebuffer);
+        throw new Error("Camera capture could not allocate its frozen source.");
+      }
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, frozen);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer);
+      gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+      if (gl.checkFramebufferStatus(gl.READ_FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        gl.deleteFramebuffer(framebuffer);
+        gl.deleteTexture(frozen);
+        throw new Error("Camera capture could not read its live source texture.");
+      }
+      gl.bindTexture(gl.TEXTURE_2D, frozen);
+      gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+      gl.deleteFramebuffer(framebuffer);
+      return frozen;
+    }
+
+    const frozenSourceTexture = copyTexture(sourceTexture, sourceWidth, sourceHeight);
+    const frozenBloomTexture = copyTexture(bloomTexture, bloomWidth, bloomHeight);
     let captureTexture: WebGLTexture | null = null;
     let captureFramebuffer: WebGLFramebuffer | null = null;
     let pixels: Uint8Array | null = null;
@@ -649,10 +1023,16 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
         framing.sharedScene.ring,
         CAMERA_CAPTURE_GRAIN_SCALE,
         {
-          canvasWidth: framing.viewport.canvasWidth,
-          canvasHeight: framing.viewport.canvasHeight,
-          ...framing.viewport.normalizedViewfinder,
+          canvasWidth: CAMERA_CAPTURE_WIDTH,
+          canvasHeight: CAMERA_CAPTURE_HEIGHT,
+          x: 0,
+          y: 0,
+          width: 1,
+          height: 1,
         },
+        { x: 0, y: 0 },
+        frozenSourceTexture,
+        frozenBloomTexture,
       );
       drawLayer(CAMERA_TREATMENT, framing.sharedScene.grainSeed);
 
@@ -673,6 +1053,8 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     } finally {
       if (captureFramebuffer) gl.deleteFramebuffer(captureFramebuffer);
       if (captureTexture) gl.deleteTexture(captureTexture);
+      gl.deleteTexture(frozenSourceTexture);
+      gl.deleteTexture(frozenBloomTexture);
       gl.bindFramebuffer(gl.FRAMEBUFFER, previousFramebuffer);
       gl.viewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3]);
       gl.scissor(previousScissorBox[0], previousScissorBox[1], previousScissorBox[2], previousScissorBox[3]);
@@ -730,6 +1112,11 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     updateAmbientWorldScene(scene, deltaSeconds);
     const dpr = resize();
     if (ready) draw(dpr);
+    else diagnosticOnce("draw-not-ready", "[CameraWorld] draw skipped: renderer not ready", {
+      ready,
+      sourceTexture: Boolean(sourceTexture),
+      bloomTexture: Boolean(bloomTexture),
+    });
     sampleElapsed += deltaSeconds;
     sampleFrames += 1;
     if (sampleElapsed >= 0.5) {
@@ -742,10 +1129,23 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
 
   const image = new Image();
   image.onload = () => {
-    if (!disposed) uploadPlate(image);
+    if (!disposed) {
+      plateImage = image;
+      const plateUploadResult = uploadPlate(image);
+      diagnosticOnce("plate-loaded", "[CameraWorld] plate loaded", {
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight,
+        uploadPlateResult: plateUploadResult,
+        ready,
+        sourceTexture: Boolean(sourceTexture),
+        bloomTexture: Boolean(bloomTexture),
+        glError: gl.getError(),
+      });
+    }
   };
   image.onerror = () => console.error("Ambient World could not load its photographic plate.");
   image.src = plateUrl;
+  if (import.meta.env.DEV) console.info("[CameraWorld] static plate Image loading started", { plateUrl, src: image.src });
   document.addEventListener("visibilitychange", resetFrameTime);
   animationFrame = window.requestAnimationFrame(frame);
 
@@ -768,6 +1168,24 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
     setCameraLookClampHandler(handler: ((offset: CameraLookOffset) => void) | null) {
       cameraLookClampHandler = handler;
     },
+    setCameraSceneFramingOffset(offset: CameraLookOffset) {
+      cameraSceneFramingOffset = {
+        x: offset.x,
+        y: offset.y,
+      };
+    },
+    getCameraFramingDebugState() {
+      return lastFramingDebugState;
+    },
+    setCameraVideoSource(video: HTMLVideoElement | null) {
+      videoSource = video;
+      videoUploadToken += 1;
+      if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        sourceKind = "video";
+      } else if (!video && plateImage) {
+        uploadPlate(plateImage);
+      }
+    },
     captureCameraStill,
     dispose() {
       disposed = true;
@@ -779,7 +1197,7 @@ export function createAmbientWorldRenderer(canvas: HTMLCanvasElement, plateUrl: 
       image.onerror = null;
       window.cancelAnimationFrame(animationFrame);
       document.removeEventListener("visibilitychange", resetFrameTime);
-      if (plateTexture) gl.deleteTexture(plateTexture);
+      if (sourceTexture) gl.deleteTexture(sourceTexture);
       if (bloomTexture) gl.deleteTexture(bloomTexture);
       gl.deleteProgram(layerProgram);
       gl.deleteProgram(brightProgram);

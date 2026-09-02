@@ -1,4 +1,5 @@
 import type { CameraDevice, CameraLookOffset, CameraMode } from "./cameraRuntime";
+import type { CameraVideoEventType, CameraVideoSceneId } from "../world/cameraVideoScenes";
 
 export const CAMERA_CAPTURE_WIDTH = 1936;
 export const CAMERA_CAPTURE_HEIGHT = 2592;
@@ -29,6 +30,7 @@ export type CameraCaptureViewportSnapshot = Readonly<{
 }>;
 
 export type CameraCaptureFramingSnapshot = Readonly<{
+  sceneFramingOffset: CameraLookOffset;
   pointerOffset: CameraLookOffset;
   orientationOffset: CameraLookOffset;
   effectiveLookOffset: CameraLookOffset;
@@ -45,6 +47,8 @@ export type CameraCaptureSnapshot = Readonly<{
   mimeType: typeof CAMERA_CAPTURE_MIME_TYPE;
   cameraFacing: CameraDevice;
   cameraMode: CameraMode;
+  cameraVideoEventType: CameraVideoEventType;
+  cameraVideoSceneId: CameraVideoSceneId;
   framing: CameraCaptureFramingSnapshot;
 }>;
 
@@ -70,6 +74,8 @@ export type CameraPhotoDurableRecord = Readonly<{
   origin: CameraPhotoOrigin;
   cameraFacing: CameraDevice;
   cameraMode: CameraMode;
+  cameraVideoEventType: CameraVideoEventType;
+  cameraVideoSceneId: CameraVideoSceneId;
   framing: CameraCaptureFramingSnapshot;
 }>;
 

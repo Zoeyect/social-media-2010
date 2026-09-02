@@ -26,6 +26,8 @@ precision highp float;
 uniform sampler2D uTexture;
 uniform sampler2D uBloomTex;
 uniform vec2 uResolution;
+uniform vec2 uViewportOrigin;
+uniform vec2 uViewportSize;
 uniform vec2 uSceneResolution;
 uniform vec4 uSceneViewport;
 uniform vec2 uTexResolution;
@@ -67,7 +69,8 @@ vec2 coverUV(vec2 uv) {
 
 void main() {
   float t = uTime;
-  vec2 outputUV = gl_FragCoord.xy / uResolution;
+  vec2 viewportSize = max(uViewportSize, vec2(1.0));
+  vec2 outputUV = (gl_FragCoord.xy - uViewportOrigin) / viewportSize;
   vec2 sceneUV = uSceneViewport.xy + outputUV * uSceneViewport.zw;
   vec2 uv = coverUV(sceneUV);
   uv = (uv - 0.5) / uSceneZoom + 0.5 + uSceneOffset;

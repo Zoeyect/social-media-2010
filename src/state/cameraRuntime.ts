@@ -1,4 +1,10 @@
 import { DeviceAudio } from "../audio/deviceAudio";
+import {
+  defaultCameraVideoSceneId,
+  getCameraVideoScene,
+  type CameraVideoEventType,
+  type CameraVideoSceneId,
+} from "../world/cameraVideoScenes";
 
 export type CameraRuntimePhase =
   | "none"
@@ -41,6 +47,8 @@ const initialCameraLookState = (): CameraLookState => ({
 export type CameraSession = {
   phase: CameraRuntimePhase;
   cameraLaunchMode: CameraLaunchMode;
+  cameraVideoSceneId: CameraVideoSceneId;
+  cameraVideoEventType: CameraVideoEventType;
   suspended: boolean;
   mode: CameraMode;
   cameraDevice: CameraDevice;
@@ -70,6 +78,8 @@ export type CameraRuntimeEvent =
 const initialCameraSession = (cameraLaunchMode: CameraLaunchMode): CameraSession => ({
   phase: "none",
   cameraLaunchMode,
+  cameraVideoSceneId: defaultCameraVideoSceneId,
+  cameraVideoEventType: getCameraVideoScene(defaultCameraVideoSceneId).eventType,
   suspended: false,
   mode: "photo",
   cameraDevice: "rear",
@@ -78,10 +88,33 @@ const initialCameraSession = (cameraLaunchMode: CameraLaunchMode): CameraSession
   cameraLook: initialCameraLookState(),
 });
 
+function initialCameraSessionWithScene(
+  cameraLaunchMode: CameraLaunchMode,
+  cameraVideoSceneId: CameraVideoSceneId = defaultCameraVideoSceneId,
+  cameraVideoEventType: CameraVideoEventType = getCameraVideoScene(cameraVideoSceneId).eventType,
+): CameraSession {
+  const session = initialCameraSession(cameraLaunchMode);
+  return {
+    ...session,
+    cameraVideoSceneId,
+    cameraVideoEventType,
+  };
+}
+
 export const initialCameraRuntimeState: CameraRuntimeState = {
-  cameraApp: initialCameraSession("standaloneCamera"),
-  cameraPicker: initialCameraSession("mobileSMSPicker"),
+  cameraApp: initialCameraSessionWithScene("standaloneCamera"),
+  cameraPicker: initialCameraSessionWithScene("mobileSMSPicker"),
 };
+
+export function createInitialCameraRuntimeState(
+  cameraVideoSceneId: CameraVideoSceneId = defaultCameraVideoSceneId,
+  cameraVideoEventType: CameraVideoEventType = getCameraVideoScene(cameraVideoSceneId).eventType,
+): CameraRuntimeState {
+  return {
+    cameraApp: initialCameraSessionWithScene("standaloneCamera", cameraVideoSceneId, cameraVideoEventType),
+    cameraPicker: initialCameraSessionWithScene("mobileSMSPicker", cameraVideoSceneId, cameraVideoEventType),
+  };
+}
 
 export function cameraRuntimeTransition(
   state: CameraRuntimeState,
@@ -93,7 +126,10 @@ export function cameraRuntimeTransition(
   switch (event.type) {
     case "LAUNCH":
       return session.phase === "none"
-        ? replace({ ...initialCameraSession(session.cameraLaunchMode), phase: "launching" })
+        ? replace({
+          ...initialCameraSessionWithScene(session.cameraLaunchMode, session.cameraVideoSceneId, session.cameraVideoEventType),
+          phase: "launching",
+        })
         : replace({ ...session, suspended: false });
     case "LAUNCH_COMPLETE":
       return session.phase === "launching" ? replace({ ...session, phase: "previewing" }) : state;
@@ -127,7 +163,7 @@ export function cameraRuntimeTransition(
     case "RETURN_COMPLETE":
       return session.phase === "returning"
         ? event.owner === "cameraPicker"
-          ? replace(initialCameraSession("mobileSMSPicker"))
+          ? replace(initialCameraSessionWithScene("mobileSMSPicker", session.cameraVideoSceneId, session.cameraVideoEventType))
           : replace({ ...session, phase: "previewing" })
         : state;
     case "SET_LOOK_POINTER_OFFSET":
@@ -141,9 +177,9 @@ export function cameraRuntimeTransition(
         })
         : state;
     case "RESET":
-      return replace(initialCameraSession(event.owner === "cameraPicker"
+      return replace(initialCameraSessionWithScene(event.owner === "cameraPicker"
         ? "mobileSMSPicker"
-        : "standaloneCamera"));
+        : "standaloneCamera", session.cameraVideoSceneId, session.cameraVideoEventType));
   }
 }
 

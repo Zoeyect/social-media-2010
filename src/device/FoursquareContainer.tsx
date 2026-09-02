@@ -5,7 +5,7 @@ import tipsIcon from "../assets/foursquare/icons/tips-2010-reconstructed.svg";
 import todosIcon from "../assets/foursquare/icons/todos-2010-reconstructed.svg";
 import profileIcon from "../assets/foursquare/icons/profile-2010-reconstructed.svg";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
-import { FOURSQUARE_F1_PERIPHERAL_PEOPLE, FOURSQUARE_F1_REFERENCE_NOW, type FoursquareCheckinActivity } from "../data/foursquareContent";
+import { FOURSQUARE_F1_PERIPHERAL_PEOPLE, FOURSQUARE_F1_REFERENCE_NOW, selectFoursquareVenueTips, type FoursquareCheckinActivity } from "../data/foursquareContent";
 import { createFoursquareVenueViewModels, type FoursquareVenueViewModel } from "../data/foursquareVenueAdapter";
 import { FOURSQUARE_ROOT_TABS, FoursquareEvent, FoursquareRootTab, FoursquareState, FoursquareVenue } from "../state/foursquareState";
 import { useSessionIdentity } from "../state/sessionIdentity";
@@ -82,14 +82,15 @@ function PlacesRoot({ state, onOpen, scrollHost }: { state: FoursquareState; onO
 function QuietRoot({ label }: { label: string }) { return <section className="foursquare-quiet-root" aria-label={label} />; }
 
 function VenueDetail({ venue, venueViewModel, state, identityName, dispatch }: { venue: FoursquareVenue; venueViewModel: FoursquareVenueViewModel; state: FoursquareState; identityName: string; dispatch: Dispatch<FoursquareEvent> }) {
+  const tips = selectFoursquareVenueTips(venue.id);
   return <article className={`foursquare-venue-detail is-${state.venueSubview}`} data-content-status={venue.contentStatus} data-fidelity-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
     {state.venueSubview === "summary" && <><header className="foursquare-venue-summary-header"><img src={venueViewModel.categoryIcon} alt="" aria-hidden="true" /><span><strong>{venueViewModel.name}</strong><small>{venueViewModel.categoryLabel}</small></span></header><nav className="foursquare-venue-actions" aria-label={`${venueViewModel.name} actions`}>
       <button type="button" onClick={() => dispatch({ type: "SHOW_VENUE_CHECK_IN" })}>Check In<span aria-hidden="true">›</span></button>
       <button type="button" onClick={() => dispatch({ type: "SHOW_VENUE_INFO" })}>Info<span aria-hidden="true">›</span></button>
       <button type="button" onClick={() => dispatch({ type: "SHOW_VENUE_TIPS" })}>Tips<span aria-hidden="true">›</span></button>
     </nav></>}
-    {state.venueSubview === "info" && <section className="foursquare-venue-structural-field" aria-label="Venue information" />}
-    {state.venueSubview === "tips" && <section className="foursquare-venue-structural-field" aria-label="Venue tips" />}
+    {state.venueSubview === "info" && <section className="foursquare-venue-info" aria-label="Venue information"><div><span>Category</span><strong>{venueViewModel.categoryLabel}</strong></div></section>}
+    {state.venueSubview === "tips" && <section className="foursquare-venue-tips" aria-label="Venue tips">{tips.map(tip => <article key={tip.id} className="foursquare-venue-tip" data-content-status={tip.classification}><strong>{tip.authorDisplayName}</strong><p>{tip.text}</p></article>)}</section>}
     {state.venueSubview === "checkIn" && (state.checkIns[venue.id] ? <section className="foursquare-checkin-confirmation" role="status"><strong>Checked in.</strong><span>{state.checkIns[venue.id].checkedInBy} earned {state.checkIns[venue.id].pointsAwarded} point.</span>{state.checkIns[venue.id].shout && <p>{state.checkIns[venue.id].shout}</p>}</section> : <form className="foursquare-checkin-form" onSubmit={event => { event.preventDefault(); dispatch({ type: "CHECK_IN", venueId: venue.id, checkedInBy: identityName, checkInTimestamp: Date.now() }); }}><label htmlFor={`foursquare-shout-${venue.id}`}>Shout (optional)</label><IOS4Textarea keyboardInputId={`foursquare-shout-${venue.id}`} id={`foursquare-shout-${venue.id}`} maxLength={140} value={state.shoutDrafts[venue.id] ?? ""} onValueChange={value => dispatch({ type: "EDIT_CHECK_IN_SHOUT", venueId: venue.id, value })} /><button className="foursquare-checkin-button" type="submit">Check In</button></form>)}
   </article>;
 }

@@ -15,6 +15,7 @@ try {
   const twitter = await vite.ssrLoadModule("/src/state/twitterState.ts");
   const twitterTimelineComposition = await vite.ssrLoadModule("/src/state/twitterTimelineComposition.ts");
   const foursquare = await vite.ssrLoadModule("/src/state/foursquareState.ts");
+  const foursquareContent = await vite.ssrLoadModule("/src/data/foursquareContent.ts");
   const foursquareVenueAdapter = await vite.ssrLoadModule("/src/data/foursquareVenueAdapter.ts");
   const tumblr = await vite.ssrLoadModule("/src/state/tumblrState.ts");
   const flickr = await vite.ssrLoadModule("/src/state/flickrState.ts");
@@ -2063,8 +2064,13 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     let deepState = foursquare.foursquareStateTransition(foursquare.createInitialFoursquareState(), { type: "OPEN_VENUE", venueId: "night-owl", scrollPosition: 17 });
     deepState = foursquare.foursquareStateTransition(deepState, { type: "SHOW_VENUE_INFO" });
     deepState = foursquare.foursquareStateTransition(deepState, { type: "SHOW_TAB", tab });
-    assert.deepEqual([deepState.activeTab, deepState.currentView, deepState.venueSubview, deepState.selectedVenueId, deepState.selectedTipId], [tab, "root", "summary", null, null], `root tab ${tab} must clear every venue-local route`);
+    assert.deepEqual([deepState.activeTab, deepState.currentView, deepState.venueSubview, deepState.selectedVenueId], [tab, "root", "summary", null], `root tab ${tab} must clear every venue-local route`);
   }
+  assert.deepEqual(foursquareContent.FOURSQUARE_VENUE_TIPS, [{ id: "night-owl-tip", venueId: "night-owl", authorId: "june", authorDisplayName: "June", text: "The coffee is strongest after ten.", source: "seed", classification: "HOLD-fictional" }], "F2b-2 must expose exactly the existing June/Night Owl Tip as structured project fiction");
+  assert.equal(Object.hasOwn(foursquareContent.FOURSQUARE_VENUE_TIPS[0], "simulatedCreatedAt"), false, "F2b-2 must not fabricate a Tip timestamp");
+  assert.deepEqual(foursquareContent.selectFoursquareVenueTips("night-owl").map(tip => tip.id), ["night-owl-tip"], "Night Owl must resolve its one structured Tip");
+  for (const venueId of ["main-street-diner", "cedar-books", "riverside-park"]) assert.deepEqual(foursquareContent.selectFoursquareVenueTips(venueId), [], `${venueId} must not gain invented Tips`);
+  assert.equal(foursquareState.venues.every(venue => !Object.hasOwn(venue, "tip")), true, "Foursquare runtime venue state must not retain the legacy embedded Tip architecture");
   const activity = { id: "june-night-owl-checkin", message: "June checked in at Night Owl Cafe." };
   foursquareState = foursquare.foursquareStateTransition(foursquareState, { type: "DELIVER_SOCIAL_ACTIVITY", activity });
   foursquareState = foursquare.foursquareStateTransition(foursquareState, { type: "DELIVER_SOCIAL_ACTIVITY", activity });
@@ -2078,8 +2084,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
 
   let foursquarePlayability = foursquare.foursquareStateTransition(foursquareState, { type: "OPEN_VENUE", venueId: "night-owl", scrollPosition: 73 });
   assert.deepEqual([foursquarePlayability.activeTab, foursquarePlayability.currentView, foursquarePlayability.rootScrollPositions.places], ["places", "venue", 73], "opening a venue must preserve the Places root origin");
-  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "OPEN_TIP", venueId: "night-owl", tipId: "night-owl-tip" });
-  assert.equal(foursquarePlayability.selectedTipId, "night-owl-tip", "a venue Tip must open without changing user gameplay");
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "SHOW_VENUE_TIPS" });
+  assert.equal(foursquarePlayability.venueSubview, "tips", "the venue Tips subview must open without changing user gameplay");
   assert.equal(foursquarePlayability.points, 0);
   assert.equal(foursquarePlayability.rootScrollPositions.places, 73);
   foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "EDIT_CHECK_IN_SHOUT", venueId: "night-owl", value: "late coffee" });
@@ -2097,7 +2103,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     pointsAwarded: 1,
   });
   assert.equal(foursquarePlayability.points, 1);
-  assert.equal(foursquarePlayability.selectedTipId, "night-owl-tip", "check-in must not close or mutate the selected Tip");
+  assert.equal(foursquarePlayability.venueSubview, "tips", "check-in state changes must not mutate the selected venue subview");
   assert.equal(foursquarePlayability.mayorState, "otherUser", "one check-in must not promote the session owner to Mayor");
   assert.deepEqual(foursquarePlayability.earnedBadges, [], "check-in must not award a badge");
   const afterFirstCheckIn = foursquarePlayability;
@@ -2754,7 +2760,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(foursquareAlex.checkIns, {});
   assert.deepEqual(foursquareAlex.shoutDrafts, {});
   assert.equal(foursquareAlex.points, 0);
-  assert.equal(foursquareAlex.selectedTipId, null);
+  assert.equal(foursquareAlex.venueSubview, "summary");
   assert.deepEqual([foursquareAlex.activeTab, foursquareAlex.currentView, foursquareAlex.selectedVenueId], ["friends", "root", null], "new session must restore the Friends root");
   assert.deepEqual(foursquareAlex.rootScrollPositions, { friends: 0, places: 0, tips: 0, todos: 0, profile: 0 }, "new session must clear every Foursquare root scroll position");
   assert.equal(foursquareAlex.socialActivities.length, 5, "new session must restore the structured F1 baseline and remove live/user mutations");
@@ -3061,6 +3067,10 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(foursquareVenueDetailSource, /<IOS4Textarea[\s\S]*EDIT_CHECK_IN_SHOUT/, "F2b-1 must preserve the shared textarea and venue-keyed draft event");
   assert.match(foursquareVenueDetailSource, /<form className="foursquare-checkin-form"[\s\S]*type: "CHECK_IN"/, "F2b-1 must preserve the existing Check In submit event");
   assert.match(deviceCssSource, /\.foursquare-venue-summary-header \{[^}]*min-height: 62px;[^}]*grid-template-columns: 36px minmax\(0,1fr\);/, "F2b-1 venue identity must use its compact reconstructed header geometry");
+  assert.match(foursquareVenueDetailSource, /state\.venueSubview === "info"[\s\S]*Category[\s\S]*venueViewModel\.categoryLabel/, "F2b-2 Info must render only the truthful adapter category");
+  assert.match(foursquareVenueDetailSource, /state\.venueSubview === "tips"[\s\S]*tips\.map[\s\S]*tip\.authorDisplayName[\s\S]*tip\.text/, "F2b-2 Tips must render structured author identity and Tip text");
+  assert.doesNotMatch(foursquareVenueDetailSource, /OPEN_TIP|CLOSE_TIP|foursquare-tip-row|Tip from|No tips/, "F2b-2 must remove the old inline Tip architecture and avoid invented empty-state copy");
+  assert.match(deviceCssSource, /\.foursquare-venue-info > div \{[^}]*min-height: 48px;[^}]*grid-template-columns: 80px minmax\(0,1fr\);/, "F2b-2 Info must retain its reconstructed compact row geometry");
   assert.match(deviceCssSource, /\.foursquare-container \{[^}]*grid-template-rows: 44px minmax\(0,1fr\) 49px;/, "F1 must retain the reconstructed 44/content/49 shell geometry");
   assert.match(deviceCssSource, /\.foursquare-tab-bar \{[^}]*grid-template-columns: repeat\(5,64px\);/, "F1 tab bar must use five equal 64px cells");
   assert.match(flickrContainerSource, /<IOS4Textarea[\s\S]+keyboardInputId=\{`flickr-comment-[\s\S]+EDIT_COMMENT/, "Flickr comments must use the shared keyboard and existing event");

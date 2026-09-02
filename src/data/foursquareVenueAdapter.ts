@@ -2,7 +2,7 @@ import coffeeIcon from "../assets/foursquare/icons/category-coffee-2010-reconstr
 import dinerIcon from "../assets/foursquare/icons/category-diner-2010-reconstructed.svg";
 import bookstoreIcon from "../assets/foursquare/icons/category-bookstore-2010-reconstructed.svg";
 import parkIcon from "../assets/foursquare/icons/category-park-2010-reconstructed.svg";
-import type { FoursquareCheckinActivity } from "./foursquareContent";
+import { FOURSQUARE_VENUE_TIPS, type FoursquareCheckinActivity } from "./foursquareContent";
 import type { FoursquareVenue } from "../state/foursquareState";
 
 export const FOURSQUARE_VENUE_CATEGORIES = ["coffee-shop", "diner-restaurant", "bookstore", "park"] as const;
@@ -41,7 +41,7 @@ export function createFoursquareVenueViewModels(
       category: category.id,
       categoryLabel: category.label,
       categoryIcon: category.icon,
-      tipIds: Object.freeze(venue.tip ? [venue.tip.id] : []),
+      tipIds: Object.freeze(FOURSQUARE_VENUE_TIPS.filter(tip => tip.venueId === venue.id).map(tip => tip.id)),
       priorFriendActivityIds: Object.freeze(activities.filter(activity => activity.visible && activity.venueId === venue.id).map(activity => activity.id)),
       currentFriendIds: Object.freeze([]),
       contentStatus: venue.contentStatus,

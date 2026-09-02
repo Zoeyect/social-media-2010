@@ -17,3 +17,13 @@ Nested Back returns Info, Tips, or Check In to the same venue summary. Back from
 ## Holds
 
 To-Do control appearance and behavior, mayor display, friend context, map/location, phone, complete Info and Tips presentation, check-in form fidelity, game feedback, points/leaderboard placement, and exact detail micro-geometry remain HOLD or assigned to later checkpoints.
+
+## F2b-2 — Info and venue Tips
+
+The Info subview follows the project's sparse-data rule. It contains one compact native-style row: the label `Category` and the F2a adapter's explicit category value. Address, distance, phone, map, coordinates, creator metadata, venue statistics, people-here claims, mayor, reviews, ratings, and photos remain absent. The 48px row geometry and typography are `RECONSTRUCTED_FROM_PERIOD_SCREENSHOT`.
+
+Venue Tips now resolve from `FOURSQUARE_VENUE_TIPS` in `foursquareContent.ts`, not from the legacy Tip field carried by the seed fixture. Foursquare state deliberately strips that legacy property during initialization so the runtime has one Tip architecture. The sole record is `night-owl-tip`, attached only to `night-owl`, authored through stable canonical identity `june`, and preserves the exact project prose “The coffee is strongest after ten.” It has no fabricated timestamp.
+
+The Night Owl Tips subview renders only June's identity and Tip text. Main Street Diner, Cedar Books, and Riverside Park render an empty period field without “No tips” copy, illustration, or invented content. The Tip is `PROJECT-CURATED FICTION` / `HOLD-fictional`, not authenticated historical Foursquare content. Night Owl itself remains HOLD and any later venue replacement must migrate the Tip atomically.
+
+Nested Back and root-tab behavior remain those established in F2b-1. To-Do, mayor, friend context, map/location, phone, check-in visual reconstruction, points, leaderboard, badges, and historical content expansion remain HOLD.

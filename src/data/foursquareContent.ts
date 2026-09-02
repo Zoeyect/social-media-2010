@@ -1,4 +1,4 @@
-import type { CoreSocialCharacterId } from "./coreSocialFriends";
+import { CORE_SOCIAL_CHARACTERS, type CoreSocialCharacterId } from "./coreSocialFriends";
 
 export type FoursquareFriendId = CoreSocialCharacterId | "foursquare-mia";
 
@@ -30,3 +30,21 @@ export const FOURSQUARE_HIDDEN_LIVE_ACTIVITIES: Readonly<Record<string, Foursqua
 });
 
 export const FOURSQUARE_F1_REFERENCE_NOW = "2010-10-20T00:02:00-07:00";
+
+export type FoursquareVenueTip = Readonly<{
+  id: string;
+  venueId: string;
+  authorId: CoreSocialCharacterId;
+  authorDisplayName: string;
+  text: string;
+  source: "seed";
+  classification: "HOLD-fictional";
+}>;
+
+export const FOURSQUARE_VENUE_TIPS: readonly FoursquareVenueTip[] = Object.freeze([
+  Object.freeze({ id: "night-owl-tip", venueId: "night-owl", authorId: CORE_SOCIAL_CHARACTERS.june.id, authorDisplayName: "June", text: "The coffee is strongest after ten.", source: "seed", classification: "HOLD-fictional" }),
+]);
+
+export function selectFoursquareVenueTips(venueId: string): readonly FoursquareVenueTip[] {
+  return FOURSQUARE_VENUE_TIPS.filter(tip => tip.venueId === venueId);
+}

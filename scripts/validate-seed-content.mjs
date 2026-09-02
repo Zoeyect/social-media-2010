@@ -2084,6 +2084,22 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     deepState = foursquare.foursquareStateTransition(deepState, { type: "SHOW_TAB", tab });
     assert.deepEqual([deepState.activeTab, deepState.currentView, deepState.venueSubview, deepState.selectedVenueId], [tab, "root", "summary", null], `root tab ${tab} must clear every venue-local route`);
   }
+  let foursquareResultRoute = foursquare.foursquareStateTransition(foursquare.createInitialFoursquareState(), { type: "OPEN_VENUE", venueId: "night-owl", scrollPosition: 19 });
+  foursquareResultRoute = foursquare.foursquareStateTransition(foursquareResultRoute, { type: "SHOW_VENUE_CHECK_IN" });
+  assert.equal(foursquareResultRoute.venueSubview, "checkIn", "F3c-2 unchecked venue must open the existing Check In form");
+  foursquareResultRoute = foursquare.foursquareStateTransition(foursquareResultRoute, { type: "EDIT_CHECK_IN_SHOUT", venueId: "night-owl", value: "stored but hidden" });
+  foursquareResultRoute = foursquare.foursquareStateTransition(foursquareResultRoute, { type: "CHECK_IN", venueId: "night-owl", checkedInBy: "Zoey", checkInTimestamp: 1_287_552_600_000 });
+  assert.equal(foursquareResultRoute.venueSubview, "result", "F3c-2 successful form submission must route directly to result");
+  assert.equal(foursquareResultRoute.checkIns["night-owl"].shout, "stored but hidden", "F3c-2 must preserve stored shout data");
+  assert.deepEqual([foursquareResultRoute.checkIns["night-owl"].result.pointDelta, foursquareResultRoute.checkIns["night-owl"].result.rankAfter, foursquareResultRoute.checkIns["night-owl"].result.weeklyPointsAfter], [1, 6, 1], "F3c-2 result route must expose Venue A's frozen result");
+  foursquareResultRoute = foursquare.foursquareStateTransition(foursquareResultRoute, { type: "SHOW_VENUE_SUMMARY" });
+  assert.deepEqual([foursquareResultRoute.currentView, foursquareResultRoute.venueSubview, foursquareResultRoute.selectedVenueId], ["venue", "summary", "night-owl"], "F3c-2 Close must return one level to the same venue summary");
+  foursquareResultRoute = foursquare.foursquareStateTransition(foursquareResultRoute, { type: "SHOW_VENUE_CHECK_IN" });
+  assert.equal(foursquareResultRoute.venueSubview, "result", "F3c-2 checked venue must reopen its result without showing the form");
+  for (const tab of foursquare.FOURSQUARE_ROOT_TABS) {
+    const rootFromResult = foursquare.foursquareStateTransition(foursquareResultRoute, { type: "SHOW_TAB", tab });
+    assert.deepEqual([rootFromResult.activeTab, rootFromResult.currentView, rootFromResult.venueSubview, rootFromResult.selectedVenueId], [tab, "root", "summary", null], `F3c-2 result must escape cleanly to ${tab} root`);
+  }
   assert.deepEqual(foursquareContent.FOURSQUARE_VENUE_TIPS, [{ id: "night-owl-tip", venueId: "night-owl", authorId: "june", authorDisplayName: "June", text: "The coffee is strongest after ten.", source: "seed", classification: "HOLD-fictional" }], "F2b-2 must expose exactly the existing June/Night Owl Tip as structured project fiction");
   assert.equal(Object.hasOwn(foursquareContent.FOURSQUARE_VENUE_TIPS[0], "simulatedCreatedAt"), false, "F2b-2 must not fabricate a Tip timestamp");
   assert.deepEqual(foursquareContent.selectFoursquareVenueTips("night-owl").map(tip => tip.id), ["night-owl-tip"], "Night Owl must resolve its one structured Tip");
@@ -3134,8 +3150,24 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(foursquareStateSource, /pointEvents: FoursquarePointEvent\[\]; latestCheckinResult: FoursquareCheckinResult \| null/, "F3a state must store events and its frozen latest result");
   assert.doesNotMatch(foursquareStateSource, /\bpoints:\s*number|points:\s*state\.points|state\.points\s*\+/, "F3a must retire independently mutable aggregate scoring");
   assert.match(foursquareStateSource, /createCheckInPointEvent\(event\.venueId, event\.checkInTimestamp\)[\s\S]*buildCheckinResult\(state\.pointEvents, pointEvent\)/, "F3a CHECK_IN must atomically derive its event and frozen result from the F2c timestamp");
-  assert.match(foursquareStateSource, /const result = buildCheckinResult\(state\.pointEvents, pointEvent\)[\s\S]*pointsAwarded: result\.pointDelta, result \}[\s\S]*latestCheckinResult: result \};/, "F3c-1 must derive compatibility points and both result references from one canonical local snapshot");
-  assert.doesNotMatch(foursquareContainerSource, /checkIns\[venue\.id\]\.result/, "F3c-1 must not expose the new result contract in visible UI yet");
+  assert.match(foursquareStateSource, /const result = buildCheckinResult\(state\.pointEvents, pointEvent\)[\s\S]*pointsAwarded: result\.pointDelta, result \}[\s\S]*latestCheckinResult: result[, }]/, "F3c-1 must derive compatibility points and both result references from one canonical local snapshot");
+  assert.match(foursquareStateSource, /SHOW_VENUE_CHECK_IN[^\n]+state\.checkIns\[state\.selectedVenueId\] \? "result" : "checkIn"/, "F3c-2 checked venue must route directly to result while unchecked venue routes to form");
+  assert.match(foursquareStateSource, /latestCheckinResult: result, venueSubview: state\.currentView === "venue"[^\n]+state\.venueSubview === "checkIn" \? "result" : state\.venueSubview/, "F3c-2 successful form check-in must route directly to result without altering unrelated programmatic subviews");
+  const foursquareResultSource = foursquareContainerSource.match(/function CheckInResult\([\s\S]*?\n\}/)?.[0] ?? "";
+  assert.match(foursquareContainerSource, /state\.venueSubview === "result"[\s\S]*state\.checkIns\[venue\.id\]\.result/, "F3c-2 must bind the selected venue's frozen result snapshot");
+  assert.doesNotMatch(foursquareResultSource, /latestCheckinResult/, "F3c-2 result renderer must never use the global latest-result pointer");
+  assert.match(foursquareContainerSource, /state\.venueSubview === "result" \? "Close"/, "F3c-2 result navigation must use the confirmed Close label");
+  assert.match(foursquareResultSource, /OK! We’ve got you @ \{venueName\}\./, "F3c-2 confirmation must contain the selected venue without fabricated visit data");
+  assert.match(foursquareResultSource, />Points<[\s\S]*Nice check-in! You earned: <strong>\+\{result\.pointDelta\}<\/strong>[\s\S]*>Check-in<[\s\S]*\+\{result\.pointDelta\}/, "F3c-2 Points section must derive its summary and one itemized reason from the frozen delta");
+  assert.match(foursquareResultSource, />Leaderboard<[\s\S]*#\{result\.rankAfter\}[\s\S]*FoursquareAvatar[\s\S]*playerDisplayName[\s\S]*result\.weeklyPointsAfter/, "F3c-2 embedded row must use frozen rank and weekly score with the existing player avatar");
+  assert.doesNotMatch(foursquareResultSource, /shout|Weekly total|This week|Total points|Weekly points|Mayor|Badges|Specials|moved|climbed|overtook|basement/i, "F3c-2 must hide shout and omit unsupported total, event, and movement sections");
+  assert.doesNotMatch(foursquareContainerSource, /foursquare-checkin-confirmation|Checked in\.|earned \{state\.checkIns/, "F3c-2 must remove the legacy green result renderer");
+  assert.doesNotMatch(deviceCssSource, /\.foursquare-checkin-confirmation/, "F3c-2 must remove the legacy green result material");
+  assert.match(deviceCssSource, /\.foursquare-result-confirmation \{[^}]*min-height: 56px;[^}]*padding: 10px 12px;/, "F3c-2 confirmation must use the reconstructed contiguous 56px field");
+  assert.match(deviceCssSource, /\.foursquare-result-section-header \{[^}]*height: 23px;[^}]*padding: 0 9px;/, "F3c-2 section headers must retain compact Foursquare geometry");
+  assert.match(deviceCssSource, /\.foursquare-result-points-summary \{[^}]*height: 38px;[^}]*padding: 0 12px;/, "F3c-2 points summary must use reconstructed native-scale geometry");
+  assert.match(deviceCssSource, /\.foursquare-result-reason \{[^}]*height: 34px;[^}]*padding: 0 12px;/, "F3c-2 reason row must use reconstructed native-scale geometry");
+  assert.match(deviceCssSource, /\.foursquare-result-leaderboard-row \{[^}]*height: 52px;[^}]*grid-template-columns: 32px 36px minmax\(0,1fr\) auto;/, "F3c-2 embedded row must remain scoped from the frozen F3b standalone row");
   assert.doesNotMatch(`${foursquareStateSource}\n${foursquareGameModelSource}`, /Date\.now\(|new Date\(|performance\.now\(/, "F3a game chronology must not use a host clock");
   assert.doesNotMatch(foursquareStateSource.match(/case "CHECK_IN":[\s\S]*?case "DELIVER_SOCIAL_ACTIVITY"/)?.[0] ?? "", /socialActivities/, "F3a player check-in must not enter the Friends activity feed");
   assert.match(foursquareStateSource, /type FoursquareView = "root" \| "venue" \| "leaderboard"/, "F3b must add only the dedicated Leaderboard child view");

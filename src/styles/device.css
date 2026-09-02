@@ -777,10 +777,12 @@ button, input { font: inherit; }
 .foursquare-quiet-root { min-height: 100%; background: #eef1f1; }
 .foursquare-profile-root { min-height: 74px; padding: 12px; display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 10px; background: #fff; }
 .foursquare-profile-root > strong { color: #286f8b; font-size: 17px; }
-.foursquare-venue-row { width: 100%; min-height: 78px; padding: 10px 13px; display: grid; gap: 3px; color: #252525; border: 0; border-bottom: 1px solid #c5c5c5; background: #fff; text-align: left; }
-.foursquare-venue-row strong { color: #245f7d; font-size: 16px; }
-.foursquare-venue-row span { font-size: 13px; }
-.foursquare-venue-row small { color: #777; font-size: 11px; }
+.foursquare-venue-row { width: 100%; min-height: 58px; padding: 7px 8px; display: grid; grid-template-columns: 36px minmax(0, 1fr) 8px; align-items: center; column-gap: 8px; color: #252525; border: 0; border-bottom: 1px solid #b9c2c7; background: #fff; text-align: left; }
+.foursquare-venue-category-icon { width: 36px; height: 36px; display: block; }
+.foursquare-venue-copy { min-width: 0; display: grid; align-content: center; gap: 1px; }
+.foursquare-venue-copy strong { overflow: hidden; color: #245f7d; font-size: 15px; line-height: 18px; white-space: nowrap; text-overflow: ellipsis; }
+.foursquare-venue-copy small { overflow: hidden; color: #6b6b6b; font-size: 11px; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
+.foursquare-venue-disclosure { width: 7px; height: 7px; border-top: 2px solid #8b979d; border-right: 2px solid #8b979d; transform: rotate(45deg); }
 .foursquare-venue-detail { flex: 1 1 auto; min-height: 0; padding-bottom: 12px; overflow-y: auto; background: #fff; }
 .foursquare-venue-detail > header { padding: 15px 13px 12px; border-bottom: 1px solid #bbb; }
 .foursquare-venue-detail > header strong { display: block; color: #245f7d; font-size: 19px; }

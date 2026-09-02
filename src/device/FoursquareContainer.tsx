@@ -6,6 +6,7 @@ import todosIcon from "../assets/foursquare/icons/todos-2010-reconstructed.svg";
 import profileIcon from "../assets/foursquare/icons/profile-2010-reconstructed.svg";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import { FOURSQUARE_F1_PERIPHERAL_PEOPLE, FOURSQUARE_F1_REFERENCE_NOW, type FoursquareCheckinActivity } from "../data/foursquareContent";
+import { createFoursquareVenueViewModels, type FoursquareVenueViewModel } from "../data/foursquareVenueAdapter";
 import { FOURSQUARE_ROOT_TABS, FoursquareEvent, FoursquareRootTab, FoursquareState, FoursquareVenue } from "../state/foursquareState";
 import { useSessionIdentity } from "../state/sessionIdentity";
 import { IOS4Textarea } from "./IOS4KeyboardSystem";
@@ -73,7 +74,8 @@ function ActivityBucket({ title, activities, venues, onOpenVenue }: { title: str
 }
 
 function PlacesRoot({ state, onOpen, scrollHost }: { state: FoursquareState; onOpen: (venueId: string, scrollPosition: number) => void; scrollHost: React.RefObject<HTMLDivElement | null> }) {
-  return <section className="foursquare-places" data-fidelity-status="F2-pending">{state.venues.map(item => <VenueRow key={item.id} venue={item} checkedIn={Boolean(state.checkIns[item.id])} onOpen={() => onOpen(item.id, scrollHost.current?.scrollTop ?? state.rootScrollPositions.places)} />)}</section>;
+  const venues = createFoursquareVenueViewModels(state.venues, state.socialActivities);
+  return <section className="foursquare-places" data-fidelity-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">{venues.map(item => <VenueRow key={item.id} venue={item} checkedIn={Boolean(state.checkIns[item.id])} onOpen={() => onOpen(item.id, scrollHost.current?.scrollTop ?? state.rootScrollPositions.places)} />)}</section>;
 }
 
 function QuietRoot({ label }: { label: string }) { return <section className="foursquare-quiet-root" aria-label={label} />; }
@@ -86,7 +88,11 @@ function VenueDetail({ venue, state, identityName, dispatch }: { venue: Foursqua
   </article>;
 }
 
-function VenueRow({ venue, checkedIn, onOpen }: { venue: FoursquareVenue; checkedIn: boolean; onOpen: () => void }) { return <button type="button" className="foursquare-venue-row" onClick={onOpen} data-content-status={venue.contentStatus}><strong>{venue.name}</strong><span>{venue.category} · {venue.distance}</span><small>{checkedIn ? "Checked in" : venue.address}</small></button>; }
+function VenueRow({ venue, checkedIn, onOpen }: { venue: FoursquareVenueViewModel; checkedIn: boolean; onOpen: () => void }) { return <button type="button" className="foursquare-venue-row" onClick={onOpen} data-content-status={venue.contentStatus} data-category={venue.category}>
+  <img className="foursquare-venue-category-icon" src={venue.categoryIcon} alt="" aria-hidden="true" />
+  <span className="foursquare-venue-copy"><strong>{venue.name}</strong><small>{venue.categoryLabel}{checkedIn ? " · Checked in" : ""}</small></span>
+  <span className="foursquare-venue-disclosure" aria-hidden="true" />
+</button>; }
 
 export function formatRelativeActivityTime(simulatedCreatedAt: string): string {
   const minutes = Math.max(0, Math.floor((Date.parse(FOURSQUARE_F1_REFERENCE_NOW) - Date.parse(simulatedCreatedAt)) / 60000));

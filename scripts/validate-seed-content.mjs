@@ -15,6 +15,7 @@ try {
   const twitter = await vite.ssrLoadModule("/src/state/twitterState.ts");
   const twitterTimelineComposition = await vite.ssrLoadModule("/src/state/twitterTimelineComposition.ts");
   const foursquare = await vite.ssrLoadModule("/src/state/foursquareState.ts");
+  const foursquareVenueAdapter = await vite.ssrLoadModule("/src/data/foursquareVenueAdapter.ts");
   const tumblr = await vite.ssrLoadModule("/src/state/tumblrState.ts");
   const flickr = await vite.ssrLoadModule("/src/state/flickrState.ts");
   const instagram = await vite.ssrLoadModule("/src/state/instagramState.ts");
@@ -2025,6 +2026,13 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(twitterReset.timeline.find(tweet => tweet.id === "late-night-matt").displayName, "Matt Ricci");
 
   let foursquareState = foursquare.createInitialFoursquareState();
+  const foursquarePlaces = foursquareVenueAdapter.createFoursquareVenueViewModels(foursquareState.venues, foursquareState.socialActivities);
+  assert.deepEqual(foursquarePlaces.map(venue => [venue.id, venue.name]), [["night-owl", "Night Owl Cafe"], ["main-street-diner", "Main Street Diner"], ["cedar-books", "Cedar Books"], ["riverside-park", "Riverside Park"]], "F2a must retain all four venue identities and ordering");
+  assert.deepEqual(foursquarePlaces.map(venue => [venue.id, venue.category]), [["night-owl", "coffee-shop"], ["main-street-diner", "diner-restaurant"], ["cedar-books", "bookstore"], ["riverside-park", "park"]], "F2a must use explicit stable category mappings");
+  assert.equal(foursquarePlaces.every(venue => typeof venue.categoryIcon === "string" && venue.categoryIcon.length > 0), true, "every F2a venue must resolve category artwork");
+  assert.equal(new Set(foursquarePlaces.map(venue => venue.categoryIcon)).size, 4, "F2a must bind one explicit category artwork asset per current venue category");
+  assert.equal(foursquarePlaces.every(venue => !Object.hasOwn(venue, "address") && !Object.hasOwn(venue, "distance") && !Object.hasOwn(venue, "coordinates")), true, "F2a view models must omit unverified address, fabricated distance, and private coordinates");
+  assert.deepEqual(foursquarePlaces.find(venue => venue.id === "main-street-diner")?.priorFriendActivityIds, ["june-main-street-diner", "luca-main-street-diner"], "adapter must derive only visible prior friend activity IDs");
   assert.deepEqual(foursquare.FOURSQUARE_ROOT_TABS, ["friends", "places", "tips", "todos", "profile"], "F1 must expose exactly five period root destinations in locked order");
   assert.deepEqual([foursquareState.activeTab, foursquareState.currentView, foursquareState.selectedVenueId], ["friends", "root", null], "Foursquare must open to the Friends root");
   assert.deepEqual(foursquareState.rootScrollPositions, { friends: 0, places: 0, tips: 0, todos: 0, profile: 0 }, "every Foursquare root must own independent scroll state");
@@ -3019,6 +3027,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(foursquareContainerSource, /FOURSQUARE_ROOT_TABS\.map\(tab => <button/, "F1 shell must render every root from the locked tab definition");
   assert.match(foursquareContainerSource, /activity\.friendId[\s\S]+activity\.venueId[\s\S]+activity\.simulatedCreatedAt/, "Friends rows must resolve stable identities, venues, and simulated timestamps from structured records");
   assert.doesNotMatch(foursquareContainerSource, /split\(|match\(|checked in at.*split/i, "Friends renderer must not parse freeform check-in strings");
+  const foursquareVenueRowSource = foursquareContainerSource.match(/function VenueRow\([\s\S]*?\n\}/)?.[0] ?? "";
+  assert.match(foursquareVenueRowSource, /venue\.categoryIcon[\s\S]*venue\.name[\s\S]*venue\.categoryLabel[\s\S]*foursquare-venue-disclosure/, "F2a rows must render explicit category artwork, truthful category metadata, and a restrained disclosure");
+  assert.doesNotMatch(foursquareVenueRowSource, /venue\.(?:address|distance|mayor)|people here|nearby/i, "F2a Places rows must omit unverified geography, fabricated distance, and unsupported presence or mayor claims");
+  assert.match(deviceCssSource, /\.foursquare-venue-row \{[^}]*min-height: 58px; padding: 7px 8px;[^}]*grid-template-columns: 36px minmax\(0, 1fr\) 8px;/, "F2a Places rows must retain reconstructed compact geometry");
+  assert.match(deviceCssSource, /\.foursquare-venue-category-icon \{ width: 36px; height: 36px;/, "F2a category artwork must retain its reconstructed native-scale bounds");
   assert.match(deviceCssSource, /\.foursquare-container \{[^}]*grid-template-rows: 44px minmax\(0,1fr\) 49px;/, "F1 must retain the reconstructed 44/content/49 shell geometry");
   assert.match(deviceCssSource, /\.foursquare-tab-bar \{[^}]*grid-template-columns: repeat\(5,64px\);/, "F1 tab bar must use five equal 64px cells");
   assert.match(flickrContainerSource, /<IOS4Textarea[\s\S]+keyboardInputId=\{`flickr-comment-[\s\S]+EDIT_COMMENT/, "Flickr comments must use the shared keyboard and existing event");

@@ -2025,16 +2025,22 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(twitterReset.timeline.find(tweet => tweet.id === "late-night-matt").displayName, "Matt Ricci");
 
   let foursquareState = foursquare.createInitialFoursquareState();
+  assert.deepEqual(foursquare.FOURSQUARE_ROOT_TABS, ["friends", "places", "tips", "todos", "profile"], "F1 must expose exactly five period root destinations in locked order");
+  assert.deepEqual([foursquareState.activeTab, foursquareState.currentView, foursquareState.selectedVenueId], ["friends", "root", null], "Foursquare must open to the Friends root");
+  assert.deepEqual(foursquareState.rootScrollPositions, { friends: 0, places: 0, tips: 0, todos: 0, profile: 0 }, "every Foursquare root must own independent scroll state");
   assert.equal(foursquareState.points, 0);
   assert.deepEqual(foursquareState.checkIns, {});
   assert.deepEqual(foursquareState.shoutDrafts, {});
   assert.equal(foursquareState.mayorState, "otherUser");
   assert.deepEqual(foursquareState.earnedBadges, []);
-  assert.equal(foursquareState.socialActivities.length, 1);
-  const activity = { id: "live-checkin", message: "June checked in." };
+  assert.equal(foursquareState.socialActivities.length, 5);
+  assert.deepEqual(foursquareState.socialActivities.find(activity => activity.id === "mia-cedar-books"), { id: "mia-cedar-books", friendId: "foursquare-mia", venueId: "cedar-books", simulatedCreatedAt: "2010-10-19T20:42:00-07:00", source: "seed", visible: true }, "F1 structured migration must preserve the existing Mia/Cedar Books seed meaning");
+  assert.equal(foursquareState.socialActivities.every(activity => activity.friendId && activity.venueId && activity.simulatedCreatedAt && !Object.hasOwn(activity, "message")), true, "Friends feed must use structured identity/venue/time records without freeform parsing");
+  const activity = { id: "june-night-owl-checkin", message: "June checked in at Night Owl Cafe." };
   foursquareState = foursquare.foursquareStateTransition(foursquareState, { type: "DELIVER_SOCIAL_ACTIVITY", activity });
   foursquareState = foursquare.foursquareStateTransition(foursquareState, { type: "DELIVER_SOCIAL_ACTIVITY", activity });
-  assert.equal(foursquareState.socialActivities.length, 2);
+  assert.equal(foursquareState.socialActivities.length, 6);
+  assert.equal(foursquareState.socialActivities.at(-1).visible, false, "unresolved Night Owl live activity must remain delivered but hidden in F1");
   assert.equal(foursquareState.unreadActivityCount, 1);
   assert.equal(foursquareState.points, 0, "ambient activity must not mutate user gameplay state");
   assert.deepEqual(foursquareState.checkIns, {}, "ambient activity must not check in the session owner");
@@ -2042,10 +2048,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(foursquareState.earnedBadges, []);
 
   let foursquarePlayability = foursquare.foursquareStateTransition(foursquareState, { type: "OPEN_VENUE", venueId: "night-owl", scrollPosition: 73 });
+  assert.deepEqual([foursquarePlayability.activeTab, foursquarePlayability.currentView, foursquarePlayability.rootScrollPositions.places], ["places", "venue", 73], "opening a venue must preserve the Places root origin");
   foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "OPEN_TIP", venueId: "night-owl", tipId: "night-owl-tip" });
   assert.equal(foursquarePlayability.selectedTipId, "night-owl-tip", "a venue Tip must open without changing user gameplay");
   assert.equal(foursquarePlayability.points, 0);
-  assert.equal(foursquarePlayability.scrollPosition, 73);
+  assert.equal(foursquarePlayability.rootScrollPositions.places, 73);
   foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "EDIT_CHECK_IN_SHOUT", venueId: "night-owl", value: "late coffee" });
   foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, {
     type: "CHECK_IN",
@@ -2081,7 +2088,13 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   });
   assert.equal(foursquarePlayability.checkIns["main-street-diner"].shout, null, "empty shout must still permit check-in");
   assert.equal(foursquarePlayability.points, 2);
-  assert.equal(foursquarePlayability.socialActivities.length, 2, "user check-in must remain separate from ambient seed/live activity");
+  assert.equal(foursquarePlayability.socialActivities.length, 6, "user check-in must remain separate from ambient seed/live activity");
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "SET_ROOT_SCROLL_POSITION", tab: "friends", scrollPosition: 41 });
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "SET_ROOT_SCROLL_POSITION", tab: "places", scrollPosition: 82 });
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "SHOW_TAB", tab: "profile" });
+  assert.deepEqual([foursquarePlayability.activeTab, foursquarePlayability.currentView, foursquarePlayability.selectedVenueId], ["profile", "root", null], "root-tab selection must clear incompatible venue detail state");
+  foursquarePlayability = foursquare.foursquareStateTransition(foursquarePlayability, { type: "SHOW_TAB", tab: "places" });
+  assert.deepEqual([foursquarePlayability.activeTab, foursquarePlayability.currentView, foursquarePlayability.rootScrollPositions.friends, foursquarePlayability.rootScrollPositions.places], ["places", "root", 41, 82], "root navigation must retain independent root scroll positions");
 
   let tumblrState = tumblr.createInitialTumblrState();
   assert.ok(tumblrState.posts.every(post => post.origin === "seed"));
@@ -2713,7 +2726,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(foursquareAlex.shoutDrafts, {});
   assert.equal(foursquareAlex.points, 0);
   assert.equal(foursquareAlex.selectedTipId, null);
-  assert.equal(foursquareAlex.socialActivities.length, 1, "new session must restore the seeded ambient baseline and remove live/user mutations");
+  assert.deepEqual([foursquareAlex.activeTab, foursquareAlex.currentView, foursquareAlex.selectedVenueId], ["friends", "root", null], "new session must restore the Friends root");
+  assert.deepEqual(foursquareAlex.rootScrollPositions, { friends: 0, places: 0, tips: 0, todos: 0, profile: 0 }, "new session must clear every Foursquare root scroll position");
+  assert.equal(foursquareAlex.socialActivities.length, 5, "new session must restore the structured F1 baseline and remove live/user mutations");
   assert.deepEqual(instagramAlex.photos, []);
   assert.equal(instagramAlex.currentView, "feed");
   assert.equal(instagramAlex.selectedPhotoId, null);
@@ -3000,6 +3015,12 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(twitterContainerSource, /<IOS4Textarea[\s\S]+keyboardInputId=\{replyTarget[\s\S]+onValueChange=\{onChange\}/, "Twitter compose and reply must share the system keyboard without moving tweet state");
   assert.doesNotMatch(twitterContainerSource, /<IOS4Textarea[^>]+keyboardReturnKeyType="send"/, "Twitter's actual multiline textarea must retain Return/newline semantics and use its explicit header Send control");
   assert.match(foursquareContainerSource, /<IOS4Textarea[\s\S]+keyboardInputId=\{`foursquare-shout-[\s\S]+EDIT_CHECK_IN_SHOUT/, "Foursquare check-in text must use the shared keyboard and existing event");
+  assert.match(foursquareContainerSource, /friends: \{ label: "Friends"[\s\S]+places: \{ label: "Places"[\s\S]+tips: \{ label: "Tips"[\s\S]+todos: \{ label: "To-Dos"[\s\S]+profile: \{ label: "Profile"/, "F1 shell must retain the locked five-tab labels and order");
+  assert.match(foursquareContainerSource, /FOURSQUARE_ROOT_TABS\.map\(tab => <button/, "F1 shell must render every root from the locked tab definition");
+  assert.match(foursquareContainerSource, /activity\.friendId[\s\S]+activity\.venueId[\s\S]+activity\.simulatedCreatedAt/, "Friends rows must resolve stable identities, venues, and simulated timestamps from structured records");
+  assert.doesNotMatch(foursquareContainerSource, /split\(|match\(|checked in at.*split/i, "Friends renderer must not parse freeform check-in strings");
+  assert.match(deviceCssSource, /\.foursquare-container \{[^}]*grid-template-rows: 44px minmax\(0,1fr\) 49px;/, "F1 must retain the reconstructed 44/content/49 shell geometry");
+  assert.match(deviceCssSource, /\.foursquare-tab-bar \{[^}]*grid-template-columns: repeat\(5,64px\);/, "F1 tab bar must use five equal 64px cells");
   assert.match(flickrContainerSource, /<IOS4Textarea[\s\S]+keyboardInputId=\{`flickr-comment-[\s\S]+EDIT_COMMENT/, "Flickr comments must use the shared keyboard and existing event");
   assert.match(tumblrContainerSource, /<IOS4Textarea[\s\S]+keyboardInputId=\{`tumblr-reblog-[\s\S]+EDIT_REBLOG_TEXT/, "Tumblr optional reblog text must use the shared keyboard and existing event");
   const registeredEditableSources = `${facebookContainerSource}\n${mobileSmsContainerSource}\n${twitterContainerSource}\n${instagramContainerSource}\n${foursquareContainerSource}\n${flickrContainerSource}\n${tumblrContainerSource}`;

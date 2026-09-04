@@ -2049,6 +2049,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(foursquarePlaces.every(venue => typeof venue.categoryIcon === "string" && venue.categoryIcon.length > 0), true, "every F2a venue must resolve category artwork");
   assert.equal(new Set(foursquarePlaces.map(venue => venue.categoryIcon)).size, 4, "F2a must bind one explicit category artwork asset per current venue category");
   assert.equal(foursquarePlaces.every(venue => !Object.hasOwn(venue, "address") && !Object.hasOwn(venue, "distance") && !Object.hasOwn(venue, "coordinates")), true, "F2a view models must omit unverified address, fabricated distance, and private coordinates");
+  assert.equal(foursquarePlaces.every(venue => !Object.hasOwn(venue, "mayor") && !Object.hasOwn(venue, "mayorCharacterId")), true, "F4 legacy mayor strings must not enter UI-eligible venue view models");
   assert.deepEqual(foursquarePlaces.find(venue => venue.id === "main-street-diner")?.priorFriendActivityIds, ["june-main-street-diner", "luca-main-street-diner"], "adapter must derive only visible prior friend activity IDs");
   assert.deepEqual(foursquare.FOURSQUARE_ROOT_TABS, ["friends", "places", "tips", "todos", "profile"], "F1 must expose exactly five period root destinations in locked order");
   assert.deepEqual([foursquareState.activeTab, foursquareState.currentView, foursquareState.selectedVenueId], ["friends", "root", null], "Foursquare must open to the Friends root");
@@ -2073,6 +2074,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(foursquareState.checkIns, {});
   assert.deepEqual(foursquareState.shoutDrafts, {});
   assert.equal(foursquareState.mayorState, "otherUser");
+  assert.deepEqual(
+    foursquareState.venues.map(venue => [venue.id, venue.mayor]),
+    [["night-owl", "June"], ["main-street-diner", "Jack"], ["cedar-books", "Mia"], ["riverside-park", "Eli"]],
+    "F4 must quarantine the four legacy HOLD-fictional mayor strings until a coordinated F6 migration",
+  );
   assert.deepEqual(foursquareState.earnedBadges, []);
   assert.equal(foursquareState.socialActivities.length, 5);
   assert.deepEqual(foursquareState.socialActivities.find(activity => activity.id === "mia-cedar-books"), { id: "mia-cedar-books", friendId: "foursquare-mia", venueId: "cedar-books", simulatedCreatedAt: "2010-10-19T20:42:00-07:00", source: "seed", visible: true }, "F1 structured migration must preserve the existing Mia/Cedar Books seed meaning");
@@ -2160,6 +2166,10 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(foursquarePlayability.venueSubview, "tips", "check-in state changes must not mutate the selected venue subview");
   assert.equal(foursquarePlayability.mayorState, "otherUser", "one check-in must not promote the session owner to Mayor");
   assert.deepEqual(foursquarePlayability.earnedBadges, [], "check-in must not award a badge");
+  assert.deepEqual(foursquarePlayability.latestCheckinResult?.badgeIdsUnlocked, [], "F4 unknown prior player history must not be interpreted as Newbie eligibility");
+  assert.equal(foursquarePlayability.latestCheckinResult?.mayorshipChange, null, "F4 one session check-in must not acquire a mayorship");
+  assert.equal(foursquareState.socialActivities.some(activity => activity.friendId === "luca" && activity.venueId === "main-street-diner"), true, "F4 preserves Luca's existing Main Street Diner activity observation");
+  assert.equal(foursquareState.venues.find(venue => venue.id === "main-street-diner")?.mayor, "Jack", "F4 must not derive Luca mayorship from workplace or venue presence");
   const afterFirstCheckIn = foursquarePlayability;
   const firstVenueRecord = afterFirstCheckIn.checkIns["night-owl"];
   assert.deepEqual(foursquareGameModel.buildLeaderboard(afterFirstCheckIn.pointEvents).map(entry => [entry.rank, entry.identityId, entry.weeklyPoints]), [[1, "alex", 18], [2, "katie", 15], [3, "june", 9], [4, "luca", 4], [5, "foursquare-mia", 2], [6, "session-owner", 1]], "F3b first unique check-in must add the player at #6 with 1");
@@ -3193,6 +3203,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal((foursquareProfileRootSource.match(/<button\b/g) ?? []).length, 1, "F3d Profile must retain exactly one interactive Leaderboard entry");
   assert.doesNotMatch(foursquareProfileRootSource, /pointEvents|checkIns|latestCheckinResult|getPlayerWeeklyPoints|getPlayerRank|buildLeaderboard/, "F3d Profile DOM must remain structurally independent of live game values before and after check-ins");
   assert.doesNotMatch(foursquareProfileRootSource, />\s*(?:Points|Score|Weekly(?: Points)?|This Week|Rank|Unranked|Badges|Mayorships|Check-ins|History)\s*</i, "F3d Profile must omit unsupported game statistics and history copy");
+  assert.doesNotMatch(foursquareProfileRootSource, /badge|mayor/i, "F4 Profile must not expose badge or mayorship ownership while historical data is unknown");
+  assert.doesNotMatch(foursquareVenueSummarySource, /mayor|crown|visit count|mayorship progress|No mayor yet/i, "F4 Venue must not expose legacy mayor identity, a zero-state claim, or progress");
+  assert.doesNotMatch(foursquareResultSource, /badge|mayor|crown|Newbie/i, "F4 Result must render no badge or mayor surface for empty and null events");
   const foursquareLeaderboardSource = foursquareContainerSource.match(/function Leaderboard\([\s\S]*?\n\}/)?.[0] ?? "";
   assert.match(foursquareLeaderboardSource, /entries\.map[\s\S]*#\{entry\.rank\}[\s\S]*FoursquareAvatar[\s\S]*person\.displayName[\s\S]*entry\.weeklyPoints/, "F3b rows must render rank, reused avatar, name, and numeric score from the game model output");
   assert.doesNotMatch(foursquareLeaderboardSource, /<button|onClick|This Week|>Weekly<|>pts<|>points<|highlight|disclosure|movement|medal/i, "F3b leaderboard rows must remain inert and omit unsupported week, suffix, highlight, and navigation treatments");

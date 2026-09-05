@@ -4,13 +4,13 @@
 
 The supplied Facebook for iPhone period screenshot establishes a context-sensitive metadata line rather than one uniform absolute clock string. Observed structural patterns include relative wording and day/time metadata with an optional `via <source>` suffix. This implementation applies that structure without changing story chronology or scheduler timing.
 
-Target: Facebook for iPhone 3.2-era, October 20, 2010, iPhone 4 / iOS 4.1.
+Target: Facebook for iPhone 3.2-era, October 19, 2010, iPhone 4 / iOS 4.1.
 
 ## Simulated-time derivation
 
 One pure formatter receives the story timestamp and simulated now. Simulated now is derived from the existing `SESSION_START_ISO` plus the existing global `elapsedMs`. The formatter does not read browser/system time and creates no timer.
 
-Feed first compares calendar dates in `America/Los_Angeles`. Relative wording is available only when story and simulated now share the same calendar date. Once midnight is crossed, an Oct 19 story uses `Tue h:mm PM` even when it is only a few minutes old.
+Feed first compares calendar dates in `America/Los_Angeles`. Relative wording is available only when story and simulated now share the same calendar date. Explicit ISO history preserves its explicit date; clock-only static rows derive their date from the canonical session calendar and are never silently assigned October 20.
 
 Same-day thresholds:
 
@@ -35,33 +35,33 @@ Feed and Profile Wall rows use concise relative/day/date metadata. Post Detail a
 
 ## Live examples
 
-June's T+60 announcement renders `just now` at 12:03, `1 minute ago` at 12:04, and advances from the global clock thereafter. Ryan's T+135 gossip follows the same rule from its modeled delivery clock. Neither event stores a separate minute counter.
+June's T+60 announcement renders `just now` at 10:03 PM, `1 minute ago` at 10:04 PM, and advances from the global clock thereafter. Ryan's T+135 gossip follows the same rule from its modeled delivery clock. Neither event stores a separate minute counter; runtime-derived rows use master T0 plus elapsed.
 
 Classification: PERIOD-EVIDENCE structure / CURATED thresholds.
 
 ## Seed timestamp source audit and future guard
 
-Session start is `2010-10-20T00:02:00-07:00`. All stories already present before that boundary are explicit PDT ISO records and validate strictly earlier than session start.
+Session start is `2010-10-19T22:02:00-07:00`. Every initially visible static story must validate at or before T0; runtime stories after T0 must remain scheduler-gated. No future initial story is allowed.
 
 | Story ID | Actor | Previous timestamp source | Intended in-world timestamp | Status |
 |---|---|---|---|---|
-| `ben-long-day` | Ben | `11:58 PM`, calendar date ambiguous | `2010-10-19T23:58:00-07:00` | CORRECTED |
-| `jack-movie` | Jack | `11:52 PM`, calendar date ambiguous | `2010-10-19T23:52:00-07:00` | CORRECTED |
-| `alex-jacks-party-friday` | Alex | `11:47 PM`, calendar date ambiguous | `2010-10-19T23:47:00-07:00` | CORRECTED |
-| `katie-coffee` | Katie | `11:41 PM`, calendar date ambiguous | `2010-10-19T23:41:00-07:00` | CORRECTED |
-| `jay-reading` | Jay | `11:33 PM`, calendar date ambiguous | `2010-10-19T23:33:00-07:00` | CORRECTED |
-| `luca-pickup-basketball-photos` | Luca / Chris | `10:58 PM`, calendar date ambiguous | `2010-10-19T22:58:00-07:00` | CORRECTED |
-| `luca-main-street-diner-checkin` | Luca | `10:44 PM`, calendar date ambiguous | `2010-10-19T22:44:00-07:00` | CORRECTED |
+| `ben-long-day` | Ben | clock-only narrative row | `2010-10-19T21:58:00-07:00` | PROJECT CANON RETIME |
+| `jack-movie` | Jack | clock-only narrative row | `2010-10-19T21:52:00-07:00` | PROJECT CANON RETIME |
+| `alex-jacks-party-friday` | Alex | clock-only narrative row | `2010-10-19T21:47:00-07:00` | PROJECT CANON RETIME |
+| `katie-coffee` | Katie | clock-only narrative row | `2010-10-19T21:41:00-07:00` | PROJECT CANON RETIME |
+| `jay-reading` | Jay | clock-only narrative row | `2010-10-19T21:33:00-07:00` | PROJECT CANON RETIME |
+| `luca-pickup-basketball-photos` | Luca / Chris | clock-only narrative row | `2010-10-19T21:28:00-07:00` | PROJECT CANON RETIME |
+| `luca-main-street-diner-checkin` | Luca | clock-only narrative row | `2010-10-19T21:44:00-07:00` | PROJECT CANON RETIME |
 | `jay-band-performance-photo` | Jay | explicit ISO | `2010-10-19T22:00:00-07:00` | PRESERVED; performance occurred Oct 18 |
 | Former Katie/Ben family photo story | Katie / Ben | removed with deleted source asset | n/a | DEPRECATED / REMOVED in v0.5.17 |
 | `z-tokyo-profile-picture-update` | Z.tokyo | explicit ISO | `2010-10-18T20:52:00-07:00` | PRESERVED |
-| `facebook-june-instagram-announcement` | June | T+60 live delivery | `2010-10-20T00:03:00-07:00` | LIVE / PRESERVED |
-| `facebook-june-jack-gossip-ryan-standalone` | Ryan | T+135 live delivery | approximately `2010-10-20T00:04:15-07:00` | LIVE / PRESERVED |
-| Katie gossip reaction | Katie | scheduler T+120 | `2010-10-20T00:04:00-07:00` | LIVE COMMENT; no separate Feed story |
-| Chris gossip reaction | Chris | scheduler T+145 | `2010-10-20T00:04:25-07:00` | LIVE COMMENT; no separate Feed story |
+| `facebook-june-instagram-announcement` | June | T+60 live delivery | `2010-10-19T22:03:00-07:00` | LIVE / MASTER-DERIVED |
+| `facebook-june-jack-gossip-ryan-standalone` | Ryan | T+135 live delivery | `2010-10-19T22:04:15-07:00` | LIVE / MASTER-DERIVED |
+| Katie gossip reaction | Katie | scheduler T+120 | `2010-10-19T22:04:00-07:00` | LIVE COMMENT; no separate Feed story |
+| Chris gossip reaction | Chris | scheduler T+145 | `2010-10-19T22:04:25-07:00` | LIVE COMMENT; no separate Feed story |
 
 Future timestamps are never clamped to zero age. In DEV, the formatter warns with story ID, story timestamp, and simulated now. The deterministic production display falls back to concise absolute day/time metadata. Separately, strict seed validation rejects missing, invalid, session-start, or future `createdAt` values.
 
-## Cross-midnight display lock
+## Canonical date-handling lock
 
-At any simulated time on October 20, the Oct 19 late-night Feed records remain visibly anchored to Tuesday: Luca `Tue 10:44 PM`, Luca/Chris `Tue 10:58 PM`, Jay chapter `Tue 11:33 PM`, Katie `Tue 11:41 PM`, Alex `Tue 11:47 PM`, Jack `Tue 11:52 PM`, Ben `Tue 11:58 PM`, and Jay band `Tue 10:00 PM`. Their Detail views continue to use explicit October 19 date/time. June and Ryan are Oct 20 live records and continue advancing through relative minute wording.
+All current static and runtime Facebook rows occur on October 19 PDT. Explicit ISO history keeps its own calendar date. Clock-only rows require the master-session reference date; parsing without that reference fails rather than guessing October 20. Parent stories and their atomic media records retain identical publication instants.

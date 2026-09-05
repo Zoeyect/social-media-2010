@@ -1,6 +1,8 @@
+import { SESSION_START_ISO } from "../state/deviceMachine";
+
 export const PUBLIC_TWITTER_ORIGIN = "public_visitor" as const;
 export const PUBLIC_TWITTER_BODY_MAX_CODE_UNITS = 140;
-export const PUBLIC_TWITTER_SIMULATED_START_MS = Date.parse("2010-10-20T00:02:00-07:00");
+export const PUBLIC_TWITTER_SIMULATED_START_MS = Date.parse(SESSION_START_ISO);
 export const PUBLIC_TWITTER_SIMULATED_END_MS = PUBLIC_TWITTER_SIMULATED_START_MS + 15 * 60_000;
 
 export type PublicTwitterOrigin = typeof PUBLIC_TWITTER_ORIGIN;

@@ -1,6 +1,12 @@
 # iOS 4.1 Simulation Clock Runtime Audit v0.1
 
-> Superseded boundary notice: this document records the pre-correction unlock-based implementation. `simulation-clock-start-boundary-correction-v0.2.md` is authoritative for current runtime behavior: boot completion now starts the clock and registers the initial SMS.
+> **FORMER IMPLEMENTATION STATE / SUPERSEDED FOR CURRENT CANONICAL RUNTIME**
+>
+> This audit accurately records the repository state at the time it was written,
+> including its then-current epoch. Current canonical runtime is defined by
+> `docs/evidence/canonical-timeline-t0-migration-v0.1.md`. The earlier
+> `simulation-clock-start-boundary-correction-v0.2.md` remains relevant only to
+> the boot-versus-unlock boundary history.
 
 ## Scope
 

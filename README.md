@@ -1,6 +1,6 @@
 # SOCIAL MEDIA, 2010
 
-Independent Device Layer prototype for a historically controlled reconstruction of a U.S. black GSM iPhone 4 running iOS 4.1 shortly after midnight Pacific Time on October 20, 2010.
+Independent Device Layer prototype for a historically controlled reconstruction of a U.S. black GSM iPhone 4 running iOS 4.1 on October 19, 2010. The 15-minute experience begins at approximately 10:02 PM Pacific and ends at approximately 10:17 PM; Apple's October 20 event remains the following day where referenced as `tomorrow`.
 
 ## Scope
 

@@ -335,7 +335,7 @@ Matt's formal canonical name remains Matteo Lee Ricci. June's canonical DOB rema
 
 - June 6, 2010: 18th birthday continuity.
 - Recent graduation and 2010 social/photo history are canonical.
-- October 18 show upload, October 20 Facebook-to-Instagram discovery, accidental IG04 deletion, and replacement chronology remain optional/missable narrative continuity.
+- October 18 show upload, October 19 Facebook-to-Instagram discovery, accidental IG04 deletion, and replacement chronology remain optional/missable narrative continuity.
 
 ### Media Continuity
 
@@ -492,7 +492,7 @@ Matt's formal canonical name remains Matteo Lee Ricci. June's canonical DOB rema
 - Jack Profile and Tagged Photos deferred language is superseded by implemented Profile/Photos/tagged aggregation.
 - Fixed Jack tagged-photo total `9` is superseded; qualitative VERY HIGH presence is canonical.
 - Centralized actor media supersedes old blanket avatar-HOLD language for approved character assets.
-- Old session-start references to 12:01 AM are superseded by `2010-10-20T00:02:00-07:00`; individual content may still legitimately carry a 12:01 timestamp.
+- The CURRENT cross-app canonical runtime is `2010-10-19 22:02–22:17 PT` (`America/Los_Angeles`, 15 minutes). Older midnight session anchors are superseded; independently locked historical dates remain unchanged.
 - Debug failures, Feed omissions, scroll bugs, build incidents, and validator migrations are evidence/history, not Character Bible canon.
 
 ## 19. Authoring Rule

@@ -132,7 +132,7 @@ export const FACEBOOK_ALBUMS: readonly FacebookAlbum[] = Object.freeze([
   defineFacebookAlbum({ id: "june-show-10-18", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "june" as const, displayName: "June" }), title: "10/18", photos: Object.freeze(JUNE_SHOW_MEDIA_IDS.map(mediaId => Object.freeze({
     mediaId,
     storyId: "june-show-photos-oct19",
-    timestamp: "2010-10-19T23:51:00-07:00",
+    timestamp: "2010-10-19T21:51:00-07:00",
     ...(mediaId === "june-fb-10-18-01"
       ? { taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "matt" as const }]) }
       : mediaId === "june-fb-10-18-02"
@@ -163,8 +163,8 @@ defineFacebookAlbum({ id: "jack-photos", ownerActor: Object.freeze({ kind: "cano
     { mediaId: "jack-matt-03" as const, storyId: "jack-matt-2008-photo", timestamp: "2008-09-20T19:32:00-07:00", caption: "@Matt your dad still makes the best lasagna btw lol", taggedCharacterIds: Object.freeze(["matt"] as const), classification: "CURATED" as const },
     { mediaId: "jack-matt-family" as const, storyId: "jack-matt-family-2007-photo", timestamp: "2007-06-16T18:40:00-07:00", caption: "@Matt", taggedCharacterIds: Object.freeze(["matt"] as const), classification: "CURATED" as const },
   ]), classification: "CURATED" as const }),
-  defineFacebookAlbum({ id: "luca-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "luca-profile-picture" as const, storyId: "luca-profile-picture-current", timestamp: "2010-10-20T00:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
-  defineFacebookAlbum({ id: "luca-pickup-basketball", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Pickup Basketball", photos: Object.freeze(LUCA_PICKUP_BASKETBALL_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "luca-pickup-basketball-photos", timestamp: "2010-10-19T22:58:00-07:00", classification: "CURATED" as const }))), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "luca-profile-pictures", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Profile Pictures", photos: Object.freeze([{ mediaId: "luca-profile-picture" as const, storyId: "luca-profile-picture-current", timestamp: "2010-10-19T20:00:00-07:00", classification: "CURATED" as const }]), classification: "CURATED" as const }),
+  defineFacebookAlbum({ id: "luca-pickup-basketball", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Pickup Basketball", photos: Object.freeze(LUCA_PICKUP_BASKETBALL_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "luca-pickup-basketball-photos", timestamp: "2010-10-19T21:28:00-07:00", classification: "CURATED" as const }))), classification: "CURATED" as const }),
   defineFacebookAlbum({ id: "luca-photos", ownerActor: Object.freeze({ kind: "canonical" as const, characterId: "luca" as const, displayName: "Luca" }), title: "Photos", photos: Object.freeze([
     { mediaId: "jack-tagged-luca-01" as const, storyId: "luca-jack-tagged-photo", timestamp: "2010-09-14T20:00:00-07:00", caption: "somehow this guy ends up in every picture lol", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const },
     ...LUCA_JACK_BIRTHDAY_MEDIA_IDS.map(mediaId => Object.freeze({ mediaId, storyId: "luca-jack-birthday-photos", timestamp: "2010-08-02T23:17:00-07:00", caption: "@Jack happy birthday bro", taggedActors: Object.freeze([{ kind: "canonical" as const, characterId: "jack" as const }]), classification: "CURATED" as const })),

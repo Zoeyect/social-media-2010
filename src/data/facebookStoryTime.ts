@@ -12,13 +12,14 @@ export type FacebookStoryTimeInput = {
   surface?: "feed" | "detail";
 };
 
-function parseFacebookStoryTimestamp(storyTimestamp: string) {
+function parseFacebookStoryTimestamp(storyTimestamp: string, referenceTimeMs?: number) {
   const clockMatch = storyTimestamp.match(/^(\d{1,2}):(\d{2}) (AM|PM)$/);
   if (clockMatch) {
+    if (!Number.isFinite(referenceTimeMs)) return Number.NaN;
     const [, hourText, minuteText, meridiem] = clockMatch;
     const hour12 = Number(hourText);
     const hour24 = hour12 % 12 + (meridiem === "PM" ? 12 : 0);
-    return Date.parse(`2010-10-20T${String(hour24).padStart(2, "0")}:${minuteText}:00-07:00`);
+    return Date.parse(`${facebookCalendarDateKey(referenceTimeMs as number)}T${String(hour24).padStart(2, "0")}:${minuteText}:00-07:00`);
   }
 
   const monthDayMatch = storyTimestamp.match(/^([A-Z][a-z]{2}) (\d{1,2})$/);
@@ -46,8 +47,8 @@ function facebookCalendarDateKey(timestampMs: number) {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
-export function formatFacebookDetailTimestamp(storyTimestamp: string) {
-  const storyTimeMs = parseFacebookStoryTimestamp(storyTimestamp);
+export function formatFacebookDetailTimestamp(storyTimestamp: string, referenceTimeMs?: number) {
+  const storyTimeMs = parseFacebookStoryTimestamp(storyTimestamp, referenceTimeMs);
   if (!Number.isFinite(storyTimeMs)) return storyTimestamp;
   const storyYear = new Intl.DateTimeFormat("en-US", { year: "numeric", timeZone: FACEBOOK_TIME_ZONE }).format(storyTimeMs);
   if (storyYear !== "2010") {
@@ -59,16 +60,16 @@ export function formatFacebookDetailTimestamp(storyTimestamp: string) {
 }
 
 export function isFacebookSeedStoryTimestampValid(storyTimestamp: string, sessionStartMs: number) {
-  const storyTimeMs = parseFacebookStoryTimestamp(storyTimestamp);
+  const storyTimeMs = parseFacebookStoryTimestamp(storyTimestamp, sessionStartMs);
   return Number.isFinite(storyTimeMs) && storyTimeMs < sessionStartMs;
 }
 
 export function formatFacebookStoryTime({ storyId, storyTimestamp, simulatedNowMs, storyType, sourceApp, surface = "feed" }: FacebookStoryTimeInput) {
-  const storyTimeMs = parseFacebookStoryTimestamp(storyTimestamp);
+  const storyTimeMs = parseFacebookStoryTimestamp(storyTimestamp, simulatedNowMs);
   if (!Number.isFinite(storyTimeMs)) return appendSource(storyTimestamp, sourceApp);
 
   if (surface === "detail") {
-    return appendSource(formatFacebookDetailTimestamp(storyTimestamp), sourceApp);
+    return appendSource(formatFacebookDetailTimestamp(storyTimestamp, simulatedNowMs), sourceApp);
   }
 
   const deltaMs = simulatedNowMs - storyTimeMs;

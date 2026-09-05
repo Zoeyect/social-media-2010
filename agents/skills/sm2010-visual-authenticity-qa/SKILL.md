@@ -42,9 +42,14 @@ Unless a newer project-local canonical source explicitly overrides these values,
 - Project: **SOCIAL MEDIA, 2010**
 - Primary device: **iPhone 4**
 - OS target: **iOS 4.1**
-- Primary experience date: **2010-10-21**
-- Primary experience start: **00:02 U.S. Pacific Time**
-- Core experience window: approximately **00:02–00:17**
+- Primary experience date: **2010-10-19**
+- Primary experience start: **22:02 U.S. Pacific Time**
+- Core experience window: **22:02–22:17** (15 minutes)
+- Canonical time zone: **America/Los_Angeles**
+- Master timeline scope: **cross-app**; apps must not maintain independent canonical clocks
+- Runtime derivation: absolute runtime duplicates derive from the master timeline, never an app-local reference date
+- Content classification: historical content and runtime events are classified separately
+- Authority boundary: stale app-specific reference dates are not authoritative
 - Historical context: early social-mobile era; do not import later platform conventions backward
 - Core social platforms include:
   - Facebook
@@ -389,6 +394,13 @@ Do not create new relationships, tags, replies, likes, timestamps, or historical
 # 11. Cross-App Timeline Integrity
 
 SM2010 is a synchronized narrative system, not four independent mock apps.
+
+The locked master runtime begins at `2010-10-19T22:02:00-07:00`, ends at
+`2010-10-19T22:17:00-07:00`, and uses `America/Los_Angeles`. Scheduler offsets
+are measured from that shared T0. Any absolute duplicate of a runtime timestamp
+must derive from the master timeline. Historical content timestamps are separate
+records and must not be shifted merely because T0 changes. App-local clocks,
+reference-now values, and stale reference dates cannot override the master.
 
 When editing seeded content or app state, check whether the change affects:
 

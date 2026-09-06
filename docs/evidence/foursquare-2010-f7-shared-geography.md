@@ -80,3 +80,43 @@ and creates no map state.
 
 Any later coordinate change requires an explicit versioned geography decision;
 the `sm2010-la-local-v1` points must not be silently retuned.
+
+## F7c deterministic shared renderer
+
+F7c adds an unused shared React/SVG renderer plus pure viewport and projection
+helpers. The renderer is explicitly `PROJECT RECONSTRUCTION`: SVG is an internal
+deterministic implementation choice, not a claim about the technology used by a
+historical map provider or either 2010 app.
+
+The base field contains a pale neutral land color, six simple implied blocks,
+exactly two primary roads, several local cross streets, and one muted park
+polygon. All roads, blocks, and park vertices are authored in local mile
+coordinates and converted to screen positions only by projection. Roads remain
+unnamed, the map has no real Los Angeles streets, and the Riverside Park region
+adds no river, lake, or trail fiction.
+
+The viewport contract now resolves `PLAYER_NEARBY`, `VENUE_DETAIL`,
+`MULTI_VENUE`, `TODO_MAP`, and `TIPS_MAP`. Player Nearby uses the fixed F7b world
+bounds. Venue Detail centers a deterministic local span on an eligible canonical
+venue. Multi-venue mechanics derive bounds, apply fixed padding, preserve a
+nonzero minimum span for one point, and return an explicit null result for empty
+or legacy-ineligible input. TODO and Tips modes expose only those shared bounds
+mechanics; no product behavior is connected.
+
+Projection supports rectangular containers and preserves geographic scale by
+expanding viewport bounds to the requested aspect ratio. It explicitly inverts
+the local Y axis so increasing `yMiles` renders upward in SVG. Structural QA
+covers 320 by 200 and 320 by 240 outputs.
+
+The shared component can render neutral QA venue anchors and one neutral session
+player marker. It renders no venue labels and contains no Facebook or Foursquare
+marker identity, brand colors, navigation, controls, or actions. App-specific
+overlays and final marker materials remain deferred.
+
+There is no external map provider, tile request, network request, browser
+geolocation, runtime-generated road, randomness, or host-time dependency. Night
+Owl and Cedar Books cannot resolve either a canonical detail viewport or marker.
+Neither Facebook nor Foursquare imports the renderer in F7c, so all production
+surfaces, Places coverage, Tips, To-Dos, and check-in behavior remain unchanged.
+Runtime visual QA is deferred until an approved F7d app-specific integration
+provides a real surface without adding a preview-only production route.

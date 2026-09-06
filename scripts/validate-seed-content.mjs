@@ -37,6 +37,8 @@ try {
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
   const canonicalVenues = await vite.ssrLoadModule("/src/data/canonicalVenues.ts");
   const canonicalVenueGeography = await vite.ssrLoadModule("/src/data/canonicalVenueGeography.ts");
+  const canonicalMapGeometry = await vite.ssrLoadModule("/src/data/canonicalMapGeometry.ts");
+  const shared2010Map = await vite.ssrLoadModule("/src/device/Shared2010Map.tsx");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
   const appRuntime = await vite.ssrLoadModule("/src/state/appRuntimeState.ts");
@@ -3907,6 +3909,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   // intentionally outside this block until T0-M2.
   const readSource = relativePath => readFile(resolve(projectRoot, relativePath), "utf8");
   const canonicalVenueGeographySource = await readSource("src/data/canonicalVenueGeography.ts");
+  const canonicalMapGeometrySource = await readSource("src/data/canonicalMapGeometry.ts");
+  const shared2010MapSource = await readSource("src/device/Shared2010Map.tsx");
   const facebookContainerSourceForGeography = await readSource("src/device/FacebookContainer.tsx");
   const foursquareTodosSource = await readSource("src/data/foursquareTodos.ts");
   const foursquareStateSourceForTodos = await readSource("src/state/foursquareState.ts");
@@ -3959,6 +3963,50 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(canonicalVenueGeographySource, /Night Owl Cafe|Cedar Books|Downtown Coffee|Community Courts|Main Street Diner|Riverside Park|Westside Library|Gelato Roma/, "F7b geography must not duplicate venue display names");
   assert.doesNotMatch(canonicalVenueGeographySource, /navigator\.geolocation|Date\.now\s*\(|Math\.random\s*\(/, "F7b geography must not use browser location, host time, or randomness");
   assert.doesNotMatch(`${foursquareContainerSourceForTodos}\n${facebookContainerSourceForGeography}`, /canonicalVenueGeography/, "F7b shared geography must remain disconnected from visible app UI");
+  assert.match(shared2010MapSource, /canonicalVenueGeography/, "F7c renderer must consume the shared canonical geography contract");
+  assert.doesNotMatch(`${canonicalMapGeometrySource}\n${shared2010MapSource}`, /sessionSeedContent|foursquareContent|navigator\.geolocation|Date\.now\s*\(|Math\.random\s*\(/, "F7c renderer must not consume legacy session geography, browser location, host time, or randomness");
+  assert.equal(canonicalMapGeometry.SM2010_CANONICAL_MAP_ROADS.filter(road => road.kind === "primary").length, 2, "F7c map must retain exactly two authored primary roads");
+  assert.equal(canonicalMapGeometry.SM2010_CANONICAL_MAP_ROADS.filter(road => road.kind === "local").length >= 4, true, "F7c map must retain several authored local roads");
+  assert.equal(canonicalMapGeometry.SM2010_CANONICAL_MAP_BLOCKS.length >= 4, true, "F7c map must retain a sparse authored block field");
+  assert.equal(shared2010Map.isLocalMapPointInRegion(canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY["riverside-park"].point, canonicalMapGeometry.SM2010_RIVERSIDE_PARK_REGION), true, "F7c Riverside Park geography must contain its canonical venue point");
+  assert.equal([...canonicalMapGeometry.SM2010_CANONICAL_MAP_ROADS, ...canonicalMapGeometry.SM2010_CANONICAL_MAP_BLOCKS, canonicalMapGeometry.SM2010_RIVERSIDE_PARK_REGION].every(feature => feature.points.every(point => Number.isFinite(point.xMiles) && Number.isFinite(point.yMiles))), true, "F7c authored geometry must remain finite local-map coordinates");
+  const playerNearbyViewport = shared2010Map.resolveMapViewport({ mode: "PLAYER_NEARBY" });
+  assert.ok(playerNearbyViewport, "F7c PLAYER_NEARBY must always resolve");
+  assert.equal(canonicalVenueIds.every(venueId => shared2010Map.isPointInsideViewport(canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY[venueId].point, playerNearbyViewport)), true, "F7c PLAYER_NEARBY must include all six canonical venues");
+  const northernProjection = shared2010Map.projectLocalMapPoint({ xMiles: 0, yMiles: 0.5 }, playerNearbyViewport, 320, 200);
+  const southernProjection = shared2010Map.projectLocalMapPoint({ xMiles: 0, yMiles: -0.5 }, playerNearbyViewport, 320, 200);
+  assert.equal(northernProjection.y < southernProjection.y, true, "F7c projection must invert local Y so north renders upward");
+  assert.deepEqual(shared2010Map.projectLocalMapPoint(canonicalVenueGeography.SM2010_SESSION_PLAYER_MAP_POINT, playerNearbyViewport, 320, 200), { x: 160, y: 100 }, "F7c player must project consistently in a 320 by 200 viewport");
+  assert.deepEqual(shared2010Map.projectLocalMapPoint(canonicalVenueGeography.SM2010_SESSION_PLAYER_MAP_POINT, playerNearbyViewport, 320, 240), { x: 160, y: 120 }, "F7c player must project consistently in a 320 by 240 viewport");
+  for (const venueId of canonicalVenueIds) {
+    const detailViewport = shared2010Map.resolveMapViewport({ mode: "VENUE_DETAIL", venueId });
+    assert.ok(detailViewport, `F7c VENUE_DETAIL must resolve ${venueId}`);
+    const venuePoint = canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY[venueId].point;
+    assert.equal(Math.abs((detailViewport.bounds.minXMiles + detailViewport.bounds.maxXMiles) / 2 - venuePoint.xMiles) < 1e-9, true, `F7c ${venueId} detail viewport must center on the venue X coordinate`);
+    assert.equal(Math.abs((detailViewport.bounds.minYMiles + detailViewport.bounds.maxYMiles) / 2 - venuePoint.yMiles) < 1e-9, true, `F7c ${venueId} detail viewport must center on the venue Y coordinate`);
+    for (const [width, height] of [[320, 200], [320, 240]]) {
+      const projected = shared2010Map.getProjectedVenuePoint(venueId, detailViewport, width, height);
+      assert.equal(Number.isFinite(projected.x) && Number.isFinite(projected.y), true, `F7c ${venueId} detail projection must remain finite at ${width} by ${height}`);
+    }
+  }
+  assert.equal(shared2010Map.resolveMapViewport({ mode: "VENUE_DETAIL", venueId: "night-owl" }), null, "F7c Night Owl must not resolve a canonical detail viewport");
+  assert.equal(shared2010Map.resolveMapViewport({ mode: "VENUE_DETAIL", venueId: "cedar-books" }), null, "F7c Cedar Books must not resolve a canonical detail viewport");
+  assert.equal(shared2010Map.getProjectedVenuePoint("night-owl", playerNearbyViewport, 320, 200), null, "F7c Night Owl must not resolve a canonical marker");
+  assert.equal(shared2010Map.getProjectedVenuePoint("cedar-books", playerNearbyViewport, 320, 200), null, "F7c Cedar Books must not resolve a canonical marker");
+  assert.equal(shared2010Map.resolveMapViewport({ mode: "MULTI_VENUE", venueIds: [] }), null, "F7c empty MULTI_VENUE input must resolve explicitly to null");
+  const singleVenueViewport = shared2010Map.resolveMapViewport({ mode: "MULTI_VENUE", venueIds: ["downtown-coffee"] });
+  assert.ok(singleVenueViewport && singleVenueViewport.bounds.maxXMiles > singleVenueViewport.bounds.minXMiles && singleVenueViewport.bounds.maxYMiles > singleVenueViewport.bounds.minYMiles, "F7c single-point MULTI_VENUE must retain a finite nonzero span");
+  const requestedMultiVenueIds = ["westside-library", "gelato-roma", "community-courts"];
+  const multiVenueViewport = shared2010Map.resolveMapViewport({ mode: "MULTI_VENUE", venueIds: requestedMultiVenueIds });
+  assert.ok(multiVenueViewport, "F7c eligible MULTI_VENUE input must resolve");
+  assert.equal(requestedMultiVenueIds.every(venueId => shared2010Map.isPointInsideViewport(canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY[venueId].point, multiVenueViewport)), true, "F7c MULTI_VENUE bounds must include every requested venue");
+  assert.equal([[320, 200], [320, 240]].every(([width, height]) => canonicalVenueIds.every(venueId => {
+    const projected = shared2010Map.getProjectedVenuePoint(venueId, playerNearbyViewport, width, height);
+    return Number.isFinite(projected.x) && Number.isFinite(projected.y);
+  })), true, "F7c rectangular projections must remain finite for all canonical venues");
+  assert.doesNotMatch(`${canonicalMapGeometrySource}\n${shared2010MapSource}`, /fetch\s*\(|axios|https?:\/\/|Google Maps|Mapbox|Apple Maps|facebookMode|foursquareMode|#3b5998|#3b5999|#1769ff/i, "F7c shared renderer must contain no provider dependency, network call, app mode, or app-specific color");
+  assert.doesNotMatch(canonicalMapGeometrySource, /(?:x|y|left|top)(?:Px|Pixels)|streetName|roadName/, "F7c road and park geometry must remain unnamed local-map coordinates rather than screen pixels");
+  assert.doesNotMatch(`${foursquareContainerSourceForTodos}\n${facebookContainerSourceForGeography}`, /Shared2010Map|canonicalMapGeometry/, "F7c renderer must remain disconnected from Facebook and Foursquare UI");
   assert.doesNotMatch(`${foursquareTodosSource}\n${foursquareStateSourceForTodos}`, /Date\.now\s*\(/, "F5a To-Do creation must never use host time");
   assert.match(foursquareContainerSourceForTodos, /state\.activeTab === "todos" && <TodosRoot/, "F5c must render a dedicated To-Dos root from the existing root tab");
   assert.match(foursquareContainerSourceForTodos, /Add to To-Dos/, "F5c venue summary must expose Add to To-Dos");

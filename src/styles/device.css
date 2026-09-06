@@ -813,6 +813,11 @@ button, input { font: inherit; }
 .foursquare-venue-info > div { min-height: 48px; padding: 6px 12px; display: grid; grid-template-columns: 80px minmax(0,1fr); align-items: center; border-bottom: 1px solid #b9c2c7; background: #fff; }
 .foursquare-venue-info span { color: #6b7478; font-size: 11px; line-height: 14px; }
 .foursquare-venue-info strong { color: #252525; font-size: 14px; line-height: 18px; }
+.foursquare-venue-map { position: relative; width: 100%; height: 176px; overflow: hidden; border-bottom: 1px solid #aeb9be; background: #eee9dc; }
+.foursquare-venue-map > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.foursquare-venue-map-overlay { pointer-events: none; }
+.foursquare-venue-map-pin path { fill: #2b7893; stroke: #174f68; stroke-width: 1; }
+.foursquare-venue-map-pin circle { fill: #fff; stroke: #174f68; stroke-width: 1; }
 .foursquare-venue-tip { min-height: 62px; padding: 9px 12px; border-bottom: 1px solid #b9c2c7; background: #fff; }
 .foursquare-venue-tip strong { display: block; color: #256f8c; font-size: 13px; line-height: 16px; }
 .foursquare-venue-tip p { margin: 3px 0 0; color: #333; font-size: 13px; line-height: 17px; }

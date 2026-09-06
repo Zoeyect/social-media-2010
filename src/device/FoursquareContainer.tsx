@@ -13,6 +13,7 @@ import { FOURSQUARE_ROOT_TABS, FoursquareEvent, FoursquareRootTab, FoursquareSta
 import { useSessionIdentity } from "../state/sessionIdentity";
 import { IOS4Textarea } from "./IOS4KeyboardSystem";
 import { FoursquareAvatar } from "./FoursquareAvatar";
+import { FoursquareMapOverlay } from "./FoursquareMapOverlay";
 
 type Props = { state: FoursquareState; dispatch: Dispatch<FoursquareEvent>; currentDeviceDateTime: Date };
 const TAB_PRESENTATION: Readonly<Record<FoursquareRootTab, { label: string; icon: string }>> = Object.freeze({
@@ -119,7 +120,7 @@ function VenueDetail({ venue, venueViewModel, state, identityName, currentDevice
       <button type="button" onClick={() => dispatch({ type: "SHOW_VENUE_TIPS" })}>Tips<span aria-hidden="true">›</span></button>
       <button type="button" className="foursquare-venue-todo-action" data-content-status="RECONSTRUCTED_FROM_EXISTING_PROJECT_MATERIAL" onClick={() => dispatch(venueTodo ? { type: "REMOVE_TODO", todoId: venueTodo.id } : { type: "ADD_VENUE_TODO", venueId: venue.id, simulatedCreatedAt: currentDeviceDateTime.getTime() })}>{venueTodo ? "Remove from To-Dos" : "Add to To-Dos"}</button>
     </nav></>}
-    {state.venueSubview === "info" && <section className="foursquare-venue-info" aria-label="Venue information"><div><span>Category</span><strong>{venueViewModel.categoryLabel}</strong></div></section>}
+    {state.venueSubview === "info" && <section className="foursquare-venue-info" aria-label="Venue information"><div><span>Category</span><strong>{venueViewModel.categoryLabel}</strong></div><FoursquareMapOverlay venueId={venue.id} /></section>}
     {state.venueSubview === "tips" && <section className="foursquare-venue-tips" aria-label="Venue tips">{tips.map(tip => {
       const tipTodo = getFoursquareTipTodo(state.todos, tip.id);
       return <article key={tip.id} className="foursquare-venue-tip" data-content-status={tip.classification}><strong>{tip.authorDisplayName}</strong><p>{tip.text}</p><button type="button" className="foursquare-tip-todo-action" data-content-status="RECONSTRUCTED_FROM_EXISTING_PROJECT_MATERIAL" onClick={() => dispatch(tipTodo ? { type: "REMOVE_TODO", todoId: tipTodo.id } : { type: "ADD_TIP_TODO", tipId: tip.id, simulatedCreatedAt: currentDeviceDateTime.getTime() })}>{tipTodo ? "Remove from To-Dos" : "Add to To-Dos"}</button></article>;

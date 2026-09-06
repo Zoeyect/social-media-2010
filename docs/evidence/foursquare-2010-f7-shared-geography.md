@@ -120,3 +120,29 @@ Neither Facebook nor Foursquare imports the renderer in F7c, so all production
 surfaces, Places coverage, Tips, To-Dos, and check-in behavior remain unchanged.
 Runtime visual QA is deferred until an approved F7d app-specific integration
 provides a real surface without adding a preview-only production route.
+
+## F7d-1 Foursquare Venue Info integration
+
+F7d-1 makes Venue Info the first visible Foursquare consumer of the shared map.
+Main Street Diner and Riverside Park resolve the existing `VENUE_DETAIL`
+viewport and render `Shared2010Map` beneath the unchanged Category row. The
+shared renderer receives no venue markers and no player marker; a separate
+`FoursquareMapOverlay` owns one minimal venue pin.
+
+The pin shape and color are `PROJECT RECONSTRUCTION`, not authenticated 2010
+Foursquare map material. It is deliberately static and exposes no label,
+callout, selection, distance, address, player position, pan, zoom, recenter, or
+other interaction. The base SVG remains the separately classified shared
+project reconstruction and has no provider dependency.
+
+Night Owl Cafe and Cedar Books remain fully available through their existing
+list, Venue, Tip, To-Do, Friends, check-in, and realtime paths where applicable,
+but their Info surfaces render no map because neither has canonical geography.
+Map absence does not invalidate either legacy venue.
+
+Foursquare Places remains the same four venues in the same seed order. F7d-1
+adds no Places map or map/list control, does not display canonical or legacy
+distance/address data, and does not connect maps to Check-in, Result, To-Dos,
+Tips, Friends, Profile, or Leaderboard. Facebook and all F4/F5/F6 behavior remain
+unchanged. Runtime visual fidelity of the reconstructed map frame and pin remains
+`RUNTIME VISUAL QA PENDING`.

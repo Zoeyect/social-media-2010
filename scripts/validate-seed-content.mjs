@@ -35,6 +35,8 @@ try {
   const sharedCharacterMedia = await vite.ssrLoadModule("/src/data/sharedCharacterMedia.ts");
   const twitterAvatars = await vite.ssrLoadModule("/src/data/twitterAvatarRegistry.ts");
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
+  const canonicalVenues = await vite.ssrLoadModule("/src/data/canonicalVenues.ts");
+  const canonicalVenueGeography = await vite.ssrLoadModule("/src/data/canonicalVenueGeography.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
   const appRuntime = await vite.ssrLoadModule("/src/state/appRuntimeState.ts");
@@ -3904,10 +3906,59 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   // T0-M1 validates runtime-derived values only. Static narrative seeds remain
   // intentionally outside this block until T0-M2.
   const readSource = relativePath => readFile(resolve(projectRoot, relativePath), "utf8");
+  const canonicalVenueGeographySource = await readSource("src/data/canonicalVenueGeography.ts");
+  const facebookContainerSourceForGeography = await readSource("src/device/FacebookContainer.tsx");
   const foursquareTodosSource = await readSource("src/data/foursquareTodos.ts");
   const foursquareStateSourceForTodos = await readSource("src/state/foursquareState.ts");
   const foursquareContainerSourceForTodos = await readSource("src/device/FoursquareContainer.tsx");
   const deviceCssSourceForTodos = await readSource("src/styles/device.css");
+  const expectedCanonicalVenueGeography = {
+    "downtown-coffee": { xMiles: 0.15, yMiles: 0.15 },
+    "community-courts": { xMiles: -0.75, yMiles: -0.55 },
+    "main-street-diner": { xMiles: 0.45, yMiles: 0.10 },
+    "riverside-park": { xMiles: -0.50, yMiles: 0.10 },
+    "westside-library": { xMiles: -0.90, yMiles: 0.90 },
+    "gelato-roma": { xMiles: 0.80, yMiles: -0.60 },
+  };
+  const canonicalGeographyIds = Object.keys(canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY).sort();
+  const canonicalVenueIds = Object.keys(canonicalVenues.CANONICAL_VENUES).sort();
+  assert.equal(canonicalVenueGeography.SM2010_GEOGRAPHY_VERSION, "sm2010-la-local-v1", "F7b geography version must remain explicit and exact");
+  assert.deepEqual(canonicalGeographyIds, canonicalVenueIds, "F7b geography must contain six and only six canonical venue IDs");
+  assert.equal(canonicalGeographyIds.length, 6, "F7b geography must contain exactly six venue records");
+  assert.deepEqual(canonicalVenueGeography.SM2010_SESSION_PLAYER_MAP_POINT, { xMiles: 0, yMiles: 0 }, "F7b player point must remain the neutral session origin");
+  assert.deepEqual(canonicalVenueGeography.SM2010_LOCAL_MAP_BOUNDS, { minXMiles: -1, maxXMiles: 1, minYMiles: -1, maxYMiles: 1 }, "F7b local map extent must remain the approved two-mile square");
+  for (const venueId of canonicalVenueIds) {
+    const record = canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY[venueId];
+    assert.deepEqual(record.point, expectedCanonicalVenueGeography[venueId], `F7b ${venueId} coordinates must remain exact`);
+    assert.equal(record.venueId, venueId, `F7b ${venueId} geography must preserve canonical identity`);
+    assert.equal(record.classification, "PROJECT-CURATED-FICTION", `F7b ${venueId} geography must retain project-fiction classification`);
+    assert.equal(Number.isFinite(record.point.xMiles) && Number.isFinite(record.point.yMiles), true, `F7b ${venueId} coordinates must be finite`);
+    assert.equal(record.point.xMiles >= -1 && record.point.xMiles <= 1 && record.point.yMiles >= -1 && record.point.yMiles <= 1, true, `F7b ${venueId} must remain inside the approved local extent`);
+  }
+  assert.deepEqual(
+    canonicalVenueGeography.getCanonicalVenuesByDistanceFromPlayer().map(record => record.venueId),
+    ["downtown-coffee", "main-street-diner", "riverside-park", "community-courts", "gelato-roma", "westside-library"],
+    "F7b nearby sorting must follow raw player distance with canonical ID tie-breaking",
+  );
+  const expectedPlayerDistances = {
+    "downtown-coffee": 0.212,
+    "main-street-diner": 0.461,
+    "riverside-park": 0.510,
+    "community-courts": 0.930,
+    "gelato-roma": 1.000,
+    "westside-library": 1.273,
+  };
+  for (const [venueId, expectedDistance] of Object.entries(expectedPlayerDistances)) {
+    const actualDistance = canonicalVenueGeography.getCanonicalVenueDistanceFromPlayer(venueId);
+    assert.equal(Math.abs(actualDistance - expectedDistance) < 0.001, true, `F7b ${venueId} player distance must remain approximately ${expectedDistance} miles`);
+  }
+  assert.equal(canonicalVenueGeography.hasCanonicalVenueGeography("night-owl"), false, "F7b Night Owl must remain legacy and map-ineligible");
+  assert.equal(canonicalVenueGeography.hasCanonicalVenueGeography("cedar-books"), false, "F7b Cedar Books must remain legacy and map-ineligible");
+  assert.doesNotMatch(canonicalVenueGeographySource, /214 4th Street|38 Market Street|91 Cedar Avenue|Riverside Drive/, "F7b shared geography must not migrate legacy addresses");
+  assert.doesNotMatch(canonicalVenueGeographySource, /0\.[2357] mi/, "F7b shared geography must not consume legacy Foursquare distance strings");
+  assert.doesNotMatch(canonicalVenueGeographySource, /Night Owl Cafe|Cedar Books|Downtown Coffee|Community Courts|Main Street Diner|Riverside Park|Westside Library|Gelato Roma/, "F7b geography must not duplicate venue display names");
+  assert.doesNotMatch(canonicalVenueGeographySource, /navigator\.geolocation|Date\.now\s*\(|Math\.random\s*\(/, "F7b geography must not use browser location, host time, or randomness");
+  assert.doesNotMatch(`${foursquareContainerSourceForTodos}\n${facebookContainerSourceForGeography}`, /canonicalVenueGeography/, "F7b shared geography must remain disconnected from visible app UI");
   assert.doesNotMatch(`${foursquareTodosSource}\n${foursquareStateSourceForTodos}`, /Date\.now\s*\(/, "F5a To-Do creation must never use host time");
   assert.match(foursquareContainerSourceForTodos, /state\.activeTab === "todos" && <TodosRoot/, "F5c must render a dedicated To-Dos root from the existing root tab");
   assert.match(foursquareContainerSourceForTodos, /Add to To-Dos/, "F5c venue summary must expose Add to To-Dos");

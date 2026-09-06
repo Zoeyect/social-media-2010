@@ -12,14 +12,18 @@ evidence.
 
 ## Canonical window
 
-- Start: `2010-08-21T00:00:00-07:00`
-- End: `2010-10-19T22:02:00-07:00`
+- Start: `2010-08-22T00:00:00-07:00`
+- End: `2010-10-20T00:02:00-07:00`
 - Time zone: `America/Los_Angeles`
 - Timestamp format: `YYYY-MM-DDTHH:mm:ss-07:00`
 
 The window is complete-for-game-window context, not lifetime account history.
 Authored timestamps remain canonical narrative data; epoch values are derived
 only for deterministic validation and sorting.
+
+The inclusive Pacific local-date span is 60 dates, from August 22 through
+October 20. `lifetimeHistoryComplete` remains `false`, and player history
+remains `UNKNOWN`, not zero.
 
 ## Identity and player boundary
 
@@ -159,16 +163,17 @@ completeness remain unchanged.
 
 June receives six game-valid, `PROJECT-CURATED-FICTION` records from September
 3 through October 19: Main Street Diner 2, Downtown Coffee 2, Riverside Park 1,
-and Gelato Roma 1. Her only shout is `Dinner with everyone.` June is
+and Gelato Roma 1. Her only shout is `Late dinner.` June is
 `complete-for-game-window` with all four mechanics coverage dimensions and
 `lifetimeHistoryComplete: false`.
 
-Night Owl remains excluded from historical activity. The invalid June Main
-Street legacy row at `2010-10-19T22:52:00-07:00` remains hidden and unchanged;
-it is conceptually superseded, not deleted or retimed. The preferred future
-Friends-feed replacement candidate is
-`foursquare-history-june-2010-10-19-main-street-diner` at 21:12 with no shout.
-It is not projected in F6d.
+Night Owl remains excluded from historical activity. The June Main Street row
+at `2010-10-19T22:52:00-07:00` is valid pre-T0 history and remains visible with
+the shout `Late dinner.` The matching historical record is the preferred future
+Friends-feed projection candidate
+`foursquare-history-june-2010-10-19-main-street-diner`. It is not projected in
+F6d. The former 21:12 replacement artifact has been removed from June's
+canonical six-record set.
 
 Luca receives five game-valid, `PROJECT-CURATED-FICTION` records from September
 5 through October 19: Community Courts 2, Main Street Diner 1, Riverside Park
@@ -191,3 +196,6 @@ F6d keeps historical Friends-feed projection empty and derives no badge,
 mayorship, incumbent, candidate, unlock, leaderboard, or player-history fact.
 Alex and Katie records and completeness remain unchanged; F3/F4, runtime,
 scheduler, UI, and venue definitions are unaffected.
+
+Night Owl remains realtime-only at T+510. Mia/Cedar remains HOLD and is not
+promoted into canonical historical activity.

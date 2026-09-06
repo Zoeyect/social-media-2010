@@ -100,11 +100,11 @@ The approved album set is intentionally limited to Z.tokyo Profile Pictures, Luc
 
 Feed and Profile Wall timestamp metadata is deterministically derived from each story timestamp plus the existing simulated clock. Recent stories use period-style relative wording, older stories fall back to concise weekday/date forms, and modeled source applications may append `via <source>`. Post and Photo Detail retain a more explicit Los Angeles date/time. No independent Facebook timer exists.
 
-All late-evening seed stories visible at the canonical `2010-10-19 22:02 PT` session boundary are locked to October 19 PDT with explicit ISO timestamps. Future-dated seed records fail validation; the formatter warns in DEV and uses absolute metadata rather than disguising negative age as `just now`.
+All late-evening seed stories visible at the canonical `2010-10-20 00:02 PT` session boundary retain explicit historical ISO timestamps. October 19 static content is previous-day history; future-dated seed records fail validation, and the formatter warns in DEV and uses absolute metadata rather than disguising negative age as `just now`.
 
-Feed relative time is additionally calendar-day scoped in `America/Los_Angeles`. The current runtime remains on October 19 from 22:02 through 22:17 and does not cross midnight; eligible same-day static and live stories may use relative wording. Detail views continue to show the full October 19 date and time.
+Feed relative time is additionally calendar-day scoped in `America/Los_Angeles`. The current runtime runs on October 20 from 00:02 through 00:17 and crosses the calendar boundary from October 19 pre-session content into October 20 runtime content. Eligible recent stories may use relative wording, while Detail views preserve each story's explicit Los Angeles date and time.
 
-**FORMER / SUPERSEDED IMPLEMENTATION ASSUMPTION:** an earlier runtime began at 12:02 AM on October 20 and required cross-midnight Facebook formatting. That boundary is not current canon and must not drive active timestamps or display behavior.
+**CURRENT IMPLEMENTATION:** the runtime begins at 12:02 AM on October 20 and requires cross-midnight Facebook formatting against October 19 pre-session content.
 
 ## June live engagement and Sophie ambiguity v0.5.22
 

@@ -492,7 +492,7 @@ Matt's formal canonical name remains Matteo Lee Ricci. June's canonical DOB rema
 - Jack Profile and Tagged Photos deferred language is superseded by implemented Profile/Photos/tagged aggregation.
 - Fixed Jack tagged-photo total `9` is superseded; qualitative VERY HIGH presence is canonical.
 - Centralized actor media supersedes old blanket avatar-HOLD language for approved character assets.
-- The CURRENT cross-app canonical runtime is `2010-10-19 22:02–22:17 PT` (`America/Los_Angeles`, 15 minutes). Older midnight session anchors are superseded; independently locked historical dates remain unchanged.
+- The CURRENT cross-app canonical runtime is `2010-10-20 00:02–00:17 PT` (`America/Los_Angeles`, 15 minutes). Independently locked historical dates remain unchanged.
 - Debug failures, Feed omissions, scroll bugs, build incidents, and validator migrations are evidence/history, not Character Bible canon.
 
 ## 19. Authoring Rule

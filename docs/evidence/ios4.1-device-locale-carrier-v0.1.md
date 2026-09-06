@@ -1,8 +1,8 @@
 # iOS 4.1 Device Locale & Carrier Configuration Audit v0.1
 
-> **CURRENT RUNTIME ANNOTATION:** the canonical cross-app session is now
-> `2010-10-19 22:02–22:17 PT` in `America/Los_Angeles`. References below to the
-> former midnight target are preserved as historical project context. The
+> **CURRENT RUNTIME ANNOTATION:** the canonical cross-app session is
+> `2010-10-20 00:02–00:17 PT` in `America/Los_Angeles`. References below to the
+> former repository state are preserved as historical project context. The
 > locale, carrier, firmware, and 12-hour-clock evidence conclusions are unchanged.
 
 ## Scope and evidence boundary
@@ -81,14 +81,14 @@ This represents Wednesday night in Tokyo. As an absolute instant it is 20 Octobe
 
 | Property | Recommended future value | Classification |
 | --- | --- | --- |
-| Start instant | `2010-10-19T22:02:00-07:00` | **CURRENT canonical narrative value** |
+| Start instant | `2010-10-20T00:02:00-07:00` | **CURRENT canonical narrative value** |
 | IANA time zone | `America/Los_Angeles` | **READY** |
 | UTC offset at target instant | PDT, UTC−07:00 | **READY** |
 | Locale | `en-US` | **READY** |
 | Default user convention | 12-hour time | **READY U.S. baseline** |
 | Narrative clock preference | 12-hour cycle; no 24-hour display | **READY target decision** |
 
-The current U.S. session runs from 10:02 PM to 10:17 PM. The visible Lock Screen and Status Bar text is `10:02` through `10:17`, with no 24-hour display. Separate surface formatters may still prevent an internal en-US day period from forcing unwanted visible `PM` text.
+The current U.S. session runs from 12:02 AM to 12:17 AM on October 20, 2010. The visible Lock Screen and Status Bar text is `12:02` through `12:17`, with no 24-hour display. Separate surface formatters may still prevent an internal en-US day period from forcing unwanted visible `AM` text.
 
 ## 4. Date-format audit
 
@@ -141,8 +141,8 @@ Carrier text is a network/carrier-bundle result, not a translation of the system
 
 ## Required future changes
 
-1. The simulated start is `2010-10-19T22:02:00-07:00` and display uses `America/Los_Angeles`.
-2. The `en-US` 12-hour cycle presents `10:02` on the Lock Screen and Status Bar without a 24-hour value.
+1. The simulated start is `2010-10-20T00:02:00-07:00` and display uses `America/Los_Angeles`.
+2. The `en-US` 12-hour cycle presents `12:02` on the Lock Screen and Status Bar without a 24-hour value.
 3. Replace `SoftBank` with AT&T carrier presentation.
 4. Audit the active status-bar style before choosing `Default_CARRIER_ATT@2x.png` versus `FSO_CARRIER_ATT@2x.png`; do not fabricate an AT&T wordmark.
 5. Retain `3G` only as an explicit scene state; separately choose signal strength, Wi-Fi state, Bluetooth state, and battery-percentage preference.

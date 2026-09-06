@@ -1,5 +1,10 @@
 # iOS 4.1 Simulation Clock Runtime Audit v0.1
 
+> **CURRENT AUTHORITY:** the canonical runtime remains
+> `2010-10-20T00:02:00-07:00` through `2010-10-20T00:17:00-07:00`. Current
+> correction authority is `canonical-timeline-oct20-restoration-v0.1.md`;
+> repository-state findings below are retained as an archival audit.
+
 > **FORMER IMPLEMENTATION STATE / SUPERSEDED FOR CURRENT CANONICAL RUNTIME**
 >
 > This audit accurately records the repository state at the time it was written,

@@ -2,16 +2,19 @@
 
 ## Status and authority
 
-`CURRENT / AUTHORITATIVE MIGRATION RECORD`
+`WRONG / SUPERSEDED MIGRATION`
 
-This record supersedes app-local or project-local runtime assumptions that
-conflict with the locked cross-app timeline.
+This evidence documents an incorrect migration to `2010-10-19 22:02–22:17 PT`
+that was later reversed. It is not authoritative for the current runtime. The
+project canonical runtime is confirmed as `2010-10-20 00:02–00:17 PT`; this
+record is retained only for project provenance. The current authoritative
+correction record is `canonical-timeline-oct20-restoration-v0.1.md`.
 
 | State | Runtime |
 | --- | --- |
 | OLD runtime state | `2010-10-20T00:02:00-07:00` |
-| LOCKED canonical T0 | `2010-10-19T22:02:00-07:00` |
-| LOCKED runtime end | `2010-10-19T22:17:00-07:00` |
+| FORMER INCORRECT target T0 | `2010-10-19T22:02:00-07:00` |
+| FORMER INCORRECT target end | `2010-10-19T22:17:00-07:00` |
 | Time zone | `America/Los_Angeles` |
 | Duration | 15 minutes |
 

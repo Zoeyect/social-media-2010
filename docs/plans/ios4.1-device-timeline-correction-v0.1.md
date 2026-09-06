@@ -4,7 +4,7 @@
 >
 > This plan preserves a former proposed implementation state. It is superseded
 > for current canonical runtime by
-> `docs/evidence/canonical-timeline-t0-migration-v0.1.md`. Its original dates and
+> `docs/evidence/canonical-timeline-oct20-restoration-v0.1.md`. Its original dates and
 > recommendations are retained as project history, not active defaults.
 
 ## Corrected narrative target

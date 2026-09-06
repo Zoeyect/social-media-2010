@@ -2119,6 +2119,16 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(foursquareTodoState.todos.map(todo => todo.id), [tipTodoId], "F5a remove must affect only the requested To-Do");
   assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "REMOVE_TODO", todoId: "unknown-todo" }), foursquareTodoState, "F5a unknown removal must be a no-op");
   assert.deepEqual(foursquare.foursquareStateTransition(venueAndTipTodoState, { type: "RESET" }).todos, [], "F5a RESET must clear session-created To-Dos");
+  let f5cTodoState = foursquare.foursquareStateTransition(foursquare.createInitialFoursquareState(), { type: "ADD_VENUE_TODO", venueId: "night-owl", simulatedCreatedAt: 1_287_552_180_000 });
+  f5cTodoState = foursquare.foursquareStateTransition(f5cTodoState, { type: "ADD_VENUE_TODO", venueId: "main-street-diner", simulatedCreatedAt: 1_287_552_240_000 });
+  assert.deepEqual(f5cTodoState.todos.map(todo => todo.id), ["todo:venue:main-street-diner", "todo:venue:night-owl"], "F5c visible venue To-Dos must retain deterministic newest-first ordering");
+  assert.strictEqual(foursquare.foursquareStateTransition(f5cTodoState, { type: "ADD_VENUE_TODO", venueId: "main-street-diner", simulatedCreatedAt: 1_287_552_300_000 }), f5cTodoState, "F5c duplicate venue saves must remain reducer no-ops");
+  const f5cTodosRootState = foursquare.foursquareStateTransition(f5cTodoState, { type: "SHOW_TAB", tab: "todos", scrollPosition: 0 });
+  assert.deepEqual([f5cTodosRootState.activeTab, f5cTodosRootState.currentView], ["todos", "root"], "F5c must expose To-Dos as the existing root-tab surface");
+  const f5cVenueFromTodoState = foursquare.foursquareStateTransition(f5cTodosRootState, { type: "OPEN_VENUE", venueId: "night-owl", scrollPosition: 0 });
+  assert.deepEqual([f5cVenueFromTodoState.currentView, f5cVenueFromTodoState.selectedVenueId, f5cVenueFromTodoState.venueSubview], ["venue", "night-owl", "summary"], "F5c To-Do rows must open the existing venue summary route");
+  const f5cRemovedTodoState = foursquare.foursquareStateTransition(f5cTodoState, { type: "REMOVE_TODO", todoId: "todo:venue:main-street-diner" });
+  assert.deepEqual(f5cRemovedTodoState.todos.map(todo => todo.id), ["todo:venue:night-owl"], "F5c removal must remove only the selected venue To-Do");
   assert.equal(foursquareState.mayorState, "otherUser");
   assert.deepEqual(
     foursquareState.venues.map(venue => [venue.id, venue.mayor]),
@@ -3212,7 +3222,13 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const foursquareVenueDetailSource = foursquareContainerSource.match(/function VenueDetail\([\s\S]*?\n\}/)?.[0] ?? "";
   const foursquareVenueSummarySource = foursquareVenueDetailSource.match(/state\.venueSubview === "summary"[\s\S]*?state\.venueSubview === "info"/)?.[0] ?? "";
   assert.match(foursquareVenueSummarySource, /venueViewModel\.categoryIcon[\s\S]*venueViewModel\.name[\s\S]*venueViewModel\.categoryLabel[\s\S]*Check In[\s\S]*Info[\s\S]*Tips/, "F2b-1 summary must render truthful venue identity and the three approved entries");
-  assert.doesNotMatch(foursquareVenueSummarySource, /Mayor|Points|address|distance|To-Do|friends who|here now|phone|map|rating|review|photos/i, "F2b-1 summary must not restore placeholder or deferred venue metadata");
+  assert.doesNotMatch(foursquareVenueSummarySource, /Mayor|Points|address|distance|friends who|here now|phone|rating|review|photos/i, "F2b-1 summary must not restore placeholder or deferred venue metadata");
+  assert.match(foursquareVenueSummarySource, /venueTodo \? "Remove from To-Dos" : "Add to To-Dos"/, "F5c Venue summary must expose exactly the approved save/remove To-Do action states");
+  assert.equal(foursquareVenueSummarySource.match(/To-Dos/g)?.length, 2, "F5c Venue summary must contain no To-Do wording beyond the two approved action states");
+  assert.doesNotMatch(foursquareVenueSummarySource, /I've done this|\bDone\b|Completed/i, "F5c Venue summary must not expose To-Do completion wording");
+  assert.doesNotMatch(foursquareVenueSummarySource, /ADD_TIP_TODO|tipTodo|Add Tip to To-Dos|Save Tip/i, "F5c Venue summary must not expose Tip-to-To-Do UI");
+  assert.doesNotMatch(foursquareVenueSummarySource, /todo(?:s)?(?:Count|Badge)|To-Dos\s*\(\d+\)|\d+\s+To-Dos|badge/i, "F5c Venue summary must not expose a To-Do count or badge");
+  assert.doesNotMatch(foursquareVenueSummarySource, /map|filter/i, "F5c Venue summary must not expose map or filter UI");
   assert.match(foursquareVenueDetailSource, /state\.venueSubview === "checkIn"/, "F2b-1 must gate the existing functional form behind the Check In subview");
   assert.match(foursquareVenueDetailSource, /<IOS4Textarea[\s\S]*EDIT_CHECK_IN_SHOUT/, "F2b-1 must preserve the shared textarea and venue-keyed draft event");
   assert.match(foursquareVenueDetailSource, /<form className="foursquare-checkin-form"[\s\S]*type: "CHECK_IN"/, "F2b-1 must preserve the existing Check In submit event");
@@ -3887,7 +3903,21 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const readSource = relativePath => readFile(resolve(projectRoot, relativePath), "utf8");
   const foursquareTodosSource = await readSource("src/data/foursquareTodos.ts");
   const foursquareStateSourceForTodos = await readSource("src/state/foursquareState.ts");
+  const foursquareContainerSourceForTodos = await readSource("src/device/FoursquareContainer.tsx");
+  const deviceCssSourceForTodos = await readSource("src/styles/device.css");
   assert.doesNotMatch(`${foursquareTodosSource}\n${foursquareStateSourceForTodos}`, /Date\.now\s*\(/, "F5a To-Do creation must never use host time");
+  assert.match(foursquareContainerSourceForTodos, /state\.activeTab === "todos" && <TodosRoot/, "F5c must render a dedicated To-Dos root from the existing root tab");
+  assert.match(foursquareContainerSourceForTodos, /Add to To-Dos/, "F5c venue summary must expose Add to To-Dos");
+  assert.match(foursquareContainerSourceForTodos, /Remove from To-Dos/, "F5c saved venue summary must expose Remove from To-Dos");
+  assert.match(foursquareContainerSourceForTodos, /simulatedCreatedAt: currentDeviceDateTime\.getTime\(\)/, "F5c venue saves must use the simulated device clock");
+  const f5cTodosRootSource = foursquareContainerSourceForTodos.match(/function TodosRoot[\s\S]*?(?=function QuietRoot)/)?.[0] ?? "";
+  assert.match(f5cTodosRootSource, /todo\.kind === "venue"/, "F5c To-Dos root must project venue To-Dos only");
+  assert.match(f5cTodosRootSource, /<strong>\{venue\.name\}<\/strong>/, "F5c To-Do rows must render the canonical venue name");
+  assert.match(f5cTodosRootSource, /onOpenVenue\(venue\.id\)/, "F5c To-Do rows must open the existing venue route");
+  assert.doesNotMatch(f5cTodosRootSource, /completed|checkbox|checkmark|distance|address|category|timestamp|disclosure/i, "F5c To-Do rows must not expose deferred metadata or completion controls");
+  assert.match(foursquareContainerSourceForTodos, /state\.activeTab === "tips" && <QuietRoot label="Tips" \/>/, "F5c must leave the Tips root blank");
+  assert.doesNotMatch(f5cTodosRootSource, /No To-Dos|Nothing here|Add places/i, "F5c blank To-Dos state must not introduce empty-state copy");
+  assert.match(deviceCssSourceForTodos, /\.foursquare-todo-venue-row \{[^}]*height: 44px;/, "F5c To-Do rows must use compact reconstructed iPhone list geometry");
   const t0M1DeviceMachine = await readSource("src/state/deviceMachine.ts");
   const t0M1Timeline = await readSource("src/data/sessionTimeline.ts");
   const t0M1FacebookState = await readSource("src/state/facebookState.ts");

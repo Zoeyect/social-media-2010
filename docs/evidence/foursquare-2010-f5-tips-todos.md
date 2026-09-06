@@ -59,3 +59,19 @@ The existing `night-owl-tip` may be resolved by Tip-reference tests without
 being projected into the root Tips surface, automatically added to To-Dos, or
 reclassified from `HOLD-fictional`. Root Tips, root To-Dos, and Venue UI remain
 visually unchanged pending later F5 visual evidence and product decisions.
+
+## F5c minimal visible To-Dos loop
+
+F5c exposes only the smallest venue-based session loop supported by the F5a contract:
+
+- Venue summary shows `Add to To-Dos` when the venue is not saved.
+- Adding dispatches `ADD_VENUE_TODO` with `currentDeviceDateTime.getTime()` as the simulated creation time.
+- The existing `To-Dos` root renders saved venue items in deterministic newest-first order.
+- Each visible row contains only the canonical venue name and opens the existing Venue summary route.
+- A saved venue shows `Remove from To-Dos`; removal is available only from that Venue surface.
+- Duplicate saves remain reducer no-ops, check-ins remain independent, and reset still clears session-created To-Dos.
+- The initial To-Dos root is blank and has no empty-state copy.
+
+This visible material is `RECONSTRUCTED_FROM_EXISTING_PROJECT_MATERIAL`. The row geometry and venue action treatment reuse the project's existing Foursquare iPhone-era surfaces; they are not claimed as pixel-exact primary-source reconstruction.
+
+F5c intentionally leaves Tip To-Dos hidden, the Tips root blank, and venue-local Tip content unchanged. It adds no completion controls, edit mode, To-Do detail route, persistence, maps, distance, badges, mayors, or historical To-Do seed.

@@ -1,8 +1,41 @@
 import {
   MeshPhysicalMaterial,
   MeshStandardMaterial,
+  Mesh,
+  type Object3D,
   type Material,
 } from "three";
+
+/** Hero-only satin calibration; preserve source sharing and every non-steel slot. */
+export function calibrateIPhone4Stainless(root: Object3D): () => void {
+  const clones = new Map<Material, MeshStandardMaterial>();
+  const originals = new Map<Mesh, Material | Material[]>();
+  root.traverse(object => {
+    if (!(object instanceof Mesh)) return;
+    const slots = Array.isArray(object.material) ? object.material : [object.material];
+    if (!slots.some(material => material.name === "MAT_StainlessSteel")) return;
+    originals.set(object, object.material);
+    const calibrated = slots.map(material => {
+      if (material.name !== "MAT_StainlessSteel" || !(material instanceof MeshStandardMaterial)) return material;
+      let clone = clones.get(material);
+      if (!clone) {
+        clone = material.clone();
+        // Linear reflectance, not sRGB hex; a visual reconstruction, not a
+        // historical measurement. Physical-material anisotropy survives clone.
+        clone.color.setRGB(0.42, 0.43, 0.44);
+        clone.metalness = 1;
+        clone.roughness = 0.38;
+        clones.set(material, clone);
+      }
+      return clone;
+    });
+    object.material = Array.isArray(object.material) ? calibrated : calibrated[0];
+  });
+  return () => {
+    originals.forEach((material, mesh) => { mesh.material = material; });
+    clones.forEach(material => material.dispose());
+  };
+}
 
 export type IPhone4MaterialRoles = Readonly<{
   blackGlass: MeshPhysicalMaterial;

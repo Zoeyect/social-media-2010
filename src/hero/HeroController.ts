@@ -2,12 +2,18 @@ import type { HeroPhase, HeroState } from "./heroTypes";
 
 export const HERO_DETACH_DURATION_SECONDS = 1.15;
 export const HERO_POWER_DURATION_SECONDS = 1.05;
+export const HERO_POWER_LOSS_SECONDS = 0.8;
+export const HERO_RETURN_SECONDS = 1.4;
+export const HERO_RECHARGE_SECONDS = 0.45;
 
 export type HeroAction =
   | { type: "CONFIRM_IDENTITY"; name: string }
   | { type: "DETACH_COMPLETE" }
   | { type: "PRESS_POWER" }
   | { type: "ALIGN_COMPLETE" }
+  | { type: "ENTER_EXPERIENCE" }
+  | { type: "EXPERIENCE_ENDED" }
+  | { type: "ADVANCE_RETURN"; from: HeroPhase }
   | { type: "JUMP_TO_PHASE"; phase: HeroPhase }
   | { type: "RESET" };
 
@@ -31,7 +37,16 @@ export function heroTransition(state: HeroState, action: HeroAction): HeroState 
     case "ALIGN_COMPLETE":
       return state.phase === "powering-on" ? { ...state, phase: "front-aligned" } : state;
     case "JUMP_TO_PHASE":
-      return { ...state, phase: action.phase };
+      return action.phase === "identity" ? initialHeroState : { ...state, phase: action.phase };
+    case "ENTER_EXPERIENCE":
+      return state.phase === "front-aligned" ? { ...state, phase: "experience" } : state;
+    case "EXPERIENCE_ENDED":
+      return state.phase === "experience" ? { ...state, phase: "power-loss" } : state;
+    case "ADVANCE_RETURN":
+      if (state.phase !== action.from) return state;
+      if (state.phase === "power-loss") return { ...state, phase: "returning" };
+      if (state.phase === "returning") return { ...state, phase: "recharging" };
+      return state.phase === "recharging" ? initialHeroState : state;
     case "RESET":
       return initialHeroState;
   }

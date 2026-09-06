@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Group, MathUtils, Quaternion, Vector3 } from "three";
-import { HERO_DETACH_DURATION_SECONDS, HERO_POWER_DURATION_SECONDS, restrainedEase } from "./HeroController";
+import { HERO_DETACH_DURATION_SECONDS, HERO_POWER_DURATION_SECONDS, HERO_POWER_LOSS_SECONDS, HERO_RETURN_SECONDS, HERO_RECHARGE_SECONDS, restrainedEase } from "./HeroController";
 import { measureHeroScreenGeometry } from "./heroScreenGeometry";
 import {
   ProductionIPhone4Model,
@@ -25,7 +25,8 @@ type HeroPhoneProps = Readonly<{
   onPowerPress: () => void;
   onAlignmentComplete: () => void;
   onScreenGeometry: (geometry: HeroScreenGeometry) => void;
-  onCableState: (progress: number, anchor: HeroCableAnchor) => void;
+  onCableState: (progress: number, anchor: HeroCableAnchor, phase: HeroPhase) => void;
+  onLifecycleAdvance: () => void;
 }>;
 
 type DragState = {
@@ -42,6 +43,7 @@ export function HeroPhone({
   onAlignmentComplete,
   onScreenGeometry,
   onCableState,
+  onLifecycleAdvance,
 }: HeroPhoneProps) {
   const group = useRef<Group>(null);
   const modelRoot = useRef<Group>(null);
@@ -76,7 +78,7 @@ export function HeroPhone({
   useEffect(() => {
     phaseElapsed.current = 0;
     boundsReported.current = false;
-    if (phase === "identity") {
+    if (phase === "identity" || phase === "recharging") {
       rotation.current = { x: START_ROTATION_X, y: START_ROTATION_Y };
       velocity.current = { x: 0, y: 0 };
     }
@@ -117,19 +119,39 @@ export function HeroPhone({
         velocity.current.y *= 0.88;
         invalidate();
       }
-    } else if (phase === "powering-on" || phase === "front-aligned") {
+    } else if (phase === "powering-on" || phase === "front-aligned" || phase === "experience" || phase === "power-loss") {
       x = 0;
       y = 0;
-      const progress = phase === "front-aligned" ? 1 : Math.min(1, phaseElapsed.current / HERO_POWER_DURATION_SECONDS);
+      const progress = phase !== "powering-on" ? 1 : Math.min(1, phaseElapsed.current / HERO_POWER_DURATION_SECONDS);
       const eased = restrainedEase(progress);
       scale = MathUtils.lerp(narrow ? 0.92 : 1.04, narrow ? 1.02 : 1.18, eased);
       rotation.current.x = phase === "front-aligned" ? 0 : MathUtils.lerp(powerStartRotation.current.x, 0, eased);
       rotation.current.y = phase === "front-aligned" ? 0 : MathUtils.lerp(powerStartRotation.current.y, 0, eased);
       nextBootAmount = Math.max(0, Math.min(1, (progress - 0.38) / 0.42));
+      if (phase === "power-loss") {
+        nextBootAmount = 0;
+        invalidate();
+        if (phaseElapsed.current >= HERO_POWER_LOSS_SECONDS) onLifecycleAdvance();
+      }
       if (phase === "powering-on") {
         invalidate();
         if (progress === 1) onAlignmentComplete();
       }
+    } else if (phase === "returning") {
+      const progress = Math.min(1, phaseElapsed.current / HERO_RETURN_SECONDS);
+      const eased = restrainedEase(progress / 0.75);
+      x = MathUtils.lerp(0, initialX, eased);
+      y = MathUtils.lerp(0, initialY, eased);
+      scale = MathUtils.lerp(narrow ? 1.02 : 1.18, narrow ? 0.76 : 0.9, eased);
+      rotation.current = { x: START_ROTATION_X * eased, y: START_ROTATION_Y * eased };
+      detachProgress = progress; // Return progress, consumed by the existing cable.
+      invalidate();
+      if (progress === 1) onLifecycleAdvance();
+    } else if (phase === "recharging") {
+      detachProgress = Math.min(1, phaseElapsed.current / HERO_RECHARGE_SECONDS);
+      rotation.current = { x: START_ROTATION_X, y: START_ROTATION_Y };
+      invalidate();
+      if (phaseElapsed.current >= HERO_RECHARGE_SECONDS) onLifecycleAdvance();
     }
 
     phone.position.set(x, y, 0);
@@ -139,7 +161,7 @@ export function HeroPhone({
     setBootAmount((current) => Math.abs(current - nextBootAmount) > 0.015 ? nextBootAmount : current);
 
     const dock = roles.current?.dock30Pin;
-    if ((phase === "identity" || (phase === "detaching" && detachProgress < 0.28)) && dock) {
+    if ((phase === "identity" || phase === "returning" || phase === "recharging" || (phase === "detaching" && detachProgress < 0.28)) && dock) {
       const position = dock.getWorldPosition(new Vector3());
       // Dock30Pin's own +90-degree rotation describes its port surface,
       // not the phone axes. The connector's +Y must follow phone-up.
@@ -152,7 +174,7 @@ export function HeroPhone({
         scale,
       };
     }
-    onCableState(detachProgress, cableAnchor.current);
+    onCableState(detachProgress, cableAnchor.current, phase);
 
     if (phase === "front-aligned" && !boundsReported.current && roles.current?.screen) {
       const geometry = measureHeroScreenGeometry(roles.current.screen, camera, size);
@@ -161,7 +183,7 @@ export function HeroPhone({
         onScreenGeometry(geometry);
       }
     }
-  });
+  }, -1); // Resolve phone/world matrices before the charger's frame update.
 
   const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
     if (phase !== "inspect") return;

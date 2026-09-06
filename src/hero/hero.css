@@ -73,6 +73,12 @@ button, input { font: inherit; }
 .hero-name-error { min-height: 14px; margin-top: -14px; color: #aaa; font-size: 11px; }
 
 .hero-scene { position: absolute; z-index: 2; inset: 0; }
+.hero-scene[data-lighting="revised"] {
+  background: radial-gradient(ellipse at 65% 48%, #121212 0%, #0e0e0e 42%, #0b0b0b 80%);
+}
+.hero-lighting-comparison { position: absolute; z-index: 5; top: 8px; right: 8px; display: flex; gap: 4px; }
+.hero-lighting-comparison button { color: #999; background: #161616; border: 1px solid #444; padding: 4px 8px; font-size: 11px; }
+.hero-lighting-comparison button[aria-pressed="true"] { color: #eee; border-color: #888; }
 .hero-scene canvas { display: block; width: 100%; height: 100%; }
 
 .hero-inspect-instruction {

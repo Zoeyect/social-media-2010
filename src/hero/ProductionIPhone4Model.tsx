@@ -24,6 +24,7 @@ import {
 } from "./iphone4ModelContract";
 import {
   createIPhone4MaterialRoles,
+  calibrateIPhone4Stainless,
   disposeIPhone4MaterialRoles,
   type IPhone4MaterialRoles,
 } from "./iphone4Materials";
@@ -153,6 +154,11 @@ function LoadedProductionModel({
   }, [url]);
 
   const prepared = useMemo(() => source ? prepareProductionModel(source, bootTexture) : null, [source, bootTexture]);
+
+  useEffect(() => {
+    if (!prepared || typeof prepared === "string") return;
+    return calibrateIPhone4Stainless(prepared.root);
+  }, [prepared]);
 
   useEffect(() => {
     if (loadFailure) onFailure(`load error: ${loadFailure}`);

@@ -5,7 +5,11 @@ export type HeroPhase =
   | "detaching"
   | "inspect"
   | "powering-on"
-  | "front-aligned";
+  | "front-aligned"
+  | "experience"
+  | "power-loss"
+  | "returning"
+  | "recharging";
 
 export type HeroScreenBounds = Readonly<{
   left: number;

@@ -1,4 +1,4 @@
-import { FOURSQUARE_F1_CHECKIN_ACTIVITIES, FOURSQUARE_HIDDEN_LIVE_ACTIVITIES, type FoursquareCheckinActivity } from "../data/foursquareContent";
+import { createInitialFoursquareFriendsActivities, FOURSQUARE_HIDDEN_LIVE_ACTIVITIES, type FoursquareCheckinActivity } from "../data/foursquareContent";
 import { buildCheckinResult, createCheckInPointEvent, type FoursquareCheckinResult, type FoursquarePointEvent } from "../data/foursquareGameModel";
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
@@ -41,7 +41,7 @@ export function createInitialFoursquareState(): FoursquareState {
     activeTab: "friends", currentView: "root", venueSubview: "summary", selectedVenueId: null, rootScrollPositions: emptyScrollPositions(),
     checkIns: {}, shoutDrafts: {}, pointEvents: [], latestCheckinResult: null, mayorState: "otherUser", earnedBadges: [],
     venues: SESSION_SEED_CONTENT.foursquare.venues.map(({ tip: _legacyTip, ...venue }) => ({ ...venue, contentStatus: "HOLD-fictional" })),
-    socialActivities: FOURSQUARE_F1_CHECKIN_ACTIVITIES.map(activity => ({ ...activity })), unreadActivityCount: 0,
+    socialActivities: createInitialFoursquareFriendsActivities(), unreadActivityCount: 0,
   };
 }
 

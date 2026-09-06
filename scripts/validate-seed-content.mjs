@@ -2061,7 +2061,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(new Set(foursquarePlaces.map(venue => venue.categoryIcon)).size, 4, "F2a must bind one explicit category artwork asset per current venue category");
   assert.equal(foursquarePlaces.every(venue => !Object.hasOwn(venue, "address") && !Object.hasOwn(venue, "distance") && !Object.hasOwn(venue, "coordinates")), true, "F2a view models must omit unverified address, fabricated distance, and private coordinates");
   assert.equal(foursquarePlaces.every(venue => !Object.hasOwn(venue, "mayor") && !Object.hasOwn(venue, "mayorCharacterId")), true, "F4 legacy mayor strings must not enter UI-eligible venue view models");
-  assert.deepEqual(foursquarePlaces.find(venue => venue.id === "main-street-diner")?.priorFriendActivityIds, ["june-main-street-diner", "luca-main-street-diner"], "adapter must derive only visible prior friend activity IDs");
+  assert.deepEqual(foursquarePlaces.find(venue => venue.id === "main-street-diner")?.priorFriendActivityIds, ["foursquare-history-june-2010-10-19-main-street-diner", "foursquare-history-luca-2010-10-19-main-street-diner"], "adapter must derive only visible prior friend activity IDs");
   assert.deepEqual(foursquare.FOURSQUARE_ROOT_TABS, ["friends", "places", "tips", "todos", "profile"], "F1 must expose exactly five period root destinations in locked order");
   assert.deepEqual([foursquareState.activeTab, foursquareState.currentView, foursquareState.selectedVenueId], ["friends", "root", null], "Foursquare must open to the Friends root");
   assert.deepEqual(foursquareState.rootScrollPositions, { friends: 0, places: 0, tips: 0, todos: 0, profile: 0 }, "every Foursquare root must own independent scroll state");
@@ -2092,6 +2092,13 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   );
   assert.deepEqual(foursquareState.earnedBadges, []);
   assert.equal(foursquareState.socialActivities.length, 5);
+  assert.deepEqual(foursquareState.socialActivities.map(activity => [activity.friendId, activity.venueId, activity.simulatedCreatedAt, activity.shout ?? null, activity.source, activity.visible]), [
+    ["june", "main-street-diner", "2010-10-19T22:52:00-07:00", "Late dinner.", "seed", true],
+    ["foursquare-mia", "cedar-books", "2010-10-19T20:42:00-07:00", null, "seed", true],
+    ["alex", "riverside-park", "2010-10-19T20:41:00-07:00", "Evening walk with the dogs.", "seed", true],
+    ["katie", "riverside-park", "2010-10-19T17:18:00-07:00", null, "seed", true],
+    ["luca", "main-street-diner", "2010-10-19T15:06:00-07:00", null, "seed", true],
+  ], "F6e initial Friends feed must preserve the five-row visible order and semantics");
   assert.deepEqual(foursquareState.socialActivities.find(activity => activity.id === "mia-cedar-books"), { id: "mia-cedar-books", friendId: "foursquare-mia", venueId: "cedar-books", simulatedCreatedAt: "2010-10-19T20:42:00-07:00", source: "seed", visible: true }, "F1 structured migration must preserve the existing Mia/Cedar Books seed meaning");
   assert.equal(foursquareState.socialActivities.every(activity => activity.friendId && activity.venueId && activity.simulatedCreatedAt && !Object.hasOwn(activity, "message")), true, "Friends feed must use structured identity/venue/time records without freeform parsing");
   let foursquareVenueNavigation = foursquare.foursquareStateTransition(foursquare.createInitialFoursquareState(), { type: "OPEN_VENUE", venueId: "night-owl", scrollPosition: 73 });
@@ -3868,7 +3875,14 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     assert.match(t0M1PublicTwitterFixtures, new RegExp(`2010-10-20T${time}:00-07:00`), `T0-M1 public fixture must include ${time}`);
   }
   assert.match(t0M1Foursquare, /FOURSQUARE_F1_REFERENCE_NOW = SESSION_START_ISO/, "T0-M1 Foursquare reference-now must derive from the master clock");
-  assert.match(t0M1Foursquare, /june-main-street-diner[^\n]*2010-10-19T22:52:00-07:00[^\n]*visible: true/, "T0-M1 must retain June's valid pre-T0 Friends activity");
+  const t0M1JuneFriendsActivity = foursquare.createInitialFoursquareState().socialActivities.find(
+    activity => activity.id === "foursquare-history-june-2010-10-19-main-street-diner",
+  );
+  assert.deepEqual(
+    t0M1JuneFriendsActivity && [t0M1JuneFriendsActivity.id, t0M1JuneFriendsActivity.friendId, t0M1JuneFriendsActivity.venueId, t0M1JuneFriendsActivity.simulatedCreatedAt, t0M1JuneFriendsActivity.shout, t0M1JuneFriendsActivity.visible],
+    ["foursquare-history-june-2010-10-19-main-street-diner", "june", "main-street-diner", "2010-10-19T22:52:00-07:00", "Late dinner.", true],
+    "T0-M1 must retain June's valid pre-T0 Friends activity",
+  );
   for (const [name, source] of [["deviceMachine", t0M1DeviceMachine], ["sessionTimeline", t0M1Timeline], ["publicTwitterRepository", t0M1PublicTwitterRepository], ["foursquareContent", t0M1Foursquare]]) {
     assert.doesNotMatch(source, /2010-10-19T22:0[2]:00-07:00/, `T0-M1 ${name} must not retain the stale runtime master`);
   }
@@ -3883,7 +3897,16 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_NPC_IDS, ["alex", "katie", "june", "luca", "mia"], "F6a history must remain NPC-only");
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS, ["main-street-diner", "riverside-park", "downtown-coffee", "community-courts", "westside-library", "gelato-roma"], "F6a must whitelist only canonical historical venues");
   assert.equal(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.length, 39, "F6d must preserve Alex/Katie and add exactly 6 June plus 5 Luca historical check-ins");
-  assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS, [], "F6b must not migrate historical records into the Friends feed");
+  assert.deepEqual(
+    foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS,
+    [
+      "foursquare-history-june-2010-10-19-main-street-diner",
+      "foursquare-history-alex-2010-10-19-riverside-park",
+      "foursquare-history-katie-2010-10-19-riverside-park",
+      "foursquare-history-luca-2010-10-19-main-street-diner",
+    ],
+    "F6e Friends-feed historical projection must contain exactly the four approved canonical historical activity IDs",
+  );
 
   const historicalRecord = (overrides = {}) => ({
     id: "foursquare-history-alex-2010-10-09-riverside-park",
@@ -4020,21 +4043,45 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
 
   const fixedAlexRiverside = alexHistory.find(record => record.simulatedCreatedAt === "2010-10-19T20:41:00-07:00");
   const foursquareHistoricalContent = await vite.ssrLoadModule("/src/data/foursquareContent.ts");
-  const legacyAlexRiverside = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "alex-riverside-evening");
-  assert.ok(fixedAlexRiverside && legacyAlexRiverside, "F6b must preserve both fixed Alex Riverside source representations");
-  assert.deepEqual([fixedAlexRiverside.characterId, fixedAlexRiverside.venueId, fixedAlexRiverside.simulatedCreatedAt, fixedAlexRiverside.shout], [legacyAlexRiverside.friendId, legacyAlexRiverside.venueId, legacyAlexRiverside.simulatedCreatedAt, legacyAlexRiverside.shout], "F6b historical and legacy F1 Alex Riverside rows must agree");
   const fixedKatieRiverside = katieHistory.find(record => record.simulatedCreatedAt === "2010-10-19T17:18:00-07:00");
-  const legacyKatieRiverside = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.friendId === "katie" && activity.venueId === "riverside-park");
-  assert.ok(fixedKatieRiverside && legacyKatieRiverside, "F6c must preserve both fixed Katie Riverside source representations");
-  assert.deepEqual([fixedKatieRiverside.characterId, fixedKatieRiverside.venueId, fixedKatieRiverside.simulatedCreatedAt, fixedKatieRiverside.shout ?? null], [legacyKatieRiverside.friendId, legacyKatieRiverside.venueId, legacyKatieRiverside.simulatedCreatedAt, legacyKatieRiverside.shout ?? null], "F6c historical and legacy F1 Katie Riverside rows must agree");
   const fixedLucaMainStreet = lucaHistory.find(record => record.simulatedCreatedAt === "2010-10-19T15:06:00-07:00");
-  const legacyLucaMainStreet = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "luca-main-street-diner");
-  assert.ok(fixedLucaMainStreet && legacyLucaMainStreet, "F6d must preserve both fixed Luca Main Street source representations");
-  assert.deepEqual([fixedLucaMainStreet.characterId, fixedLucaMainStreet.venueId, fixedLucaMainStreet.simulatedCreatedAt, fixedLucaMainStreet.shout ?? null], [legacyLucaMainStreet.friendId, legacyLucaMainStreet.venueId, legacyLucaMainStreet.simulatedCreatedAt, legacyLucaMainStreet.shout ?? null], "F6d historical and legacy F1 Luca Main Street rows must agree");
-  const legacyJuneMainStreet = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "june-main-street-diner");
-  assert.deepEqual([legacyJuneMainStreet?.simulatedCreatedAt, legacyJuneMainStreet?.shout, legacyJuneMainStreet?.visible], ["2010-10-19T22:52:00-07:00", "Late dinner.", true], "F6d must preserve the valid June 22:52 legacy row");
   const legacyMiaCedar = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "mia-cedar-books");
   assert.deepEqual([legacyMiaCedar?.friendId, legacyMiaCedar?.venueId, legacyMiaCedar?.simulatedCreatedAt, legacyMiaCedar?.shout ?? null, legacyMiaCedar?.visible], ["foursquare-mia", "cedar-books", "2010-10-19T20:42:00-07:00", null, true], "F6d must leave Mia's unresolved Cedar legacy row unchanged");
+  assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS, [
+    "foursquare-history-june-2010-10-19-main-street-diner",
+    "foursquare-history-alex-2010-10-19-riverside-park",
+    "foursquare-history-katie-2010-10-19-riverside-park",
+    "foursquare-history-luca-2010-10-19-main-street-diner",
+  ], "F6e must select exactly four canonical historical Friends-feed IDs");
+  assert.deepEqual(foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.map(activity => activity.id), ["mia-cedar-books"], "F6e must retain only Mia as the deliberate legacy Friends-feed exception");
+  const projectedActivities = foursquareHistoricalContent.FOURSQUARE_HISTORICAL_FRIENDS_FEED_ACTIVITIES;
+  assert.equal(projectedActivities.length, 4, "F6e must resolve four historical-backed Friends rows");
+  for (const historicalId of foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS) {
+    const historical = foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.filter(record => record.id === historicalId);
+    const projected = projectedActivities.filter(activity => activity.id === historicalId);
+    assert.equal(historical.length, 1, `F6e projection ID ${historicalId} must resolve exactly once in history`);
+    assert.equal(projected.length, 1, `F6e projection ID ${historicalId} must resolve exactly once in Friends activity`);
+    assert.deepEqual([projected[0].friendId, projected[0].venueId, projected[0].simulatedCreatedAt, projected[0].shout ?? null], [historical[0].characterId, historical[0].venueId, historical[0].simulatedCreatedAt, historical[0].shout], `F6e ${historicalId} fields must derive from canonical history`);
+  }
+  assert.equal(foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS.some(id => /mia|night-owl/.test(id)), false, "F6e historical projection must exclude Mia and Night Owl");
+  assert.deepEqual([foursquareHistoricalContent.FOURSQUARE_HIDDEN_LIVE_ACTIVITIES["june-night-owl-checkin"].source, foursquareHistoricalContent.FOURSQUARE_HIDDEN_LIVE_ACTIVITIES["june-night-owl-checkin"].visible], ["live", false], "F6e Night Owl must remain hidden realtime activity");
+
+  const foursquareHistoricalGameFacts = await vite.ssrLoadModule("/src/data/foursquareHistoricalGameFacts.ts");
+  const factsByCharacter = Object.fromEntries(foursquareHistoricalGameFacts.FOURSQUARE_HISTORICAL_GAME_FACTS.map(facts => [facts.characterId, facts]));
+  assert.deepEqual(Object.fromEntries(["alex", "katie", "june", "luca", "mia"].map(characterId => [characterId, [factsByCharacter[characterId].recordCount, factsByCharacter[characterId].validRecordCount, factsByCharacter[characterId].uniqueVenueIds.length, factsByCharacter[characterId].uniqueValidVisitDays.length]])), {
+    alex: [15, 15, 6, 15], katie: [13, 13, 5, 13], june: [6, 6, 4, 6], luca: [5, 5, 4, 5], mia: [0, 0, 0, 0],
+  }, "F6e historical facts must derive exact record, valid, venue, and visit-day counts");
+  assert.deepEqual(factsByCharacter.alex.validVisitDaysByVenue, { "main-street-diner": 3, "riverside-park": 4, "downtown-coffee": 4, "community-courts": 2, "westside-library": 1, "gelato-roma": 1 });
+  assert.deepEqual(factsByCharacter.katie.validVisitDaysByVenue, { "main-street-diner": 2, "riverside-park": 3, "downtown-coffee": 1, "community-courts": 0, "westside-library": 4, "gelato-roma": 3 });
+  assert.deepEqual(factsByCharacter.june.validVisitDaysByVenue, { "main-street-diner": 2, "riverside-park": 1, "downtown-coffee": 2, "community-courts": 0, "westside-library": 0, "gelato-roma": 1 });
+  assert.deepEqual(factsByCharacter.luca.validVisitDaysByVenue, { "main-street-diner": 1, "riverside-park": 1, "downtown-coffee": 0, "community-courts": 2, "westside-library": 0, "gelato-roma": 1 });
+  assert.deepEqual(factsByCharacter.katie.weeklyRepeatVisitFacts, [{ venueId: "westside-library", weekStartDate: "2010-09-26", visitDays: ["2010-09-26", "2010-10-01"] }], "F6e must derive Katie's sole Sunday-start Pacific weekly repeat fact");
+  assert.equal(["alex", "june", "luca"].every(characterId => factsByCharacter[characterId].weeklyRepeatVisitFacts.length === 0), true, "F6e must not invent weekly repeat facts");
+  assert.equal(["alex", "katie", "june", "luca"].every(characterId => factsByCharacter[characterId].consecutiveNightFacts.maximumRunLength === 1 && factsByCharacter[characterId].sameNightDistinctStopFacts.maximumDistinctStops === 1), true, "F6e histories must factually derive one-night and one-stop maxima");
+  assert.equal(factsByCharacter.mia.completeness, null, "F6e Mia must have no canonical complete mechanics dataset");
+  assert.equal(["alex", "katie", "june", "luca"].every(characterId => ["rolling-visit-days", "weekly-repeat-visits", "consecutive-nights", "same-night-stops"].every(coverage => foursquareHistoricalGameFacts.isFoursquareHistoricalMechanicsCoverageComplete(characterId, coverage))), true, "F6e complete NPCs must expose exhaustive in-window mechanics coverage only");
+  assert.equal(Object.keys(foursquareHistoricalGameFacts).some(key => /badge|mayor/i.test(key)), false, "F6e facts must expose no badge or mayor result");
+  assert.equal(foursquareHistoricalGameFacts.FOURSQUARE_HISTORICAL_GAME_FACTS.some(facts => facts.characterId === "player"), false, "F6e facts must prohibit player history");
   assert.equal(foursquareHistoricalActivity.FOURSQUARE_HISTORY_COMPLETENESS.some(entry => entry.characterId === "mia"), false, "F6d must not make a false Mia completeness claim");
   assert.equal(Object.keys(foursquareHistoricalActivity).some(key => /badge|mayor/i.test(key)), false, "F6a exports must contain no badge or mayor derivation");
   assert.doesNotMatch(historicalActivitySource, /foursquareGameSeed|foursquareGameModel|sessionTimeline/, "F6a history must remain isolated from F3/F4 and realtime domains");

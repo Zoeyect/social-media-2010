@@ -86,6 +86,13 @@ export const FOURSQUARE_HISTORICAL_CHECKINS: readonly FoursquareHistoricalChecki
   { id: "foursquare-history-alex-2010-10-19-riverside-park", characterId: "alex", venueId: "riverside-park", simulatedCreatedAt: "2010-10-19T20:41:00-07:00", shout: "Evening walk with the dogs.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
   { id: "foursquare-history-june-2010-10-19-main-street-diner", characterId: "june", venueId: "main-street-diner", simulatedCreatedAt: "2010-10-19T22:52:00-07:00", shout: "Late dinner.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
 ]);
+
+export const FOURSQUARE_FRIENDS_FEED_HISTORY_IDS = Object.freeze([
+  "foursquare-history-june-2010-10-19-main-street-diner",
+  "foursquare-history-alex-2010-10-19-riverside-park",
+  "foursquare-history-katie-2010-10-19-riverside-park",
+  "foursquare-history-luca-2010-10-19-main-street-diner",
+] as const satisfies readonly FoursquareHistoricalCheckin["id"][]);
 export const FOURSQUARE_HISTORY_COMPLETENESS: readonly FoursquareHistoryCompleteness[] = Object.freeze([
   {
     characterId: "alex",
@@ -120,8 +127,6 @@ export const FOURSQUARE_HISTORY_COMPLETENESS: readonly FoursquareHistoryComplete
     lifetimeHistoryComplete: false,
   },
 ]);
-export const FOURSQUARE_FRIENDS_FEED_HISTORY_IDS: readonly string[] = Object.freeze([]);
-
 const NPC_ID_SET: ReadonlySet<string> = new Set(FOURSQUARE_NPC_IDS);
 const HISTORICAL_VENUE_ID_SET: ReadonlySet<string> = new Set(FOURSQUARE_HISTORICAL_VENUE_IDS);
 const COMPLETENESS_LEVEL_SET: ReadonlySet<string> = new Set(["display-selected", "complete-for-game-window"]);

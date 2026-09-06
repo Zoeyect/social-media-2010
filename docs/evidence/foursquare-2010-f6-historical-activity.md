@@ -199,3 +199,29 @@ scheduler, UI, and venue definitions are unaffected.
 
 Night Owl remains realtime-only at T+510. Mia/Cedar remains HOLD and is not
 promoted into canonical historical activity.
+
+## F6e: Friends-feed projection and historical facts
+
+F6e populates the Friends-feed projection with exactly four canonical
+historical IDs: June at Main Street Diner, Alex at Riverside Park, Katie at
+Riverside Park, and Luca at Main Street Diner. Their former F1 duplicate seed
+objects are removed; the adapter derives character, venue, timestamp, and shout
+directly from each historical record. Visible output and recency order remain
+June, Mia, Alex, Katie, Luca.
+
+Mia at Cedar Books remains the sole deliberate legacy Friends-feed exception
+because Cedar is noncanonical and HOLD. Night Owl remains outside historical
+projection and storage; June's T+510 check-in continues as scheduler-driven
+realtime activity.
+
+The pure historical-facts layer derives record count, valid-record count,
+unique canonical venues, unique valid visit days, visit days by venue,
+Sunday-start Pacific calendar-week repeats, consecutive-night runs, and
+same-night distinct-stop maxima. Alex derives 15 records / 6 venues / 15 valid
+visit days; Katie 13 / 5 / 13; June 6 / 4 / 6; Luca 5 / 4 / 5. Mia has no
+canonical complete mechanics dataset, and the player remains absent.
+
+Completeness permits exhaustive in-window conclusions only for the four stated
+coverage dimensions. It does not establish lifetime history, Newbie status,
+badge ownership or eligibility, mayorship, an incumbent, competitor ranking,
+or leaderboard score. F6e provides facts, not achievements.

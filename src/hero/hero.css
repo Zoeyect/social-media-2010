@@ -76,10 +76,38 @@ button, input { font: inherit; }
 .hero-scene[data-lighting="revised"] {
   background: radial-gradient(ellipse at 65% 48%, #121212 0%, #0e0e0e 42%, #0b0b0b 80%);
 }
+.hero-scene[data-lighting="charcoal"] {
+  background: radial-gradient(ellipse at 65% 48%, #1c1c1c 0%, #141414 48%, #0d0d0d 90%);
+}
+.hero-scene[data-lighting="charcoal-v2"] {
+  background: radial-gradient(ellipse at 65% 48%, #202020 0%, #171717 48%, #0f0f0f 90%);
+}
 .hero-lighting-comparison { position: absolute; z-index: 5; top: 8px; right: 8px; display: flex; gap: 4px; }
 .hero-lighting-comparison button { color: #999; background: #161616; border: 1px solid #444; padding: 4px 8px; font-size: 11px; }
 .hero-lighting-comparison button[aria-pressed="true"] { color: #eee; border-color: #888; }
 .hero-scene canvas { display: block; width: 100%; height: 100%; }
+
+/* DEV ScreenPortal: software surface only, never a second device shell. */
+.hero-screen-portal-host { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.hero-screen-portal {
+  position: absolute; left: 0; top: 0; transform-origin: 0 0;
+  visibility: hidden; overflow: hidden; background: #030405;
+  pointer-events: none; opacity: 0; transition: opacity 240ms linear;
+}
+.hero-screen-portal[data-state="qa"] { opacity: 1; }
+.hero-screen-portal[data-state="hidden"] { opacity: 0; transition: none; }
+.hero-screen-portal-grid {
+  position: absolute; inset: 0; box-sizing: border-box; border: 1px solid #718080;
+  background-image: linear-gradient(#344040 1px, transparent 1px), linear-gradient(90deg,#344040 1px,transparent 1px);
+  background-size: 10% 10%; color: #849393; font: 12px monospace;
+  display: grid; place-items: center; text-align: center;
+}
+.hero-screen-portal-grid::after { content: ""; position: absolute; width: 60%; aspect-ratio: 1; border: 1px dashed #667575; }
+.hero-screen-dom-corner { position: absolute; width: 0; height: 0; }
+.hero-screen-dom-corner::after { content: ""; position: absolute; width: 6px; height: 6px; background: #60bb85; transform: translate(-50%,-50%); }
+.hero-screen-projected-corner { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+.hero-screen-projected-corner::after { content: ""; position: absolute; width: 8px; height: 8px; border: 1px solid #c07960; border-radius: 50%; transform: translate(-50%,-50%); }
+.hero-screen-portal-readout { position: absolute; left: 8px; bottom: 100px; padding: 6px; white-space: pre; background: #101010e8; color: #aab5b5; font: 10px monospace; }
 
 .hero-inspect-instruction {
   position: absolute;

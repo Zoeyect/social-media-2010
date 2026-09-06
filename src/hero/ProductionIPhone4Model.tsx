@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ThreeEvent, useLoader } from "@react-three/fiber";
+import { useLoader, useThree } from "@react-three/fiber";
 import {
-  Box3,
-  BoxGeometry,
   Mesh,
   MeshBasicMaterial,
   TextureLoader,
-  Vector3,
-  type Material,
   type Object3D,
   type Texture,
 } from "three";
@@ -18,7 +14,6 @@ import {
   inspectIPhone4Model,
   missingCriticalIPhone4MeshRoles,
   missingIPhone4MeshRoles,
-  objectBelongsToRole,
   type IPhone4MeshRoles,
   type IPhone4ModelStats,
 } from "./iphone4ModelContract";
@@ -29,6 +24,7 @@ import {
   type IPhone4MaterialRoles,
 } from "./iphone4Materials";
 import { normalizeIPhone4Model } from "./iphone4Normalization";
+import { useHeroHardware } from "./useHeroHardware";
 
 export type IPhone4ModelDiagnostics = Readonly<{
   source: "production" | "placeholder";
@@ -44,7 +40,6 @@ type ReadyModel = Readonly<{
   roles: IPhone4MeshRoles;
   materials: IPhone4MaterialRoles;
   bootMaterial: MeshBasicMaterial;
-  hitTarget: Mesh;
   diagnostics: IPhone4ModelDiagnostics;
 }>;
 
@@ -83,32 +78,11 @@ function prepareProductionModel(source: Object3D, bootTexture: Texture): ReadyMo
   bootSurface.renderOrder = screen.renderOrder + 1;
   screen.add(bootSurface);
 
-  const powerButton = roles.powerButton!;
-  powerButton.geometry.computeBoundingBox();
-  const powerBounds = powerButton.geometry.boundingBox ?? new Box3(
-    new Vector3(-0.5, -0.5, -0.5),
-    new Vector3(0.5, 0.5, 0.5),
-  );
-  const hitSize = powerBounds.getSize(new Vector3()).multiplyScalar(2);
-  const hitCenter = powerBounds.getCenter(new Vector3());
-  const hitMaterial = new MeshBasicMaterial({
-    name: "HeroPowerHitMaterial",
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
-    colorWrite: false,
-  });
-  const hitTarget = new Mesh(new BoxGeometry(hitSize.x, hitSize.y, hitSize.z), hitMaterial);
-  hitTarget.name = "HeroPowerButtonHitTarget";
-  hitTarget.position.copy(hitCenter);
-  powerButton.add(hitTarget);
-
   return {
     root,
     roles,
     materials,
     bootMaterial,
-    hitTarget,
     diagnostics: {
       source: "production",
       fallbackReason: null,
@@ -136,6 +110,7 @@ function LoadedProductionModel({
   onFailure: (reason: string) => void;
 }>) {
   const bootTexture = useLoader(TextureLoader, bootLogoSrc);
+  const { scene, invalidate } = useThree();
   const [source, setSource] = useState<Object3D | null>(null);
   const [loadFailure, setLoadFailure] = useState<string | null>(null);
 
@@ -154,11 +129,14 @@ function LoadedProductionModel({
   }, [url]);
 
   const prepared = useMemo(() => source ? prepareProductionModel(source, bootTexture) : null, [source, bootTexture]);
+  const hardwareEvents = useHeroHardware(prepared && typeof prepared !== "string" ? prepared.root : null, powerEnabled, onPowerPress);
 
   useEffect(() => {
     if (!prepared || typeof prepared === "string") return;
-    return calibrateIPhone4Stainless(prepared.root);
-  }, [prepared]);
+    const cleanup = calibrateIPhone4Stainless(prepared.root, { scene, invalidate });
+    invalidate();
+    return cleanup;
+  }, [prepared, scene, invalidate]);
 
   useEffect(() => {
     if (loadFailure) onFailure(`load error: ${loadFailure}`);
@@ -175,36 +153,16 @@ function LoadedProductionModel({
   useEffect(() => () => {
     if (!prepared || typeof prepared === "string") return;
     prepared.bootMaterial.dispose();
-    prepared.hitTarget.geometry.dispose();
-    (prepared.hitTarget.material as Material).dispose();
     disposeIPhone4MaterialRoles(prepared.materials);
   }, [prepared]);
 
   if (loadFailure || typeof prepared === "string") return null;
   if (!prepared) return null;
 
-  const isPowerTarget = (event: ThreeEvent<PointerEvent>) =>
-    objectBelongsToRole(event.object, prepared.roles.powerButton);
-
   return (
     <primitive
       object={prepared.root}
-      onPointerOver={(event: ThreeEvent<PointerEvent>) => {
-        if (!powerEnabled || !isPowerTarget(event)) return;
-        event.stopPropagation();
-        document.body.style.cursor = "pointer";
-      }}
-      onPointerOut={() => { document.body.style.cursor = ""; }}
-      onPointerDown={(event: ThreeEvent<PointerEvent>) => {
-        if (!powerEnabled || !isPowerTarget(event)) return;
-        event.stopPropagation();
-      }}
-      onPointerUp={(event: ThreeEvent<PointerEvent>) => {
-        if (!powerEnabled || !isPowerTarget(event)) return;
-        event.stopPropagation();
-        document.body.style.cursor = "";
-        onPowerPress();
-      }}
+      {...hardwareEvents}
     />
   );
 }

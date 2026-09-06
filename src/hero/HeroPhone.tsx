@@ -20,6 +20,8 @@ const START_ROTATION_Y = MathUtils.degToRad(-34);
 
 type HeroPhoneProps = Readonly<{
   phase: HeroPhase;
+  frontDepth?: boolean;
+  frontScreenOff?: boolean;
   modelUrl?: string;
   onDetachComplete: () => void;
   onPowerPress: () => void;
@@ -37,6 +39,8 @@ type DragState = {
 
 export function HeroPhone({
   phase,
+  frontDepth = false,
+  frontScreenOff = false,
   modelUrl = PRODUCTION_IPHONE4_MODEL_URL,
   onDetachComplete,
   onPowerPress,
@@ -54,6 +58,7 @@ export function HeroPhone({
   const velocity = useRef({ x: 0, y: 0 });
   const drag = useRef<DragState | null>(null);
   const boundsReported = useRef(false);
+  const frontOffset = useRef(0);
   const cableAnchor = useRef<HeroCableAnchor>({ position: [0, 0, 0] });
   const reportedDiagnostics = useRef("");
   const [bootAmount, setBootAmount] = useState(0);
@@ -86,6 +91,11 @@ export function HeroPhone({
     if (phase !== "inspect") drag.current = null;
     invalidate();
   }, [phase, invalidate]);
+
+  useEffect(() => {
+    boundsReported.current = false;
+    invalidate();
+  }, [frontDepth, frontScreenOff, invalidate]);
 
   useFrame((_, delta) => {
     const phone = group.current;
@@ -156,8 +166,16 @@ export function HeroPhone({
 
     phone.position.set(x, y, 0);
     phone.scale.setScalar(scale);
-    phone.rotation.set(rotation.current.x, rotation.current.y, 0);
+    // DEV presentation offset only; canonical lifecycle rotations remain intact.
+    const depthTarget = import.meta.env.DEV && frontDepth && phase === "front-aligned" ? 1 : 0;
+    frontOffset.current = MathUtils.damp(frontOffset.current, depthTarget, 18, Math.min(delta, 0.05));
+    const depthMoving = Math.abs(frontOffset.current - depthTarget) > 0.0001;
+    if (depthMoving) { boundsReported.current = false; invalidate(); }
+    else frontOffset.current = depthTarget;
+    phone.rotation.set(rotation.current.x + MathUtils.degToRad(0.75) * frontOffset.current,
+      rotation.current.y + MathUtils.degToRad(2) * frontOffset.current, 0);
     phone.updateWorldMatrix(true, true);
+    if (import.meta.env.DEV && frontScreenOff && phase === "front-aligned") nextBootAmount = 0;
     setBootAmount((current) => Math.abs(current - nextBootAmount) > 0.015 ? nextBootAmount : current);
 
     const dock = roles.current?.dock30Pin;
@@ -176,7 +194,7 @@ export function HeroPhone({
     }
     onCableState(detachProgress, cableAnchor.current, phase);
 
-    if (phase === "front-aligned" && !boundsReported.current && roles.current?.screen) {
+    if (phase === "front-aligned" && !depthMoving && !boundsReported.current && roles.current?.screen) {
       const geometry = measureHeroScreenGeometry(roles.current.screen, camera, size);
       if (geometry) {
         boundsReported.current = true;

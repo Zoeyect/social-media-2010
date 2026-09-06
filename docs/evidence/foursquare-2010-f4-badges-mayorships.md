@@ -2,7 +2,7 @@
 
 Status: `EVIDENCE + INVARIANT CLOSURE`  
 Target: Foursquare for iPhone 2.0, iPhone 4 / iOS 4.1  
-Experience date: 2010-10-21  
+Experience date: 2010-10-20
 Runtime implementation: `HOLD pending F6 historical activity`
 
 ## Locked product verdict
@@ -120,4 +120,3 @@ Future work may separate seeded historical ownership (`ownedBadgeIds`, `mayorshi
 4. Implement later F4-visible Profile, Venue, and Result surfaces.
 
 F6 must preserve the intentionally unknown player biography.
-

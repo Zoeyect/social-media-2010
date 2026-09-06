@@ -225,3 +225,113 @@ Completeness permits exhaustive in-window conclusions only for the four stated
 coverage dimensions. It does not establish lifetime history, Newbie status,
 badge ownership or eligibility, mayorship, an incumbent, competitor ranking,
 or leaderboard score. F6e provides facts, not achievements.
+
+## F6f: Eligibility audit and F6 closure
+
+Status: `COMPLETE`
+
+F6f closes the historical-activity phase with an eligibility and evidence
+audit. It does not assign badge ownership, badge unlocks, mayorships, crowns,
+progress, Profile counts, or result rewards.
+
+### Complete NPC facts
+
+| Identity | Records | Unique venues | Valid visit-days |
+| --- | ---: | ---: | ---: |
+| Alex | 15 | 6 | 15 |
+| Katie | 13 | 5 | 13 |
+| June | 6 | 4 | 6 |
+| Luca | 5 | 4 | 5 |
+
+Mia has no canonical complete F6 dataset. The player's prior Foursquare history
+remains `UNKNOWN`.
+
+### Window completeness boundary
+
+`complete-for-game-window` is exhaustive only from
+`2010-08-22T00:00:00-07:00` through
+`2010-10-20T00:02:00-07:00`, and only for rolling visit-days, weekly repeat
+visits, consecutive nights, and same-night distinct stops.
+
+It does not establish lifetime account history, a first-ever check-in, lifetime
+unique venues, historical badge ownership, or a lifetime mayorship portfolio.
+
+### Badge eligibility and ownership
+
+`KNOWN_WINDOW_NOT_ELIGIBLE` is not equivalent to
+`LIFETIME_OWNERSHIP_UNKNOWN`.
+
+- Newbie remains `HOLD` for every identity because lifetime first-check-in
+  history is unavailable.
+- Adventurer, Explorer, and Superstar thresholds are not established by the
+  known F6-window venue counts. Lifetime ownership remains `UNKNOWN`.
+- Katie has only two qualifying Westside Library visit-days in the relevant
+  project week: `2010-09-26` and `2010-10-01`. No known F6 record set
+  reaches the candidate three-visit Local threshold, and exact historical
+  week-boundary semantics remain `HOLD`.
+- The maximum known consecutive-night run is 1 for Alex, Katie, June, and Luca,
+  so the known window does not reach the candidate Bender threshold.
+- The maximum known same-night distinct-stop count is 1 for each complete NPC,
+  so the known window does not reach the candidate Crunked threshold.
+- Super Mayor cannot be established without authoritative concurrent
+  mayorship snapshots.
+
+None of these findings creates or populates `ownedBadgeIds`.
+
+### Player boundary
+
+`UNKNOWN prior player history != zero prior history`.
+
+Newbie therefore cannot be truthfully awarded. Adventurer, Explorer, and
+Superstar are impossible in the current four-venue session slice; Local is
+impossible under the one-check-in-per-venue reducer; and Bender is impossible
+in 15 minutes. Crunked is not awarded despite the theoretical four-stop count
+because mobility and authentic qualification are unsupported. Super Mayor
+cannot be established. Existing base `+1` check-in scoring remains
+independent.
+
+### Mayorship visit-day facts
+
+| Venue | Alex | Katie | June | Luca |
+| --- | ---: | ---: | ---: | ---: |
+| Main Street Diner | 3 | 2 | 2 | 1 |
+| Riverside Park | 4 | 3 | 1 | 1 |
+| Downtown Coffee | 4 | 1 | 2 | 0 |
+| Community Courts | 2 | 0 | 0 | 2 |
+| Westside Library | 1 | 4 | 0 | 0 |
+| Gelato Roma | 1 | 3 | 1 | 1 |
+
+The highest project-NPC visit count is not a historical Foursquare mayor.
+External users and incumbents are absent. `PROJECT_NPC_LEADER` is an internal
+analytical term only and must not appear in runtime UI.
+
+### Legacy mayor rejection
+
+| Venue | Legacy identity | Classification |
+| --- | --- | --- |
+| Main Street Diner | Jack | `LEGACY / HOLD-FICTIONAL / NOT UI-ELIGIBLE` |
+| Riverside Park | Eli | `LEGACY / HOLD-FICTIONAL / NOT UI-ELIGIBLE` |
+| Night Owl | June | `LEGACY / HOLD-FICTIONAL / NOT UI-ELIGIBLE` |
+| Cedar Books | Mia | `LEGACY / HOLD-FICTIONAL / NOT UI-ELIGIBLE` |
+
+These strings remain disconnected from runtime UI.
+
+### F4 handoff
+
+F4 remains `HYBRID / HOLD`. Empty conditional architecture may remain, but
+visible ownership surfaces stay deferred:
+
+- Profile shows no badge count, mayorship count, or badge gallery.
+- Venue shows no mayor identity, crown, countdown, or `No mayor` copy.
+- Result keeps `badgeIdsUnlocked: []` and `mayorshipChange: null`.
+
+This suppression is intentional and evidence-backed. No
+`FoursquareMayorshipSnapshot[]` should be authored without a concrete
+narrative need.
+
+F6 is complete because it delivered bounded NPC historical reconstruction,
+completeness metadata, Friends-feed projection, raw mechanics facts, and the
+eligibility audit. It does not need a lifetime-history baseline, external
+competitor population, or mayorship snapshots. Adding those solely to force
+visible game identity would over-fictionalize the experience. All unresolved
+badge and mayorship ownership transfers to `F4 / HOLD`.

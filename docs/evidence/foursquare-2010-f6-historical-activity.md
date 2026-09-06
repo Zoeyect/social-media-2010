@@ -124,3 +124,33 @@ completeness declaration.
 F6b does not add badge ownership, mayorship ownership, leaderboard state,
 player history, UI projection, runtime events, scheduler behavior, or new
 venues.
+
+## F6c: Katie historical activity
+
+F6c adds exactly 13 Katie historical check-ins from August 24 through October
+19, 2010. The venue distribution is Westside Library 4, Riverside Park 3,
+Gelato Roma 3, Main Street Diner 2, and Downtown Coffee 1. The month
+distribution is August 2, September 6, and October 1-19 5.
+
+All 13 records are `seed`, `PROJECT-CURATED-FICTION`,
+`PROJECT-RECONSTRUCTED-VALID`, and game-valid. School-day activity is placed
+after school or in the early evening; weekend activity is daytime or early
+evening. This keeps Katie's movement local, repetitive, and age-appropriate
+rather than presenting her as an adult power user. Exactly two records contain
+shouts: `Finally done studying.` and `Getting gelato :)`.
+
+The fixed Katie Riverside Park record remains
+`2010-10-19T17:18:00-07:00` with no shout. Its historical and legacy F1 source
+representations must agree while historical Friends-feed projection remains
+empty. The separate Facebook Westside Library check-in at 20:14 remains
+unchanged; the 2-hour-56-minute same-day gap is plausible and does not create a
+matching Foursquare record.
+
+Katie is `complete-for-game-window` for the locked F6 window, with the same four
+mechanics coverage dimensions as Alex and `lifetimeHistoryComplete: false`.
+June, Luca, Mia, and the player receive no completeness entry in F6c.
+
+Repeated visits do not establish badge ownership, mayorship, an incumbent, or
+a leaderboard result. F6c does not change Friends-feed projection, F3/F4,
+runtime, scheduler, UI, or venue definitions. Alex's F6b records and
+completeness remain unchanged.

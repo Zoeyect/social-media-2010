@@ -35,6 +35,7 @@ PHONE_HEIGHT = 0.1152
 PHONE_DEPTH = 0.0093
 FRAME_RADIUS = 0.0078
 FRAME_DEPTH = 0.0071
+FRONT_LIP_Y = -0.00450
 
 REQUIRED_MESHES = (
     "PhoneBody",
@@ -536,6 +537,43 @@ def refine_details(objects, materials):
     return list(roles.values())
 
 
+def add_front_frame_lip(frame, material):
+    """Expose the existing 0.25 mm glass inset ahead of the black body.
+
+    Orthographic audit: body hid 0.10 mm and the remaining steel was all
+    bevel. Keep glass/overall XY outline unchanged; connect a narrow annular
+    shoulder to the authored band, not a silver plate beneath the screen.
+    Exact shoulder profile is a conservative visual reconstruction.
+    """
+    outer = rounded_rect_points(PHONE_WIDTH, PHONE_HEIGHT, FRAME_RADIUS, 14)
+    inner = rounded_rect_points(0.0580, 0.1146, 0.0075, 14)
+    count = len(outer)
+    vertices = [(x, y, z) for y in (FRONT_LIP_Y, -0.00350) for ring in (outer, inner) for x, z in ring]
+    faces = []
+    for i in range(count):
+        j = (i + 1) % count
+        faces.extend([(i, j, count+j, count+i),
+                      (i, 2*count+i, 2*count+j, j),
+                      (count+i, count+j, 3*count+j, 3*count+i),
+                      (2*count+i, 3*count+i, 3*count+j, 2*count+j)])
+    mesh = bpy.data.meshes.new("FrontFrameLipGeometry")
+    mesh.from_pydata(vertices, [], faces)
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+    bm.to_mesh(mesh)
+    bm.free()
+    lip = bpy.data.objects.new("FrontFrameLip", mesh)
+    bpy.context.collection.objects.link(lip)
+    assign_material(lip, material)
+    bevel = lip.modifiers.new("LipEdge", "BEVEL")
+    bevel.width = 0.000025
+    bevel.segments = 2
+    bpy.context.view_layer.objects.active = lip
+    bpy.ops.object.modifier_apply(modifier=bevel.name)
+    return join_objects([frame, lip], "StainlessFrame")
+
+
 def build_phone() -> bpy.types.Object:
     clear_scene()
     scene = bpy.context.scene
@@ -620,6 +658,9 @@ def build_phone() -> bpy.types.Object:
     ))
 
     objects = refine_details(objects, materials)
+    # Do not pass the overlapping shoulder through unrelated port booleans.
+    frame_index = next(i for i, obj in enumerate(objects) if obj.name == "StainlessFrame")
+    objects[frame_index] = add_front_frame_lip(objects[frame_index], materials["MAT_StainlessSteel"])
     for obj in objects:
         obj.parent = root
         # Keep flat faces flat and let the applied bevels carry highlights.
@@ -722,6 +763,8 @@ def render_previews() -> None:
         "back-3q": ((-0.19, 0.27, 0.12), 0.145),
     }
     for name, (location, scale) in views.items():
+        if "--front-only" in sys.argv and name not in ("front", "front-3q", "left", "right"):
+            continue
         if "--rear-only" in sys.argv and name not in ("back", "back-3q"):
             continue
         camera.location = location
@@ -818,7 +861,7 @@ def validate_export() -> dict:
     if not result["screen_is_on_front_negative_y"]:
         failures.append("Screen is not on Blender -Y / exported glTF +Z front")
     if frame and any(abs(actual - expected) > 0.00045 for actual, expected in zip(
-        frame.dimensions, (PHONE_WIDTH, FRAME_DEPTH, PHONE_HEIGHT)
+        frame.dimensions, (PHONE_WIDTH, FRAME_DEPTH / 2 - FRONT_LIP_Y, PHONE_HEIGHT)
     )):
         failures.append(f"Frame dimensions drifted: {frame.dimensions[:]} ")
     if failures:

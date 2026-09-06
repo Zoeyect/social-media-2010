@@ -2129,6 +2129,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual([f5cVenueFromTodoState.currentView, f5cVenueFromTodoState.selectedVenueId, f5cVenueFromTodoState.venueSubview], ["venue", "night-owl", "summary"], "F5c To-Do rows must open the existing venue summary route");
   const f5cRemovedTodoState = foursquare.foursquareStateTransition(f5cTodoState, { type: "REMOVE_TODO", todoId: "todo:venue:main-street-diner" });
   assert.deepEqual(f5cRemovedTodoState.todos.map(todo => todo.id), ["todo:venue:night-owl"], "F5c removal must remove only the selected venue To-Do");
+  const f5dTipRemovedState = foursquare.foursquareStateTransition(venueAndTipTodoState, { type: "REMOVE_TODO", todoId: tipTodoId });
+  assert.deepEqual(f5dTipRemovedState.todos.map(todo => todo.id), [venueTodoId], "F5d removing the Tip To-Do must leave the coexisting venue To-Do untouched");
+  assert.deepEqual(foursquareTodos.getFoursquareTipTodo(venueAndTipTodoState.todos, "night-owl-tip"), { id: tipTodoId, kind: "tip", tipId: "night-owl-tip", venueId: "night-owl", createdAt: 1_287_552_240_000, completed: false }, "F5d Tip save must retain its Tip identity and reducer-derived Night Owl venue");
   assert.equal(foursquareState.mayorState, "otherUser");
   assert.deepEqual(
     foursquareState.venues.map(venue => [venue.id, venue.mayor]),
@@ -3911,10 +3914,20 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(foursquareContainerSourceForTodos, /Remove from To-Dos/, "F5c saved venue summary must expose Remove from To-Dos");
   assert.match(foursquareContainerSourceForTodos, /simulatedCreatedAt: currentDeviceDateTime\.getTime\(\)/, "F5c venue saves must use the simulated device clock");
   const f5cTodosRootSource = foursquareContainerSourceForTodos.match(/function TodosRoot[\s\S]*?(?=function QuietRoot)/)?.[0] ?? "";
-  assert.match(f5cTodosRootSource, /todo\.kind === "venue"/, "F5c To-Dos root must project venue To-Dos only");
+  assert.match(f5cTodosRootSource, /todo\.kind === "venue"/, "F5d To-Dos root must retain the distinct venue To-Do row branch");
+  assert.match(f5cTodosRootSource, /selectFoursquareVenueTips\(todo\.venueId\)[\s\S]*candidate\.id === todo\.tipId/, "F5d To-Dos root must resolve Tip content from the canonical Tip reference");
   assert.match(f5cTodosRootSource, /<strong>\{venue\.name\}<\/strong>/, "F5c To-Do rows must render the canonical venue name");
   assert.match(f5cTodosRootSource, /onOpenVenue\(venue\.id\)/, "F5c To-Do rows must open the existing venue route");
-  assert.doesNotMatch(f5cTodosRootSource, /completed|checkbox|checkmark|distance|address|category|timestamp|disclosure/i, "F5c To-Do rows must not expose deferred metadata or completion controls");
+  assert.match(f5cTodosRootSource, /className="foursquare-todo-tip-row"[\s\S]*<strong>\{tip\.text\}<\/strong><small>\{venue\.name\}<\/small>/, "F5d Tip To-Do row must render only Tip text and venue name");
+  assert.match(f5cTodosRootSource, /onOpenTipVenue\(todo\.venueId\)/, "F5d Tip To-Do row must route through its canonical venue identity");
+  assert.match(foursquareContainerSourceForTodos, /onOpenTipVenue=\{venueId => \{ dispatch\(\{ type: "OPEN_VENUE"[\s\S]*dispatch\(\{ type: "SHOW_VENUE_TIPS" \}\); \}\}/, "F5d Tip To-Do row must open the existing venue Tips surface without a Tip detail route");
+  assert.doesNotMatch(f5cTodosRootSource, /authorDisplayName|completed|checkbox|checkmark|distance|address|category|timestamp|disclosure|done count/i, "F5d To-Do rows must not expose deferred metadata or completion controls");
+  const f5dVenueTipsSource = foursquareContainerSourceForTodos.match(/state\.venueSubview === "tips"[\s\S]*?(?=state\.venueSubview === "checkIn")/)?.[0] ?? "";
+  assert.match(f5dVenueTipsSource, /tip\.authorDisplayName[\s\S]*tip\.text/, "F5d must preserve the existing Tip author and text presentation");
+  assert.match(f5dVenueTipsSource, /tipTodo \? "Remove from To-Dos" : "Add to To-Dos"/, "F5d Tip surface must expose exactly the approved save/remove wording");
+  assert.match(f5dVenueTipsSource, /type: "ADD_TIP_TODO"[\s\S]*tipId: tip\.id[\s\S]*simulatedCreatedAt: currentDeviceDateTime\.getTime\(\)/, "F5d Tip save must use ADD_TIP_TODO and the simulated device clock");
+  assert.match(f5dVenueTipsSource, /type: "REMOVE_TODO"[\s\S]*todoId: tipTodo\.id/, "F5d Tip removal must use the existing REMOVE_TODO action");
+  assert.doesNotMatch(`${f5cTodosRootSource}\n${f5dVenueTipsSource}`, /I've done this|\bDone\b|Completed|checkbox|checkmark|done count/i, "F5d must keep completion UI hidden");
   assert.match(foursquareContainerSourceForTodos, /state\.activeTab === "tips" && <QuietRoot label="Tips" \/>/, "F5c must leave the Tips root blank");
   assert.doesNotMatch(f5cTodosRootSource, /No To-Dos|Nothing here|Add places/i, "F5c blank To-Dos state must not introduce empty-state copy");
   assert.match(deviceCssSourceForTodos, /\.foursquare-todo-venue-row \{[^}]*height: 44px;/, "F5c To-Do rows must use compact reconstructed iPhone list geometry");

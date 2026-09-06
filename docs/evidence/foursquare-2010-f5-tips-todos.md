@@ -75,3 +75,11 @@ F5c exposes only the smallest venue-based session loop supported by the F5a cont
 This visible material is `RECONSTRUCTED_FROM_EXISTING_PROJECT_MATERIAL`. The row geometry and venue action treatment reuse the project's existing Foursquare iPhone-era surfaces; they are not claimed as pixel-exact primary-source reconstruction.
 
 F5c intentionally leaves Tip To-Dos hidden, the Tips root blank, and venue-local Tip content unchanged. It adds no completion controls, edit mode, To-Do detail route, persistence, maps, distance, badges, mayors, or historical To-Do seed.
+
+## F5d Tip to To-Do path
+
+The Tip-to-To-Do behavior is `PERIOD-SUPPORTED`; the visible `Add to To-Dos` and `Remove from To-Dos` wording is `RECONSTRUCTED`. The existing `night-owl-tip` is the sole content and QA fixture. Its June authorship, Night Owl venue, text, and `HOLD-fictional` classification remain unchanged, with no timestamp, likes, done count, distance, or other metadata added.
+
+The Night Owl Venue Tips surface now saves and removes the Tip through the F5a session model. Its To-Dos row uses `RECONSTRUCTED_FROM_EXISTING_PROJECT_MATERIAL` geometry and renders only the Tip text plus `Night Owl Cafe`. Tapping it opens the existing Night Owl Venue Tips surface; no Tip detail route exists.
+
+Venue and Tip To-Dos for Night Owl may coexist as distinct records. Saving or removing either does not mutate the other, and check-in remains independent. Completion stays internal with no visible completion affordance. The root Tips surface remains blank and `HOLD` pending F5f.

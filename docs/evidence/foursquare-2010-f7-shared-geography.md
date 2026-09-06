@@ -146,3 +146,29 @@ distance/address data, and does not connect maps to Check-in, Result, To-Dos,
 Tips, Friends, Profile, or Leaderboard. Facebook and all F4/F5/F6 behavior remain
 unchanged. Runtime visual fidelity of the reconstructed map frame and pin remains
 `RUNTIME VISUAL QA PENDING`.
+
+## F7f-1 Facebook Place Check In integration
+
+F7f-1 selects Facebook Place Check In as the sole Facebook map surface for F7.
+The selected-place map/location context is `PERIOD-SUPPORTED`; the shared SVG
+base, exact 68-pixel frame, viewport, frame treatment, and Facebook pin are
+`PROJECT RECONSTRUCTION`. The renderer is not presented as literal historical
+map-provider output.
+
+The former `Map / Location view unavailable` HOLD slot now renders
+`Shared2010Map` with the existing `VENUE_DETAIL` viewport and one compact marker
+owned by a separate `FacebookMapOverlay`. All six Facebook place options have
+canonical geography and can resolve this preview. Night Owl Cafe and Cedar Books
+remain outside Facebook Places and cannot leak into the overlay.
+
+Nearby Places remains the same six-row list in the same order. There is no
+Places-root map, map/list switch, multi-pin view, player marker, distance,
+address, label, callout, interaction, pan, zoom, recenter, directions, Place
+Detail map, or Info map. The April 2011 Facebook Places Map View is explicitly
+excluded from the October 2010 reconstruction.
+
+Status drafting, Tag Friends, friend selection, Check In, feed-story creation,
+and post-check-in Place Detail Activity navigation remain unchanged.
+`Shared2010Map` remains app-neutral, and Facebook does not import or reuse the
+Foursquare overlay. Deterministic validation is required before runtime visual
+QA of the 68-pixel frame and reconstructed pin.

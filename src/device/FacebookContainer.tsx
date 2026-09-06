@@ -1,4 +1,5 @@
 import { Dispatch, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { FacebookMapOverlay } from "./FacebookMapOverlay";
 import {
   FACEBOOK_HOME_LAUNCHER_PAGES,
   FACEBOOK_PLACE_OPTIONS,
@@ -554,7 +555,7 @@ function FacebookPlaceCheckIn({ venue, state, displayName, currentDeviceTime, si
     event.preventDefault();
     dispatch({ type: "CHECK_IN", venueId: venue.id, displayName, timestamp: currentDeviceTime, createdAt: new Date(simulatedNowMs).toISOString() });
   }}>
-    <div className="facebook-place-map-hold" data-provenance-status="HOLD"><span>Map</span><small>Location view unavailable</small></div>
+    <FacebookMapOverlay venueId={venue.id} />
     <strong className="facebook-place-check-in-name">{venue.name}</strong>
     <label><span>What are you doing?</span><IOS4Textarea keyboardInputId={`facebook-place-${venue.id}`} aria-label="What are you doing?" value={state.placeStatusDraft} onValueChange={value => dispatch({ type: "EDIT_PLACE_STATUS", value })} /></label>
     <button type="button" className="facebook-place-tag-entry" onClick={() => dispatch({ type: "OPEN_PLACE_TAG_FRIENDS" })}><span>Tag Friends With You</span><small>{state.placeTaggedFriendIds.length > 0 ? `${state.placeTaggedFriendIds.length} selected` : "None"}</small><b aria-hidden="true">›</b></button>

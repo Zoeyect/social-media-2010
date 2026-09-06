@@ -1227,9 +1227,11 @@ button, input { font: inherit; }
 .facebook-nearby-places > button strong { color: #304f82; font-size: 13px; }
 .facebook-nearby-places > button span { color: #8a9099; font-size: 20px; }
 .facebook-place-check-in { box-sizing: border-box; flex: 1 1 auto; min-height: 0; padding: 8px; display: grid; align-content: start; gap: 8px; overflow-y: auto; background: #eef1f5; }
-.facebook-place-map-hold { height: 68px; display: grid; place-content: center; gap: 2px; color: #667181; border: 1px solid #aeb4bd; background: repeating-linear-gradient(135deg,#e5e9ee 0,#e5e9ee 8px,#d9dee5 8px,#d9dee5 16px); text-align: center; text-shadow: 0 1px #fff; }
-.facebook-place-map-hold span { font-size: 12px; font-weight: bold; }
-.facebook-place-map-hold small { font-size: 9px; }
+.facebook-place-map { position: relative; height: 68px; overflow: hidden; border: 1px solid #aeb4bd; background: #eee9dc; }
+.facebook-place-map > svg { position: absolute; inset: 0; width: 100%; height: 68px; display: block; }
+.facebook-place-map-overlay { pointer-events: none; }
+.facebook-place-map-pin path { fill: #c64a3c; stroke: #76281f; stroke-width: 1; }
+.facebook-place-map-pin circle { fill: #fff4e9; stroke: #76281f; stroke-width: .6; }
 .facebook-place-check-in-name { color: #29477c; font-size: 15px; }
 .facebook-place-check-in > label { display: grid; gap: 3px; color: #555; font-size: 10px; font-weight: bold; }
 .facebook-place-check-in textarea { box-sizing: border-box; width: 100%; height: 52px; padding: 5px; resize: none; color: #222; border: 1px solid #9ca3ad; border-radius: 0; background: #fff; font-size: 12px; }

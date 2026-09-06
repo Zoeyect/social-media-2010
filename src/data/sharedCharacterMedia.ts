@@ -1,3 +1,4 @@
+import { simulatedDeviceDateTime } from "../state/deviceMachine";
 import juneIg01Src from "../assets/characters/June/IG01.JPG";
 import juneIg02Src from "../assets/characters/June/IG02.JPG";
 import juneIg03Src from "../assets/characters/June/IG03.JPG";
@@ -97,7 +98,7 @@ export const SHARED_CHARACTER_MEDIA: Readonly<Record<SharedCharacterMediaId, Sha
     canonicalCharacterId: "june",
     characterIds: Object.freeze(["june"] as const),
     platform: "instagram",
-    timestamp: "2010-10-19T22:05:30-07:00",
+    timestamp: simulatedDeviceDateTime(210 * 1000).toISOString(),
     role: "replacement",
     initialVisibility: "hidden",
     classification: "CURATED",

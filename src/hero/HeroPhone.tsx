@@ -1,7 +1,8 @@
+import type { RuntimePowerControl } from "../device/DevicePresentation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Group, MathUtils, Quaternion, Vector3 } from "three";
-import { HERO_DETACH_DURATION_SECONDS, HERO_POWER_DURATION_SECONDS, HERO_POWER_LOSS_SECONDS, HERO_RETURN_SECONDS, HERO_RECHARGE_SECONDS, restrainedEase } from "./HeroController";
+import { heroBootOpacity, HERO_DETACH_DURATION_SECONDS, HERO_POWER_DURATION_SECONDS, HERO_POWER_LOSS_SECONDS, HERO_RETURN_SECONDS, HERO_RECHARGE_SECONDS, restrainedEase } from "./HeroController";
 import { measureHeroScreenGeometry } from "./heroScreenGeometry";
 import {
   ProductionIPhone4Model,
@@ -17,11 +18,19 @@ import type { HeroCableAnchor, HeroPhase, HeroScreenGeometry } from "./heroTypes
 const MAX_ROTATE_X = MathUtils.degToRad(20);
 const START_ROTATION_X = MathUtils.degToRad(10);
 const START_ROTATION_Y = MathUtils.degToRad(-34);
+// Shared final presentation size; software and hardware inherit this transform.
+const FINAL_PRESENTATION_SCALE = { desktop: 1.18 * 1.30, narrow: 1.02 * 1.30 } as const;
 
 type HeroPhoneProps = Readonly<{
+  powerHitEnabled: boolean;
+  runtimePower?: RuntimePowerControl;
+  bootStartedAt: number | null;
+  bootComplete: boolean;
   phase: HeroPhase;
   frontDepth?: boolean;
   frontScreenOff?: boolean;
+  softwareActive?: boolean;
+  onHomePress?: () => void;
   modelUrl?: string;
   onDetachComplete: () => void;
   onPowerPress: () => void;
@@ -38,9 +47,15 @@ type DragState = {
 };
 
 export function HeroPhone({
+  powerHitEnabled,
+  runtimePower,
+  bootStartedAt,
+  bootComplete,
   phase,
   frontDepth = false,
   frontScreenOff = false,
+  softwareActive = false,
+  onHomePress,
   modelUrl = PRODUCTION_IPHONE4_MODEL_URL,
   onDetachComplete,
   onPowerPress,
@@ -107,6 +122,7 @@ export function HeroPhone({
     let x = initialX;
     let y = initialY;
     let scale = narrow ? 0.76 : 0.9;
+    const finalScale = narrow ? FINAL_PRESENTATION_SCALE.narrow : FINAL_PRESENTATION_SCALE.desktop;
     let detachProgress = phase === "identity" ? 0 : 1;
     let nextBootAmount = 0;
 
@@ -134,10 +150,13 @@ export function HeroPhone({
       y = 0;
       const progress = phase !== "powering-on" ? 1 : Math.min(1, phaseElapsed.current / HERO_POWER_DURATION_SECONDS);
       const eased = restrainedEase(progress);
-      scale = MathUtils.lerp(narrow ? 0.92 : 1.04, narrow ? 1.02 : 1.18, eased);
+      scale = MathUtils.lerp(narrow ? 0.92 : 1.04, finalScale, eased);
       rotation.current.x = phase === "front-aligned" ? 0 : MathUtils.lerp(powerStartRotation.current.x, 0, eased);
       rotation.current.y = phase === "front-aligned" ? 0 : MathUtils.lerp(powerStartRotation.current.y, 0, eased);
-      nextBootAmount = Math.max(0, Math.min(1, (progress - 0.38) / 0.42));
+      if (bootStartedAt !== null && !bootComplete && (phase === "powering-on" || phase === "front-aligned")) {
+        nextBootAmount = heroBootOpacity(performance.now() - bootStartedAt);
+        invalidate();
+      }
       if (phase === "power-loss") {
         nextBootAmount = 0;
         invalidate();
@@ -152,7 +171,7 @@ export function HeroPhone({
       const eased = restrainedEase(progress / 0.75);
       x = MathUtils.lerp(0, initialX, eased);
       y = MathUtils.lerp(0, initialY, eased);
-      scale = MathUtils.lerp(narrow ? 1.02 : 1.18, narrow ? 0.76 : 0.9, eased);
+      scale = MathUtils.lerp(finalScale, narrow ? 0.76 : 0.9, eased);
       rotation.current = { x: START_ROTATION_X * eased, y: START_ROTATION_Y * eased };
       detachProgress = progress; // Return progress, consumed by the existing cable.
       invalidate();
@@ -242,8 +261,10 @@ export function HeroPhone({
       <group ref={modelRoot} name="HeroPhoneGeometry">
         <ProductionIPhone4Model
           url={modelUrl}
-          bootAmount={bootAmount}
-          powerEnabled={phase === "inspect"}
+          bootAmount={softwareActive ? 0 : bootAmount}
+          onHomePress={softwareActive ? onHomePress : undefined}
+          powerEnabled={powerHitEnabled && !softwareActive}
+          runtimePower={runtimePower}
           onPowerPress={onPowerPress}
           onRolesReady={handleRolesReady}
           onDiagnostics={handleDiagnostics}

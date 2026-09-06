@@ -412,7 +412,7 @@ export type FacebookEvent =
   | { type: "CANCEL_COMMENT" }
   | { type: "SUBMIT_COMMENT"; displayName: string }
   | { type: "DELIVER_JACK_REQUEST" }
-  | { type: "DELIVER_JUNE_MESSAGE" }
+  | { type: "DELIVER_JUNE_MESSAGE"; timestamp: string }
   | { type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT"; timestamp: string; createdAt: string }
   | { type: "DELIVER_JUNE_JACK_GOSSIP"; reactionId: "facebook-june-jack-gossip-katie" | "facebook-june-jack-gossip-chris"; characterId: "katie" | "chris"; text: string }
   | { type: "DELIVER_EPHEMERAL_GOSSIP"; postId: typeof FACEBOOK_EPHEMERAL_GOSSIP_POST_ID; ephemeralId: typeof FACEBOOK_EPHEMERAL_FRIEND_OF_FRIEND_ID; text: "june + jack??? lol"; timestamp: string; createdAt: string }
@@ -1004,8 +1004,8 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "DELIVER_JUNE_MESSAGE":
       return selectFacebookJuneMessageState(state) === "none" ? {
         ...state,
-        inboxThreads: [{ id: "june-live-message", sender: "June", preview: "Hey, are you online?", timestamp: "10:06 PM", status: "unread", origin: "live" }, ...state.inboxThreads],
-        threadMessages: [...state.threadMessages, { id: "june-live-message-incoming", threadId: "june-live-message", authorType: "character", characterId: "june", author: CORE_SOCIAL_CHARACTERS.june.displayName, body: "Hey, are you online?", timestamp: "10:06 PM", origin: "live" }],
+        inboxThreads: [{ id: "june-live-message", sender: "June", preview: "Hey, are you online?", timestamp: event.timestamp, status: "unread", origin: "live" }, ...state.inboxThreads],
+        threadMessages: [...state.threadMessages, { id: "june-live-message-incoming", threadId: "june-live-message", authorType: "character", characterId: "june", author: CORE_SOCIAL_CHARACTERS.june.displayName, body: "Hey, are you online?", timestamp: event.timestamp, origin: "live" }],
       } : state;
     case "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT":
       return state.feed.some(item => item.id === FACEBOOK_JUNE_INSTAGRAM_ANNOUNCEMENT_ID) ? state : {

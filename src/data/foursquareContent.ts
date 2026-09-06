@@ -1,4 +1,4 @@
-import { SESSION_START_ISO } from "../state/deviceMachine";
+import { SESSION_START_ISO, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { CORE_SOCIAL_CHARACTERS, type CoreSocialCharacterId } from "./coreSocialFriends";
 
 export type FoursquareFriendId = CoreSocialCharacterId | "foursquare-mia";
@@ -27,7 +27,7 @@ export const FOURSQUARE_F1_CHECKIN_ACTIVITIES: readonly FoursquareCheckinActivit
 ]);
 
 export const FOURSQUARE_HIDDEN_LIVE_ACTIVITIES: Readonly<Record<string, FoursquareCheckinActivity>> = Object.freeze({
-  "june-night-owl-checkin": Object.freeze({ id: "june-night-owl-checkin", friendId: "june", venueId: "night-owl", simulatedCreatedAt: "2010-10-19T22:10:30-07:00", source: "live", visible: false }),
+  "june-night-owl-checkin": Object.freeze({ id: "june-night-owl-checkin", friendId: "june", venueId: "night-owl", simulatedCreatedAt: simulatedDeviceDateTime(510 * 1000).toISOString(), source: "live", visible: false }),
 });
 
 export const FOURSQUARE_F1_REFERENCE_NOW = SESSION_START_ISO;

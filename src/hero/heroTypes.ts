@@ -43,4 +43,7 @@ export type HeroScreenGeometry = Readonly<{
 export type HeroState = Readonly<{
   phase: HeroPhase;
   name: string;
+  awaitingPower: boolean;
+  bootStartedAt: number | null;
+  bootComplete: boolean;
 }>;

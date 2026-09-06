@@ -1,10 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { HeroSandbox } from "./HeroSandbox";
+import { DeviceRoot } from "../device/DeviceRoot";
+import "../styles/device.css";
 import "./hero.css";
 
 ReactDOM.createRoot(document.getElementById("hero-root")!).render(
   <React.StrictMode>
-    <HeroSandbox />
+    <DeviceRoot presenter="hero" />
   </React.StrictMode>,
 );

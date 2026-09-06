@@ -1,15 +1,29 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, type ReactElement } from "react";
 import { createPortal } from "react-dom";
+import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.png?inline";
+import { heroBootOpacity } from "./HeroController";
 import { quadCorners, screenQuadMatrix, type ProjectedScreenQuad } from "./screenPortalMath";
 
-export type ScreenPortalState = "hidden" | "boot" | "qa";
+export type ScreenPortalState = "hidden" | "boot" | "qa" | "software";
 export type ScreenPortalHandle = { update: (quad: ProjectedScreenQuad | null) => void };
 
-/** Normal DOM content only. A future software surface replaces this QA child,
- * not the persistent Three shell. Pointer ownership remains with Hero in v0.1. */
+/** The target and software child persist across phases. Only presentation changes. */
 export const ScreenPortal = forwardRef<ScreenPortalHandle, {
-  host: HTMLDivElement; state: ScreenPortalState; debug: boolean;
-}>(function ScreenPortal({host,state,debug}, ref) {
+  host: HTMLDivElement; state: ScreenPortalState; debug: boolean; software?: ReactElement;
+  bootStartedAt: number | null; bootComplete: boolean;
+}>(function ScreenPortal({host,state,debug,software,bootStartedAt,bootComplete}, ref) {
+  const bootImage = useRef<HTMLImageElement>(null);
+  const bootActive = bootStartedAt !== null && !bootComplete;
+  useEffect(() => {
+    if (!bootActive || bootStartedAt === null) return;
+    let frame: number;
+    const paint = () => {
+      if (bootImage.current) bootImage.current.style.opacity = String(heroBootOpacity(performance.now() - bootStartedAt));
+      frame = requestAnimationFrame(paint);
+    };
+    paint();
+    return () => cancelAnimationFrame(frame);
+  }, [bootActive, bootStartedAt]);
   const surface = useRef<HTMLDivElement>(null);
   const readout = useRef<HTMLOutputElement>(null);
   const markers = useRef<(HTMLSpanElement | null)[]>([]);
@@ -23,7 +37,7 @@ export const ScreenPortal = forwardRef<ScreenPortalHandle, {
     if (!element) return;
     if (!quad) { element.style.visibility="hidden"; return; }
     const origin=host.getBoundingClientRect();
-    const width=320, height=width/quad.aspectRatio; // Software coordinates, never screen placement.
+    const width=320, height=software ? 480 : width/quad.aspectRatio;
     const corners=quadCorners(quad);
     const matrix=screenQuadMatrix(corners.map(p=>({x:p.x-origin.left,y:p.y-origin.top})),width,height);
     if (!matrix) {element.style.visibility="hidden";return;}
@@ -50,11 +64,15 @@ export const ScreenPortal = forwardRef<ScreenPortalHandle, {
           return `${["TL","TR","BR","BL"][i]} mesh(${p.x.toFixed(2)},${p.y.toFixed(2)}) DOM(${a?.left.toFixed(2)},${a?.top.toFixed(2)}) error=${a ? Math.hypot(a.left-p.x,a.top-p.y).toFixed(3):"n/a"}`;
         })].join("\n");
     });
-  }}),[host,debug,state]);
+  }}),[host,debug,state,Boolean(software)]);
   return createPortal(<>
-    <div ref={surface} className="hero-screen-portal" data-state={state} aria-hidden="true">
-      <div className="hero-screen-portal-grid"><span>ScreenPortal QA<br/>mesh-derived aspect</span></div>
-      {([ [0,0],[100,0],[100,100],[0,100] ] as const).map(([x,y],i)=><span key={i} ref={node=>{markers.current[i]=node;}} className="hero-screen-dom-corner" style={{left:`${x}%`,top:`${y}%`}} />)}
+    <div ref={surface} className="hero-screen-portal" data-state={state} aria-hidden={state !== "software"} inert={state !== "software"} style={bootActive ? { opacity: 1, background: "#000", transition: "none" } : undefined}>
+      <div className="hero-device-screen-host">{software}</div>
+      {/* Same image/RGB and logical placement as legacy .boot-logo. No material,
+          recoloring, extra software mount, or independent projection. Preload hidden. */}
+      <img ref={bootImage} src={bootLogoSrc} alt="" aria-hidden="true" style={{ position: "absolute", left: 112, top: 160, width: 96, height: 160, display: bootActive ? "block" : "none", opacity: 0 }} />
+      {!software && !bootActive && <div className="hero-screen-portal-grid"><span>ScreenPortal QA<br/>mesh-derived aspect</span></div>}
+      {(debug || !software) && ([ [0,0],[100,0],[100,100],[0,100] ] as const).map(([x,y],i)=><span key={i} ref={node=>{markers.current[i]=node;}} className="hero-screen-dom-corner" style={{left:`${x}%`,top:`${y}%`}} />)}
     </div>
     {debug && state !== "hidden" && <>
       {[0,1,2,3].map(i=><span key={i} ref={node=>{projectedMarkers.current[i]=node;}} className="hero-screen-projected-corner" />)}

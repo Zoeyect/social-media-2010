@@ -1,3 +1,4 @@
+import type { RuntimePowerControl } from "../device/DevicePresentation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLoader, useThree } from "@react-three/fiber";
 import {
@@ -99,6 +100,8 @@ function LoadedProductionModel({
   bootAmount,
   powerEnabled,
   onPowerPress,
+  onHomePress,
+  runtimePower,
   onReady,
   onFailure,
 }: Readonly<{
@@ -106,6 +109,8 @@ function LoadedProductionModel({
   bootAmount: number;
   powerEnabled: boolean;
   onPowerPress: () => void;
+  onHomePress?: () => void;
+  runtimePower?: RuntimePowerControl;
   onReady: (model: ReadyModel) => void;
   onFailure: (reason: string) => void;
 }>) {
@@ -129,7 +134,7 @@ function LoadedProductionModel({
   }, [url]);
 
   const prepared = useMemo(() => source ? prepareProductionModel(source, bootTexture) : null, [source, bootTexture]);
-  const hardwareEvents = useHeroHardware(prepared && typeof prepared !== "string" ? prepared.root : null, powerEnabled, onPowerPress);
+  const hardwareEvents = useHeroHardware(prepared && typeof prepared !== "string" ? prepared.root : null, powerEnabled, onPowerPress, onHomePress, runtimePower);
 
   useEffect(() => {
     if (!prepared || typeof prepared === "string") return;
@@ -172,6 +177,8 @@ export function ProductionIPhone4Model({
   bootAmount,
   powerEnabled,
   onPowerPress,
+  onHomePress,
+  runtimePower,
   onRolesReady,
   onDiagnostics,
 }: Readonly<{
@@ -179,6 +186,8 @@ export function ProductionIPhone4Model({
   bootAmount: number;
   powerEnabled: boolean;
   onPowerPress: () => void;
+  onHomePress?: () => void;
+  runtimePower?: RuntimePowerControl;
   onRolesReady: (roles: IPhone4MeshRoles | null) => void;
   onDiagnostics: (diagnostics: IPhone4ModelDiagnostics) => void;
 }>) {
@@ -228,6 +237,8 @@ export function ProductionIPhone4Model({
           bootAmount={bootAmount}
           powerEnabled={powerEnabled}
           onPowerPress={onPowerPress}
+          onHomePress={onHomePress}
+          runtimePower={runtimePower}
           onFailure={handleFailure}
           onReady={handleReady}
         />

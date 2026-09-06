@@ -1,4 +1,6 @@
 import type { ComponentProps } from "react";
+import type { DevicePresenter } from "./DevicePresentation";
+import { useDeviceScreenDiagnostics } from "./useDeviceScreenDiagnostics";
 import type { Session } from "../state/deviceMachine";
 import type { CameraRuntimeState } from "../state/cameraRuntime";
 import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.png?inline";
@@ -25,6 +27,7 @@ type PhotosBrowseProps = Exclude<ComponentProps<typeof PhotosContainer>, { mode:
 
 // Presentation only: App retains the single runtime and all controller side effects.
 export type DeviceScreenProps = {
+  presentation: { presenter: DevicePresenter; experienceSessionId: string | null };
   display: {
     session: Pick<Session, "phase" | "returnToHeroPending" | "activeWarning">;
     powerProgress: number;
@@ -99,7 +102,8 @@ export type DeviceScreenProps = {
   };
 };
 
-export function DeviceScreen({ display, navigation, apps, camera, overlays, actions }: DeviceScreenProps) {
+export function DeviceScreen({ presentation, display, navigation, apps, camera, overlays, actions }: DeviceScreenProps) {
+  useDeviceScreenDiagnostics(presentation.presenter, presentation.experienceSessionId);
   const {
     session,
     powerProgress,

@@ -1,12 +1,20 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import type { HeroDevicePresentation } from "../device/DevicePresentation";
 import { HeroDebug } from "./HeroDebug";
 import { HeroIdentity } from "./HeroIdentity";
 import { HeroScene } from "./HeroScene";
-import { heroTransition, initialHeroState } from "./HeroController";
+import { HERO_BOOT_DURATION_MS, heroCanStartBoot, heroTransition, initialHeroState } from "./HeroController";
 import type { HeroScreenGeometry } from "./heroTypes";
 
-export function HeroSandbox() {
+export function HeroSandbox(presentation: HeroDevicePresentation) {
+  const handoff = useRef(presentation.onHandoff);
+  handoff.current = presentation.onHandoff;
   const [state, dispatch] = useReducer(heroTransition, initialHeroState);
+  const runtimePower = state.phase === "experience" && state.bootComplete ? presentation.powerControl : undefined;
+  const powerHitEnabled = heroCanStartBoot(state) || Boolean(runtimePower);
+  const bootReadout = useRef<HTMLOutputElement>(null);
+  const completedBoot = useRef<number | null>(null);
+  const hardwareDebug = import.meta.env.DEV && new URLSearchParams(location.search).get("heroHardwareDebug") === "1";
   const [draftName, setDraftName] = useState("");
   const [identityRevision, setIdentityRevision] = useState(0);
   const [screenGeometry, setScreenGeometry] = useState<HeroScreenGeometry | null>(null);
@@ -19,20 +27,67 @@ export function HeroSandbox() {
     setScreenGeometry(null);
   }, [state.phase]);
   const simulateExperienceEnd = useCallback(() => dispatch({ type: "EXPERIENCE_ENDED" }), []);
+  useEffect(() => {
+    if (state.phase !== "front-aligned" || state.bootStartedAt === null || state.bootComplete) return;
+    const startedAt = state.bootStartedAt;
+    let timer: number;
+    const finishBoot = () => {
+      const remaining = HERO_BOOT_DURATION_MS - (performance.now() - startedAt);
+      if (remaining > 0) {
+        timer = window.setTimeout(finishBoot, Math.ceil(remaining));
+        return;
+      }
+      if (completedBoot.current === startedAt) return;
+      completedBoot.current = startedAt;
+      handoff.current();
+      dispatch({ type: "BOOT_COMPLETE", now: performance.now() });
+    };
+    timer = window.setTimeout(finishBoot, Math.max(0, Math.ceil(HERO_BOOT_DURATION_MS - (performance.now() - startedAt))));
+    return () => window.clearTimeout(timer);
+  }, [state.phase, state.bootStartedAt, state.bootComplete]);
+
+  useEffect(() => {
+    if (!hardwareDebug) return;
+    const sample = () => {
+      const softwareVisible = state.phase === "experience" && state.bootComplete && presentation.softwareReady;
+      if (bootReadout.current) bootReadout.current.textContent = JSON.stringify({
+        powerHitEnabled, powerTriggered: state.bootStartedAt !== null,
+        hardwarePowerState: runtimePower?.state ?? (state.bootStartedAt !== null && !state.bootComplete ? "booting" : state.bootComplete ? "awake" : "off"),
+        resolvedPowerAction: runtimePower ? runtimePower.state === "asleep" ? "wake" : "sleep" : heroCanStartBoot(state) ? "boot-hold" : "disabled",
+        bootStartedAt: state.bootStartedAt,
+        bootElapsedMs: state.bootStartedAt === null ? 0 : Math.min(HERO_BOOT_DURATION_MS, Math.round(performance.now() - state.bootStartedAt)),
+        bootComplete: state.bootComplete, softwareVisible, softwareInteractive: softwareVisible,
+      }, null, 2);
+    };
+    sample();
+    const timer = window.setInterval(sample, 100);
+    return () => window.clearInterval(timer);
+  }, [hardwareDebug, state, powerHitEnabled, presentation.softwareReady, runtimePower]);
 
   return (
-    <main className="hero-sandbox" data-phase={state.phase}>
+    <main className="hero-sandbox" data-phase={state.phase}
+      onPointerDownCapture={presentation.onUserActivity}
+      onPointerUpCapture={presentation.onUserActivity}
+      onPointerCancelCapture={presentation.onUserActivity}
+      onPointerMoveCapture={event => { if (event.buttons !== 0) presentation.onUserActivity(); }}>
       <HeroIdentity
         key={identityRevision}
         active={state.phase === "identity"}
         name={draftName}
         onNameChange={setDraftName}
-        onConfirm={(name) => dispatch({ type: "CONFIRM_IDENTITY", name })}
+        onConfirm={(name) => { presentation.onConfirmIdentity(name); dispatch({ type: "CONFIRM_IDENTITY", name }); }}
       />
       <HeroScene
+        screen={presentation.screen}
+        powerHitEnabled={powerHitEnabled}
+        runtimePower={runtimePower}
+        bootStartedAt={state.bootStartedAt}
+        bootComplete={state.bootComplete}
+        softwareReady={presentation.softwareReady}
+        onHomePress={presentation.onHomePress}
         phase={state.phase}
         onDetachComplete={() => dispatch({ type: "DETACH_COMPLETE" })}
-        onPowerPress={() => dispatch({ type: "PRESS_POWER" })}
+        onPowerPress={() => dispatch({ type: "PRESS_POWER", startedAt: performance.now() })}
         onAlignmentComplete={() => dispatch({ type: "ALIGN_COMPLETE" })}
         onScreenGeometry={onScreenGeometry}
         onLifecycleAdvance={() => dispatch({ type: "ADVANCE_RETURN", from: state.phase })}
@@ -42,7 +97,7 @@ export function HeroSandbox() {
       </p>
       <HeroDebug
         phase={state.phase}
-        onEnterExperience={() => dispatch({ type: "ENTER_EXPERIENCE" })}
+        onEnterExperience={() => { if (state.bootComplete) dispatch({ type: "ENTER_EXPERIENCE" }); }}
         onExperienceEnd={simulateExperienceEnd}
         onJump={(phase) => dispatch({ type: "JUMP_TO_PHASE", phase })}
         onReset={() => {
@@ -52,6 +107,7 @@ export function HeroSandbox() {
           dispatch({ type: "RESET" });
         }}
       />
+      {hardwareDebug && <output ref={bootReadout} style={{ position: "fixed", right: 8, top: 42, zIndex: 45, whiteSpace: "pre", pointerEvents: "none", background: "#101010dd", color: "#bbb", padding: 6, font: "11px monospace" }} />}
       {import.meta.env.DEV && screenGeometry ? (
         <output className="hero-bounds" aria-label="Measured screen bounds">
           Screen {Math.round(screenGeometry.projectedRect.width)} × {Math.round(screenGeometry.projectedRect.height)} · {screenGeometry.aspectRatio.toFixed(3)}

@@ -17,7 +17,7 @@ Character behavior remains governed by `docs/CHARACTER_BIBLE_v1.0.md`. This thre
 | `june-ig-04` | 2010-10-19 22:00:00 PDT | Accidental intimate June/Jack photo | Visible seed post at T-2 minutes |
 | `june-ig-01` | 2010-10-19 22:05:30 PDT | Normal replacement photo | Hidden until T+210 |
 
-IG04 predates the simulation's 22:02 start by exactly two minutes. It is never created by a live event and can be discovered immediately through June's profile. All four records resolve existing square assets through the shared character media registry.
+IG04 retains its October 19 22:00 historical publication; the simulation now starts October 20 at 00:02. It is never created by a live event and can be discovered immediately through June's profile. All four records resolve existing square assets through the shared character media registry.
 
 **MIDNIGHT IS NO LONGER CANONICAL.** The canonical narrative invariant is that IG04 exists at T-2 minutes when the experience begins.
 

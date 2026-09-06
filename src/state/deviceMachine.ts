@@ -6,7 +6,8 @@ export const BOOT_DURATION_MS = 30_000;
 export const POWER_HOLD_MS = 1_000;
 export const SESSION_DURATION_MS = 15 * 60_000;
 export const SESSION_KEY = "social-media-2010.session.v1";
-export const SESSION_START_ISO = "2010-10-19T22:02:00-07:00";
+export const SESSION_START_ISO = "2010-10-20T00:02:00-07:00";
+export const SESSION_END_MS = Date.parse(SESSION_START_ISO) + SESSION_DURATION_MS;
 export const DEVICE_TIME_ZONE = "America/Los_Angeles";
 export const DEVICE_LOCALE = "en-US";
 

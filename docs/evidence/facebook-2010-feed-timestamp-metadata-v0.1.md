@@ -41,7 +41,7 @@ Classification: PERIOD-EVIDENCE structure / CURATED thresholds.
 
 ## Seed timestamp source audit and future guard
 
-Session start is `2010-10-19T22:02:00-07:00`. Every initially visible static story must validate at or before T0; runtime stories after T0 must remain scheduler-gated. No future initial story is allowed.
+Session start is `2010-10-20T00:02:00-07:00`. Every initially visible static story must validate at or before T0; runtime stories after T0 must remain scheduler-gated. No future initial story is allowed.
 
 | Story ID | Actor | Previous timestamp source | Intended in-world timestamp | Status |
 |---|---|---|---|---|
@@ -64,4 +64,4 @@ Future timestamps are never clamped to zero age. In DEV, the formatter warns wit
 
 ## Canonical date-handling lock
 
-All current static and runtime Facebook rows occur on October 19 PDT. Explicit ISO history keeps its own calendar date. Clock-only rows require the master-session reference date; parsing without that reference fails rather than guessing October 20. Parent stories and their atomic media records retain identical publication instants.
+Live runtime rows occur on October 20 PDT, 00:02–00:17; historical rows retain their original dates. Explicit ISO history keeps its own calendar date. Clock-only rows require the master-session reference date; parsing without that reference fails rather than guessing October 20. Parent stories and their atomic media records retain identical publication instants.

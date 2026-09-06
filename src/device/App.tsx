@@ -1,4 +1,5 @@
-import { FormEvent, PointerEvent, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { FormEvent, PointerEvent, useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
+import type { DevicePresenter, HeroDevicePresentation } from "./DevicePresentation";
 import { DeviceAudio } from "../audio/deviceAudio";
 import { buildSessionTimelineEvents } from "../data/sessionTimeline";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
@@ -105,6 +106,19 @@ type CameraCaptureQaWindow = Window & {
   __SM2010_CAMERA_CAPTURE_QA__?: CameraCaptureQaHandle;
 };
 
+function finishSoftwareBoot(current: Session): Session {
+  const startsSession = current.sessionStartEpochMs === null;
+  return {
+    ...current,
+    phase: "locked",
+    sessionStartEpochMs: startsSession ? Date.now() : current.sessionStartEpochMs,
+    deviceEvents: startsSession
+      ? scheduleDeviceEvents([], buildSessionTimelineEvents())
+      : current.deviceEvents,
+    deliveredTimelineEventIds: startsSession ? [] : current.deliveredTimelineEventIds,
+  };
+}
+
 function loadRuntimeSession(): Session {
   const persisted = loadSession();
   if (persisted.phase === "shutdown" || persisted.returnToHeroPending) return initialSession;
@@ -117,8 +131,9 @@ function loadRuntimeSession(): Session {
   };
 }
 
-export function App() {
-  const [session, setSession] = useState<Session>(loadRuntimeSession);
+export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePresenter; renderHero: (presentation: HeroDevicePresentation) => ReactNode }) {
+  const [session, setSession] = useState<Session>(() => presenter === "legacy" ? loadRuntimeSession() : { ...initialSession });
+  const heroSessionStarted = useRef(false);
   const [cameraPreviewCanvas, setCameraPreviewCanvas] = useState<HTMLCanvasElement | null>(null);
   const requestedDevApp = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("devApp") : null;
   const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" || requestedDevApp === "foursquare" || requestedDevApp === "flickr" || requestedDevApp === "tumblr" ? requestedDevApp : null;
@@ -515,6 +530,8 @@ export function App() {
       return;
     }
     if (isTimelineEvent) deliveredEventClaims.current.add(event.id);
+    const eventDateTime = simulatedDeviceDateTime(event.dueElapsedMs);
+    const eventTime = formatDeviceTime(eventDateTime);
     const source = session.phase === "sleeping" || session.phase === "locked" ? "lockscreen" : "foreground";
     const displayingMomConversation = session.phase === "app"
       && appRuntime.activeAppId === "messages"
@@ -576,17 +593,17 @@ export function App() {
     } else if (event.type === "facebookJackRequest") {
       dispatchFacebook({ type: "DELIVER_JACK_REQUEST" });
     } else if (event.type === "facebookJuneMessage") {
-      dispatchFacebook({ type: "DELIVER_JUNE_MESSAGE" });
+      dispatchFacebook({ type: "DELIVER_JUNE_MESSAGE", timestamp: eventTime });
     } else if (event.type === "facebookPartyInvite" && event.payload?.kind === "facebook-party-invite") {
-      dispatchFacebook({ type: "DELIVER_PARTY_INVITE", timestamp: deviceStatusTime });
+      dispatchFacebook({ type: "DELIVER_PARTY_INVITE", timestamp: eventTime });
     } else if (event.type === "facebookJuneInstagramAnnouncement" && event.payload?.kind === "facebook-june-instagram-announcement") {
-      dispatchFacebook({ type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: deviceStatusTime, createdAt: deviceDateTime.toISOString() });
+      dispatchFacebook({ type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: eventTime, createdAt: eventDateTime.toISOString() });
     } else if (event.type === "facebookJuneJackGossip" && event.payload?.kind === "facebook-june-jack-gossip") {
       dispatchFacebook({ type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: event.payload.reactionId, characterId: event.payload.characterId, text: event.payload.text });
     } else if (event.type === "facebookEphemeralGossip" && event.payload?.kind === "facebook-ephemeral-gossip") {
-      dispatchFacebook({ type: "DELIVER_EPHEMERAL_GOSSIP", postId: event.payload.postId, ephemeralId: event.payload.ephemeralId, text: event.payload.text, timestamp: deviceStatusTime, createdAt: deviceDateTime.toISOString() });
+      dispatchFacebook({ type: "DELIVER_EPHEMERAL_GOSSIP", postId: event.payload.postId, ephemeralId: event.payload.ephemeralId, text: event.payload.text, timestamp: eventTime, createdAt: eventDateTime.toISOString() });
     } else if (event.type === "facebookKatieGossipMessage" && event.payload?.kind === "facebook-katie-jack-gossip-message") {
-      dispatchFacebook({ type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: deviceStatusTime });
+      dispatchFacebook({ type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: eventTime });
     } else if (event.type === "facebookSophieJuneComment" && event.payload?.kind === "facebook-sophie-june-comment") {
       dispatchFacebook({ type: "DELIVER_SOPHIE_JUNE_COMMENT", commentId: event.payload.commentId, text: event.payload.text });
     } else if (event.type === "instagramJunePost" && event.payload?.kind === "instagram-june-post") {
@@ -727,16 +744,7 @@ export function App() {
     if (session.phase !== "booting") return;
     const id = window.setTimeout(() => setSession(current => {
       if (current.phase !== "booting") return current;
-      const startsSession = current.sessionStartEpochMs === null;
-      return {
-        ...current,
-        phase: "locked",
-        sessionStartEpochMs: startsSession ? Date.now() : current.sessionStartEpochMs,
-        deviceEvents: startsSession
-          ? scheduleDeviceEvents([], buildSessionTimelineEvents())
-          : current.deviceEvents,
-        deliveredTimelineEventIds: startsSession ? [] : current.deliveredTimelineEventIds,
-      };
+      return finishSoftwareBoot(current);
     }), BOOT_DURATION_MS);
     return () => clearTimeout(id);
   }, [session.phase]);
@@ -870,7 +878,10 @@ export function App() {
   const submitName = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const name = String(data.get("name") || "").trim();
+    startNamedSession(String(data.get("name") || "").trim());
+  };
+
+  const startNamedSession = (name: string) => {
     if (name) {
       shutdownResetStarted.current = false;
       dispatchPublicTwitterOutro({ type: "RESET" });
@@ -888,6 +899,19 @@ export function App() {
         returnToHeroPending: false,
       });
     }
+  };
+
+  const confirmHeroIdentity = (name: string) => {
+    // v0.3 reuses one sandbox experience; final reset/ID regeneration is deferred.
+    if (heroSessionStarted.current || !name.trim()) return;
+    heroSessionStarted.current = true;
+    startNamedSession(name.trim());
+  };
+
+  const handoffHeroScreen = () => {
+    recordInteraction();
+    setSession(current => current.phase === "poweredOff" && current.experienceSessionId
+      ? finishSoftwareBoot(current) : current);
   };
 
   const enterPublicTwitterOutroHandle = () => {
@@ -1004,6 +1028,10 @@ export function App() {
     event.currentTarget.releasePointerCapture(event.pointerId);
     homePointer.current = null;
     setHomePressed(false);
+    activateHome();
+  };
+
+  const activateHome = () => {
     if (session.phase === "springboard" && (folderState === "open" || folderState === "opening")) {
       dispatchFolderEvent("CLOSE");
       return;
@@ -1045,7 +1073,7 @@ export function App() {
     launchSpringBoardApp(devAppId);
   }, [devAppId, devAutoOpen, session.phase]);
 
-  if (session.phase === "hero") return <>
+  if (presenter === "legacy" && session.phase === "hero") return <>
     <main className="hero"><form onSubmit={submitName}><label htmlFor="name">What was your name?</label><input id="name" name="name" autoFocus autoComplete="name" /><span>Press Enter</span></form></main>
     <AppDevAccess appId={devAppId} disabled onOpen={() => {}} />
   </>;
@@ -1142,35 +1170,24 @@ export function App() {
 
   const viewScreenSMSAlert: DeviceScreenProps["actions"]["viewScreenSMSAlert"] = () => openMessagesConversation(true);
 
-  return <SessionIdentityContext.Provider value={session.sessionIdentity}>
-    <AmbientWorld
-      cameraViewfinder={cameraPreviewCanvas}
-      cameraLook={cameraRuntime.cameraApp.cameraLook}
-      cameraVideoSceneId={cameraRuntime.cameraApp.cameraVideoSceneId}
-      cameraVideoDisabled={bootstrapCameraVideoSelection.videoDisabled}
-      onCameraLookPointerOffsetClamped={setCameraLookPointerOffset}
-      onCameraCaptureReady={setCameraCaptureReady}
-    />
-    <main className={`stage has-ambient-world`}>
-      <section
-      className={`device${displayIsLit ? " is-display-lit" : ""}`}
-      aria-label="Black iPhone 4"
-      onPointerDownCapture={recordInteraction}
-      onPointerMoveCapture={continueDeviceInteraction}
-      onPointerUpCapture={recordInteraction}
-      onPointerCancelCapture={recordInteraction}
-    >
-      <div className="device-front-glass" aria-hidden="true" />
-      <div className="device-screen-glow" aria-hidden="true" />
-      <span className="device-antenna-seam is-top" aria-hidden="true" />
-      <span className="device-antenna-seam is-lower-left" aria-hidden="true" />
-      <span className="device-antenna-seam is-lower-right" aria-hidden="true" />
-      <span className="device-mute-switch" aria-hidden="true" />
-      <span className="device-volume-button is-up" aria-hidden="true" />
-      <span className="device-volume-button is-down" aria-hidden="true" />
-      <button className="power" aria-label="Power button" onPointerDown={beginPower} onPointerUp={endPower} onPointerCancel={cancelPower} onPointerLeave={cancelPower} />
-      <div className="speaker" /><div className="camera" />
-      <DeviceScreen
+  const outro = <>
+      {session.phase === "shutdown" && session.shutdownReason === "battery" && publicTwitterOutro.phase !== "idle" && publicTwitterOutro.phase !== "complete" && <PublicTwitterOutro
+        state={publicTwitterOutro}
+        tweets={outroTweets}
+        selectedTweet={selectedOutroTweet}
+        onSelect={tweetId => dispatchPublicTwitterOutro({ type: "SELECT", tweetId })}
+        onContinue={enterPublicTwitterOutroHandle}
+        onHandleChange={value => dispatchPublicTwitterOutro({ type: "EDIT_HANDLE", value })}
+        onConfirmHandle={confirmPublicTwitterOutroHandle}
+        onSubmit={() => { void submitPublicTwitterOutro(); }}
+        onRetry={() => { void submitPublicTwitterOutro(true); }}
+        onWithdraw={() => { void withdrawPublicTwitterOutro(); }}
+        onComplete={completePublicTwitterOutro}
+      />}
+  </>;
+
+  const screen = <DeviceScreen
+        presentation={{ presenter, experienceSessionId: session.experienceSessionId }}
         display={{
           session,
           powerProgress,
@@ -1243,7 +1260,47 @@ export function App() {
           dismissScreenSMSAlert,
           viewScreenSMSAlert,
         }}
-      />
+      />;
+
+  return <SessionIdentityContext.Provider value={session.sessionIdentity}>
+    <AmbientWorld
+      cameraViewfinder={cameraPreviewCanvas}
+      cameraLook={cameraRuntime.cameraApp.cameraLook}
+      cameraVideoSceneId={cameraRuntime.cameraApp.cameraVideoSceneId}
+      cameraVideoDisabled={bootstrapCameraVideoSelection.videoDisabled}
+      onCameraLookPointerOffsetClamped={setCameraLookPointerOffset}
+      onCameraCaptureReady={setCameraCaptureReady}
+    />
+    {presenter === "hero" ? renderHero({
+      screen,
+      softwareReady: session.phase !== "hero" && session.phase !== "poweredOff" && session.phase !== "booting",
+      onConfirmIdentity: confirmHeroIdentity,
+      onHandoff: handoffHeroScreen,
+      powerControl: !session.returnToHeroPending && (session.phase === "locked" || session.phase === "springboard" || session.phase === "app" || session.phase === "sleeping" || session.phase === "lowBatteryWarning")
+        ? { state: session.phase === "sleeping" ? "asleep" : "awake", begin: beginPower, end: endPower, cancel: cancelPower }
+        : undefined,
+      onUserActivity: recordInteraction,
+      onHomePress: () => { recordInteraction(); if (homeEnabled) activateHome(); },
+    }) : <main className={`stage has-ambient-world`}>
+      <section
+      className={`device${displayIsLit ? " is-display-lit" : ""}`}
+      aria-label="Black iPhone 4"
+      onPointerDownCapture={recordInteraction}
+      onPointerMoveCapture={continueDeviceInteraction}
+      onPointerUpCapture={recordInteraction}
+      onPointerCancelCapture={recordInteraction}
+    >
+      <div className="device-front-glass" aria-hidden="true" />
+      <div className="device-screen-glow" aria-hidden="true" />
+      <span className="device-antenna-seam is-top" aria-hidden="true" />
+      <span className="device-antenna-seam is-lower-left" aria-hidden="true" />
+      <span className="device-antenna-seam is-lower-right" aria-hidden="true" />
+      <span className="device-mute-switch" aria-hidden="true" />
+      <span className="device-volume-button is-up" aria-hidden="true" />
+      <span className="device-volume-button is-down" aria-hidden="true" />
+      <button className="power" aria-label="Power button" onPointerDown={beginPower} onPointerUp={endPower} onPointerCancel={cancelPower} onPointerLeave={cancelPower} />
+      <div className="speaker" /><div className="camera" />
+      {screen}
       <button
         className={`home${homePressed ? " is-pressed" : ""}`}
         aria-label="Home button"
@@ -1258,20 +1315,9 @@ export function App() {
       ><i /></button>
     </section>
       <aside><strong>SOCIAL MEDIA, 2010</strong><span>Z.tokyo</span></aside>
-      {session.phase === "shutdown" && session.shutdownReason === "battery" && publicTwitterOutro.phase !== "idle" && publicTwitterOutro.phase !== "complete" && <PublicTwitterOutro
-        state={publicTwitterOutro}
-        tweets={outroTweets}
-        selectedTweet={selectedOutroTweet}
-        onSelect={tweetId => dispatchPublicTwitterOutro({ type: "SELECT", tweetId })}
-        onContinue={enterPublicTwitterOutroHandle}
-        onHandleChange={value => dispatchPublicTwitterOutro({ type: "EDIT_HANDLE", value })}
-        onConfirmHandle={confirmPublicTwitterOutroHandle}
-        onSubmit={() => { void submitPublicTwitterOutro(); }}
-        onRetry={() => { void submitPublicTwitterOutro(true); }}
-        onWithdraw={() => { void withdrawPublicTwitterOutro(); }}
-        onComplete={completePublicTwitterOutro}
-      />}
-    </main>
+      {outro}
+    </main>}
+    {presenter === "hero" && outro}
     <AppDevAccess
       appId={devAppId}
       disabled={session.phase !== "springboard"}

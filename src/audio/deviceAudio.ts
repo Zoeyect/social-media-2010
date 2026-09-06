@@ -4,17 +4,22 @@ export type NotificationType = "message";
 
 class DeviceAudioService {
   private activeAudio: HTMLAudioElement | null = null;
-  private muted = false;
+  private hardwareMuteMode: (() => "ringer" | "silent") | null = null;
+  private lastSuppressedSound: DeviceAudioEvent | null = null;
   private volume = 1;
 
   dispatch(event: DeviceAudioEvent): void {
+    if (!this.canPlayAudio) {
+      this.lastSuppressedSound = event;
+      return; // Muted one-shots are discarded, never queued for replay.
+    }
     const sound = DEVICE_AUDIO_REGISTRY[event];
     if (sound.assetStatus !== "READY" || typeof Audio === "undefined") return;
 
     this.activeAudio?.pause();
     const audio = new Audio(sound.assetUrl);
     audio.preload = "auto";
-    audio.muted = this.muted;
+    audio.muted = false;
     audio.volume = this.volume;
     this.activeAudio = audio;
     audio.addEventListener("ended", () => {
@@ -35,9 +40,29 @@ class DeviceAudioService {
   lowBatteryWarning(): void { this.dispatch("lowBattery"); }
   cameraShutter(): void { this.dispatch("cameraShutter"); }
 
-  setMuted(muted: boolean): void {
-    this.muted = muted;
-    if (this.activeAudio) this.activeAudio.muted = muted;
+  get canPlayAudio(): boolean {
+    return (this.hardwareMuteMode?.() ?? "ringer") === "ringer";
+  }
+
+  // Read the existing physical state; no app-local copy of the mute boolean.
+  bindHardwareMuteMode(readMode: () => "ringer" | "silent"): () => void {
+    this.hardwareMuteMode = readMode;
+    this.hardwareMuteChanged();
+    return () => {
+      if (this.hardwareMuteMode === readMode) this.hardwareMuteMode = null;
+    };
+  }
+
+  hardwareMuteChanged(): void {
+    if (!this.canPlayAudio && this.activeAudio) {
+      this.activeAudio.muted = true;
+      this.activeAudio.pause();
+      this.activeAudio = null;
+    }
+  }
+
+  get diagnostics() {
+    return { muteMode: this.hardwareMuteMode?.() ?? "ringer", audioGateOpen: this.canPlayAudio, lastSuppressedSound: this.lastSuppressedSound };
   }
 
   setVolume(volume: number): void {

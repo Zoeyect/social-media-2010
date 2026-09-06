@@ -1,5 +1,6 @@
+import type { RuntimePowerControl } from "../device/DevicePresentation";
 import { Canvas, useThree } from "@react-three/fiber";
-import { Suspense, useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, type RefObject, type ReactElement } from "react";
 import { ACESFilmicToneMapping, Color, Float32BufferAttribute, Mesh, MeshBasicMaterial, PlaneGeometry, PMREMGenerator, RectAreaLight, Scene } from "three";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { HeroCable } from "./HeroCable";
@@ -10,6 +11,13 @@ import { HeroChargerDiagnostics, chargerDiagnosticsEnabled } from "./HeroCharger
 import type { HeroCableAnchor, HeroPhase, HeroScreenGeometry } from "./heroTypes";
 
 type HeroSceneProps = Readonly<{
+  powerHitEnabled: boolean;
+  runtimePower?: RuntimePowerControl;
+  bootStartedAt: number | null;
+  bootComplete: boolean;
+  screen?: ReactElement;
+  softwareReady?: boolean;
+  onHomePress?: () => void;
   phase: HeroPhase;
   onDetachComplete: () => void;
   onPowerPress: () => void;
@@ -178,9 +186,9 @@ function SceneContents(props: HeroSceneProps & { lightingPreset: HeroLightingPre
       <HeroCable detachAmount={props.phase === "identity" || props.phase === "recharging" ? 0 : cable.progress}
         rechargeAmount={props.phase === "recharging" ? (cable.phase === "recharging" ? cable.progress : 0) : undefined}
         returnAmount={props.phase === "returning" ? (cable.phase === "returning" ? cable.progress : 0) : undefined} />
-      <HeroPhone {...props} onCableState={updateCable} />
+      <HeroPhone {...props} bootStartedAt={props.portalEnabled ? null : props.bootStartedAt} softwareActive={Boolean(props.screen && props.bootComplete && props.phase === "experience")} onCableState={updateCable} />
     </Suspense>
-    {props.portalEnabled && <ScreenPortalProjection portal={props.portal} enabled={props.phase === "front-aligned" || props.phase === "experience"} />}
+    {props.portalEnabled && <ScreenPortalProjection portal={props.portal} enabled={props.phase === "powering-on" || props.phase === "front-aligned" || props.phase === "experience"} />}
     {chargerDiagnosticsEnabled && <HeroChargerDiagnostics phase={props.phase} anchor={cable.anchor} />}
   </>;
 }
@@ -189,20 +197,23 @@ export function HeroScene(props: HeroSceneProps) {
   const portal = useRef<ScreenPortalHandle>(null);
   const [portalHost, setPortalHost] = useState<HTMLDivElement|null>(null);
   const portalDebug = import.meta.env.DEV && new URLSearchParams(window.location.search).get("screenPortalDebug") === "1";
-  const portalEnabled = import.meta.env.DEV && (portalDebug || new URLSearchParams(window.location.search).get("screenPortal") === "qa");
+  const portalEnabled = Boolean(props.screen) || (import.meta.env.DEV && (portalDebug || new URLSearchParams(window.location.search).get("screenPortal") === "qa"));
   const [portalState, setPortalState] = useState<ScreenPortalState>("hidden");
   useEffect(() => {
     if (!portalEnabled) return;
+    if (props.screen) {
+      setPortalState(props.bootComplete && props.phase === "experience" && props.softwareReady ? "software" : "hidden");
+      return;
+    }
     if (props.phase === "front-aligned") {
-      setPortalState("boot");
-      // Preserve the Apple presentation after alignment, then hand off only
-      // screen content. This is local QA timing, not the production lifecycle.
-      const timer=window.setTimeout(()=>setPortalState("qa"),750);
-      return ()=>window.clearTimeout(timer);
+      setPortalState(props.bootComplete ? "qa" : "boot");
+      return;
     }
     setPortalState(props.phase === "powering-on" ? "boot" : props.phase === "experience" ? "qa" : "hidden");
-  }, [portalEnabled, props.phase]);
-  const visiblePortalState = props.phase === "front-aligned" || props.phase === "experience" ? portalState : "hidden";
+  }, [portalEnabled, props.phase, Boolean(props.screen), props.softwareReady, props.bootComplete]);
+  const visiblePortalState = props.screen
+    ? props.bootComplete && props.phase === "experience" && props.softwareReady ? "software" : "hidden"
+    : props.phase === "front-aligned" || props.phase === "experience" ? portalState : "hidden";
   // Hybrid and studio remain opt-in until manual Safari approval. Legacy means the
   // immediately preceding soft-light presentation, not the old point rig.
   const [preset, setPreset] = useState<HeroLightingPreset>(() => {
@@ -240,7 +251,7 @@ export function HeroScene(props: HeroSceneProps) {
         <SceneContents {...props} lightingPreset={preset} reflectionV2={preset === "hybrid" && reflectionV2} charcoalFill={charcoalFill} frontDepth={frontDepth} frontScreenOff={frontScreenOff} portal={portal} portalEnabled={portalEnabled} />
       </Canvas>
       {portalEnabled && <div className="hero-screen-portal-host" ref={setPortalHost} />}
-      {portalEnabled && portalHost && <ScreenPortal ref={portal} host={portalHost} state={visiblePortalState} debug={portalDebug} />}
+      {portalEnabled && portalHost && <ScreenPortal ref={portal} host={portalHost} state={visiblePortalState} debug={portalDebug} software={props.screen} bootStartedAt={props.bootStartedAt} bootComplete={props.bootComplete} />}
     </div>
   );
 }

@@ -2084,6 +2084,41 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   }
   assert.deepEqual(foursquareState.checkIns, {});
   assert.deepEqual(foursquareState.shoutDrafts, {});
+  assert.deepEqual(foursquareState.todos, [], "F5a initial session To-Dos must be empty without claiming zero historical To-Dos");
+  const foursquareTodos = await vite.ssrLoadModule("/src/data/foursquareTodos.ts");
+  const venueTodoId = "todo:venue:night-owl";
+  const tipTodoId = "todo:tip:night-owl-tip";
+  let foursquareTodoState = foursquare.foursquareStateTransition(foursquareState, { type: "ADD_VENUE_TODO", venueId: "night-owl", simulatedCreatedAt: 1_287_552_180_000 });
+  assert.deepEqual(foursquareTodoState.todos, [{ id: venueTodoId, kind: "venue", venueId: "night-owl", createdAt: 1_287_552_180_000, completed: false }], "F5a must add exactly one venue To-Do with caller-supplied simulated time");
+  const oneVenueTodoState = foursquareTodoState;
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_VENUE_TODO", venueId: "night-owl", simulatedCreatedAt: 1_287_552_181_000 });
+  assert.strictEqual(foursquareTodoState, oneVenueTodoState, "F5a duplicate venue To-Do must be an identity-preserving no-op");
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_VENUE_TODO", venueId: "unknown-venue", simulatedCreatedAt: 1_287_552_182_000 }), foursquareTodoState, "F5a unknown venue To-Do must be a no-op");
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_TIP_TODO", tipId: "night-owl-tip", simulatedCreatedAt: 1_287_552_240_000 });
+  assert.deepEqual(foursquareTodoState.todos, [
+    { id: tipTodoId, kind: "tip", tipId: "night-owl-tip", venueId: "night-owl", createdAt: 1_287_552_240_000, completed: false },
+    { id: venueTodoId, kind: "venue", venueId: "night-owl", createdAt: 1_287_552_180_000, completed: false },
+  ], "F5a venue and Tip To-Dos must remain distinct and sort newest-created first");
+  const venueAndTipTodoState = foursquareTodoState;
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_TIP_TODO", tipId: "night-owl-tip", simulatedCreatedAt: 1_287_552_241_000 }), foursquareTodoState, "F5a duplicate Tip To-Do must be an identity-preserving no-op");
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_TIP_TODO", tipId: "unknown-tip", simulatedCreatedAt: 1_287_552_241_000 }), foursquareTodoState, "F5a unknown Tip must not create a To-Do");
+  assert.equal(foursquareTodos.isFoursquareVenueTodoSaved(foursquareTodoState.todos, "night-owl"), true);
+  assert.equal(foursquareTodos.isFoursquareTipTodoSaved(foursquareTodoState.todos, "night-owl-tip"), true);
+  assert.equal(foursquareTodos.getActiveFoursquareTodos(foursquareTodoState.todos).length, 2);
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "TOGGLE_TODO_COMPLETED", todoId: tipTodoId });
+  assert.deepEqual([foursquareTodos.getCompletedFoursquareTodos(foursquareTodoState.todos).map(todo => todo.id), foursquareTodos.getActiveFoursquareTodos(foursquareTodoState.todos).map(todo => todo.id)], [[tipTodoId], [venueTodoId]], "F5a completion selectors must separate session state");
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "TOGGLE_TODO_COMPLETED", todoId: tipTodoId });
+  assert.equal(foursquareTodos.getFoursquareTipTodo(foursquareTodoState.todos, "night-owl-tip")?.completed, false, "F5a completion toggle must be reversible");
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "TOGGLE_TODO_COMPLETED", todoId: "unknown-todo" }), foursquareTodoState, "F5a unknown completion toggle must be a no-op");
+  const todosBeforeCheckIn = foursquareTodoState.todos;
+  const todoStateAfterCheckIn = foursquare.foursquareStateTransition(foursquareTodoState, { type: "CHECK_IN", venueId: "night-owl", checkedInBy: "Zoey", checkInTimestamp: 1_287_552_600_000 });
+  assert.strictEqual(todoStateAfterCheckIn.todos, todosBeforeCheckIn, "F5a CHECK_IN must not complete, remove, or replace To-Do state");
+  const todoStateAfterNavigation = foursquare.foursquareStateTransition(foursquareTodoState, { type: "SHOW_TAB", tab: "profile" });
+  assert.strictEqual(todoStateAfterNavigation.todos, foursquareTodoState.todos, "F5a internal navigation must preserve session To-Dos");
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "REMOVE_TODO", todoId: venueTodoId });
+  assert.deepEqual(foursquareTodoState.todos.map(todo => todo.id), [tipTodoId], "F5a remove must affect only the requested To-Do");
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "REMOVE_TODO", todoId: "unknown-todo" }), foursquareTodoState, "F5a unknown removal must be a no-op");
+  assert.deepEqual(foursquare.foursquareStateTransition(venueAndTipTodoState, { type: "RESET" }).todos, [], "F5a RESET must clear session-created To-Dos");
   assert.equal(foursquareState.mayorState, "otherUser");
   assert.deepEqual(
     foursquareState.venues.map(venue => [venue.id, venue.mayor]),
@@ -3850,6 +3885,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   // T0-M1 validates runtime-derived values only. Static narrative seeds remain
   // intentionally outside this block until T0-M2.
   const readSource = relativePath => readFile(resolve(projectRoot, relativePath), "utf8");
+  const foursquareTodosSource = await readSource("src/data/foursquareTodos.ts");
+  const foursquareStateSourceForTodos = await readSource("src/state/foursquareState.ts");
+  assert.doesNotMatch(`${foursquareTodosSource}\n${foursquareStateSourceForTodos}`, /Date\.now\s*\(/, "F5a To-Do creation must never use host time");
   const t0M1DeviceMachine = await readSource("src/state/deviceMachine.ts");
   const t0M1Timeline = await readSource("src/data/sessionTimeline.ts");
   const t0M1FacebookState = await readSource("src/state/facebookState.ts");

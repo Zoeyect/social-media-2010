@@ -11,14 +11,17 @@
     "test:public-twitter": "node scripts/validate-public-twitter.mjs"
   },
   "dependencies": {
+    "@react-three/fiber": "^9.7.0",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "three": "^0.185.1",
+    "typescript": "latest",
+    "vite": "latest"
   },
   "devDependencies": {
     "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react-dom": "latest",
+    "@types/three": "^0.185.4"
   }
 }

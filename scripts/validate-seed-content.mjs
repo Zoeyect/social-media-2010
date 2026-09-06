@@ -3872,6 +3872,60 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     assert.doesNotMatch(source, /2010-10-20T00:0[2]:00-07:00/, `T0-M1 ${name} must not retain the stale runtime master`);
   }
 
+  const foursquareHistoricalActivity = await vite.ssrLoadModule("/src/data/foursquareHistoricalActivity.ts");
+  const historicalActivitySource = await readSource("src/data/foursquareHistoricalActivity.ts");
+  assert.deepEqual(
+    [foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_START, foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_END, foursquareHistoricalActivity.FOURSQUARE_HISTORY_TIME_ZONE],
+    ["2010-08-21T00:00:00-07:00", "2010-10-19T22:02:00-07:00", "America/Los_Angeles"],
+    "F6a history window and timezone must remain exact",
+  );
+  assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_NPC_IDS, ["alex", "katie", "june", "luca", "mia"], "F6a history must remain NPC-only");
+  assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS, ["main-street-diner", "riverside-park", "downtown-coffee", "community-courts", "westside-library", "gelato-roma"], "F6a must whitelist only canonical historical venues");
+  assert.deepEqual([foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS, foursquareHistoricalActivity.FOURSQUARE_HISTORY_COMPLETENESS, foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS], [[], [], []], "F6a must ship without authored history, false completeness, or feed projection");
+
+  const historicalRecord = (overrides = {}) => ({
+    id: "foursquare-history-alex-2010-10-09-riverside-park",
+    characterId: "alex",
+    venueId: "riverside-park",
+    simulatedCreatedAt: "2010-10-09T16:40:00-07:00",
+    shout: null,
+    source: "seed",
+    classification: "PROJECT-CURATED-FICTION",
+    validForGameMechanics: true,
+    validityClassification: "PROJECT-RECONSTRUCTED-VALID",
+    ...overrides,
+  });
+  assert.doesNotThrow(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord()));
+  for (const simulatedCreatedAt of ["2010-10-09 16:40:00", "2010-10-09T16:40:00Z", "2010-10-09T16:40:00-08:00", "2010-02-30T16:40:00-07:00"]) {
+    assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ simulatedCreatedAt })), /foursquare-history/, `F6a must reject non-contract timestamp ${simulatedCreatedAt}`);
+  }
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ simulatedCreatedAt: "2010-08-20T23:59:59-07:00", id: "foursquare-history-alex-2010-08-20-riverside-park" })), /outside the F6 window/);
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ simulatedCreatedAt: "2010-10-19T22:02:01-07:00", id: "foursquare-history-alex-2010-10-19-riverside-park" })), /outside the F6 window/);
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ characterId: "player" })), /approved NPC/);
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoryCompleteness({ characterId: "player", windowStart: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_START, windowEnd: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_END, level: "complete-for-game-window", mechanicsCoverage: [], lifetimeHistoryComplete: false }), /approved NPC/);
+  for (const venueId of ["night-owl", "cedar-books", "unknown-venue"]) {
+    assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ venueId })), /approved historical venue/, `F6a must reject ${venueId}`);
+  }
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ source: "live" })), /source must be seed/);
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ classification: "CURATED" })), /PROJECT-CURATED-FICTION/);
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ validityClassification: "NARRATIVE-ONLY" })), /PROJECT-RECONSTRUCTED-VALID/);
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ validForGameMechanics: false })), /NARRATIVE-ONLY/);
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckins([historicalRecord(), historicalRecord()]), /duplicate historical check-in id/);
+
+  const sameDayLater = historicalRecord({ id: "foursquare-history-alex-2010-10-09-riverside-park-2010", simulatedCreatedAt: "2010-10-09T20:10:00-07:00" });
+  const differentDay = historicalRecord({ id: "foursquare-history-alex-2010-10-10-riverside-park", simulatedCreatedAt: "2010-10-10T08:15:00-07:00" });
+  const narrativeOnly = historicalRecord({ id: "foursquare-history-alex-2010-10-11-riverside-park", simulatedCreatedAt: "2010-10-11T08:15:00-07:00", validForGameMechanics: false, validityClassification: "NARRATIVE-ONLY" });
+  const otherVenue = historicalRecord({ id: "foursquare-history-alex-2010-10-09-downtown-coffee", venueId: "downtown-coffee", simulatedCreatedAt: "2010-10-09T18:40:00-07:00" });
+  const unsortedHistory = [differentDay, narrativeOnly, otherVenue, sameDayLater, historicalRecord()];
+  const originalHistoryOrder = unsortedHistory.map(record => record.id);
+  assert.deepEqual(foursquareHistoricalActivity.getUniqueValidVisitDaysForVenue(unsortedHistory, "alex", "riverside-park"), ["2010-10-09", "2010-10-10"], "same-day valid visits must collapse while separate dates remain");
+  assert.deepEqual(foursquareHistoricalActivity.getUniqueValidFoursquareVenueIds(unsortedHistory, "alex"), ["downtown-coffee", "riverside-park"], "valid venue derivation must exclude narrative-only records");
+  assert.deepEqual(foursquareHistoricalActivity.sortFoursquareHistoricalCheckinsOldestFirst(unsortedHistory).map(record => record.simulatedCreatedAt), ["2010-10-09T16:40:00-07:00", "2010-10-09T18:40:00-07:00", "2010-10-09T20:10:00-07:00", "2010-10-10T08:15:00-07:00", "2010-10-11T08:15:00-07:00"], "F6a sorting must be deterministic and oldest-first");
+  assert.deepEqual(unsortedHistory.map(record => record.id), originalHistoryOrder, "F6a sorting must not mutate authored arrays");
+  assert.equal(Object.keys(foursquareHistoricalActivity).some(key => /badge|mayor/i.test(key)), false, "F6a exports must contain no badge or mayor derivation");
+  assert.doesNotMatch(historicalActivitySource, /foursquareGameSeed|foursquareGameModel|sessionTimeline/, "F6a history must remain isolated from F3/F4 and realtime domains");
+  console.log("F6a historical activity contract checks: PASS");
+
   console.log("T0-M1 runtime timeline checks: PASS");
 
   const t0M2Seed = await readSource("src/data/sessionSeedContent.ts");

@@ -3929,6 +3929,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(f5dVenueTipsSource, /type: "REMOVE_TODO"[\s\S]*todoId: tipTodo\.id/, "F5d Tip removal must use the existing REMOVE_TODO action");
   assert.doesNotMatch(`${f5cTodosRootSource}\n${f5dVenueTipsSource}`, /I've done this|\bDone\b|Completed|checkbox|checkmark|done count/i, "F5d must keep completion UI hidden");
   assert.match(foursquareContainerSourceForTodos, /state\.activeTab === "tips" && <QuietRoot label="Tips" \/>/, "F5c must leave the Tips root blank");
+  assert.doesNotMatch(foursquareContainerSourceForTodos, /TOGGLE_TODO_COMPLETED|getCompletedFoursquareTodos|foursquare-completed/, "F5g visible Foursquare UI must not consume the internal-only completion model");
+  assert.equal(foursquareContainerSourceForTodos.match(/state\.activeTab === "tips" && <QuietRoot label="Tips" \/>/g)?.length, 1, "F5g Tips root must remain exactly one blank HOLD branch with no Tip projection");
   assert.doesNotMatch(f5cTodosRootSource, /No To-Dos|Nothing here|Add places/i, "F5c blank To-Dos state must not introduce empty-state copy");
   assert.match(deviceCssSourceForTodos, /\.foursquare-todo-venue-row \{[^}]*height: 44px;/, "F5c To-Do rows must use compact reconstructed iPhone list geometry");
   const t0M1DeviceMachine = await readSource("src/state/deviceMachine.ts");

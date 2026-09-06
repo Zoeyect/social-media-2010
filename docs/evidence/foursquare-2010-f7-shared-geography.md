@@ -118,8 +118,10 @@ geolocation, runtime-generated road, randomness, or host-time dependency. Night
 Owl and Cedar Books cannot resolve either a canonical detail viewport or marker.
 Neither Facebook nor Foursquare imports the renderer in F7c, so all production
 surfaces, Places coverage, Tips, To-Dos, and check-in behavior remain unchanged.
-Runtime visual QA is deferred until an approved F7d app-specific integration
-provides a real surface without adding a preview-only production route.
+Runtime visual QA was deferred at the F7c phase boundary until an approved
+app-specific integration provided a real surface without adding a preview-only
+production route. That phase-local handoff is superseded by the completed
+F7d-1 and F7f-1 integrations below.
 
 ## F7d-1 Foursquare Venue Info integration
 
@@ -144,8 +146,9 @@ Foursquare Places remains the same four venues in the same seed order. F7d-1
 adds no Places map or map/list control, does not display canonical or legacy
 distance/address data, and does not connect maps to Check-in, Result, To-Dos,
 Tips, Friends, Profile, or Leaderboard. Facebook and all F4/F5/F6 behavior remain
-unchanged. Runtime visual fidelity of the reconstructed map frame and pin remains
-`RUNTIME VISUAL QA PENDING`.
+unchanged. Manual runtime visual QA passed for both canonical Venue Info maps,
+including distinct `VENUE_DETAIL` framing, reconstructed pin material, road
+hierarchy, park treatment, and 320-pixel integration.
 
 ## F7f-1 Facebook Place Check In integration
 
@@ -170,5 +173,62 @@ excluded from the October 2010 reconstruction.
 Status drafting, Tag Friends, friend selection, Check In, feed-story creation,
 and post-check-in Place Detail Activity navigation remain unchanged.
 `Shared2010Map` remains app-neutral, and Facebook does not import or reuse the
-Foursquare overlay. Deterministic validation is required before runtime visual
-QA of the 68-pixel frame and reconstructed pin.
+Foursquare overlay. Deterministic validation passed, and manual runtime visual
+QA passed for Downtown Coffee, Riverside Park, and Westside Library, including
+68-pixel readability, distinct `VENUE_DETAIL` views, reconstructed pin
+material, clipping, and preservation of the check-in form hierarchy.
+
+## F7d-2 Foursquare Places map decision
+
+The Foursquare Places root remains the approved four-row list in its existing
+order: Night Owl Cafe, Main Street Diner, Cedar Books, and Riverside Park.
+Only Main Street Diner and Riverside Park belong to the canonical six-venue
+geography. A root map would therefore represent only two of four visible rows,
+while silently omitting Night Owl Cafe and Cedar Books.
+
+F7d-2 is `SKIP FOR F7`. The available target evidence supports map treatment in
+the product family but does not establish a sufficiently specific iPhone 2.0
+Places-root map contract to justify inventing mixed canonical and noncanonical
+geography. No map/list switch, player marker, distance, address, callout, or map
+interaction is introduced.
+
+Reopen F7d-2 only if Night Owl Cafe and Cedar Books receive approved canonical
+geography, the Places inventory is coherently migrated to the canonical venue
+set, stronger target-version evidence establishes the root behavior, or an
+explicit gameplay requirement justifies a separately approved reconstruction.
+
+## F7 closure
+
+**Status: `COMPLETE_WITH_HOLDS`.**
+
+F7 completes the shared deterministic fake-map foundation and the two approved
+visible integrations without presenting unsupported map behavior as historical
+fact. Shared geography and rendering remain app-neutral; Facebook and
+Foursquare retain separate overlay components and product boundaries.
+
+| Surface or capability | Final status | Boundary | Reopen condition |
+| --- | --- | --- | --- |
+| Foursquare Venue Info maps | COMPLETE | Main Street Diner and Riverside Park only | Revisit only with approved canonical geography or stronger venue evidence |
+| Foursquare Places root map | SKIP FOR F7 | Mixed two-of-four map eligibility would misrepresent the visible list | Approved Night Owl/Cedar geography, canonical inventory migration, stronger iPhone 2.0 evidence, or explicit gameplay need |
+| Foursquare Friends map | DEFERRED | No approved product slice requires it | Explicit Friends-map user story and target-version behavior |
+| Foursquare Tips root map | HOLD | Root remains blank; Night Owl Tip is map-ineligible | Approved canonical Tips content and geography decision |
+| Foursquare To-Dos map | DEFERRED | Current venue and Tip To-Dos do not require a map | Approved map-oriented To-Do user story |
+| Foursquare player marker | HOLD | Player point remains internal geometry only | Direct surface evidence or explicit approved reconstruction |
+| Facebook selected-place Check In map | COMPLETE | All six canonical place choices use `VENUE_DETAIL` | Revisit only with stronger target-version evidence |
+| Facebook Nearby/root Map View | SKIP FOR F7 | April 2011 Places Map View behavior is outside the October 2010 target | Target-date evidence supporting an October 2010 root map |
+| Facebook Place Detail or Info maps | HOLD | No approved surface contract | Direct target-version evidence or explicit product decision |
+| Facebook player marker | HOLD | No approved visible user-location treatment | Direct target-version evidence or explicit product decision |
+| Distance and address display | HOLD | No canonical addresses; legacy Foursquare distance strings are noncanonical | Approved address/geodesic contract and target-version evidence |
+| Pan, zoom, recenter, labels, and callouts | HOLD | Shared renderer is deterministic and noninteractive | Explicit interaction contract supported by evidence or approved reconstruction |
+
+Manual runtime visual QA passed for the Foursquare Main Street Diner and
+Riverside Park Venue Info maps and for the Facebook Downtown Coffee, Riverside
+Park, and Westside Library Check In previews. Frame proportions, distinct
+venue-centered views, overlay materials, road density, Riverside Park
+treatment, clipping, and surrounding UI hierarchy were accepted without
+further polish.
+
+The remaining HOLD, DEFERRED, and SKIP entries are intentional product and
+evidence boundaries, not incomplete implementation defects. F7 therefore
+satisfies the current shared location/map-system requirement while preserving
+the October 2010 historical boundary and avoiding unsupported geography or UI.

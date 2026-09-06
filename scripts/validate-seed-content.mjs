@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { createServer } from "vite";
@@ -2885,6 +2885,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const coreSocialSource = await readFile(resolve(projectRoot, "src/data/coreSocialFriends.ts"), "utf8");
   const instagramStateSource = await readFile(resolve(projectRoot, "src/state/instagramState.ts"), "utf8");
   const appSource = await readFile(resolve(projectRoot, "src/device/App.tsx"), "utf8");
+  const deviceScreenSource = await readFile(resolve(projectRoot, "src/device/DeviceScreen.tsx"), "utf8");
   const foursquareStateSource = await readFile(resolve(projectRoot, "src/state/foursquareState.ts"), "utf8");
   const foursquareGameModelSource = await readFile(resolve(projectRoot, "src/data/foursquareGameModel.ts"), "utf8");
   const deviceMachineSource = await readFile(resolve(projectRoot, "src/state/deviceMachine.ts"), "utf8");
@@ -2968,8 +2969,66 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const flickrContainerSource = await readFile(resolve(projectRoot, "src/device/FlickrContainer.tsx"), "utf8");
   const tumblrContainerSource = await readFile(resolve(projectRoot, "src/device/TumblrContainer.tsx"), "utf8");
 
+  // Mechanical extraction: check the presenter/controller relationship, not a
+  // concatenation that could hide a second mount or move runtime ownership.
+  const deviceScreenMountSource = appSource.match(/<DeviceScreen\s[\s\S]*?\n      \/>/)?.[0];
+  assert.ok(deviceScreenMountSource, "App must render the extracted DeviceScreen");
+  assert.match(appSource, /import \{ DeviceScreen, type DeviceScreenProps \} from "\.\/DeviceScreen";/, "App must import the shared DeviceScreen implementation");
+  assert.doesNotMatch(deviceScreenMountSource, /\bkey\s*=/, "DeviceScreen must not acquire a remount key");
+  assert.match(deviceScreenMountSource, /display=\{\{\s+session,[^}]+deviceDateTime,/, "the screen phase and simulated clock must come from App");
+  assert.match(deviceScreenMountSource, /camera=\{\{\s+cameraRuntime,\s+cameraRoll,\s+setCameraPreviewCanvas,\s+setCameraLookPointerOffset,\s+captureCameraPhoto,\s+openLatestCameraPhoto,\s*\}\}/, "Camera presentation must use the existing App-owned runtime, roll and bridge callbacks");
+  assert.match(deviceScreenSource, /const \{\s+session,[^}]+deviceDateTime,[^}]*\} = display;/, "DeviceScreen must consume the App display values");
+  assert.match(deviceScreenSource, /const \{\s+cameraRuntime,\s+cameraRoll,\s+setCameraPreviewCanvas,\s+setCameraLookPointerOffset,\s+captureCameraPhoto,\s+openLatestCameraPhoto,\s*\} = camera;/, "DeviceScreen must consume the existing Camera bridge without substituting another owner");
+  assert.match(deviceScreenSource, /return <div className=\{`screen \$\{session\.phase\}`\}>/, "the sole screen root must retain its screen and session-phase classes");
+  assert.doesNotMatch(deviceScreenSource, /\buse(?:State|Reducer|Effect|LayoutEffect|Ref)\s*\(|\b(?:setTimeout|setInterval|createRoot|createPortal|createExperienceSessionId|initializeCameraRollPersistence|selectCameraVideoScene)\s*\(/, "DeviceScreen must remain presentation-only without another runtime, persistence, timer or portal owner");
+  assert.doesNotMatch(deviceScreenSource, /<SessionIdentityContext\.Provider\b|<AmbientWorld\b|<PublicTwitterOutro\b|className=\{`home\$\{|className=["']device["']/, "hardware, identity provider, world and page-level outro must stay outside DeviceScreen");
+  assert.match(appSource, /return <SessionIdentityContext\.Provider value=\{session\.sessionIdentity\}>\s+<AmbientWorld\s[\s\S]+<DeviceScreen\s[\s\S]+<\/SessionIdentityContext\.Provider>;/, "App must keep the same identity provider above AmbientWorld and DeviceScreen");
+  assert.match(appSource, /<DeviceScreen\s[\s\S]*?\n      \/>\s+<button\s+className=\{`home\$\{homePressed \? " is-pressed" : ""\}`\}[\s\S]+<\/section>[\s\S]+<PublicTwitterOutro\s/, "the physical Home button and page-level outro must remain outside the software screen");
+
+  // Scan all source modules so a second JSX mount in Hero or another entry
+  // point cannot pass merely because App.tsx still has one mount.
+  async function readRuntimeSources(directory) {
+    const entries = await readdir(resolve(projectRoot, directory), { withFileTypes: true });
+    const groups = await Promise.all(entries.map(async entry => {
+      const path = `${directory}/${entry.name}`;
+      if (entry.isDirectory()) return readRuntimeSources(path);
+      return /\.[cm]?[jt]sx?$/.test(entry.name)
+        ? [{ path, source: await readFile(resolve(projectRoot, path), "utf8") }]
+        : [];
+    }));
+    return groups.flat();
+  }
+  const runtimeSources = await readRuntimeSources("src");
+  for (const [component, owner] of [["App", "src/main.tsx"], ["DeviceScreen", "src/device/App.tsx"], ["AmbientWorld", "src/device/App.tsx"]]) {
+    const mounts = runtimeSources.flatMap(({ path, source }) => [...source.matchAll(new RegExp(`<${component}(?=[\\s/>])`, "g"))].map(() => path));
+    assert.deepEqual(mounts, [owner], `${component} must have exactly one JSX mount site, in ${owner}`);
+  }
+  const screenRoots = runtimeSources.flatMap(({ path, source }) => [...source.matchAll(/className=(?:["']screen(?:\s|["'])|\{`screen(?:\s|`))/g)].map(() => path));
+  assert.deepEqual(screenRoots, ["src/device/DeviceScreen.tsx"], "only DeviceScreen may declare the single software screen root");
+
+  const screenPresentationSource = deviceScreenSource.match(/return <div className=\{`screen \$\{session\.phase\}`\}>[\s\S]*?\n  <\/div>;/)?.[0];
+  assert.ok(screenPresentationSource, "the screen presentation boundary must remain explicit");
+  assert.deepEqual([...screenPresentationSource.matchAll(/<([A-Z]\w*)\b/g)].map(match => match[1]), [
+    "LockScreenStatusPresentation", "StatusBar", "BootLogo", "LockScreen", "SpringBoard",
+    "AppLaunchContainer", "IOS4KeyboardSystem", "CameraContainer", "PhotosContainer",
+    "MobileSMSContainer", "CameraContainer", "TwitterContainer", "FacebookContainer",
+    "InstagramContainer", "FlickrContainer", "TumblrContainer", "FoursquareContainer",
+    "MultitaskingBar", "PowerOffConfirm", "LowBatteryAlert", "SMSAlertOverlay",
+  ], "screen-local components must preserve their original multiplicity and status/lock/app/overlay order");
+  const keyboardSubtreeSource = screenPresentationSource.match(/<IOS4KeyboardSystem\s[\s\S]*?<\/IOS4KeyboardSystem>/)?.[0];
+  assert.ok(keyboardSubtreeSource, "the app subtree must retain its keyboard provider");
+  assert.deepEqual([...keyboardSubtreeSource.matchAll(/<([A-Z]\w*)\b/g)].map(match => match[1]), [
+    "IOS4KeyboardSystem", "CameraContainer", "PhotosContainer", "MobileSMSContainer",
+    "CameraContainer", "TwitterContainer", "FacebookContainer", "InstagramContainer",
+    "FlickrContainer", "TumblrContainer", "FoursquareContainer",
+  ], "the keyboard must wrap exactly the same app and Camera picker presentation subtree");
+  assert.match(screenPresentationSource, /<\/IOS4KeyboardSystem>\s+<\/AppLaunchContainer>\}\s+\{session\.phase === "app" && <MultitaskingBar/, "keyboard and app viewport must close before the screen-level multitasking overlay");
+  assert.match(keyboardSubtreeSource, /appRuntime\.activeAppId === "camera" && cameraRuntime\.cameraApp\.phase !== "none" && <CameraContainer\s+owner="cameraApp"\s+session=\{cameraRuntime\.cameraApp\}\s+previewCanvasRef=\{setCameraPreviewCanvas\}/, "standalone Camera must retain its existing phase gate, owner and preview bridge");
+  assert.match(keyboardSubtreeSource, /appRuntime\.activeAppId === "messages" && cameraRuntime\.cameraPicker\.phase !== "none" && <CameraContainer\s+owner="cameraPicker"\s+session=\{cameraRuntime\.cameraPicker\}\s+onCancel=\{cancelScreenCameraPicker\}/, "the Camera picker must remain under Messages inside the same keyboard subtree");
+  assert.match(screenPresentationSource, /session\.phase === "locked"\s+\|\| session\.phase === "springboard"\s+\|\| \(session\.phase === "app"\s+&& !\(appRuntime\.activeAppId === "camera" && cameraRuntime\.cameraApp\.phase !== "none"\)\)\) && <div className="device-status-bar-layer">\s+\{session\.phase === "locked"\s+\? <LockScreenStatusPresentation model=\{lockScreenModel\} \/>\s+: <StatusBar state=\{statusBarState\} \/>\}/, "status-bar phase selection and standalone Camera exclusion must remain unchanged");
+  assert.match(screenPresentationSource, /session\.phase === "sleeping" && <div className="screen-off-surface"[^\n]+\n\s+\{session\.phase === "powerOffConfirm"[\s\S]+session\.phase === "shutdown" && <div className="screen-off-surface"[^\n]+\n\s+\{session\.phase === "lowBatteryWarning"[\s\S]+<LowBatteryAlert[\s\S]+<SMSAlertOverlay/, "off, confirmation, shutdown, low-battery and SMS surfaces must preserve their layering");
   assert.equal((ios4KeyboardSource.match(/export function IOS4KeyboardSystem/g) ?? []).length, 1, "the device must own exactly one shared software-keyboard runtime");
-  assert.match(appSource, /session\.phase === "app" && <AppLaunchContainer[\s\S]+<IOS4KeyboardSystem[\s\S]+suspended=\{multitaskingBar !== "closed" \|\| cameraRuntime\.cameraPicker\.phase !== "none"\}[\s\S]+suspendReason=/, "the shared keyboard must live at the device app-runtime boundary and retain explicit lifecycle dismissal");
+  assert.match(deviceScreenSource, /session\.phase === "app" && <AppLaunchContainer[\s\S]+<IOS4KeyboardSystem[\s\S]+suspended=\{multitaskingBar !== "closed" \|\| cameraRuntime\.cameraPicker\.phase !== "none"\}[\s\S]+suspendReason=/, "the shared keyboard must live at the device app-runtime boundary and retain explicit lifecycle dismissal");
   assert.match(deviceMachineSource, /experienceSessionId: string \| null;[\s\S]+initialSession[\s\S]+experienceSessionId: null/, "experience ownership must extend the canonical Session and remain empty at Hero");
   assert.match(appSource, /submitName[\s\S]+createExperienceSessionId\(\)[\s\S]+experienceSessionId,/, "only valid Hero name submission may activate a new experience ID");
   assert.match(appSource, /experienceSessionId: persisted\.experienceSessionId/, "runtime reload reconstruction must preserve the persisted canonical experience ID");
@@ -3037,7 +3096,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(springBoardSource, /const panelHeight = 125 \+ \(rows - 1\) \* 85;/, "folder tray height must follow the target-build row formula");
   assert.equal((springBoardSource.match(/className="springboard-folder-notch is-top"/g) ?? []).length, 1, "the shared open-folder tray must render exactly one top pointer");
   assert.doesNotMatch(springBoardSource, /springboard-folder-notch is-bottom|folderShadowBottomNotchSrc/, "the open-folder tray must not retain a second hidden pointer instance");
-  assert.match(appSource, /const \[activeFolderSlotIndex, setActiveFolderSlotIndex\] = useState\(0\);[\s\S]+activeFolderSlotIndex=\{activeFolderSlotIndex\}[\s\S]+onActiveFolderSlotChange=\{setActiveFolderSlotIndex\}/, "the device shell must retain active folder-slot identity across SpringBoard unmounts");
+  assert.match(appSource, /const \[activeFolderSlotIndex, setActiveFolderSlotIndex\] = useState\(0\);/, "App must retain active folder-slot ownership across SpringBoard unmounts");
+  assert.match(deviceScreenMountSource, /navigation=\{\{[^}]+activeFolderSlotIndex,\s+setActiveFolderSlotIndex,/, "App must pass its folder slot and setter to DeviceScreen without creating screen-local state");
+  assert.match(deviceScreenSource, /<SpringBoard\s[^]*?activeFolderSlotIndex=\{activeFolderSlotIndex\}\s+onActiveFolderSlotChange=\{setActiveFolderSlotIndex\}/, "DeviceScreen must forward the retained folder slot and setter to SpringBoard");
   assert.match(springBoardSource, /const openFolder = \(slotIndex: number\)[\s\S]+onActiveFolderSlotChange\(slotIndex\)[\s\S]+openFolder\(index\)/, "folder pointer ownership must retain the triggering fixed-grid slot index");
   assert.match(springBoardSource, /const sourceColumn = sourceSlotIndex % SPRINGBOARD_COLUMN_COUNT;[\s\S]+SPRINGBOARD_GRID_LEFT[\s\S]+sourceColumn \* \(SPRINGBOARD_SLOT_WIDTH \+ SPRINGBOARD_COLUMN_GAP\)[\s\S]+SPRINGBOARD_SLOT_WIDTH \/ 2/, "folder pointer center X must derive from the active slot column and fixed SpringBoard geometry");
   assert.match(springBoardSource, /const pointerLeft = anchorX - FOLDER_POINTER_WIDTH \/ 2;[\s\S]+left: pointerLeft/, "the shared pointer element must center on the calculated folder anchor");
@@ -3064,7 +3125,10 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(deviceCssSource, /@keyframes springboard-folder-(?:open|close)[^{]*\{[^}]*scale\(/, "folder presentation must not regress to the former whole-panel scale effect");
   const folderLaunchLifecycleSource = appSource.slice(appSource.indexOf("const launchSpringBoardApp"), appSource.indexOf("const openLockNotificationTarget"));
   const folderSleepLifecycleSource = appSource.slice(appSource.indexOf("const endPower"), appSource.indexOf("const cancelPower"));
-  const folderUnlockLifecycleSource = appSource.slice(appSource.indexOf("onUnlock={() =>"), appSource.indexOf("{session.phase === \"springboard\""));
+  const folderUnlockLifecycleSource = appSource.match(/const completeScreenUnlock: DeviceScreenProps\["actions"\]\["completeScreenUnlock"\] = \(\) => \{[\s\S]*?\n  \};/)?.[0];
+  assert.ok(folderUnlockLifecycleSource, "the named unlock controller must remain in App; a missing boundary must not silently validate an empty slice");
+  assert.match(deviceScreenMountSource, /actions=\{\{[^}]+completeScreenUnlock,/, "App must pass the existing unlock controller to DeviceScreen");
+  assert.match(deviceScreenSource, /<LockScreen\s[^]*?onUnlock=\{completeScreenUnlock\}/, "LockScreen must invoke the App-owned unlock controller");
   assert.doesNotMatch(folderLaunchLifecycleSource, /dispatchFolderEvent|setActiveFolderSlotIndex/, "app launch must not close or retarget the active folder");
   assert.doesNotMatch(folderSleepLifecycleSource, /dispatchFolderEvent|setActiveFolderSlotIndex/, "sleep and lock must not close or retarget the active folder");
   assert.doesNotMatch(folderUnlockLifecycleSource, /dispatchFolderEvent|setActiveFolderSlotIndex/, "unlock must not close or retarget the active folder");
@@ -3174,7 +3238,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(foursquareVenueDetailSource, /<IOS4Textarea[\s\S]*EDIT_CHECK_IN_SHOUT/, "F2b-1 must preserve the shared textarea and venue-keyed draft event");
   assert.match(foursquareVenueDetailSource, /<form className="foursquare-checkin-form"[\s\S]*type: "CHECK_IN"/, "F2b-1 must preserve the existing Check In submit event");
   const foursquareCheckInSource = foursquareVenueDetailSource.match(/state\.venueSubview === "checkIn"[\s\S]*?<\/article>/)?.[0] ?? "";
-  assert.match(appSource, /<FoursquareContainer[\s\S]*currentDeviceDateTime=\{deviceDateTime\}/, "F2c-1 must pass the existing simulated device datetime into Foursquare");
+  assert.match(deviceScreenSource, /<FoursquareContainer[\s\S]*currentDeviceDateTime=\{deviceDateTime\}/, "F2c-1 must pass the existing simulated device datetime into Foursquare");
   assert.match(foursquareCheckInSource, /currentDeviceDateTime\.getTime\(\)[\s\S]*type: "CHECK_IN"[\s\S]*checkInTimestamp/, "F2c-1 must freeze the simulated device timestamp at check-in submission");
   assert.doesNotMatch(foursquareCheckInSource, /Date\.now\(|new Date\(/, "F2c-1 check-in submission must not use the host clock");
   assert.match(foursquareCheckInSource, /foursquare-checkin-venue-context[\s\S]*venueViewModel\.name[\s\S]*venueViewModel\.categoryLabel/, "F2c-1 must render the truthful text-only venue context");
@@ -3305,9 +3369,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(facebookContainerSource, /key=\{item\.id\}/, "Feed stories must retain stable canonical story IDs as React keys");
   assert.match(facebookContainerSource, /data-facebook-feed-story-id=\{surface === "feed" \? item\.id : undefined\}/, "Feed rows must expose canonical IDs for viewport anchoring");
   assert.match(facebookContainerSource, /captureFacebookFeedAnchor/, "News Feed must preserve a visible story anchor across rerenders and live insertion");
-  assert.match(appSource, /session\.phase === "app" && <AppLaunchContainer/, "an app viewport must render only while the device phase is app");
-  assert.match(appSource, /session\.phase === "sleeping" && <div className="screen-off-surface"/, "sleeping must render the dedicated display-off surface");
-  assert.match(appSource, /session\.phase === "locked" && <LockScreen/, "locked must render Lock Screen");
+  assert.match(deviceScreenSource, /session\.phase === "app" && <AppLaunchContainer/, "an app viewport must render only while the device phase is app");
+  assert.match(deviceScreenSource, /session\.phase === "sleeping" && <div className="screen-off-surface"/, "sleeping must render the dedicated display-off surface");
+  assert.match(deviceScreenSource, /session\.phase === "locked" && <LockScreen/, "locked must render Lock Screen");
   assert.match(deviceCssSource, /\.screen-off-surface\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*100;[^}]*inset:\s*0;[^}]*background:\s*#000;/, "display-off surface must be an opaque full-screen top layer");
   assert.match(deviceCssSource, /\.device \{[^}]*--iphone4-screen-left: 30px;[^}]*--iphone4-screen-top: 133px;[^}]*--iphone4-screen-width: 320px;[^}]*--iphone4-screen-height: 480px;[^}]*width: 380px;[^}]*height: 747px;/, "the physical shell must own one fixed iPhone 4 body and 2:3 screen geometry");
   assert.match(deviceCssSource, /\.device \{[^}]*width: 380px; height: 747px;[^}]*border-radius: 55px;[^}]*isolation: isolate;/, "frozen iPhone 4 shell v1.0 must retain its outer dimensions, corner geometry and stacking context");
@@ -3412,7 +3476,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.doesNotMatch(instagramContainerSource, /createdAt: Date\.now\(\)/, "Instagram post timestamps must not depend on host time");
   assert.equal((instagramContainerSource.match(/<time><img src=\{instagramClockSrc\}/g) ?? []).length, 3, "Feed plus player and known-account Profile metadata must reuse the one reconstructed clock asset");
   assert.match(deviceCssSource, /\.instagram-owner-profile > \.instagram-find-facebook-friends \{ width: 190px; min-width: 190px; height: 28px; min-height: 28px; margin: 7px auto;[^}]*background: linear-gradient\(#709abd,#47779d 49%,#38688e 51%,#3d6b8f\)/, "Find Friends must use the approved restrained centered steel-blue control geometry");
-  assert.match(appSource, /<InstagramContainer[\s\S]+cameraRoll=\{cameraRoll\}/, "Instagram must receive only App's authorized runtime Camera Roll collection");
+  assert.match(deviceScreenSource, /<InstagramContainer[\s\S]+cameraRoll=\{cameraRoll\}/, "Instagram must receive only App's authorized runtime Camera Roll collection");
   assert.match(instagramContainerSource, /<PhotosContainer[\s\S]+mode="picker"[\s\S]+onPickerSelect/, "Instagram Share must enter the system Camera Roll picker mode");
   assert.match(instagramStateSource, /export type InstagramFilter = "Original" \| "X-Pro II" \| "Lomo-fi" \| "Earlybird" \| "1977";/, "Instagram filter state must expose exactly the five evidenced launch filter identities");
   assert.match(instagramFilteredImageSource, /Original[\s\S]+Normal[\s\S]+X-Pro II[\s\S]+Lomo-fi[\s\S]+Earlybird[\s\S]+1977/, "the shared renderer registry must retain evidenced filter order and the Normal display label");

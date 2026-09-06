@@ -154,3 +154,40 @@ Repeated visits do not establish badge ownership, mayorship, an incumbent, or
 a leaderboard result. F6c does not change Friends-feed projection, F3/F4,
 runtime, scheduler, UI, or venue definitions. Alex's F6b records and
 completeness remain unchanged.
+
+## F6d: June, Luca, and Mia supporting history
+
+June receives six game-valid, `PROJECT-CURATED-FICTION` records from September
+3 through October 19: Main Street Diner 2, Downtown Coffee 2, Riverside Park 1,
+and Gelato Roma 1. Her only shout is `Dinner with everyone.` June is
+`complete-for-game-window` with all four mechanics coverage dimensions and
+`lifetimeHistoryComplete: false`.
+
+Night Owl remains excluded from historical activity. The invalid June Main
+Street legacy row at `2010-10-19T22:52:00-07:00` remains hidden and unchanged;
+it is conceptually superseded, not deleted or retimed. The preferred future
+Friends-feed replacement candidate is
+`foursquare-history-june-2010-10-19-main-street-diner` at 21:12 with no shout.
+It is not projected in F6d.
+
+Luca receives five game-valid, `PROJECT-CURATED-FICTION` records from September
+5 through October 19: Community Courts 2, Main Street Diner 1, Riverside Park
+1, and Gelato Roma 1. His only shout is `One more game.` Luca is
+`complete-for-game-window` with all four mechanics coverage dimensions and
+`lifetimeHistoryComplete: false`.
+
+Luca's sole Main Street Foursquare record preserves the legacy F1 timestamp
+`2010-10-19T15:06:00-07:00` and remains separate from his Facebook Main Street
+check-in at 21:44. Employment establishes venue familiarity but does not imply
+check-ins, repeated work-shift activity, or mayorship.
+
+Mia receives no canonical F6 historical record and no completeness entry. Her
+legacy Cedar Books row at 20:42 remains visible, unresolved, and
+display-selected in the broader product sense; Cedar is still noncanonical and
+HOLD. This conservative absence avoids claiming that the legacy row is a
+canonical or complete historical dataset.
+
+F6d keeps historical Friends-feed projection empty and derives no badge,
+mayorship, incumbent, candidate, unlock, leaderboard, or player-history fact.
+Alex and Katie records and completeness remain unchanged; F3/F4, runtime,
+scheduler, UI, and venue definitions are unaffected.

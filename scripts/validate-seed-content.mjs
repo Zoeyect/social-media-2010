@@ -3881,7 +3881,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   );
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_NPC_IDS, ["alex", "katie", "june", "luca", "mia"], "F6a history must remain NPC-only");
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS, ["main-street-diner", "riverside-park", "downtown-coffee", "community-courts", "westside-library", "gelato-roma"], "F6a must whitelist only canonical historical venues");
-  assert.equal(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.length, 28, "F6c must preserve 15 Alex and add exactly 13 Katie historical check-ins");
+  assert.equal(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.length, 39, "F6d must preserve Alex/Katie and add exactly 6 June plus 5 Luca historical check-ins");
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS, [], "F6b must not migrate historical records into the Friends feed");
 
   const historicalRecord = (overrides = {}) => ({
@@ -3975,10 +3975,47 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(foursquareHistoricalActivity.getUniqueValidFoursquareVenueIds(katieHistory, "katie"), ["downtown-coffee", "gelato-roma", "main-street-diner", "riverside-park", "westside-library"], "F6c Katie history must derive exactly five approved venues");
   assert.equal(new Set(katieHistory.map(record => foursquareHistoricalActivity.getFoursquareHistoricalVisitDayKey(record))).size, 13, "F6c Katie history must contain 13 unique NPC/venue/Pacific-date visit-day facts");
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.map(record => record.id), foursquareHistoricalActivity.sortFoursquareHistoricalCheckinsOldestFirst(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS).map(record => record.id), "F6c combined history must remain stored oldest-first");
+  const juneHistory = foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.filter(record => record.characterId === "june");
+  const expectedJuneHistory = [
+    ["2010-09-03T12:20:00-07:00", "downtown-coffee", null],
+    ["2010-09-12T18:30:00-07:00", "main-street-diner", "Dinner with everyone."],
+    ["2010-09-27T17:25:00-07:00", "riverside-park", null],
+    ["2010-10-04T13:05:00-07:00", "downtown-coffee", null],
+    ["2010-10-12T19:10:00-07:00", "gelato-roma", null],
+    ["2010-10-19T21:12:00-07:00", "main-street-diner", null],
+  ];
+  assert.deepEqual(juneHistory.map(record => [record.simulatedCreatedAt, record.venueId, record.shout]), expectedJuneHistory, "F6d June records must retain exact chronology, venue, and shout values");
+  assert.equal(juneHistory.every(record => record.source === "seed" && record.classification === "PROJECT-CURATED-FICTION" && record.validForGameMechanics === true && record.validityClassification === "PROJECT-RECONSTRUCTED-VALID"), true, "F6d June records must remain seed-authored, project-curated, and game-valid");
+  assert.deepEqual(Object.fromEntries(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS.map(venueId => [venueId, juneHistory.filter(record => record.venueId === venueId).length])), { "main-street-diner": 2, "riverside-park": 1, "downtown-coffee": 2, "community-courts": 0, "westside-library": 0, "gelato-roma": 1 }, "F6d June venue distribution must remain exact");
+  assert.deepEqual(juneHistory.filter(record => record.shout !== null).map(record => record.shout), ["Dinner with everyone."], "F6d June history must contain exactly one approved shout");
+  assert.deepEqual(foursquareHistoricalActivity.getUniqueValidFoursquareVenueIds(juneHistory, "june"), ["downtown-coffee", "gelato-roma", "main-street-diner", "riverside-park"], "F6d June history must derive exactly four approved venues");
+  assert.equal(new Set(juneHistory.map(record => foursquareHistoricalActivity.getFoursquareHistoricalVisitDayKey(record))).size, 6, "F6d June history must contain six unique valid visit-day facts");
+  assert.ok(juneHistory.some(record => record.id === "foursquare-history-june-2010-10-19-main-street-diner" && record.shout === null), "F6d must retain the preferred future June Friends-feed replacement candidate");
+  assert.equal(juneHistory.some(record => ["night-owl", "cedar-books"].includes(record.venueId)), false, "F6d June history must exclude Night Owl and Cedar Books");
+
+  const lucaHistory = foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.filter(record => record.characterId === "luca");
+  const expectedLucaHistory = [
+    ["2010-09-05T16:30:00-07:00", "community-courts", "One more game."],
+    ["2010-09-20T18:20:00-07:00", "riverside-park", null],
+    ["2010-10-03T19:00:00-07:00", "gelato-roma", null],
+    ["2010-10-11T17:45:00-07:00", "community-courts", null],
+    ["2010-10-19T15:06:00-07:00", "main-street-diner", null],
+  ];
+  assert.deepEqual(lucaHistory.map(record => [record.simulatedCreatedAt, record.venueId, record.shout]), expectedLucaHistory, "F6d Luca records must retain exact chronology, venue, and shout values");
+  assert.equal(lucaHistory.every(record => record.source === "seed" && record.classification === "PROJECT-CURATED-FICTION" && record.validForGameMechanics === true && record.validityClassification === "PROJECT-RECONSTRUCTED-VALID"), true, "F6d Luca records must remain seed-authored, project-curated, and game-valid");
+  assert.deepEqual(Object.fromEntries(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS.map(venueId => [venueId, lucaHistory.filter(record => record.venueId === venueId).length])), { "main-street-diner": 1, "riverside-park": 1, "downtown-coffee": 0, "community-courts": 2, "westside-library": 0, "gelato-roma": 1 }, "F6d Luca venue distribution must remain exact");
+  assert.deepEqual(lucaHistory.filter(record => record.shout !== null).map(record => record.shout), ["One more game."], "F6d Luca history must contain exactly one approved shout");
+  assert.deepEqual(foursquareHistoricalActivity.getUniqueValidFoursquareVenueIds(lucaHistory, "luca"), ["community-courts", "gelato-roma", "main-street-diner", "riverside-park"], "F6d Luca history must derive exactly four approved venues");
+  assert.equal(new Set(lucaHistory.map(record => foursquareHistoricalActivity.getFoursquareHistoricalVisitDayKey(record))).size, 5, "F6d Luca history must contain five unique valid visit-day facts");
+  assert.equal(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.some(record => record.characterId === "mia"), false, "F6d must not canonicalize Mia's legacy Cedar activity");
+  assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.map(record => record.id), foursquareHistoricalActivity.sortFoursquareHistoricalCheckinsOldestFirst(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS).map(record => record.id), "F6d combined history must remain stored oldest-first");
+
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_HISTORY_COMPLETENESS, [
     { characterId: "alex", windowStart: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_START, windowEnd: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_END, level: "complete-for-game-window", mechanicsCoverage: ["rolling-visit-days", "weekly-repeat-visits", "consecutive-nights", "same-night-stops"], lifetimeHistoryComplete: false },
     { characterId: "katie", windowStart: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_START, windowEnd: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_END, level: "complete-for-game-window", mechanicsCoverage: ["rolling-visit-days", "weekly-repeat-visits", "consecutive-nights", "same-night-stops"], lifetimeHistoryComplete: false },
-  ], "F6c must preserve Alex completeness and add only the approved Katie declaration");
+    { characterId: "june", windowStart: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_START, windowEnd: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_END, level: "complete-for-game-window", mechanicsCoverage: ["rolling-visit-days", "weekly-repeat-visits", "consecutive-nights", "same-night-stops"], lifetimeHistoryComplete: false },
+    { characterId: "luca", windowStart: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_START, windowEnd: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_END, level: "complete-for-game-window", mechanicsCoverage: ["rolling-visit-days", "weekly-repeat-visits", "consecutive-nights", "same-night-stops"], lifetimeHistoryComplete: false },
+  ], "F6d must preserve Alex/Katie completeness and add only June/Luca declarations");
 
   const fixedAlexRiverside = alexHistory.find(record => record.simulatedCreatedAt === "2010-10-19T20:41:00-07:00");
   const foursquareHistoricalContent = await vite.ssrLoadModule("/src/data/foursquareContent.ts");
@@ -3989,6 +4026,15 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const legacyKatieRiverside = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.friendId === "katie" && activity.venueId === "riverside-park");
   assert.ok(fixedKatieRiverside && legacyKatieRiverside, "F6c must preserve both fixed Katie Riverside source representations");
   assert.deepEqual([fixedKatieRiverside.characterId, fixedKatieRiverside.venueId, fixedKatieRiverside.simulatedCreatedAt, fixedKatieRiverside.shout ?? null], [legacyKatieRiverside.friendId, legacyKatieRiverside.venueId, legacyKatieRiverside.simulatedCreatedAt, legacyKatieRiverside.shout ?? null], "F6c historical and legacy F1 Katie Riverside rows must agree");
+  const fixedLucaMainStreet = lucaHistory.find(record => record.simulatedCreatedAt === "2010-10-19T15:06:00-07:00");
+  const legacyLucaMainStreet = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "luca-main-street-diner");
+  assert.ok(fixedLucaMainStreet && legacyLucaMainStreet, "F6d must preserve both fixed Luca Main Street source representations");
+  assert.deepEqual([fixedLucaMainStreet.characterId, fixedLucaMainStreet.venueId, fixedLucaMainStreet.simulatedCreatedAt, fixedLucaMainStreet.shout ?? null], [legacyLucaMainStreet.friendId, legacyLucaMainStreet.venueId, legacyLucaMainStreet.simulatedCreatedAt, legacyLucaMainStreet.shout ?? null], "F6d historical and legacy F1 Luca Main Street rows must agree");
+  const quarantinedJuneMainStreet = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "june-main-street-diner");
+  assert.deepEqual([quarantinedJuneMainStreet?.simulatedCreatedAt, quarantinedJuneMainStreet?.shout, quarantinedJuneMainStreet?.visible], ["2010-10-19T22:52:00-07:00", "Late dinner.", false], "F6d must leave the invalid June 22:52 legacy row quarantined and unchanged");
+  const legacyMiaCedar = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "mia-cedar-books");
+  assert.deepEqual([legacyMiaCedar?.friendId, legacyMiaCedar?.venueId, legacyMiaCedar?.simulatedCreatedAt, legacyMiaCedar?.shout ?? null, legacyMiaCedar?.visible], ["foursquare-mia", "cedar-books", "2010-10-19T20:42:00-07:00", null, true], "F6d must leave Mia's unresolved Cedar legacy row unchanged");
+  assert.equal(foursquareHistoricalActivity.FOURSQUARE_HISTORY_COMPLETENESS.some(entry => entry.characterId === "mia"), false, "F6d must not make a false Mia completeness claim");
   assert.equal(Object.keys(foursquareHistoricalActivity).some(key => /badge|mayor/i.test(key)), false, "F6a exports must contain no badge or mayor derivation");
   assert.doesNotMatch(historicalActivitySource, /foursquareGameSeed|foursquareGameModel|sessionTimeline/, "F6a history must remain isolated from F3/F4 and realtime domains");
   console.log("F6a historical activity contract checks: PASS");

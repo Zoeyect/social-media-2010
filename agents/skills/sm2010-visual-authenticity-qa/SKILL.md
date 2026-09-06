@@ -42,9 +42,9 @@ Unless a newer project-local canonical source explicitly overrides these values,
 - Project: **SOCIAL MEDIA, 2010**
 - Primary device: **iPhone 4**
 - OS target: **iOS 4.1**
-- Primary experience date: **2010-10-19**
-- Primary experience start: **22:02 U.S. Pacific Time**
-- Core experience window: **22:02–22:17** (15 minutes)
+- Primary experience date: **2010-10-20**
+- Primary experience start: **00:02 U.S. Pacific Time**
+- Core experience window: **00:02–00:17** (15 minutes)
 - Canonical time zone: **America/Los_Angeles**
 - Master timeline scope: **cross-app**; apps must not maintain independent canonical clocks
 - Runtime derivation: absolute runtime duplicates derive from the master timeline, never an app-local reference date
@@ -395,8 +395,8 @@ Do not create new relationships, tags, replies, likes, timestamps, or historical
 
 SM2010 is a synchronized narrative system, not four independent mock apps.
 
-The locked master runtime begins at `2010-10-19T22:02:00-07:00`, ends at
-`2010-10-19T22:17:00-07:00`, and uses `America/Los_Angeles`. Scheduler offsets
+The locked master runtime begins at `2010-10-20T00:02:00-07:00`, ends at
+`2010-10-20T00:17:00-07:00`, and uses `America/Los_Angeles`. Scheduler offsets
 are measured from that shared T0. Any absolute duplicate of a runtime timestamp
 must derive from the master timeline. Historical content timestamps are separate
 records and must not be shifted merely because T0 changes. App-local clocks,
@@ -838,6 +838,399 @@ Use this condensed pass for routine work:
 [ ] Inspect diff for scope creep
 [ ] Report confidence + uncertainty
 ```
+# 26. Parallel Development / Scope Isolation
+
+SOCIAL MEDIA, 2010 may be developed in parallel across multiple VS Code / Codex windows, but all work must remain inside the same repository unless the user explicitly decides otherwise.
+
+Parallel development must preserve clear ownership boundaries.
+
+## Track A — Hero / Persistent Device Shell
+
+Track A owns:
+
+- 3D iPhone 4 model integration
+- 30-pin charging cable / connector
+- charging pose
+- identity Hero layout
+- `What was your name?` presentation
+- name-confirmed transition
+- cable detach animation
+- iPhone movement from Hero-right to center
+- user-controlled 3D inspection
+- physical power-button hotspot
+- boot transition
+- front alignment
+- persistent 3D device shell
+- eventual screen portal integration
+- power-loss return animation
+- reconnect-to-charger animation
+
+Preferred isolated working area:
+
+```text
+src/hero/**
+src/assets/hero/**
+src/assets/models/**
+During isolated Hero development:
+- do not modify Facebook, Twitter, Instagram, Foursquare, Camera, Messages, seeded content, historical timelines, or unrelated app state
+- do not restructure the existing 15-minute experience merely to simplify Hero implementation
+- avoid editing shared integration files such as App.tsx, device lifecycle state, or session state until a dedicated integration pass is requested
+- prefer a DEV-only Hero sandbox / preview route until the 3D phone can independently reach its front-aligned state
+- do not require unfinished app features in order to complete Hero visual behavior
+Track B — 15-Minute Experience
+Track B owns:
+- iOS / SpringBoard behavior
+- Facebook
+- Twitter
+- Instagram
+- Foursquare
+- Messages / SMS
+- Camera
+- Camera ambient videos
+- Camera random scene/event selection
+- Camera Roll
+- cross-app continuity
+- runtime notifications
+- experience clock
+- battery depletion
+- app-specific runtime behavior
+- historical content and interaction fidelity
+During Track B work:
+- do not modify Hero 3D model code
+- do not alter Hero charging/detach/inspect/return animations
+- do not introduce assumptions about final Hero geometry into app-local state
+Shared-file concurrency rule
+Do not let parallel agents or VS Code windows modify the same shared integration file concurrently.
+Pay particular attention to:
+- App.tsx
+- device/session runtime state
+- experience lifecycle state
+- global layout containers
+- Camera/session bootstrap
+- screen portal ownership
+Before editing a shared file:
+1. inspect git status
+2. inspect the current diff
+3. determine whether another development track may be touching that file
+4. keep the integration change minimal
+5. do not mix unrelated refactors into the integration pass
+A clean working tree is preferred before major Track A / Track B integration.
+Integration rule
+Hero and Experience must connect through a small lifecycle contract rather than direct knowledge of individual app internals.
+Conceptually:
+Hero Identity
+↓
+startExperience({ name })
+↓
+Inspect / Power
+↓
+Boot
+↓
+enterExperience()
+↓
+Existing SM2010 experience
+↓
+finishExperience({ reason: "battery-depleted" })
+↓
+resetExperienceSession()
+↓
+Return to charging Hero
+Do not make Hero code depend directly on Facebook, Twitter, Camera, Foursquare, or other app implementation details.
+Do not make individual apps responsible for Hero animation.
+27. Persistent 3D Device Shell Architecture
+The 3D iPhone 4 is a persistent visual hardware object.
+Core principle
+The phone never disappears. Only its state changes.
+
+Do not implement the experience as:
+3D Hero phone
+→ remove 3D phone
+→ replace with unrelated 2D phone
+→ restore another 3D phone at the end
+The intended visual continuity is:
+same iPhone 4
+
+charging
+↓
+identity
+↓
+detached
+↓
+inspected
+↓
+powered on
+↓
+used for 15 minutes
+↓
+battery depleted
+↓
+screen black
+↓
+returned to charger
+↓
+charging again
+Hardware / software separation
+Prefer the architecture:
+3D DEVICE SHELL
++
+2D / DOM SOFTWARE EXPERIENCE
+The 3D layer owns physical hardware presentation:
+- metal frame
+- front/back glass
+- Home button
+- power button
+- volume buttons
+- mute switch
+- camera hardware
+- 30-pin connector
+- charging cable
+- physical position
+- physical rotation
+- lighting/reflections
+The existing React / DOM simulator owns software:
+- lock screen
+- SpringBoard
+- Facebook
+- Twitter
+- Instagram
+- Foursquare
+- Messages
+- Camera UI
+- Photos
+- text input
+- scrolling
+- application interaction
+Do not rewrite the full interactive simulator as a Three.js texture unless explicitly requested.
+Screen portal principle
+During the active experience, the 3D iPhone shell remains visually present while the existing interactive simulator occupies or visually aligns with the phone's screen region.
+The handoff should preserve:
+- phone position
+- phone scale
+- screen bounds
+- bezel geometry
+- visual continuity
+Avoid an obvious:
+3D phone fades out
+→ different 2D device suddenly appears
+The transition should appear to be the same physical device changing state.
+Hero phases
+The intended visual state sequence is:
+IDENTITY / CHARGING
+↓
+DETACHING
+↓
+INSPECT
+↓
+BOOTING
+↓
+EXPERIENCE
+↓
+POWER LOSS
+↓
+RETURN TO CHARGER
+↓
+IDENTITY / CHARGING
+IDENTITY / CHARGING
+- 3D iPhone 4 appears on the right side
+- 30-pin charging cable is connected
+- screen is off
+- left side displays:
+  - What was your name?
+  - name input
+- phone motion is extremely restrained
+- do not require constant autonomous rotation
+DETACHING
+After valid name confirmation:
+- identity UI begins leaving
+- 30-pin connector detaches
+- cable falls/moves away subtly
+- cable disappears from the active composition
+- iPhone moves from the right side toward center
+Do not make cable motion theatrical or mechanical.
+INSPECT
+- iPhone remains powered off
+- user may rotate/inspect the 3D phone
+- rotation is user-driven
+- idle motion should be minimal
+- light damping after release is acceptable
+- do not create endless automatic product-spin behavior
+- physical power button becomes available
+Users may inspect for as long or as briefly as they choose.
+Do not force a minimum inspection duration.
+BOOTING
+After physical power-button activation:
+- disable free rotation
+- smoothly return phone to canonical front alignment
+- preserve the same physical model
+- screen begins boot sequence
+- Apple boot presentation remains historically appropriate
+- prepare visual alignment with the interactive simulator
+EXPERIENCE
+During the 15-minute experience:
+- 3D iPhone shell remains visually present
+- software interaction becomes primary
+- device movement becomes static or nearly static
+- do not continuously follow pointer movement
+- do not add distracting idle rotation
+- prioritize readability and interaction accuracy
+If any 2.5D treatment remains, it must be extremely restrained.
+POWER LOSS
+At battery depletion:
+- interaction stops
+- software screen becomes black
+- do not replace the device
+- retain the same 3D iPhone shell
+- allow a short quiet pause before return motion
+RETURN TO CHARGER
+- same phone moves back toward the original Hero-right position
+- 30-pin cable returns
+- connector reattaches
+- motion remains physically restrained
+- return to identity composition
+The animation must not imply a different physical device has appeared.
+3D motion principle
+Motion must have a reason.
+Prefer:
+idle       → nearly still
+inspect    → user-driven
+power      → controlled auto-align
+experience → static / extremely subtle
+power loss → deliberate return
+charging   → nearly still
+Do not use continuous motion merely to demonstrate 3D capability.
+28. Experience Session Lifecycle & Reset Boundary
+The persistent 3D phone and the disposable 15-minute experience session are different layers.
+Core distinction
+Persistent visual device
+≠
+Experience session state
+≠
+World-persistent content
+Do not reset all three together.
+Experience session creation
+A new experience session begins after identity confirmation and before active SM2010 runtime begins.
+Conceptually:
+name confirmed
+↓
+new experienceSessionId
+↓
+initialize session-scoped runtime
+↓
+initialize Camera scene selection
+↓
+power / boot
+↓
+15-minute experience
+The exact implementation may differ, but Camera and other session-specific systems must be tied to the newly created experience session rather than accidentally surviving from a prior loop.
+Camera randomization
+Camera random selection must operate once per new experience session.
+For every new experience session:
+new experienceSessionId
+↓
+select Camera event group
+↓
+select event variant
+↓
+store cameraVideoEventType
+↓
+store cameraVideoSceneId
+The selected Camera scene remains fixed throughout that experience session.
+Do not randomize on:
+- Camera open
+- Camera close
+- React render
+- shutter press
+- app switching
+- video ended
+- Home navigation
+When the 15-minute session ends and a new user/name begins a new experience session, Camera random selection must run again.
+Example:
+session A → cat
+session B → nothing
+session C → passing-car
+This variability is intentional.
+Session-scoped state
+Unless project-specific rules explicitly say otherwise, candidates for reset between 15-minute sessions include:
+- user-entered name
+- experienceSessionId
+- Camera random scene/event selection
+- Camera Roll player captures
+- temporary app navigation
+- open overlays
+- scroll position
+- transient notifications
+- runtime unread state when appropriate
+- temporary compose state
+- session-local interactions
+- session battery
+- session runtime clock
+Do not assume every listed item must be reset identically; verify current project semantics before implementation.
+World-persistent state
+Do not erase world-persistent content merely because the device returns to charging.
+World-persistent content may include:
+- canonical Jack / June / Matt / other character content
+- canonical historical social content
+- locked timeline data
+- approved historical media
+- public visitor Twitter posts if the project defines them as persistent
+- global visitor traces intended to survive sessions
+Core rule:
+Experience resets. The reconstructed world does not automatically reset.
+
+Battery / 15-minute lifecycle
+The canonical experience remains:
+2010-10-20
+00:02–00:17
+America/Los_Angeles
+15 minutes
+Battery depletion may be used as the narrative termination mechanism.
+Do not let experimental battery simulation unpredictably change the canonical 15-minute duration unless explicitly requested.
+For the primary experience, the system should reliably reach the intended end state at the canonical duration.
+Heavy Camera use or app activity must not accidentally terminate the canonical experience early unless variable battery consumption becomes an explicit locked design decision.
+End-of-session contract
+The 15-minute experience should expose one clear end signal to the persistent device shell.
+Conceptually:
+finishExperience({
+  reason: "battery-depleted"
+})
+The Hero / device shell responds by:
+disable interaction
+↓
+screen black
+↓
+return phone to charger
+↓
+reconnect cable
+↓
+reset session-scoped runtime
+↓
+show identity prompt
+Individual apps must not independently trigger Hero return animation.
+Development while the experience is unfinished
+The full 15-minute experience does not need to be complete before Hero development proceeds.
+During development, Hero return behavior may use a DEV-only trigger such as:
+simulatePowerLoss()
+or an equivalent debug control.
+This may trigger:
+POWER LOSS
+→ RETURN TO CHARGER
+→ IDENTITY
+without waiting 15 real minutes.
+The DEV trigger must not become production behavior.
+Once the canonical battery/session lifecycle is stable, replace the debug trigger with the real experience-end contract.
+Reset safety
+Before implementing session reset:
+1. enumerate all session-scoped state
+2. enumerate all world-persistent state
+3. identify persistence mechanisms
+4. identify Camera selection ownership
+5. identify Camera Roll ownership
+6. identify public visitor content ownership
+7. verify that reset does not delete canonical or world-persistent content
+Do not implement reset as a generic page reload unless explicitly chosen.
+Do not rely on browser refresh semantics as the architecture for experience lifecycle.
+A reset should be an intentional application lifecycle transition.
+
 
 # Final Rule
 

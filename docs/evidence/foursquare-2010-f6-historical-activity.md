@@ -91,3 +91,36 @@ are not migrated by F6a.
 F6a derives no badge, mayor, incumbent, crown, player gap, or leaderboard fact.
 Historical record count is independent from the existing F3 leaderboard. F3,
 F4, Profile, Venue, Result, Friends feed, and scheduler behavior remain unchanged.
+
+## F6b: Alex historical activity
+
+F6b authors exactly 15 Alex historical check-ins, stored oldest-first from
+August 22 through October 19, 2010. Every record is `seed`,
+`PROJECT-CURATED-FICTION`, and `PROJECT-RECONSTRUCTED-VALID`, and every record
+is valid for game mechanics.
+
+The approved venue distribution is Riverside Park 4, Downtown Coffee 4, Main
+Street Diner 3, Community Courts 2, Westside Library 1, and Gelato Roma 1. The
+month distribution is August 2, September 7, and October 1-19 6. Exactly three
+records contain shouts: `Needed coffee.`, `Food then home.`, and `Evening walk
+with the dogs.`
+
+The fixed Alex Riverside Park record remains
+`2010-10-19T20:41:00-07:00` with the shout `Evening walk with the dogs.` The
+legacy F1 source row remains temporarily present and must agree on character,
+venue, timestamp, and shout. Historical Friends-feed projection remains empty,
+so this duplicate source representation does not create a second visible row.
+
+The existing Facebook Riverside Park check-in at
+`2010-10-19T21:36:00-07:00` remains separate and unchanged. F6b does not author
+a second Foursquare record at that time.
+
+Alex alone is declared `complete-for-game-window` for the locked F6 window,
+with coverage for rolling visit days, weekly repeat visits, consecutive nights,
+and same-night stops. This is not lifetime completeness;
+`lifetimeHistoryComplete` remains `false`. No other character receives a
+completeness declaration.
+
+F6b does not add badge ownership, mayorship ownership, leaderboard state,
+player history, UI projection, runtime events, scheduler behavior, or new
+venues.

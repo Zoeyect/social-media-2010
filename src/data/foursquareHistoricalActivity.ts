@@ -45,8 +45,33 @@ export type FoursquareHistoryCompleteness = Readonly<{
   lifetimeHistoryComplete: false;
 }>;
 
-export const FOURSQUARE_HISTORICAL_CHECKINS: readonly FoursquareHistoricalCheckin[] = Object.freeze([]);
-export const FOURSQUARE_HISTORY_COMPLETENESS: readonly FoursquareHistoryCompleteness[] = Object.freeze([]);
+export const FOURSQUARE_HISTORICAL_CHECKINS: readonly FoursquareHistoricalCheckin[] = Object.freeze([
+  { id: "foursquare-history-alex-2010-08-22-riverside-park", characterId: "alex", venueId: "riverside-park", simulatedCreatedAt: "2010-08-22T11:20:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-08-27-downtown-coffee", characterId: "alex", venueId: "downtown-coffee", simulatedCreatedAt: "2010-08-27T08:10:00-07:00", shout: "Needed coffee.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-09-01-main-street-diner", characterId: "alex", venueId: "main-street-diner", simulatedCreatedAt: "2010-09-01T12:35:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-09-04-downtown-coffee", characterId: "alex", venueId: "downtown-coffee", simulatedCreatedAt: "2010-09-04T10:15:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-09-09-community-courts", characterId: "alex", venueId: "community-courts", simulatedCreatedAt: "2010-09-09T18:10:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-09-14-riverside-park", characterId: "alex", venueId: "riverside-park", simulatedCreatedAt: "2010-09-14T18:35:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-09-18-main-street-diner", characterId: "alex", venueId: "main-street-diner", simulatedCreatedAt: "2010-09-18T19:20:00-07:00", shout: "Food then home.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-09-24-downtown-coffee", characterId: "alex", venueId: "downtown-coffee", simulatedCreatedAt: "2010-09-24T08:45:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-09-29-westside-library", characterId: "alex", venueId: "westside-library", simulatedCreatedAt: "2010-09-29T17:40:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-10-02-gelato-roma", characterId: "alex", venueId: "gelato-roma", simulatedCreatedAt: "2010-10-02T21:05:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-10-06-main-street-diner", characterId: "alex", venueId: "main-street-diner", simulatedCreatedAt: "2010-10-06T18:50:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-10-09-riverside-park", characterId: "alex", venueId: "riverside-park", simulatedCreatedAt: "2010-10-09T16:10:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-10-13-downtown-coffee", characterId: "alex", venueId: "downtown-coffee", simulatedCreatedAt: "2010-10-13T12:25:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-10-16-community-courts", characterId: "alex", venueId: "community-courts", simulatedCreatedAt: "2010-10-16T15:30:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-alex-2010-10-19-riverside-park", characterId: "alex", venueId: "riverside-park", simulatedCreatedAt: "2010-10-19T20:41:00-07:00", shout: "Evening walk with the dogs.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+]);
+export const FOURSQUARE_HISTORY_COMPLETENESS: readonly FoursquareHistoryCompleteness[] = Object.freeze([
+  {
+    characterId: "alex",
+    windowStart: FOURSQUARE_HISTORY_WINDOW_START,
+    windowEnd: FOURSQUARE_HISTORY_WINDOW_END,
+    level: "complete-for-game-window",
+    mechanicsCoverage: Object.freeze<FoursquareMechanicsCoverage[]>(["rolling-visit-days", "weekly-repeat-visits", "consecutive-nights", "same-night-stops"]),
+    lifetimeHistoryComplete: false,
+  },
+]);
 export const FOURSQUARE_FRIENDS_FEED_HISTORY_IDS: readonly string[] = Object.freeze([]);
 
 const NPC_ID_SET: ReadonlySet<string> = new Set(FOURSQUARE_NPC_IDS);

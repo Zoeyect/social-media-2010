@@ -3881,7 +3881,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   );
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_NPC_IDS, ["alex", "katie", "june", "luca", "mia"], "F6a history must remain NPC-only");
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS, ["main-street-diner", "riverside-park", "downtown-coffee", "community-courts", "westside-library", "gelato-roma"], "F6a must whitelist only canonical historical venues");
-  assert.deepEqual([foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS, foursquareHistoricalActivity.FOURSQUARE_HISTORY_COMPLETENESS, foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS], [[], [], []], "F6a must ship without authored history, false completeness, or feed projection");
+  assert.equal(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.length, 15, "F6b must author exactly 15 Alex historical check-ins");
+  assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS, [], "F6b must not migrate historical records into the Friends feed");
 
   const historicalRecord = (overrides = {}) => ({
     id: "foursquare-history-alex-2010-10-09-riverside-park",
@@ -3922,6 +3923,41 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(foursquareHistoricalActivity.getUniqueValidFoursquareVenueIds(unsortedHistory, "alex"), ["downtown-coffee", "riverside-park"], "valid venue derivation must exclude narrative-only records");
   assert.deepEqual(foursquareHistoricalActivity.sortFoursquareHistoricalCheckinsOldestFirst(unsortedHistory).map(record => record.simulatedCreatedAt), ["2010-10-09T16:40:00-07:00", "2010-10-09T18:40:00-07:00", "2010-10-09T20:10:00-07:00", "2010-10-10T08:15:00-07:00", "2010-10-11T08:15:00-07:00"], "F6a sorting must be deterministic and oldest-first");
   assert.deepEqual(unsortedHistory.map(record => record.id), originalHistoryOrder, "F6a sorting must not mutate authored arrays");
+
+  foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckins(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS);
+  const alexHistory = foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS;
+  const expectedAlexHistory = [
+    ["2010-08-22T11:20:00-07:00", "riverside-park", null],
+    ["2010-08-27T08:10:00-07:00", "downtown-coffee", "Needed coffee."],
+    ["2010-09-01T12:35:00-07:00", "main-street-diner", null],
+    ["2010-09-04T10:15:00-07:00", "downtown-coffee", null],
+    ["2010-09-09T18:10:00-07:00", "community-courts", null],
+    ["2010-09-14T18:35:00-07:00", "riverside-park", null],
+    ["2010-09-18T19:20:00-07:00", "main-street-diner", "Food then home."],
+    ["2010-09-24T08:45:00-07:00", "downtown-coffee", null],
+    ["2010-09-29T17:40:00-07:00", "westside-library", null],
+    ["2010-10-02T21:05:00-07:00", "gelato-roma", null],
+    ["2010-10-06T18:50:00-07:00", "main-street-diner", null],
+    ["2010-10-09T16:10:00-07:00", "riverside-park", null],
+    ["2010-10-13T12:25:00-07:00", "downtown-coffee", null],
+    ["2010-10-16T15:30:00-07:00", "community-courts", null],
+    ["2010-10-19T20:41:00-07:00", "riverside-park", "Evening walk with the dogs."],
+  ];
+  assert.deepEqual(alexHistory.map(record => [record.simulatedCreatedAt, record.venueId, record.shout]), expectedAlexHistory, "F6b Alex records must retain exact chronology, venue, and shout values");
+  assert.equal(alexHistory.every(record => record.characterId === "alex" && record.source === "seed" && record.classification === "PROJECT-CURATED-FICTION" && record.validForGameMechanics === true && record.validityClassification === "PROJECT-RECONSTRUCTED-VALID"), true, "F6b records must remain Alex-only, seed-authored, project-curated, and game-valid");
+  assert.deepEqual(alexHistory.map(record => record.id), foursquareHistoricalActivity.sortFoursquareHistoricalCheckinsOldestFirst(alexHistory).map(record => record.id), "F6b Alex records must remain stored oldest-first");
+  assert.deepEqual(Object.fromEntries(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS.map(venueId => [venueId, alexHistory.filter(record => record.venueId === venueId).length])), { "main-street-diner": 3, "riverside-park": 4, "downtown-coffee": 4, "community-courts": 2, "westside-library": 1, "gelato-roma": 1 }, "F6b Alex venue distribution must remain exact");
+  assert.deepEqual(Object.fromEntries(["2010-08", "2010-09", "2010-10"].map(month => [month, alexHistory.filter(record => record.simulatedCreatedAt.startsWith(month)).length])), { "2010-08": 2, "2010-09": 7, "2010-10": 6 }, "F6b Alex month distribution must remain 2/7/6");
+  assert.deepEqual(alexHistory.filter(record => record.shout !== null).map(record => record.shout), ["Needed coffee.", "Food then home.", "Evening walk with the dogs."], "F6b Alex history must contain exactly three approved shouts");
+  assert.deepEqual(foursquareHistoricalActivity.getUniqueValidFoursquareVenueIds(alexHistory, "alex"), ["community-courts", "downtown-coffee", "gelato-roma", "main-street-diner", "riverside-park", "westside-library"], "F6b Alex history must derive all six approved venues");
+  assert.deepEqual(Object.fromEntries(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS.map(venueId => [venueId, foursquareHistoricalActivity.getUniqueValidVisitDaysForVenue(alexHistory, "alex", venueId).length])), { "main-street-diner": 3, "riverside-park": 4, "downtown-coffee": 4, "community-courts": 2, "westside-library": 1, "gelato-roma": 1 }, "F6b Alex history must derive 15 unique valid venue visit-days");
+  assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_HISTORY_COMPLETENESS, [{ characterId: "alex", windowStart: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_START, windowEnd: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_END, level: "complete-for-game-window", mechanicsCoverage: ["rolling-visit-days", "weekly-repeat-visits", "consecutive-nights", "same-night-stops"], lifetimeHistoryComplete: false }], "F6b must publish only the approved Alex completeness declaration");
+
+  const fixedAlexRiverside = alexHistory.find(record => record.simulatedCreatedAt === "2010-10-19T20:41:00-07:00");
+  const foursquareHistoricalContent = await vite.ssrLoadModule("/src/data/foursquareContent.ts");
+  const legacyAlexRiverside = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "alex-riverside-evening");
+  assert.ok(fixedAlexRiverside && legacyAlexRiverside, "F6b must preserve both fixed Alex Riverside source representations");
+  assert.deepEqual([fixedAlexRiverside.characterId, fixedAlexRiverside.venueId, fixedAlexRiverside.simulatedCreatedAt, fixedAlexRiverside.shout], [legacyAlexRiverside.friendId, legacyAlexRiverside.venueId, legacyAlexRiverside.simulatedCreatedAt, legacyAlexRiverside.shout], "F6b historical and legacy F1 Alex Riverside rows must agree");
   assert.equal(Object.keys(foursquareHistoricalActivity).some(key => /badge|mayor/i.test(key)), false, "F6a exports must contain no badge or mayor derivation");
   assert.doesNotMatch(historicalActivitySource, /foursquareGameSeed|foursquareGameModel|sessionTimeline/, "F6a history must remain isolated from F3/F4 and realtime domains");
   console.log("F6a historical activity contract checks: PASS");

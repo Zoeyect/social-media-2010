@@ -60,6 +60,7 @@ export type CameraSession = {
 export type CameraRuntimeState = Record<CameraOwner, CameraSession>;
 
 export type CameraRuntimeEvent =
+  | { type: "INITIALIZE_SESSION"; sceneId: CameraVideoSceneId; eventType: CameraVideoEventType }
   | { type: "LAUNCH"; owner: CameraOwner }
   | { type: "LAUNCH_COMPLETE"; owner: CameraOwner }
   | { type: "SUSPEND"; owner: CameraOwner }
@@ -120,6 +121,7 @@ export function cameraRuntimeTransition(
   state: CameraRuntimeState,
   event: CameraRuntimeEvent,
 ): CameraRuntimeState {
+  if (event.type === "INITIALIZE_SESSION") return createInitialCameraRuntimeState(event.sceneId, event.eventType);
   const session = state[event.owner];
   const replace = (next: CameraSession): CameraRuntimeState => ({ ...state, [event.owner]: next });
 

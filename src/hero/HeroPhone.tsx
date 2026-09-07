@@ -22,6 +22,7 @@ const START_ROTATION_Y = MathUtils.degToRad(-34);
 const FINAL_PRESENTATION_SCALE = { desktop: 1.18 * 1.30, narrow: 1.02 * 1.30 } as const;
 
 type HeroPhoneProps = Readonly<{
+  resetGeneration: number;
   powerHitEnabled: boolean;
   runtimePower?: RuntimePowerControl;
   bootStartedAt: number | null;
@@ -47,6 +48,7 @@ type DragState = {
 };
 
 export function HeroPhone({
+  resetGeneration,
   powerHitEnabled,
   runtimePower,
   bootStartedAt,
@@ -176,11 +178,13 @@ export function HeroPhone({
       detachProgress = progress; // Return progress, consumed by the existing cable.
       invalidate();
       if (progress === 1) onLifecycleAdvance();
-    } else if (phase === "recharging") {
-      detachProgress = Math.min(1, phaseElapsed.current / HERO_RECHARGE_SECONDS);
+    } else if (phase === "recharging" || phase === "resetting") {
+      detachProgress = phase === "resetting" ? 1 : Math.min(1, phaseElapsed.current / HERO_RECHARGE_SECONDS);
       rotation.current = { x: START_ROTATION_X, y: START_ROTATION_Y };
-      invalidate();
-      if (phaseElapsed.current >= HERO_RECHARGE_SECONDS) onLifecycleAdvance();
+      if (phase === "recharging") {
+        invalidate();
+        if (phaseElapsed.current >= HERO_RECHARGE_SECONDS) onLifecycleAdvance();
+      }
     }
 
     phone.position.set(x, y, 0);
@@ -265,6 +269,7 @@ export function HeroPhone({
           onHomePress={softwareActive ? onHomePress : undefined}
           powerEnabled={powerHitEnabled && !softwareActive}
           runtimePower={runtimePower}
+          resetGeneration={resetGeneration}
           onPowerPress={onPowerPress}
           onRolesReady={handleRolesReady}
           onDiagnostics={handleDiagnostics}

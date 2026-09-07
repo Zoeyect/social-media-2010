@@ -9,7 +9,8 @@ export type HeroPhase =
   | "experience"
   | "power-loss"
   | "returning"
-  | "recharging";
+  | "recharging"
+  | "resetting";
 
 export type HeroScreenBounds = Readonly<{
   left: number;
@@ -46,4 +47,6 @@ export type HeroState = Readonly<{
   awaitingPower: boolean;
   bootStartedAt: number | null;
   bootComplete: boolean;
+  terminalFired: boolean;
+  resetGeneration: number;
 }>;

@@ -11,6 +11,7 @@ import { HeroChargerDiagnostics, chargerDiagnosticsEnabled } from "./HeroCharger
 import type { HeroCableAnchor, HeroPhase, HeroScreenGeometry } from "./heroTypes";
 
 type HeroSceneProps = Readonly<{
+  resetGeneration: number;
   powerHitEnabled: boolean;
   runtimePower?: RuntimePowerControl;
   bootStartedAt: number | null;
@@ -183,7 +184,7 @@ function SceneContents(props: HeroSceneProps & { lightingPreset: HeroLightingPre
     <ReflectionEnvironment preset={props.lightingPreset} reflectionV2={props.reflectionV2} frontDepth={props.frontDepth && props.phase === "front-aligned"} />
     <SoftLighting preset={props.lightingPreset} charcoalFill={props.charcoalFill} />
     <Suspense fallback={null}>
-      <HeroCable detachAmount={props.phase === "identity" || props.phase === "recharging" ? 0 : cable.progress}
+      <HeroCable detachAmount={props.phase === "identity" || props.phase === "recharging" || props.phase === "resetting" ? 0 : cable.progress}
         rechargeAmount={props.phase === "recharging" ? (cable.phase === "recharging" ? cable.progress : 0) : undefined}
         returnAmount={props.phase === "returning" ? (cable.phase === "returning" ? cable.progress : 0) : undefined} />
       <HeroPhone {...props} bootStartedAt={props.portalEnabled ? null : props.bootStartedAt} softwareActive={Boolean(props.screen && props.bootComplete && props.phase === "experience")} onCableState={updateCable} />

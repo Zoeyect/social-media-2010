@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { DeviceAudio } from "../audio/deviceAudio";
 import type { RuntimePowerControl } from "../device/DevicePresentation";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
@@ -29,13 +29,27 @@ function roundedSide(width: number, height: number, depth: number, radius: numbe
   return geometry;
 }
 
-export function useHeroHardware(root: Object3D | null, enabled: boolean, onPowerPress: () => void, onHomePress?: () => void, runtimePower?: RuntimePowerControl) {
+export function useHeroHardware(root: Object3D | null, enabled: boolean, onPowerPress: () => void, onHomePress?: () => void, runtimePower?: RuntimePowerControl, resetGeneration = 0) {
   const { invalidate } = useThree();
   const state = useRef<HardwareState>({ pressed: null, volume: 8, muteMode: "ringer" });
   useEffect(() => DeviceAudio.bindHardwareMuteMode(() => state.current.muteMode), []);
   const assemblies = useRef(new Map<Control, Assembly>());
   const powerHitHelper = useRef<Mesh | null>(null);
   const mute = useRef<{ slider: Mesh; indicator: Mesh } | null>(null);
+  const completedMuteReset = useRef(resetGeneration);
+  useLayoutEffect(() => {
+    if (completedMuteReset.current === resetGeneration) return;
+    completedMuteReset.current = resetGeneration;
+    // RESET_COMPLETE only: preserve the old user's switch through recharge,
+    // then restore hardware and its single audio authority before identity paint.
+    state.current.muteMode = "ringer";
+    if (mute.current) {
+      mute.current.slider.position.z = 0.00075;
+      mute.current.indicator.visible = false;
+    }
+    DeviceAudio.hardwareMuteChanged();
+    invalidate();
+  }, [resetGeneration, invalidate]);
   const activePointer = useRef<number | null>(null);
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
@@ -223,7 +237,7 @@ export function useHeroHardware(root: Object3D | null, enabled: boolean, onPower
   });
 
   useEffect(() => {
-    if (!import.meta.env.DEV || new URLSearchParams(location.search).get("heroHardwareDebug") !== "1") return;
+    if (!import.meta.env.DEV || !["heroHardwareDebug", "heroLifecycleDebug"].some(key => new URLSearchParams(location.search).get(key) === "1")) return;
     const output = document.createElement("output");
     Object.assign(output.style, { position: "fixed", right: "8px", top: "8px", zIndex: "45", padding: "6px", background: "#101010dd", color: "#bbb", font: "11px monospace", pointerEvents: "none" });
     document.body.append(output);

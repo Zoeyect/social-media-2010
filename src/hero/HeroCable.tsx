@@ -40,13 +40,13 @@ export function HeroCable({ detachAmount, returnAmount, rechargeAmount }: HeroCa
   useEffect(() => () => housing.dispose(), [housing]);
   const returning = returnAmount !== undefined;
   const recharging = rechargeAmount !== undefined;
-  const approach = restrainedEase(((returnAmount ?? 0) - 0.65) / 0.35);
   const withdrawal = returning || recharging ? 0 : restrainedEase(Math.min(1, detachAmount / 0.28));
   const fall = returning || recharging ? 0 : restrainedEase(Math.max(0, (detachAmount - 0.28) / 0.72));
-  const opacity = returning ? restrainedEase(((returnAmount ?? 0) - 0.60) / 0.15)
-    : recharging ? 1 : 1 - restrainedEase(Math.max(0, (detachAmount - 0.55) / 0.45));
-  const separation = returning ? 0.045 - 0.039 * approach
-    : recharging ? 0.006 * (1 - restrainedEase(rechargeAmount))
+  // Approach begins only after the phone has reached its return pose.
+  const opacity = returning ? 0
+    : recharging ? restrainedEase(rechargeAmount / 0.25) : 1 - restrainedEase(Math.max(0, (detachAmount - 0.55) / 0.45));
+  const separation = returning ? 0.045
+    : recharging ? 0.045 * (1 - restrainedEase(rechargeAmount))
     : withdrawal * 0.006 + fall * 0.075;
   useFrame(() => {
     const connector = root.current;

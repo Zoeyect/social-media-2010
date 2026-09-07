@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { HeroDevicePresentation } from "../device/DevicePresentation";
 import { HeroDebug } from "./HeroDebug";
 import { HeroIdentity } from "./HeroIdentity";
 import { HeroScene } from "./HeroScene";
-import { HERO_BOOT_DURATION_MS, heroCanStartBoot, heroTransition, initialHeroState } from "./HeroController";
+import { HERO_BOOT_DURATION_MS, heroCanStartBoot } from "./HeroController";
 import type { HeroScreenGeometry } from "./heroTypes";
 
 export function HeroSandbox(presentation: HeroDevicePresentation) {
   const handoff = useRef(presentation.onHandoff);
   handoff.current = presentation.onHandoff;
-  const [state, dispatch] = useReducer(heroTransition, initialHeroState);
+  const state = presentation.lifecycle;
+  const dispatch = presentation.onLifecycleAction;
   const runtimePower = state.phase === "experience" && state.bootComplete ? presentation.powerControl : undefined;
   const powerHitEnabled = heroCanStartBoot(state) || Boolean(runtimePower);
   const bootReadout = useRef<HTMLOutputElement>(null);
@@ -26,7 +27,7 @@ export function HeroSandbox(presentation: HeroDevicePresentation) {
     setIdentityRevision(revision => revision + 1);
     setScreenGeometry(null);
   }, [state.phase]);
-  const simulateExperienceEnd = useCallback(() => dispatch({ type: "EXPERIENCE_ENDED" }), []);
+  const simulateExperienceEnd = presentation.simulateExperienceEnd;
   useEffect(() => {
     if (state.phase !== "front-aligned" || state.bootStartedAt === null || state.bootComplete) return;
     const startedAt = state.bootStartedAt;
@@ -75,10 +76,11 @@ export function HeroSandbox(presentation: HeroDevicePresentation) {
         active={state.phase === "identity"}
         name={draftName}
         onNameChange={setDraftName}
-        onConfirm={(name) => { presentation.onConfirmIdentity(name); dispatch({ type: "CONFIRM_IDENTITY", name }); }}
+        onConfirm={(name) => presentation.startExperience({ name })}
       />
       <HeroScene
         screen={presentation.screen}
+        resetGeneration={state.resetGeneration}
         powerHitEnabled={powerHitEnabled}
         runtimePower={runtimePower}
         bootStartedAt={state.bootStartedAt}
@@ -96,6 +98,7 @@ export function HeroSandbox(presentation: HeroDevicePresentation) {
         {state.phase === "inspect" ? "Drag to inspect. Press the top button to power on." : ""}
       </p>
       <HeroDebug
+        productionLifecycle
         phase={state.phase}
         onEnterExperience={() => { if (state.bootComplete) dispatch({ type: "ENTER_EXPERIENCE" }); }}
         onExperienceEnd={simulateExperienceEnd}
@@ -108,6 +111,16 @@ export function HeroSandbox(presentation: HeroDevicePresentation) {
         }}
       />
       {hardwareDebug && <output ref={bootReadout} style={{ position: "fixed", right: 8, top: 42, zIndex: 45, whiteSpace: "pre", pointerEvents: "none", background: "#101010dd", color: "#bbb", padding: 6, font: "11px monospace" }} />}
+      {import.meta.env.DEV && new URLSearchParams(location.search).get("heroLifecycleDebug") === "1" && <output style={{ position: "fixed", left: 8, bottom: 70, zIndex: 45, whiteSpace: "pre", pointerEvents: "none", background: "#101010dd", color: "#bbb", padding: 6, font: "11px monospace" }}>
+        {JSON.stringify({ ...presentation.lifecycleDiagnostics, lifecyclePhase: state.phase === "experience" && presentation.lifecycleDiagnostics.softwarePhase === "locked" ? "locked" : state.phase,
+          terminalFired: state.terminalFired, resetGeneration: state.resetGeneration,
+          softwareVisible: state.phase === "experience" && presentation.softwareReady,
+          softwareInteractive: state.phase === "experience" && presentation.softwareReady,
+          phonePowerState: runtimePower?.state ?? (state.bootStartedAt !== null && !state.bootComplete ? "booting" : "off"),
+          chargerState: ["identity", "resetting"].includes(state.phase) ? "connected" : state.phase === "recharging" ? "inserting" : "detached",
+          deviceScreenInstanceId: (window as Window & { __SM2010_DEVICE_SCREEN_QA__?: { semanticInstanceId: number | null } }).__SM2010_DEVICE_SCREEN_QA__?.semanticInstanceId ?? null,
+        }, null, 2)}
+      </output>}
       {import.meta.env.DEV && screenGeometry ? (
         <output className="hero-bounds" aria-label="Measured screen bounds">
           Screen {Math.round(screenGeometry.projectedRect.width)} × {Math.round(screenGeometry.projectedRect.height)} · {screenGeometry.aspectRatio.toFixed(3)}

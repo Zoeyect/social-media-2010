@@ -2,15 +2,16 @@ import { useEffect, useRef } from "react";
 import type { DevicePresenter } from "./DevicePresentation";
 
 type Report = {
+  semanticInstanceId: number | null;
   rawMounts: number; rawUnmounts: number; semanticMounts: number; semanticUnmounts: number;
   presenter: DevicePresenter; experienceSessionId: string | null;
   sessions: Record<string, number[]>; transitions: string[];
 };
-const enabled = import.meta.env.DEV && new URLSearchParams(location.search).get("deviceScreenDebug") === "1";
+const enabled = import.meta.env.DEV && (new URLSearchParams(location.search).get("deviceScreenDebug") === "1" || new URLSearchParams(location.search).get("heroLifecycleDebug") === "1");
 let nextInstance = 0;
 const seen = new Set<number>();
 const active = new Set<number>();
-const report: Report = { rawMounts: 0, rawUnmounts: 0, semanticMounts: 0, semanticUnmounts: 0, presenter: "legacy", experienceSessionId: null, sessions: {}, transitions: [] };
+const report: Report = { semanticInstanceId: null, rawMounts: 0, rawUnmounts: 0, semanticMounts: 0, semanticUnmounts: 0, presenter: "legacy", experienceSessionId: null, sessions: {}, transitions: [] };
 let output: HTMLOutputElement | null = null;
 function publish() {
   if (!enabled) return;
@@ -24,6 +25,7 @@ export function useDeviceScreenDiagnostics(presenter: DevicePresenter, experienc
   useEffect(() => {
     if (!enabled) return;
     const id = instance.current ??= ++nextInstance;
+    report.semanticInstanceId = id;
     report.rawMounts++;
     seen.add(id); active.add(id); report.semanticMounts = seen.size;
     if (!output) {

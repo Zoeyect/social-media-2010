@@ -1,5 +1,7 @@
 import { FormEvent, PointerEvent, useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import type { DevicePresenter, HeroDevicePresentation } from "./DevicePresentation";
+import { HERO_BOOT_DURATION_MS, heroTransition, initialHeroState, type HeroAction } from "../hero/HeroController";
+import { createExperienceSessionResource } from "./experienceSessionResources";
 import { DeviceAudio } from "../audio/deviceAudio";
 import { buildSessionTimelineEvents } from "../data/sessionTimeline";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
@@ -45,7 +47,7 @@ import { DeviceScreen, type DeviceScreenProps } from "./DeviceScreen";
 import { PublicTwitterOutro } from "./PublicTwitterOutro";
 import { AmbientWorld } from "../world/AmbientWorld";
 import type { CameraStillCapture } from "../world/AmbientWorld";
-import { getCameraVideoScene, selectCameraVideoScene, type CameraVideoSceneSelection } from "../world/cameraVideoScenes";
+import { selectCameraVideoScene, type CameraVideoSceneSelection } from "../world/cameraVideoScenes";
 
 const TERMINAL_DEPLETED_DISPLAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
@@ -62,25 +64,7 @@ const publicTwitterSubmissionRepository = createMockPublicTwitterSubmissionRepos
 const cameraVideoQuery = import.meta.env.DEV
   ? new URLSearchParams(window.location.search)
   : new URLSearchParams();
-const bootstrapCameraVideoSelection: CameraVideoSceneSelection = selectCameraVideoScene({
-  cameraVideo: cameraVideoQuery.get("cameraVideo"),
-  cameraScene: cameraVideoQuery.get("cameraScene"),
-  cameraEvent: cameraVideoQuery.get("cameraEvent"),
-});
-const bootstrapCameraRuntimeState = createInitialCameraRuntimeState(
-  bootstrapCameraVideoSelection.sceneId,
-  bootstrapCameraVideoSelection.eventType,
-);
-if (import.meta.env.DEV) {
-  const selectedScene = getCameraVideoScene(bootstrapCameraVideoSelection.sceneId);
-  console.info("[CameraWorld] session scene selected", {
-    eventType: bootstrapCameraVideoSelection.eventType,
-    sceneId: bootstrapCameraVideoSelection.sceneId,
-    forcedByQuery: bootstrapCameraVideoSelection.forcedByQuery,
-    cropOffsetX: selectedScene.cropOffsetX ?? 0,
-    cropOffsetY: selectedScene.cropOffsetY ?? 0,
-  });
-}
+const bootstrapCameraRuntimeState = createInitialCameraRuntimeState();
 
 type PublicTwitterQaHandle = Readonly<{
   state: () => PublicTwitterState;
@@ -133,7 +117,18 @@ function loadRuntimeSession(): Session {
 
 export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePresenter; renderHero: (presentation: HeroDevicePresentation) => ReactNode }) {
   const [session, setSession] = useState<Session>(() => presenter === "legacy" ? loadRuntimeSession() : { ...initialSession });
-  const heroSessionStarted = useRef(false);
+  // The sole physical lifecycle reducer lives beside the sole software runtime.
+  const [lifecycle, dispatchLifecycle] = useReducer(heroTransition, initialHeroState);
+  const lifecycleRef = useRef(lifecycle);
+  const advanceLifecycle = useCallback((action: HeroAction) => {
+    lifecycleRef.current = heroTransition(lifecycleRef.current, action);
+    dispatchLifecycle(action);
+  }, []);
+  const resetClaim = useRef<string | null>(null);
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  const cameraSelection = useRef(createExperienceSessionResource<CameraVideoSceneSelection>());
+  const appliedCameraSession = useRef<string | null>(null);
   const [cameraPreviewCanvas, setCameraPreviewCanvas] = useState<HTMLCanvasElement | null>(null);
   const requestedDevApp = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("devApp") : null;
   const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" || requestedDevApp === "foursquare" || requestedDevApp === "flickr" || requestedDevApp === "tumblr" ? requestedDevApp : null;
@@ -153,7 +148,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   const [cameraRoll, setCameraRoll] = useState<CameraRollInitialization>(initialCameraRoll);
   const cameraRollRef = useRef<CameraRollInitialization>(initialCameraRoll);
   const cameraRollMounted = useRef(true);
-  const cameraRollPageBootstrapReset = useRef<Promise<void> | null>(null);
+  const cameraRollBootstrap = useRef(createExperienceSessionResource<ReturnType<typeof initializeCameraRollPersistence>>());
   const failNextCameraCapture = useRef(false);
   const cameraCaptureResetActive = useRef(false);
   const setCameraCaptureReady = useCallback((capture: CameraStillCapture | null) => {
@@ -202,7 +197,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   const devAutoOpenConsumed = useRef(false);
   const deliveredEventClaims = useRef(new Set<string>());
   const shutdownResetStarted = useRef(false);
-  const elapsed = elapsedMs(session, now);
+  const elapsed = Math.min(SESSION_DURATION_MS, elapsedMs(session, now));
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
   const deviceStatusTime = formatDeviceTime(deviceDateTime);
   const lockScreenTime = formatLockScreenTime(deviceDateTime);
@@ -297,7 +292,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   });
   const lockScreenModel = createLockScreenModel(lockScreenTime, deviceDate, statusBarState);
 
-  const performCanonicalShutdownReset = useCallback((shutdownReason: Session["shutdownReason"]) => {
+  const resetDisposableRuntime = useCallback(() => {
     if (shutdownResetStarted.current) return;
     shutdownResetStarted.current = true;
     deliveredEventClaims.current.clear();
@@ -321,6 +316,23 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
     setUnlockReturnAppId(null);
     setSpringBoardPage(0);
     setActivityRevision(0);
+    if (powerFrame.current !== null) cancelAnimationFrame(powerFrame.current);
+    powerFrame.current = null;
+    powerStarted.current = null;
+    if (pendingAppHomePress.current !== null) window.clearTimeout(pendingAppHomePress.current);
+    pendingAppHomePress.current = null;
+    homePointer.current = null;
+    setHomePressed(false);
+    setPowerProgress(0);
+    cameraCaptureNamespace.current += 1;
+    failNextCameraCapture.current = false;
+    devAutoOpenConsumed.current = false;
+  }, []);
+
+  const performCanonicalShutdownReset = useCallback((shutdownReason: Session["shutdownReason"]) => {
+    if (presenter === "hero") return; // Physical return/reset owns this boundary.
+    if (shutdownResetStarted.current) return;
+    resetDisposableRuntime();
     window.setTimeout(() => setSession({
       ...initialSession,
       sessionIdentity: initialSession.sessionIdentity,
@@ -328,7 +340,23 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
       shutdownReason,
       returnToHeroPending: true,
     }), SHUTDOWN_BLACK_SCREEN_MS);
-  }, []);
+  }, [presenter, resetDisposableRuntime]);
+
+  const finishExperience = useCallback(({ reason }: { reason: "battery-depleted" | "powered-off" }, simulate = false) => {
+    const current = sessionRef.current;
+    if (presenter !== "hero" || !current.experienceSessionId || lifecycleRef.current.phase !== "experience") return;
+    if (reason === "battery-depleted" && !(import.meta.env.DEV && simulate) && !hasReachedSessionTerminal(current, Date.now())) return;
+    // Synchronous reducer ref claims the terminal before another tick/callback.
+    advanceLifecycle({ type: "EXPERIENCE_ENDED" });
+    setSession(previous => ({ ...previous, phase: "shutdown", shutdownReason: reason === "battery-depleted" ? "battery" : "manual",
+      activeWarning: null, batteryCriticalPending: false, batteryCriticalRevealAtMs: null }));
+  }, [presenter, advanceLifecycle]);
+
+  useEffect(() => {
+    if (presenter !== "hero" || lifecycle.phase !== "experience") return;
+    if (hasReachedSessionTerminal(session, now)) finishExperience({ reason: "battery-depleted" });
+    else if (session.phase === "shutdown" && session.shutdownReason === "manual") finishExperience({ reason: "powered-off" });
+  }, [presenter, lifecycle.phase, session, now, finishExperience]);
 
   const captureCameraPhoto = async () => {
     const capture = cameraCapture.current;
@@ -424,6 +452,31 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
     dispatchPhotos({ type: "RESET" });
   }, []);
 
+  const resetExperienceSession = useCallback(() => {
+    const id = activeExperienceSessionIdRef.current;
+    if (presenter !== "hero" || lifecycleRef.current.phase !== "resetting" || !id || resetClaim.current === id) return;
+    resetClaim.current = id;
+    resetDisposableRuntime();
+    clearRuntimeCameraRoll("loading");
+    cameraRollBootstrap.current.clear();
+    cameraSelection.current.clear();
+    appliedCameraSession.current = null;
+    activeExperienceSessionIdRef.current = null;
+    // Public repositories, immutable history, and physical mute/volume survive.
+    dispatchPublicTwitterOutro({ type: "RESET" });
+    setSession({ ...initialSession });
+    advanceLifecycle({ type: "RESET_COMPLETE" });
+  }, [presenter, resetDisposableRuntime, clearRuntimeCameraRoll, advanceLifecycle]);
+
+  useEffect(() => {
+    if (lifecycle.phase !== "resetting") return;
+    // Preserve the existing optional public-submission outro, including retries.
+    // It may hold the connected reset boundary, never the active narrative clock.
+    if (session.shutdownReason === "battery" && publicTwitterOutro.phase !== "complete"
+      && (publicTwitterOutro.phase !== "idle" || selectEligibleLocalTweetIds(twitterState.timeline).length > 0)) return;
+    resetExperienceSession();
+  }, [lifecycle.phase, session.shutdownReason, publicTwitterOutro.phase, twitterState.timeline, resetExperienceSession]);
+
   const eraseCurrentCameraRollForDevelopment = useCallback(async () => {
     const experienceSessionId = activeExperienceSessionIdRef.current;
     if (!experienceSessionId) return;
@@ -447,18 +500,29 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   useEffect(() => saveSession(session), [session]);
   useEffect(() => {
     const experienceSessionId = session.experienceSessionId;
+    if (!experienceSessionId || appliedCameraSession.current === experienceSessionId) return;
+    const selection = cameraSelection.current.get(experienceSessionId, () => selectCameraVideoScene({
+      cameraVideo: cameraVideoQuery.get("cameraVideo"),
+      cameraScene: cameraVideoQuery.get("cameraScene"),
+      cameraEvent: cameraVideoQuery.get("cameraEvent"),
+    }));
+    appliedCameraSession.current = experienceSessionId;
+    dispatchCameraRuntime({ type: "INITIALIZE_SESSION", sceneId: selection.sceneId, eventType: selection.eventType });
+  }, [session.experienceSessionId]);
+  useEffect(() => {
+    const experienceSessionId = session.experienceSessionId;
     let cancelled = false;
     clearRuntimeCameraRoll("loading");
     if (!experienceSessionId) return () => { cancelled = true; };
 
-    if (!cameraRollPageBootstrapReset.current) {
-      cameraRollPageBootstrapReset.current = eraseCurrentCameraRoll(experienceSessionId);
-    }
-    void deleteStalePlayerCameraRolls(experienceSessionId).catch(error => {
-      console.error("Stale Camera Roll cleanup failed; owner filtering remains active.", error);
+    const bootstrap = cameraRollBootstrap.current.get(experienceSessionId, () => {
+      const erased = eraseCurrentCameraRoll(experienceSessionId);
+      void deleteStalePlayerCameraRolls(experienceSessionId).catch(error => {
+        console.error("Stale Camera Roll cleanup failed; owner filtering remains active.", error);
+      });
+      return erased.then(() => initializeCameraRollPersistence(experienceSessionId));
     });
-    void cameraRollPageBootstrapReset.current
-      .then(() => initializeCameraRollPersistence(experienceSessionId))
+    void bootstrap
       .then(durableRecords => {
       const restoredRecords: CameraPhotoRecord[] = [];
       try {
@@ -520,7 +584,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   }, []);
   useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id); }, []);
   useEffect(() => {
-    if (session.phase === "shutdown") return;
+    if (session.phase === "shutdown" || elapsed >= SESSION_DURATION_MS || (presenter === "hero" && lifecycleRef.current.phase !== "experience")) return;
     const event = nextDueDeviceEvent(session.deviceEvents, elapsed);
     if (!event) return;
     const isMessagesReplyEvent = event.type === "momReply" || event.type === "momLoveReply" || event.type === "dadLoveReply";
@@ -687,12 +751,14 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
     return () => window.cancelAnimationFrame(frame);
   }, [cameraRuntime.cameraPicker.phase]);
   useEffect(() => {
+    if (presenter === "hero") return;
     if (session.sessionStartEpochMs === null || session.phase === "hero" || session.phase === "poweredOff" || session.phase === "booting" || session.phase === "shutdown") return;
     if (hasReachedSessionTerminal(session, now) && session.activeWarning !== 1 && !session.batteryCriticalPending) {
       update({ batteryCriticalPending: true });
     }
   }, [now, session.activeWarning, session.batteryCriticalPending, session.phase, session.sessionStartEpochMs]);
   useEffect(() => {
+    if (presenter === "hero") return;
     if (!session.batteryCriticalPending || session.phase === "shutdown" || session.phase === "poweredOff") return;
     if (session.phase === "springboard" || session.phase === "app") {
       DeviceAudio.lowBatteryWarning();
@@ -727,6 +793,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
     });
   }, [elapsed, session.activeWarning, session.dismissedWarnings, session.phase, session.sessionStartEpochMs]);
   useEffect(() => {
+    if (presenter === "hero") return;
     if (session.phase !== "lowBatteryWarning" || session.activeWarning !== 1) return;
     const id = window.setTimeout(() => {
       update({
@@ -763,6 +830,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
     dispatchPublicTwitterOutro({ type: "START", eligibleTweetIds });
   }, [performCanonicalShutdownReset, publicTwitterOutro.phase, session.phase, session.shutdownReason, twitterState.timeline]);
   useEffect(() => {
+    if (presenter === "hero") return;
     if (session.phase !== "poweredOff" || !session.returnToHeroPending) return;
     const id = window.setTimeout(() => setSession({ ...initialSession }), TERMINAL_POWERED_OFF_MS);
     return () => window.clearTimeout(id);
@@ -891,7 +959,8 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
       clearRuntimeCameraRoll("loading");
       dispatchFacebook({ type: "RESET", displayName: name });
       dispatchTwitter({ type: "RESET", displayName: name });
-      update({
+      setSession({
+        ...initialSession,
         sessionIdentity: createSessionIdentity(name),
         experienceSessionId,
         phase: "poweredOff",
@@ -901,14 +970,16 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
     }
   };
 
-  const confirmHeroIdentity = (name: string) => {
-    // v0.3 reuses one sandbox experience; final reset/ID regeneration is deferred.
-    if (heroSessionStarted.current || !name.trim()) return;
-    heroSessionStarted.current = true;
+  const startExperience = ({ name }: { name: string }) => {
+    if (lifecycleRef.current.phase !== "identity" || activeExperienceSessionIdRef.current || !name.trim()) return;
     startNamedSession(name.trim());
+    advanceLifecycle({ type: "CONFIRM_IDENTITY", name });
   };
 
   const handoffHeroScreen = () => {
+    const physical = lifecycleRef.current;
+    if (physical.phase !== "front-aligned" || physical.bootStartedAt === null
+      || performance.now() - physical.bootStartedAt < HERO_BOOT_DURATION_MS) return;
     recordInteraction();
     setSession(current => current.phase === "poweredOff" && current.experienceSessionId
       ? finishSoftwareBoot(current) : current);
@@ -1267,14 +1338,27 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
       cameraViewfinder={cameraPreviewCanvas}
       cameraLook={cameraRuntime.cameraApp.cameraLook}
       cameraVideoSceneId={cameraRuntime.cameraApp.cameraVideoSceneId}
-      cameraVideoDisabled={bootstrapCameraVideoSelection.videoDisabled}
+      cameraVideoDisabled={cameraSelection.current.value?.videoDisabled ?? false}
       onCameraLookPointerOffsetClamped={setCameraLookPointerOffset}
       onCameraCaptureReady={setCameraCaptureReady}
     />
     {presenter === "hero" ? renderHero({
       screen,
       softwareReady: session.phase !== "hero" && session.phase !== "poweredOff" && session.phase !== "booting",
-      onConfirmIdentity: confirmHeroIdentity,
+      startExperience,
+      lifecycle,
+      onLifecycleAction: action => {
+        // Only physical acknowledgements are accepted from the presenter.
+        if (action.type === "DETACH_COMPLETE" || action.type === "PRESS_POWER" || action.type === "ALIGN_COMPLETE" || action.type === "BOOT_COMPLETE" || action.type === "ADVANCE_RETURN") advanceLifecycle(action);
+      },
+      simulateExperienceEnd: () => { if (import.meta.env.DEV) finishExperience({ reason: "battery-depleted" }, true); },
+      lifecycleDiagnostics: {
+        experienceSessionId: session.experienceSessionId,
+        sessionStartedAt: session.sessionStartEpochMs,
+        elapsedMs: elapsed,
+        cameraSceneSessionId: cameraSelection.current.experienceSessionId,
+        softwarePhase: session.phase,
+      },
       onHandoff: handoffHeroScreen,
       powerControl: !session.returnToHeroPending && (session.phase === "locked" || session.phase === "springboard" || session.phase === "app" || session.phase === "sleeping" || session.phase === "lowBatteryWarning")
         ? { state: session.phase === "sleeping" ? "asleep" : "awake", begin: beginPower, end: endPower, cancel: cancelPower }

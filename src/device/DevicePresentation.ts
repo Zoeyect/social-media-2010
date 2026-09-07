@@ -1,4 +1,6 @@
 import type { ReactElement } from "react";
+import type { HeroState } from "../hero/heroTypes";
+import type { HeroAction } from "../hero/HeroController";
 
 export type DevicePresenter = "legacy" | "hero";
 export type RuntimePowerControl = {
@@ -11,7 +13,17 @@ export type HeroDevicePresentation = {
   screen: ReactElement;
   softwareReady: boolean;
   powerControl?: RuntimePowerControl;
-  onConfirmIdentity: (name: string) => void;
+  lifecycle: HeroState;
+  onLifecycleAction: (action: HeroAction) => void;
+  startExperience: (input: { name: string }) => void;
+  simulateExperienceEnd: () => void;
+  lifecycleDiagnostics: {
+    experienceSessionId: string | null;
+    sessionStartedAt: number | null;
+    elapsedMs: number;
+    cameraSceneSessionId: string | null;
+    softwarePhase: string;
+  };
   onHandoff: () => void;
   onUserActivity: () => void;
   onHomePress: () => void;

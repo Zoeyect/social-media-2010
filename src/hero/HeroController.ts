@@ -25,6 +25,7 @@ export type HeroAction =
   | { type: "ALIGN_COMPLETE" }
   | { type: "ENTER_EXPERIENCE" }
   | { type: "EXPERIENCE_ENDED" }
+  | { type: "RESET_COMPLETE" }
   | { type: "ADVANCE_RETURN"; from: HeroPhase }
   | { type: "JUMP_TO_PHASE"; phase: HeroPhase }
   | { type: "RESET" };
@@ -35,6 +36,8 @@ export const initialHeroState: HeroState = {
   awaitingPower: false,
   bootStartedAt: null,
   bootComplete: false,
+  terminalFired: false,
+  resetGeneration: 0,
 };
 
 export function heroTransition(state: HeroState, action: HeroAction): HeroState {
@@ -42,7 +45,7 @@ export function heroTransition(state: HeroState, action: HeroAction): HeroState 
     case "CONFIRM_IDENTITY": {
       const name = action.name.trim();
       return state.phase === "identity" && name
-        ? { ...initialHeroState, name, phase: "detaching" }
+        ? { ...initialHeroState, resetGeneration: state.resetGeneration, name, phase: "detaching" }
         : state;
     }
     case "DETACH_COMPLETE":
@@ -63,12 +66,14 @@ export function heroTransition(state: HeroState, action: HeroAction): HeroState 
     case "ENTER_EXPERIENCE":
       return state.phase === "front-aligned" && state.bootComplete ? { ...state, phase: "experience" } : state;
     case "EXPERIENCE_ENDED":
-      return state.phase === "experience" ? { ...state, phase: "power-loss" } : state;
+      return state.phase === "experience" ? { ...state, phase: "power-loss", terminalFired: true } : state;
     case "ADVANCE_RETURN":
       if (state.phase !== action.from) return state;
       if (state.phase === "power-loss") return { ...state, phase: "returning" };
       if (state.phase === "returning") return { ...state, phase: "recharging" };
-      return state.phase === "recharging" ? initialHeroState : state;
+      return state.phase === "recharging" ? { ...state, phase: "resetting" } : state;
+    case "RESET_COMPLETE":
+      return state.phase === "resetting" ? { ...initialHeroState, resetGeneration: state.resetGeneration + 1 } : state;
     case "RESET":
       return initialHeroState;
   }

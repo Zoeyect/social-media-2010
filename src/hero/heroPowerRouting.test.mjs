@@ -7,7 +7,7 @@ import * as THREE from "three";
 
 const source = fs.readFileSync(new URL("./useHeroHardware.ts", import.meta.url), "utf8")
   .replace(/^import .*;\n/gm, "").replaceAll("import.meta.env.DEV", "false");
-const dependencies = ["useCallback", "useEffect", "useRef", "useFrame", "useThree", "DeviceAudio", "window", "document", ...Object.keys(THREE)];
+const dependencies = ["useCallback", "useEffect", "useLayoutEffect", "useRef", "useFrame", "useThree", "DeviceAudio", "window", "document", ...Object.keys(THREE)];
 const factory = new Function(...dependencies, stripTypeScriptTypes(source).replaceAll("export ", "") + ";return useHeroHardware;");
 
 function fixture(enabled, runtimePower) {
@@ -18,7 +18,7 @@ function fixture(enabled, runtimePower) {
     addEventListener(name, fn) { listeners.set(name, fn); }, removeEventListener(name) { listeners.delete(name); },
   };
   const doc = { body: { style: {} }, hidden: false, addEventListener: win.addEventListener, removeEventListener: win.removeEventListener };
-  const hook = factory(fn => fn, fn => effects.push(fn), value => ({ current: value }), () => {}, () => ({ invalidate() {} }),
+  const hook = factory(fn => fn, fn => effects.push(fn), fn => effects.push(fn), value => ({ current: value }), () => {}, () => ({ invalidate() {} }),
     { bindHardwareMuteMode: () => () => {} }, win, doc, ...Object.values(THREE));
   const root = new THREE.Group();
   const button = new THREE.Mesh(new THREE.BoxGeometry(.0104, .0026, .0005), new THREE.MeshBasicMaterial());

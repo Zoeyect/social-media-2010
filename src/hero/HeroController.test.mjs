@@ -43,7 +43,10 @@ for (let loop = 0; loop < 2; loop++) {
     assert.equal(power(state), false);
     state = step(state, { type: "ADVANCE_RETURN", from: phase });
   }
-  assert.deepEqual(state, initialHeroState);
+  assert.equal(state.phase, "resetting");
+  assert.equal(state.terminalFired, true);
+  state = step(state, { type: "RESET_COMPLETE" });
+  assert.deepEqual(state, { ...initialHeroState, resetGeneration: 1 });
 }
 const hardware = fs.readFileSync(new URL("./useHeroHardware.ts", import.meta.url), "utf8");
 assert.match(hardware, /POWER_HOLD_MS = 3000|POWER_HOLD_MS = 3_000/);

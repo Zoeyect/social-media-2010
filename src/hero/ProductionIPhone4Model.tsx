@@ -96,6 +96,7 @@ function prepareProductionModel(source: Object3D, bootTexture: Texture): ReadyMo
 }
 
 function LoadedProductionModel({
+  resetGeneration,
   url,
   bootAmount,
   powerEnabled,
@@ -106,6 +107,7 @@ function LoadedProductionModel({
   onFailure,
 }: Readonly<{
   url: string;
+  resetGeneration: number;
   bootAmount: number;
   powerEnabled: boolean;
   onPowerPress: () => void;
@@ -134,7 +136,7 @@ function LoadedProductionModel({
   }, [url]);
 
   const prepared = useMemo(() => source ? prepareProductionModel(source, bootTexture) : null, [source, bootTexture]);
-  const hardwareEvents = useHeroHardware(prepared && typeof prepared !== "string" ? prepared.root : null, powerEnabled, onPowerPress, onHomePress, runtimePower);
+  const hardwareEvents = useHeroHardware(prepared && typeof prepared !== "string" ? prepared.root : null, powerEnabled, onPowerPress, onHomePress, runtimePower, resetGeneration);
 
   useEffect(() => {
     if (!prepared || typeof prepared === "string") return;
@@ -173,6 +175,7 @@ function LoadedProductionModel({
 }
 
 export function ProductionIPhone4Model({
+  resetGeneration,
   url,
   bootAmount,
   powerEnabled,
@@ -183,6 +186,7 @@ export function ProductionIPhone4Model({
   onDiagnostics,
 }: Readonly<{
   url?: string;
+  resetGeneration: number;
   bootAmount: number;
   powerEnabled: boolean;
   onPowerPress: () => void;
@@ -233,6 +237,7 @@ export function ProductionIPhone4Model({
     <>
       {url && !failure ? (
         <LoadedProductionModel
+          resetGeneration={resetGeneration}
           url={url}
           bootAmount={bootAmount}
           powerEnabled={powerEnabled}

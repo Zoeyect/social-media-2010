@@ -69,7 +69,8 @@ function assertStableDevicePresentation(sources) {
     [/useState<Session>\(/g, 1, "session controller"],
     [/useReducer\(appRuntimeStateTransition,/g, 1, "app runtime"],
     [/useReducer\(cameraRuntimeTransition,/g, 1, "Camera runtime"],
-    [/cameraRollPageBootstrapReset\.current = eraseCurrentCameraRoll\(/g, 1, "Camera Roll bootstrap"],
+    [/cameraRollBootstrap\.current\.get\(experienceSessionId,/g, 1, "Camera Roll bootstrap"],
+    [/useReducer\(heroTransition, initialHeroState\)/g, 1, "Hero lifecycle"],
     [/nextDueDeviceEvent\(session\.deviceEvents, elapsed\)/g, 1, "scheduler"],
     [/window\.setInterval\(\(\) => setNow\(Date\.now\(\)\), 250\)/g, 1, "clock"],
   ]) {
@@ -79,8 +80,18 @@ function assertStableDevicePresentation(sources) {
   for (const file of [root, hero, scene, portal, screen, diagnostics]) {
     assert.doesNotMatch(file, /initializeCameraRollPersistence\s*\(|createInitialCameraRuntimeState\s*\(|nextDueDeviceEvent\s*\(|setActivityRevision\s*\(|AUTO_SLEEP_DELAY_MS/, "v0.3: presenters must not duplicate persistence, Camera, scheduler or inactivity ownership");
   }
-  assert.match(diagnostics, /import\.meta\.env\.DEV && new URLSearchParams\(location\.search\)\.get\("deviceScreenDebug"\) === "1"/, "v0.3: continuity diagnostics must be DEV/query-gated");
+  assert.match(diagnostics, /import\.meta\.env\.DEV && \(new URLSearchParams\(location\.search\)\.get\("deviceScreenDebug"\) === "1" \|\| new URLSearchParams\(location\.search\)\.get\("heroLifecycleDebug"\) === "1"\)/, "v0.4: continuity diagnostics must be DEV/query-gated");
   assert.match(diagnostics, /rawMounts\+\+[\s\S]+seen\.add\(id\)[\s\S]+rawUnmounts\+\+[\s\S]+queueMicrotask[\s\S]+!active\.has\(id\)/, "v0.3: raw effect replay must be distinguished from semantic instance loss");
+  assert.match(hero, /const state = presentation\.lifecycle;\s+const dispatch = presentation\.onLifecycleAction;/, "v0.4: presenter consumes App's lifecycle, not a second reducer");
+  assert.match(app, /const startExperience = [\s\S]*?lifecycleRef\.current\.phase !== "identity" \|\| activeExperienceSessionIdRef\.current[\s\S]*?startNamedSession\(name\.trim\(\)\)/, "v0.4: new runs require reset-complete identity and no active ID");
+  assert.equal((app.match(/createExperienceSessionId\(\)/g) ?? []).length, 1, "v0.4: one ID creation path per accepted run");
+  assert.match(app, /const finishExperience = [\s\S]*?lifecycleRef\.current\.phase !== "experience"\) return;[\s\S]*?advanceLifecycle\(\{ type: "EXPERIENCE_ENDED" \}\)/, "v0.4: synchronous phase claim prevents duplicate terminal events");
+  assert.match(app, /elapsed >= SESSION_DURATION_MS \|\| \(presenter === "hero" && lifecycleRef\.current\.phase !== "experience"\)/, "v0.4: scheduler stops at terminal, including delayed callbacks");
+  const resetBoundary = app.slice(app.indexOf("const resetExperienceSession ="), app.indexOf("const eraseCurrentCameraRollForDevelopment ="));
+  assert.match(resetBoundary, /lifecycleRef\.current\.phase !== "resetting"[\s\S]*?resetClaim\.current === id[\s\S]*?setSession\(\{ \.\.\.initialSession \}\)[\s\S]*?RESET_COMPLETE/, "v0.4: only connected reset boundary clears the previous session");
+  assert.doesNotMatch(resetBoundary, /createExperienceSessionId|eraseAllPlayerCameraRolls\(|publicTwitterSubmissionRepository\.|localStorage\.clear/, "v0.4: reset cannot generate IDs or erase world-persistent stores");
+  assert.match(app, /appliedCameraSession\.current === experienceSessionId\) return;[\s\S]*?cameraSelection\.current\.get\(experienceSessionId, \(\) => selectCameraVideoScene\([\s\S]*?\}, \[session\.experienceSessionId\]\)/, "v0.4: Camera selection belongs to a new ID, not Camera open or handoff");
+  assert.equal((app.match(/selectCameraVideoScene\(/g) ?? []).length, 1, "v0.4: one Camera selection call site");
 }
 const vite = await createServer({ root: projectRoot, server: { middlewareMode: true }, appType: "custom", logLevel: "silent" });
 
@@ -3078,6 +3089,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   runtimeSources.push({ path: "src/hero/hero.css", source: await readFile(resolve(projectRoot, "src/hero/hero.css"), "utf8") });
   assertStableDevicePresentation(runtimeSources);
   const presentationMutations = [
+    ["duplicate Hero lifecycle", "src/hero/HeroSandbox.tsx", text => text.replace("const handoff =", "useReducer(heroTransition, initialHeroState); const handoff ="), /one Hero lifecycle/],
     ["second DeviceScreen", "src/device/App.tsx", text => text.replace("const screen = <DeviceScreen", "const duplicate = <DeviceScreen />;\n  const screen = <DeviceScreen"), /exactly one DeviceScreen/],
     ["duplicate App", "src/device/DeviceRoot.tsx", text => text.replace("return <App ", "const duplicate = <App />; return <App "), /exactly one App/],
     ["screen in both branches", "src/device/App.tsx", text => text.replace("{screen}", "{screen}{screen}"), /no additional direct screen/],
@@ -3135,7 +3147,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(cameraRollPersistenceSource, /oldVersion < 2[\s\S]+origin === "player-camera"[\s\S]+typeof value\.experienceSessionId !== "string"[\s\S]+cursor\.delete\(\)/, "v1 player-camera records without provable ownership must be deleted rather than assigned to the current player");
   assert.match(cameraRollPersistenceSource, /index\(CAMERA_ROLL_OWNER_INDEX\)\.getAll\(\["player-camera", experienceSessionId\]\)/, "Camera Roll initialization and current-owner erase must query an explicit owner namespace");
   assert.match(cameraRollPersistenceSource, /cameraRollSequenceMetadataKey\(experienceSessionId\)[\s\S]+photoStore\.add\(record\)[\s\S]+nextSequence: sequence \+ 1/, "record insertion and owner-scoped sequence advancement must share one transaction");
-  assert.match(appSource, /cameraRollPageBootstrapReset\.current = eraseCurrentCameraRoll\(experienceSessionId\)[\s\S]+\.then\(\(\) => initializeCameraRollPersistence\(experienceSessionId\)\)/, "page bootstrap must erase the current Camera Roll before hydrating it");
+  assert.match(appSource, /cameraRollBootstrap\.current\.get\(experienceSessionId, \(\) => \{\s+const erased = eraseCurrentCameraRoll\(experienceSessionId\);[\s\S]+return erased\.then\(\(\) => initializeCameraRollPersistence\(experienceSessionId\)\);/, "v0.4: each session must have one cached erase/initialization chain");
   assert.match(ambientWorldRendererSource, /normalizedViewfinder[\s\S]+bounds\.left \/ canvas\.width[\s\S]+canvas\.height - bounds\.top - bounds\.height[\s\S]+lastPresentedCameraFrame/, "Camera capture must freeze the live bottom-origin viewfinder mapping");
   assert.match(ambientWorldRendererSource, /CAMERA_CAPTURE_GRAIN_SCALE,[\s\S]+canvasWidth: CAMERA_CAPTURE_WIDTH,[\s\S]+canvasHeight: CAMERA_CAPTURE_HEIGHT,[\s\S]+width: 1,[\s\S]+height: 1/, "offscreen capture must reuse the captured viewport-mapped source geometry");
   assert.match(appSource, /const experienceSessionId = session\.experienceSessionId;[\s\S]+isCameraCaptureOwnerCurrent\(experienceSessionId, activeExperienceSessionIdRef\.current\)[\s\S]+persistCameraCapturedArtifact\(artifact, experienceSessionId\)[\s\S]+discardPersistedCameraPhoto\(durableRecord\)/, "capture must freeze shutter-time ownership and discard a record if its owner becomes stale before runtime exposure");

@@ -2,7 +2,8 @@ import type { HeroPhase } from "./heroTypes";
 
 const phases: HeroPhase[] = ["identity", "detaching", "inspect", "powering-on", "front-aligned", "experience", "power-loss", "returning", "recharging"];
 
-export function HeroDebug({ phase, onJump, onReset, onEnterExperience, onExperienceEnd }: Readonly<{
+export function HeroDebug({ phase, onJump, onReset, onEnterExperience, onExperienceEnd, productionLifecycle = false }: Readonly<{
+  productionLifecycle?: boolean;
   phase: HeroPhase;
   onJump: (phase: HeroPhase) => void;
   onReset: () => void;
@@ -10,6 +11,9 @@ export function HeroDebug({ phase, onJump, onReset, onEnterExperience, onExperie
   onExperienceEnd: () => void;
 }>) {
   if (!import.meta.env.DEV) return null;
+  if (productionLifecycle) return phase === "experience" ? <nav className="hero-debug" aria-label="Hero lifecycle QA">
+    <button type="button" onClick={onExperienceEnd}>Simulate 15-minute end</button>
+  </nav> : null;
   return (
     <nav className="hero-debug" aria-label="Hero sandbox phase controls">
       {phases.map((item) => (

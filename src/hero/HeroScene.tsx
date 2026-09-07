@@ -5,6 +5,8 @@ import { ACESFilmicToneMapping, Color, Float32BufferAttribute, Mesh, MeshBasicMa
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { HeroCable } from "./HeroCable";
 import { HeroPhone } from "./HeroPhone";
+import { HeroHalo } from "./HeroHalo";
+import { HeroScreenSpill } from "./HeroScreenSpill";
 import { ScreenPortal, type ScreenPortalHandle, type ScreenPortalState } from "./ScreenPortal";
 import { ScreenPortalProjection } from "./ScreenPortalProjection";
 import { HeroChargerDiagnostics, chargerDiagnosticsEnabled } from "./HeroChargerDiagnostics";
@@ -77,7 +79,7 @@ function ReflectionEnvironment({ preset, reflectionV2, frontDepth }: { preset: H
         card.lookAt(0, 0, 0);
         room.add(card);
       }
-      if (import.meta.env.DEV && frontDepth) {
+      if (frontDepth) {
         // A soft vertical/diagonal reflection, not a decal on the phone.
         // World-fixed in PMREM so tiny phone rotations change its reflection.
         const geometry = new PlaneGeometry(5, 12, 32, 16);
@@ -181,8 +183,11 @@ function SceneContents(props: HeroSceneProps & { lightingPreset: HeroLightingPre
   }, []);
 
   return <>
-    <ReflectionEnvironment preset={props.lightingPreset} reflectionV2={props.reflectionV2} frontDepth={props.frontDepth && props.phase === "front-aligned"} />
+    <ReflectionEnvironment preset={props.lightingPreset} reflectionV2={props.reflectionV2} frontDepth={props.frontDepth} />
     <SoftLighting preset={props.lightingPreset} charcoalFill={props.charcoalFill} />
+    <HeroHalo />
+    <HeroScreenSpill phase={props.phase} softwareVisible={Boolean(props.screen && props.softwareReady && props.bootComplete)}
+      awake={props.runtimePower?.state === "awake"} bootStartedAt={props.frontScreenOff ? null : props.bootStartedAt} bootComplete={props.bootComplete} />
     <Suspense fallback={null}>
       <HeroCable detachAmount={props.phase === "identity" || props.phase === "recharging" || props.phase === "resetting" ? 0 : cable.progress}
         rechargeAmount={props.phase === "recharging" ? (cable.phase === "recharging" ? cable.progress : 0) : undefined}
@@ -215,16 +220,15 @@ export function HeroScene(props: HeroSceneProps) {
   const visiblePortalState = props.screen
     ? props.bootComplete && props.phase === "experience" && props.softwareReady ? "software" : "hidden"
     : props.phase === "front-aligned" || props.phase === "experience" ? portalState : "hidden";
-  // Hybrid and studio remain opt-in until manual Safari approval. Legacy means the
-  // immediately preceding soft-light presentation, not the old point rig.
+  // Accepted baseline; alternative rigs remain DEV-only comparisons.
   const [preset, setPreset] = useState<HeroLightingPreset>(() => {
     const requested = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("heroLighting") : null;
-    return requested === "hybrid" || requested === "studio" || requested === "charcoal" || requested === "charcoal-v2" ? requested : "legacy";
+    return requested === "legacy" || requested === "hybrid" || requested === "studio" || requested === "charcoal" ? requested : "charcoal-v2";
   });
   const [charcoalFill, setCharcoalFill] = useState<0.22 | 0.26>(() => import.meta.env.DEV
-    && new URLSearchParams(window.location.search).get("heroFill") === "0.26" ? 0.26 : 0.22);
+    && new URLSearchParams(window.location.search).get("heroFill") === "0.22" ? 0.22 : 0.26);
   const lightingDebug = import.meta.env.DEV && new URLSearchParams(window.location.search).get("heroLightingDebug") === "1";
-  const [frontDepth, setFrontDepth] = useState(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get("heroFront") === "front-depth");
+  const [frontDepth, setFrontDepth] = useState(() => !(import.meta.env.DEV && new URLSearchParams(window.location.search).get("heroFront") === "front-flat"));
   const frontDebug = import.meta.env.DEV && (lightingDebug || new URLSearchParams(window.location.search).has("heroFront"));
   const frontScreenOff = import.meta.env.DEV && new URLSearchParams(window.location.search).get("heroFrontScreen") === "off";
   const [reflectionV2, setReflectionV2] = useState(() => import.meta.env.DEV

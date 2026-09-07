@@ -189,8 +189,8 @@ export function HeroPhone({
 
     phone.position.set(x, y, 0);
     phone.scale.setScalar(scale);
-    // DEV presentation offset only; canonical lifecycle rotations remain intact.
-    const depthTarget = import.meta.env.DEV && frontDepth && phase === "front-aligned" ? 1 : 0;
+    // Accepted presentation offset; existing angles and interpolation unchanged.
+    const depthTarget = frontDepth && phase === "front-aligned" ? 1 : 0;
     frontOffset.current = MathUtils.damp(frontOffset.current, depthTarget, 18, Math.min(delta, 0.05));
     const depthMoving = Math.abs(frontOffset.current - depthTarget) > 0.0001;
     if (depthMoving) { boundsReported.current = false; invalidate(); }

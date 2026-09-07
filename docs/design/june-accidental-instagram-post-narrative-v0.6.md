@@ -14,12 +14,12 @@ Character behavior remains governed by `docs/CHARACTER_BIBLE_v1.0.md`. This thre
 | --- | --- | --- | --- |
 | `june-ig-02` | 2010-10-15 | June dancing / nightclub | Visible seed post |
 | `june-ig-03` | 2010-10-16 | June at a party | Visible seed post |
-| `june-ig-04` | 2010-10-19 22:00:00 PDT | Accidental intimate June/Jack photo | Visible seed post at T-2 minutes |
-| `june-ig-01` | 2010-10-19 22:05:30 PDT | Normal replacement photo | Hidden until T+210 |
+| `june-ig-04` | 2010-10-20 00:00:00 PDT | Accidental intimate June/Jack photo | Visible seed post at T-2 minutes |
+| `june-ig-01` | 2010-10-20 00:05:30 PDT | Normal replacement photo | Hidden until T+210 |
 
-IG04 retains its October 19 22:00 historical publication; the simulation now starts October 20 at 00:02. It is never created by a live event and can be discovered immediately through June's profile. All four records resolve existing square assets through the shared character media registry.
+IG04 predates the simulation's 00:02 start by exactly two minutes. It is never created by a live event and can be discovered immediately through June's profile. All four records resolve existing square assets through the shared character media registry.
 
-**MIDNIGHT IS NO LONGER CANONICAL.** The canonical narrative invariant is that IG04 exists at T-2 minutes when the experience begins.
+**MIDNIGHT IS CANONICAL.** IG04 exists at 00:00, exactly T-2 minutes when the experience begins at 00:02 on October 20.
 
 ## June Instagram social baseline
 
@@ -31,20 +31,20 @@ June's account uses deterministic `CURATED DISPLAY` values:
 
 The initial three-post chronology therefore displays Posts 3, falls to Posts 2 when IG04 is deleted at T+200, and returns to Posts 3 when IG01 appears at T+210. Following exceeding Followers reflects active friend migration from June's established offline/Facebook social circle, not influencer or celebrity status. June receives no random or live follower drift.
 
-June's Profile rendering is aligned to the evidenced Instagram 1.0-era structure: `junepark` navigation title, dark summary header, square avatar, blue Photos/Followers/Following blocks, and a vertical newest-first photo stream. Profile grid and biography UI are rejected for the October 19, 2010 session. Exact other-user relationship control chrome, texture raster and timestamp typography remain HOLD.
+June's Profile rendering is aligned to the evidenced Instagram 1.0-era structure: `junepark` navigation title, dark summary header, square avatar, blue Photos/Followers/Following blocks, and a vertical newest-first photo stream. Profile grid and biography UI are rejected for the October 20, 2010 session. Exact other-user relationship control chrome, texture raster and timestamp typography remain HOLD.
 
 ## Runtime timing
 
 | Elapsed | Device time | Stable event ID | Outcome |
 | --- | --- | --- | --- |
-| T+60 s | 10:03 PM | `facebook-june-instagram-announcement` | June posts `finally got instagram lol @junepark` |
-| T+120 s | 10:04 PM | `facebook-june-jack-gossip-katie` | Katie comments `june + jack???` |
-| T+145 s | 10:04:25 PM | `facebook-june-jack-gossip-chris` | Chris comments `lol no way` |
-| T+155 s | 10:04:35 PM | `facebook-katie-jack-gossip-message` | Katie sends `Do you know Jack????` |
-| T+200 s | 10:05:20 PM | `instagram-june-jack-accidental-delete` | IG04 transitions from visible to deleted |
-| T+210 s | 10:05:30 PM | `instagram-june-replacement-photo` | IG01 becomes visible as the newest post |
-| T+780 s | 10:15:00 PM | `instagram-june-replacement-comment-sophie-1` | Sophie posts the first replacement-photo comment |
-| T+795 s | 10:15:15 PM | `instagram-june-replacement-comment-sophie-2` | Sophie posts the second replacement-photo comment |
+| T+60 s | 12:03 AM | `facebook-june-instagram-announcement` | June posts `finally got instagram lol @junepark` |
+| T+120 s | 12:04 AM | `facebook-june-jack-gossip-katie` | Katie comments `june + jack???` |
+| T+145 s | 12:04:25 AM | `facebook-june-jack-gossip-chris` | Chris comments `lol no way` |
+| T+155 s | 12:04:35 AM | `facebook-katie-jack-gossip-message` | Katie sends `Do you know Jack????` |
+| T+200 s | 12:05:20 AM | `instagram-june-jack-accidental-delete` | IG04 transitions from visible to deleted |
+| T+210 s | 12:05:30 AM | `instagram-june-replacement-photo` | IG01 becomes visible as the newest post |
+| T+780 s | 12:15:00 AM | `instagram-june-replacement-comment-sophie-1` | Sophie posts the first replacement-photo comment |
+| T+795 s | 12:15:15 AM | `instagram-june-replacement-comment-sophie-2` | Sophie posts the second replacement-photo comment |
 
 The superseded T+80 IG04 creation event is removed. Deletion persists through app switching, locking, suspension and resume, and is cleared only by a new Hero session.
 

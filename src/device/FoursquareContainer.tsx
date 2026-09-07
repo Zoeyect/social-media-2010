@@ -7,11 +7,13 @@ import profileIcon from "../assets/foursquare/icons/profile-2010-reconstructed.s
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import { FOURSQUARE_F1_PERIPHERAL_PEOPLE, selectFoursquareVenueTips, type FoursquareCheckinActivity } from "../data/foursquareContent";
 import { buildLeaderboard, type FoursquareCheckinResult, type FoursquareLeaderboardEntry } from "../data/foursquareGameModel";
+import { getFoursquareTipTodo, getFoursquareVenueTodo, sortFoursquareTodos, type FoursquareTodoItem } from "../data/foursquareTodos";
 import { createFoursquareVenueViewModels, type FoursquareVenueViewModel } from "../data/foursquareVenueAdapter";
 import { FOURSQUARE_ROOT_TABS, FoursquareEvent, FoursquareRootTab, FoursquareState, FoursquareVenue } from "../state/foursquareState";
 import { useSessionIdentity } from "../state/sessionIdentity";
 import { IOS4Textarea } from "./IOS4KeyboardSystem";
 import { FoursquareAvatar } from "./FoursquareAvatar";
+import { FoursquareMapOverlay } from "./FoursquareMapOverlay";
 
 type Props = { state: FoursquareState; dispatch: Dispatch<FoursquareEvent>; currentDeviceDateTime: Date };
 const TAB_PRESENTATION: Readonly<Record<FoursquareRootTab, { label: string; icon: string }>> = Object.freeze({
@@ -39,7 +41,7 @@ export function FoursquareContainer({ state, dispatch, currentDeviceDateTime }: 
         {state.activeTab === "friends" && <FriendsRoot simulatedNowMs={currentDeviceDateTime.getTime()} activities={state.socialActivities} venues={state.venues} onOpenVenue={venueId => dispatch({ type: "OPEN_VENUE", venueId, scrollPosition: state.rootScrollPositions.places })} />}
         {state.activeTab === "places" && <PlacesRoot state={state} onOpen={(venueId, scrollPosition) => dispatch({ type: "OPEN_VENUE", venueId, scrollPosition })} scrollHost={rootRef} />}
         {state.activeTab === "tips" && <QuietRoot label="Tips" />}
-        {state.activeTab === "todos" && <QuietRoot label="To-Dos" />}
+        {state.activeTab === "todos" && <TodosRoot todos={state.todos} venues={state.venues} onOpenVenue={venueId => dispatch({ type: "OPEN_VENUE", venueId, scrollPosition: state.rootScrollPositions.places })} onOpenTipVenue={venueId => { dispatch({ type: "OPEN_VENUE", venueId, scrollPosition: state.rootScrollPositions.places }); dispatch({ type: "SHOW_VENUE_TIPS" }); }} />}
         {state.activeTab === "profile" && <><section className="foursquare-profile-root"><FoursquareAvatar identityId="session-owner" displayName={identity.name} /><strong>{identity.name}</strong></section><button type="button" className="foursquare-profile-leaderboard-row" onClick={() => dispatch({ type: "SHOW_LEADERBOARD" })}><strong>Leaderboard</strong><span aria-hidden="true">›</span></button></>}
       </div>}
       {state.currentView === "venue" && venue && venueViewModel && <VenueDetail venue={venue} venueViewModel={venueViewModel} state={state} identityName={identity.name} currentDeviceDateTime={currentDeviceDateTime} dispatch={dispatch} />}
@@ -95,18 +97,34 @@ function PlacesRoot({ state, onOpen, scrollHost }: { state: FoursquareState; onO
   return <section className="foursquare-places" data-fidelity-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">{venues.map(item => <VenueRow key={item.id} venue={item} checkedIn={Boolean(state.checkIns[item.id])} onOpen={() => onOpen(item.id, scrollHost.current?.scrollTop ?? state.rootScrollPositions.places)} />)}</section>;
 }
 
+function TodosRoot({ todos, venues, onOpenVenue, onOpenTipVenue }: { todos: readonly FoursquareTodoItem[]; venues: readonly FoursquareVenue[]; onOpenVenue: (venueId: string) => void; onOpenTipVenue: (venueId: string) => void }) {
+  return <section className="foursquare-todos-root" aria-label="To-Dos" data-content-status="RECONSTRUCTED_FROM_EXISTING_PROJECT_MATERIAL">{sortFoursquareTodos(todos).map(todo => {
+    const venue = venues.find(candidate => candidate.id === todo.venueId);
+    if (!venue) return null;
+    if (todo.kind === "venue") return <button key={todo.id} type="button" className="foursquare-todo-venue-row" onClick={() => onOpenVenue(venue.id)}><strong>{venue.name}</strong></button>;
+    const tip = selectFoursquareVenueTips(todo.venueId).find(candidate => candidate.id === todo.tipId);
+    if (!tip) return null;
+    return <button key={todo.id} type="button" className="foursquare-todo-tip-row" onClick={() => onOpenTipVenue(todo.venueId)}><strong>{tip.text}</strong><small>{venue.name}</small></button>;
+  })}</section>;
+}
+
 function QuietRoot({ label }: { label: string }) { return <section className="foursquare-quiet-root" aria-label={label} />; }
 
 function VenueDetail({ venue, venueViewModel, state, identityName, currentDeviceDateTime, dispatch }: { venue: FoursquareVenue; venueViewModel: FoursquareVenueViewModel; state: FoursquareState; identityName: string; currentDeviceDateTime: Date; dispatch: Dispatch<FoursquareEvent> }) {
   const tips = selectFoursquareVenueTips(venue.id);
+  const venueTodo = getFoursquareVenueTodo(state.todos, venue.id);
   return <article className={`foursquare-venue-detail is-${state.venueSubview}`} data-content-status={venue.contentStatus} data-fidelity-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
     {state.venueSubview === "summary" && <><header className="foursquare-venue-summary-header"><img src={venueViewModel.categoryIcon} alt="" aria-hidden="true" /><span><strong>{venueViewModel.name}</strong><small>{venueViewModel.categoryLabel}</small></span></header><nav className="foursquare-venue-actions" aria-label={`${venueViewModel.name} actions`}>
       <button type="button" onClick={() => dispatch({ type: "SHOW_VENUE_CHECK_IN" })}>Check In<span aria-hidden="true">›</span></button>
       <button type="button" onClick={() => dispatch({ type: "SHOW_VENUE_INFO" })}>Info<span aria-hidden="true">›</span></button>
       <button type="button" onClick={() => dispatch({ type: "SHOW_VENUE_TIPS" })}>Tips<span aria-hidden="true">›</span></button>
+      <button type="button" className="foursquare-venue-todo-action" data-content-status="RECONSTRUCTED_FROM_EXISTING_PROJECT_MATERIAL" onClick={() => dispatch(venueTodo ? { type: "REMOVE_TODO", todoId: venueTodo.id } : { type: "ADD_VENUE_TODO", venueId: venue.id, simulatedCreatedAt: currentDeviceDateTime.getTime() })}>{venueTodo ? "Remove from To-Dos" : "Add to To-Dos"}</button>
     </nav></>}
-    {state.venueSubview === "info" && <section className="foursquare-venue-info" aria-label="Venue information"><div><span>Category</span><strong>{venueViewModel.categoryLabel}</strong></div></section>}
-    {state.venueSubview === "tips" && <section className="foursquare-venue-tips" aria-label="Venue tips">{tips.map(tip => <article key={tip.id} className="foursquare-venue-tip" data-content-status={tip.classification}><strong>{tip.authorDisplayName}</strong><p>{tip.text}</p></article>)}</section>}
+    {state.venueSubview === "info" && <section className="foursquare-venue-info" aria-label="Venue information"><div><span>Category</span><strong>{venueViewModel.categoryLabel}</strong></div><FoursquareMapOverlay venueId={venue.id} /></section>}
+    {state.venueSubview === "tips" && <section className="foursquare-venue-tips" aria-label="Venue tips">{tips.map(tip => {
+      const tipTodo = getFoursquareTipTodo(state.todos, tip.id);
+      return <article key={tip.id} className="foursquare-venue-tip" data-content-status={tip.classification}><strong>{tip.authorDisplayName}</strong><p>{tip.text}</p><button type="button" className="foursquare-tip-todo-action" data-content-status="RECONSTRUCTED_FROM_EXISTING_PROJECT_MATERIAL" onClick={() => dispatch(tipTodo ? { type: "REMOVE_TODO", todoId: tipTodo.id } : { type: "ADD_TIP_TODO", tipId: tip.id, simulatedCreatedAt: currentDeviceDateTime.getTime() })}>{tipTodo ? "Remove from To-Dos" : "Add to To-Dos"}</button></article>;
+    })}</section>}
     {state.venueSubview === "checkIn" && <><header className="foursquare-checkin-venue-context"><strong>{venueViewModel.name}</strong><small>{venueViewModel.categoryLabel}</small></header><form className="foursquare-checkin-form" onSubmit={event => { event.preventDefault(); const checkInTimestamp = currentDeviceDateTime.getTime(); dispatch({ type: "CHECK_IN", venueId: venue.id, checkedInBy: identityName, checkInTimestamp }); }}><label htmlFor={`foursquare-shout-${venue.id}`}>Shout (optional)</label><IOS4Textarea keyboardInputId={`foursquare-shout-${venue.id}`} id={`foursquare-shout-${venue.id}`} maxLength={140} value={state.shoutDrafts[venue.id] ?? ""} onValueChange={value => dispatch({ type: "EDIT_CHECK_IN_SHOUT", venueId: venue.id, value })} /><button className="foursquare-checkin-button" type="submit">Check-in here</button></form></>}
     {state.venueSubview === "result" && state.checkIns[venue.id] && <CheckInResult venueName={venueViewModel.name} playerDisplayName={identityName} result={state.checkIns[venue.id].result} />}
   </article>;

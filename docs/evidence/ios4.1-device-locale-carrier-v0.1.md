@@ -1,7 +1,8 @@
 # iOS 4.1 Device Locale & Carrier Configuration Audit v0.1
 
-> **CURRENT RUNTIME ANNOTATION:** the canonical cross-app session is now
-> `2010-10-20 00:02–00:17 PT` in `America/Los_Angeles`. Historical audit observations below remain project context. The
+> **CURRENT RUNTIME ANNOTATION:** the canonical cross-app session is
+> `2010-10-20 00:02–00:17 PT` in `America/Los_Angeles`. References below to the
+> former repository state are preserved as historical project context. The
 > locale, carrier, firmware, and 12-hour-clock evidence conclusions are unchanged.
 
 ## Scope and evidence boundary
@@ -141,7 +142,7 @@ Carrier text is a network/carrier-bundle result, not a translation of the system
 ## Required future changes
 
 1. The simulated start is `2010-10-20T00:02:00-07:00` and display uses `America/Los_Angeles`.
-2. The `en-US` 12-hour cycle presents `10:02` on the Lock Screen and Status Bar without a 24-hour value.
+2. The `en-US` 12-hour cycle presents `12:02` on the Lock Screen and Status Bar without a 24-hour value.
 3. Replace `SoftBank` with AT&T carrier presentation.
 4. Audit the active status-bar style before choosing `Default_CARRIER_ATT@2x.png` versus `FSO_CARRIER_ATT@2x.png`; do not fabricate an AT&T wordmark.
 5. Retain `3G` only as an explicit scene state; separately choose signal strength, Wi-Fi state, Bluetooth state, and battery-percentage preference.

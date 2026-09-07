@@ -1,7 +1,7 @@
 import type { CanonicalVenueId } from "./canonicalVenues";
 
-export const FOURSQUARE_HISTORY_WINDOW_START = "2010-08-21T00:00:00-07:00" as const;
-export const FOURSQUARE_HISTORY_WINDOW_END = "2010-10-19T22:02:00-07:00" as const;
+export const FOURSQUARE_HISTORY_WINDOW_START = "2010-08-22T00:00:00-07:00" as const;
+export const FOURSQUARE_HISTORY_WINDOW_END = "2010-10-20T00:02:00-07:00" as const;
 export const FOURSQUARE_HISTORY_TIME_ZONE = "America/Los_Angeles" as const;
 
 export const FOURSQUARE_NPC_IDS = Object.freeze(["alex", "katie", "june", "luca", "mia"] as const);
@@ -58,7 +58,7 @@ export const FOURSQUARE_HISTORICAL_CHECKINS: readonly FoursquareHistoricalChecki
   { id: "foursquare-history-katie-2010-09-07-westside-library", characterId: "katie", venueId: "westside-library", simulatedCreatedAt: "2010-09-07T17:05:00-07:00", shout: "Finally done studying.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
   { id: "foursquare-history-alex-2010-09-09-community-courts", characterId: "alex", venueId: "community-courts", simulatedCreatedAt: "2010-09-09T18:10:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
   { id: "foursquare-history-katie-2010-09-11-downtown-coffee", characterId: "katie", venueId: "downtown-coffee", simulatedCreatedAt: "2010-09-11T12:15:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
-  { id: "foursquare-history-june-2010-09-12-main-street-diner", characterId: "june", venueId: "main-street-diner", simulatedCreatedAt: "2010-09-12T18:30:00-07:00", shout: "Dinner with everyone.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-june-2010-09-12-main-street-diner", characterId: "june", venueId: "main-street-diner", simulatedCreatedAt: "2010-09-12T18:30:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
   { id: "foursquare-history-alex-2010-09-14-riverside-park", characterId: "alex", venueId: "riverside-park", simulatedCreatedAt: "2010-09-14T18:35:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
   { id: "foursquare-history-katie-2010-09-16-riverside-park", characterId: "katie", venueId: "riverside-park", simulatedCreatedAt: "2010-09-16T16:45:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
   { id: "foursquare-history-alex-2010-09-18-main-street-diner", characterId: "alex", venueId: "main-street-diner", simulatedCreatedAt: "2010-09-18T19:20:00-07:00", shout: "Food then home.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
@@ -84,8 +84,15 @@ export const FOURSQUARE_HISTORICAL_CHECKINS: readonly FoursquareHistoricalChecki
   { id: "foursquare-history-luca-2010-10-19-main-street-diner", characterId: "luca", venueId: "main-street-diner", simulatedCreatedAt: "2010-10-19T15:06:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
   { id: "foursquare-history-katie-2010-10-19-riverside-park", characterId: "katie", venueId: "riverside-park", simulatedCreatedAt: "2010-10-19T17:18:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
   { id: "foursquare-history-alex-2010-10-19-riverside-park", characterId: "alex", venueId: "riverside-park", simulatedCreatedAt: "2010-10-19T20:41:00-07:00", shout: "Evening walk with the dogs.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
-  { id: "foursquare-history-june-2010-10-19-main-street-diner", characterId: "june", venueId: "main-street-diner", simulatedCreatedAt: "2010-10-19T21:12:00-07:00", shout: null, source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
+  { id: "foursquare-history-june-2010-10-19-main-street-diner", characterId: "june", venueId: "main-street-diner", simulatedCreatedAt: "2010-10-19T22:52:00-07:00", shout: "Late dinner.", source: "seed", classification: "PROJECT-CURATED-FICTION", validForGameMechanics: true, validityClassification: "PROJECT-RECONSTRUCTED-VALID" },
 ]);
+
+export const FOURSQUARE_FRIENDS_FEED_HISTORY_IDS = Object.freeze([
+  "foursquare-history-june-2010-10-19-main-street-diner",
+  "foursquare-history-alex-2010-10-19-riverside-park",
+  "foursquare-history-katie-2010-10-19-riverside-park",
+  "foursquare-history-luca-2010-10-19-main-street-diner",
+] as const satisfies readonly FoursquareHistoricalCheckin["id"][]);
 export const FOURSQUARE_HISTORY_COMPLETENESS: readonly FoursquareHistoryCompleteness[] = Object.freeze([
   {
     characterId: "alex",
@@ -120,8 +127,6 @@ export const FOURSQUARE_HISTORY_COMPLETENESS: readonly FoursquareHistoryComplete
     lifetimeHistoryComplete: false,
   },
 ]);
-export const FOURSQUARE_FRIENDS_FEED_HISTORY_IDS: readonly string[] = Object.freeze([]);
-
 const NPC_ID_SET: ReadonlySet<string> = new Set(FOURSQUARE_NPC_IDS);
 const HISTORICAL_VENUE_ID_SET: ReadonlySet<string> = new Set(FOURSQUARE_HISTORICAL_VENUE_IDS);
 const COMPLETENESS_LEVEL_SET: ReadonlySet<string> = new Set(["display-selected", "complete-for-game-window"]);

@@ -122,6 +122,13 @@ try {
   const sharedCharacterMedia = await vite.ssrLoadModule("/src/data/sharedCharacterMedia.ts");
   const twitterAvatars = await vite.ssrLoadModule("/src/data/twitterAvatarRegistry.ts");
   const sessionTimeline = await vite.ssrLoadModule("/src/data/sessionTimeline.ts");
+  const canonicalVenues = await vite.ssrLoadModule("/src/data/canonicalVenues.ts");
+  const canonicalVenueGeography = await vite.ssrLoadModule("/src/data/canonicalVenueGeography.ts");
+  const canonicalMapGeometry = await vite.ssrLoadModule("/src/data/canonicalMapGeometry.ts");
+  const shared2010Map = await vite.ssrLoadModule("/src/device/Shared2010Map.tsx");
+  const foursquareMapOverlay = await vite.ssrLoadModule("/src/device/FoursquareMapOverlay.tsx");
+  const facebookMapOverlay = await vite.ssrLoadModule("/src/device/FacebookMapOverlay.tsx");
+  const facebookStateForMap = await vite.ssrLoadModule("/src/state/facebookState.ts");
   const scheduler = await vite.ssrLoadModule("/src/state/deviceEventScheduler.ts");
   const deviceMachine = await vite.ssrLoadModule("/src/state/deviceMachine.ts");
   const appRuntime = await vite.ssrLoadModule("/src/state/appRuntimeState.ts");
@@ -258,7 +265,7 @@ try {
   assert.equal(formatFacebookTime("2010-10-18T20:51:00-07:00", 0), "Mon 8:51 PM");
   assert.equal(formatFacebookTime("2010-05-15T18:00:00-07:00", 0), "May 15");
   assert.equal(formatFacebookTime("2010-10-18T20:51:00-07:00", 0, { sourceApp: "iPhoto Uploader" }), "Mon 8:51 PM via iPhoto Uploader");
-  assert.equal(formatFacebookTime("2010-10-19T21:44:00-07:00", 0, { storyType: "checkin" }), "Tue 9:44 PM", "pre-session Places stories must preserve their explicit timestamp through the established relative-time policy");
+  assert.equal(formatFacebookTime("2010-10-19T22:44:00-07:00", 0, { storyType: "checkin" }), "Tue 10:44 PM", "previous-day Places stories must expose the cross-midnight calendar boundary");
   const futureStoryDisplay = formatFacebookTime("2010-10-20T00:10:00-07:00", 0, { storyId: "invalid-future-seed" });
   assert.equal(futureStoryDisplay, "Wed 12:10 AM", "future timestamps must use deterministic absolute fallback rather than just now");
   assert.notEqual(futureStoryDisplay, "just now");
@@ -266,10 +273,10 @@ try {
   assert.deepEqual(
     Object.fromEntries(["ben-long-day", "jack-movie", "alex-jacks-party-friday", "katie-coffee"].map(id => [id, facebookSeedTimestampAudit[id]])),
     {
-      "ben-long-day": "2010-10-19T21:58:00-07:00",
-      "jack-movie": "2010-10-19T21:52:00-07:00",
-      "alex-jacks-party-friday": "2010-10-19T21:47:00-07:00",
-      "katie-coffee": "2010-10-19T21:41:00-07:00",
+      "ben-long-day": "2010-10-19T23:58:00-07:00",
+      "jack-movie": "2010-10-19T23:52:00-07:00",
+      "alex-jacks-party-friday": "2010-10-19T23:47:00-07:00",
+      "katie-coffee": "2010-10-19T23:41:00-07:00",
     },
     "all late-night pre-session stories must belong to October 19",
   );
@@ -278,26 +285,26 @@ try {
   const atThirteenMinutes = facebookSessionStartMs + 11 * 60_000;
   const atThirteen = storyTimestamp => facebookStoryTime.formatFacebookStoryTime({ storyTimestamp, simulatedNowMs: atThirteenMinutes, storyType: "status" });
   assert.deepEqual(
-    [atThirteen("2010-10-19T21:58:00-07:00"), atThirteen("2010-10-19T21:52:00-07:00"), atThirteen("2010-10-19T21:47:00-07:00"), atThirteen("2010-10-19T21:41:00-07:00"), atThirteen("2010-10-20T00:03:00-07:00"), atThirteen("2010-10-20T00:04:15-07:00"), atThirteen("2010-10-19T22:00:00-07:00")],
-    ["Tue 9:58 PM", "Tue 9:52 PM", "Tue 9:47 PM", "Tue 9:41 PM", "10 minutes ago", "8 minutes ago", "Tue 10:00 PM"],
-    "same-evening seed and live stories must use the established relative-time policy",
+    [atThirteen("2010-10-19T23:58:00-07:00"), atThirteen("2010-10-19T23:52:00-07:00"), atThirteen("2010-10-19T23:47:00-07:00"), atThirteen("2010-10-19T23:41:00-07:00"), atThirteen("2010-10-20T00:03:00-07:00"), atThirteen("2010-10-20T00:04:15-07:00"), atThirteen("2010-10-19T22:00:00-07:00")],
+    ["Tue 11:58 PM", "Tue 11:52 PM", "Tue 11:47 PM", "Tue 11:41 PM", "10 minutes ago", "8 minutes ago", "Tue 10:00 PM"],
+    "previous-day seed stories must use weekday/time while current-day live stories remain relative",
   );
   const crossMidnightFeedCases = [
-    ["luca-main-street-diner-checkin", "2010-10-19T21:44:00-07:00", "checkin", "Tue 9:44 PM"],
-    ["luca-pickup-basketball-photos", "2010-10-19T21:28:00-07:00", "album", "Tue 9:28 PM"],
-    ["jay-reading", "2010-10-19T21:33:00-07:00", "status", "Tue 9:33 PM"],
-    ["katie-coffee", "2010-10-19T21:41:00-07:00", "activity", "Tue 9:41 PM"],
-    ["alex-jacks-party-friday", "2010-10-19T21:47:00-07:00", "status", "Tue 9:47 PM"],
-    ["jack-movie", "2010-10-19T21:52:00-07:00", "status", "Tue 9:52 PM"],
-    ["ben-long-day", "2010-10-19T21:58:00-07:00", "status", "Tue 9:58 PM"],
+    ["luca-main-street-diner-checkin", "2010-10-19T22:44:00-07:00", "checkin", "Tue 10:44 PM"],
+    ["luca-pickup-basketball-photos", "2010-10-19T22:58:00-07:00", "album", "Tue 10:58 PM"],
+    ["jay-reading", "2010-10-19T23:33:00-07:00", "status", "Tue 11:33 PM"],
+    ["katie-coffee", "2010-10-19T23:41:00-07:00", "activity", "Tue 11:41 PM"],
+    ["alex-jacks-party-friday", "2010-10-19T23:47:00-07:00", "status", "Tue 11:47 PM"],
+    ["jack-movie", "2010-10-19T23:52:00-07:00", "status", "Tue 11:52 PM"],
+    ["ben-long-day", "2010-10-19T23:58:00-07:00", "status", "Tue 11:58 PM"],
     ["jay-band-performance-photo", "2010-10-19T22:00:00-07:00", "photo", "Tue 10:00 PM"],
   ];
   assert.deepEqual(crossMidnightFeedCases.map(([storyId, storyTimestamp, storyType]) => [storyId, facebookStoryTime.formatFacebookStoryTime({ storyId, storyTimestamp, simulatedNowMs: atThirteenMinutes, storyType })]), crossMidnightFeedCases.map(([storyId, , , display]) => [storyId, display]), "all Oct 19 Feed metadata must retain Tuesday across midnight");
-  assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "ben-long-day", storyTimestamp: "2010-10-19T21:58:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "status", surface: "detail" }), "October 19 9:58 PM", "2010 Detail metadata must omit the reconstruction year and connective at");
+  assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "ben-long-day", storyTimestamp: "2010-10-19T23:58:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "status", surface: "detail" }), "October 19 11:58 PM", "2010 Detail metadata must omit the reconstruction year and connective at");
   assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "jay-band-performance-photo", storyTimestamp: "2010-10-19T22:00:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "photo", surface: "detail" }), "October 19 10:00 PM", "Jay Detail must preserve the intentional October 19 upload timestamp without 2010-era redundancy");
   assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "june-instagram-announcement", storyTimestamp: "2010-10-20T00:03:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "status", surface: "detail" }), "October 20 12:03 AM", "June Detail must format in canonical Pacific time without browser-local timezone drift");
-  assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "alex-jacks-party-friday", storyTimestamp: "2010-10-19T21:47:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "status", surface: "detail" }), "October 19 9:47 PM", "Alex Comments Detail must use the locked 2010 timestamp convention");
-  assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "june-fb-10-18-01", storyTimestamp: "2010-10-19T21:51:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "photo", surface: "detail" }), "October 19 9:51 PM", "June Photo Detail must use the locked 2010 timestamp convention");
+  assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "alex-jacks-party-friday", storyTimestamp: "2010-10-19T23:47:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "status", surface: "detail" }), "October 19 11:47 PM", "Alex Comments Detail must use the locked 2010 timestamp convention");
+  assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "june-fb-10-18-01", storyTimestamp: "2010-10-19T23:51:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "photo", surface: "detail" }), "October 19 11:51 PM", "June Photo Detail must use the locked 2010 timestamp convention");
   assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "jay-learning-by-ear-2009-11-07", storyTimestamp: "2009-11-07T23:08:00-08:00", simulatedNowMs: atThirteenMinutes, storyType: "photo", surface: "detail" }), "November 7, 2009 at 11:08 PM", "2009 Jay Detail must retain its disambiguating historical year");
   assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "jack-matt-2008-photo", storyTimestamp: "2008-09-20T19:32:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "photo", surface: "detail" }), "September 20, 2008 at 7:32 PM", "2008 Jack/Matt Detail must retain its disambiguating historical year");
   assert.equal(facebookStoryTime.formatFacebookStoryTime({ storyId: "matt-photo-2007", storyTimestamp: "2007-09-25T21:14:00-07:00", simulatedNowMs: atThirteenMinutes, storyType: "photo", surface: "detail" }), "September 25, 2007 at 9:14 PM", "2007 Photo Detail must retain its disambiguating historical year");
@@ -698,7 +705,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(facebook.selectFacebookComments(mattCodeThreadState, "matt-code-photo-2010").length, 7, "user comment must increment Matt's code thread from six to seven");
   const lucaAlbums = facebookAlbums.getFacebookAlbumsForActor({ kind: "canonical", characterId: "luca", displayName: "Luca" });
   assert.deepEqual(lucaAlbums.map(album => [album.id, album.title, album.mediaIds]), [["luca-profile-pictures", "Profile Pictures", ["luca-profile-picture"]], ["luca-pickup-basketball", "Pickup Basketball", ["luca-basketball-01", "luca-basketball-02", "luca-basketball-03"]], ["luca-photos", "Photos", ["jack-tagged-luca-01", "luca-jack-birthday-00", "luca-jack-birthday-01", "luca-jack-birthday-02", "luca-jack-birthday-03", "luca-work-main-street-diner"]]], "Luca albums must use the approved profile, tagged-social, birthday, basketball, and work media boundaries");
-  assert.deepEqual(seed.facebook.feed.filter(story => story.id === "luca-profile-picture-current").map(story => [story.friendId, story.author, story.text, story.mediaId, story.createdAt, story.visibility, story.profileWallEligible]), [["luca", "Luca Bennett", "updated his profile picture.", "luca-profile-picture", "2010-10-19T20:00:00-07:00", "custom", true]], "Luca Profile Picture must have exactly one canonical historical owner story");
+  assert.deepEqual(seed.facebook.feed.filter(story => story.id === "luca-profile-picture-current").map(story => [story.friendId, story.author, story.text, story.mediaId, story.createdAt, story.visibility, story.profileWallEligible]), [["luca", "Luca Bennett", "updated his profile picture.", "luca-profile-picture", "2010-10-20T00:00:00-07:00", "custom", true]], "Luca Profile Picture must have exactly one canonical historical owner story");
   assert.equal(facebook.selectFacebookProfileWall(facebook.createInitialFacebookState("Visitor"), "Luca Bennett").filter(story => story.id === "luca-profile-picture-current").length, 1, "Luca Wall must expose exactly one Profile Picture update story");
   assert.deepEqual(lucaAlbums.find(album => album.id === "luca-photos")?.photos.map(photo => [photo.mediaId, photo.timestamp, photo.venueId]), [["jack-tagged-luca-01", "2010-09-14T20:00:00-07:00", undefined], ["luca-jack-birthday-00", "2010-08-02T23:17:00-07:00", undefined], ["luca-jack-birthday-01", "2010-08-02T23:17:00-07:00", undefined], ["luca-jack-birthday-02", "2010-08-02T23:17:00-07:00", undefined], ["luca-jack-birthday-03", "2010-08-02T23:17:00-07:00", undefined], ["luca-work-main-street-diner", "2010-03-20T22:30:00-07:00", "main-street-diner"]], "Luca Photos must retain tagged Jack birthday photos and deterministic work-history venue binding");
   let lucaThreadState = facebook.createInitialFacebookState("Visitor");
@@ -836,7 +843,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     ["jay-music-bedroom-2009-03-14", "jay", "2009-03-14T22:18:00-07:00", "been playing this all week"],
   ], "Jay 2009 music story ownership, chronology, and captions must remain exact");
   assert.deepEqual(facebook.selectFacebookProfileWall(jay2009State, "Jay Diaz").filter(item => jay2009StoryIds.includes(item.id)).map(item => item.id), jay2009StoryIds, "Jay historical Wall must expose the four stories newest-first");
-  assert.equal(jay2009Stories.every(story => !facebook.isFacebookNewsFeedEligible(jay2009State, story, facebookSessionStartMs)), true, "all Jay 2009 stories must remain outside the Oct 2010 News Feed");
+  assert.equal(jay2009Stories.every(story => !facebook.isFacebookNewsFeedEligible(jay2009State, story, Date.parse("2010-10-20T00:02:00-07:00"))), true, "all Jay 2009 stories must remain outside the Oct 2010 News Feed");
   assert.equal(facebook.selectFacebookVisibleFeed(jay2009State).some(item => jay2009StoryIds.includes(item.id)), false, "the visible Oct 2010 Feed must contain no Jay 2009 story");
   const jay2009ExpectedInteractions = [
     ["jay-music-bedroom-2009-03-14", 8, [["Luca Bennett", "again??"], ["Jay Diaz", "yeah"], ["Sarah", "good album"]]],
@@ -1244,10 +1251,10 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     ["gelato-roma", "Gelato Roma"],
   ], "Facebook Places must use one exact canonical identity per venue");
   assert.deepEqual(facebook.FACEBOOK_FRIEND_CHECK_INS.map(checkIn => [checkIn.id, checkIn.characterId, checkIn.venueId, checkIn.venueName, checkIn.createdAt]), [
-    ["chris-courts-checkin", "chris", "community-courts", "Community Courts", "2010-10-19T21:48:00-07:00"],
-    ["luca-diner-checkin", "luca", "main-street-diner", "Main Street Diner", "2010-10-19T21:44:00-07:00"],
+    ["ben-coffee-checkin", "ben", "downtown-coffee", "Downtown Coffee", "2010-10-19T23:12:00-07:00"],
+    ["luca-diner-checkin", "luca", "main-street-diner", "Main Street Diner", "2010-10-19T22:44:00-07:00"],
+    ["chris-courts-checkin", "chris", "community-courts", "Community Courts", "2010-10-19T22:18:00-07:00"],
     ["alex-riverside-park-checkin", "alex", "riverside-park", "Riverside Park", "2010-10-19T21:36:00-07:00"],
-    ["ben-coffee-checkin", "ben", "downtown-coffee", "Downtown Coffee", "2010-10-19T21:12:00-07:00"],
     ["katie-westside-library-checkin", "katie", "westside-library", "Westside Library", "2010-10-19T20:14:00-07:00"],
     ["matt-gelato-roma-checkin", "matt", "gelato-roma", "Gelato Roma", "2010-10-19T19:22:00-07:00"],
   ], "Recent Check-ins must preserve the exact character/venue baseline newest-first");
@@ -1374,7 +1381,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(seed.facebook.feed.some(item => item.friendId === "matt" && item.text.includes("party")), false, "Matt's party reaction must remain Twitter-specific");
   assert.deepEqual(
     twitterSeed.map(tweet => tweet.timestamp),
-    ["9:58 PM", "9:53 PM", "9:49 PM", "9:41 PM", "9:26 PM", "9:09 PM", "9:03 PM", "9:47 PM", "9:22 PM", "9:05 PM", "9:47 PM", "9:12 PM", "9:08 PM", "8:30 PM"],
+    ["11:58 PM", "11:53 PM", "11:49 PM", "11:41 PM", "11:26 PM", "11:09 PM", "11:03 PM", "10:47 PM", "10:22 PM", "10:05 PM", "9:47 PM", "9:12 PM", "9:08 PM", "8:30 PM"],
     "Twitter seed must remain newest-first",
   );
   assert.equal(twitterSeed.filter(tweet => tweet.contentType === "manual-retweet").length, 2);
@@ -1825,8 +1832,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   dmState = twitter.twitterStateTransition(dmState, { type: "BACK_TO_MESSAGES" });
   assert.deepEqual([dmState.currentView, dmState.messagesScrollPosition], ["messagesList", 41]);
   const canonicalDirectMessageSummary = [
-    ["dm-katie", "Katie Dawson", "9:46 PM", "crazy ahaha", true],
-    ["dm-matt", "Matt Ricci", "9:21 PM", "see you tomorrow", false],
+    ["dm-katie", "Katie Dawson", "11:46 PM", "crazy ahaha", true],
+    ["dm-matt", "Matt Ricci", "10:21 PM", "see you tomorrow", false],
   ];
   const summarizeDirectMessages = state => state.directMessages.map(thread => [thread.id, thread.sender, thread.timestamp, thread.messages.at(-1)?.text, thread.unread]);
   let b4MessagesState = twitter.twitterStateTransition(twitter.createInitialTwitterState("Zoey"), { type: "SHOW_TAB", tab: "messages" });
@@ -2076,11 +2083,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     id: "user-retweet:still-awake",
     sourceTweetId: "still-awake",
     retweetedBy: "Zoey",
-    originalTweetTimestamp: "9:58 PM",
+    originalTweetTimestamp: "11:58 PM",
     retweetActionTimestamp: 1_287_552_360_000,
   }], "current-user Retweet must create one stable timeline activity without rewriting the source tweet");
   assert.equal(twitterState.timeline.find(tweet => tweet.id === "still-awake")?.displayName, "June");
-  assert.equal(twitterState.timeline.find(tweet => tweet.id === "still-awake")?.timestamp, "9:58 PM");
+  assert.equal(twitterState.timeline.find(tweet => tweet.id === "still-awake")?.timestamp, "11:58 PM");
   assert.deepEqual(twitterState.favoriteTweetIds, ["still-awake"]);
   assert.equal(twitterState.replies.length, 1, "Reply, Retweet, and Favorite state must remain independent");
   twitterState = twitter.twitterStateTransition(twitterState, { type: "SET_SCROLL_POSITION", scrollPosition: 144 });
@@ -2090,10 +2097,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     assert.equal(twitterState.timeline.filter(tweet => tweet.id === post.id).length, 1);
   });
   assert.equal(twitterState.scrollPosition, 144, "live delivery must not force-reset the current Twitter scroll position");
+  assert.equal(twitterState.timeline[0].id, "terminal-goodnight-world", "terminal live activity must sort above earlier live and seed items");
   assert.deepEqual(
     twitterState.timeline.slice(0, 6).map(tweet => tweet.id),
     ["terminal-goodnight-world", "nora-homework", "slang-fml", "late-night-line", "eva-school-tomorrow", "slang-epic-fail"],
-    "T0-M2 must restore chronological live-over-static Twitter ordering",
+    "live Twitter activity must remain newest-first",
   );
   assert.ok(
     ["terminal-goodnight-world", "slang-fml", "slang-epic-fail"].every(id => twitterState.timeline.find(tweet => tweet.id === id)?.origin === "live"),
@@ -2147,7 +2155,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(new Set(foursquarePlaces.map(venue => venue.categoryIcon)).size, 4, "F2a must bind one explicit category artwork asset per current venue category");
   assert.equal(foursquarePlaces.every(venue => !Object.hasOwn(venue, "address") && !Object.hasOwn(venue, "distance") && !Object.hasOwn(venue, "coordinates")), true, "F2a view models must omit unverified address, fabricated distance, and private coordinates");
   assert.equal(foursquarePlaces.every(venue => !Object.hasOwn(venue, "mayor") && !Object.hasOwn(venue, "mayorCharacterId")), true, "F4 legacy mayor strings must not enter UI-eligible venue view models");
-  assert.deepEqual(foursquarePlaces.find(venue => venue.id === "main-street-diner")?.priorFriendActivityIds, ["luca-main-street-diner"], "adapter must exclude the quarantined future June activity from visible prior friend activity IDs");
+  assert.deepEqual(foursquarePlaces.find(venue => venue.id === "main-street-diner")?.priorFriendActivityIds, ["foursquare-history-june-2010-10-19-main-street-diner", "foursquare-history-luca-2010-10-19-main-street-diner"], "adapter must derive only visible prior friend activity IDs");
   assert.deepEqual(foursquare.FOURSQUARE_ROOT_TABS, ["friends", "places", "tips", "todos", "profile"], "F1 must expose exactly five period root destinations in locked order");
   assert.deepEqual([foursquareState.activeTab, foursquareState.currentView, foursquareState.selectedVenueId], ["friends", "root", null], "Foursquare must open to the Friends root");
   assert.deepEqual(foursquareState.rootScrollPositions, { friends: 0, places: 0, tips: 0, todos: 0, profile: 0 }, "every Foursquare root must own independent scroll state");
@@ -2170,6 +2178,54 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   }
   assert.deepEqual(foursquareState.checkIns, {});
   assert.deepEqual(foursquareState.shoutDrafts, {});
+  assert.deepEqual(foursquareState.todos, [], "F5a initial session To-Dos must be empty without claiming zero historical To-Dos");
+  const foursquareTodos = await vite.ssrLoadModule("/src/data/foursquareTodos.ts");
+  const venueTodoId = "todo:venue:night-owl";
+  const tipTodoId = "todo:tip:night-owl-tip";
+  let foursquareTodoState = foursquare.foursquareStateTransition(foursquareState, { type: "ADD_VENUE_TODO", venueId: "night-owl", simulatedCreatedAt: 1_287_552_180_000 });
+  assert.deepEqual(foursquareTodoState.todos, [{ id: venueTodoId, kind: "venue", venueId: "night-owl", createdAt: 1_287_552_180_000, completed: false }], "F5a must add exactly one venue To-Do with caller-supplied simulated time");
+  const oneVenueTodoState = foursquareTodoState;
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_VENUE_TODO", venueId: "night-owl", simulatedCreatedAt: 1_287_552_181_000 });
+  assert.strictEqual(foursquareTodoState, oneVenueTodoState, "F5a duplicate venue To-Do must be an identity-preserving no-op");
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_VENUE_TODO", venueId: "unknown-venue", simulatedCreatedAt: 1_287_552_182_000 }), foursquareTodoState, "F5a unknown venue To-Do must be a no-op");
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_TIP_TODO", tipId: "night-owl-tip", simulatedCreatedAt: 1_287_552_240_000 });
+  assert.deepEqual(foursquareTodoState.todos, [
+    { id: tipTodoId, kind: "tip", tipId: "night-owl-tip", venueId: "night-owl", createdAt: 1_287_552_240_000, completed: false },
+    { id: venueTodoId, kind: "venue", venueId: "night-owl", createdAt: 1_287_552_180_000, completed: false },
+  ], "F5a venue and Tip To-Dos must remain distinct and sort newest-created first");
+  const venueAndTipTodoState = foursquareTodoState;
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_TIP_TODO", tipId: "night-owl-tip", simulatedCreatedAt: 1_287_552_241_000 }), foursquareTodoState, "F5a duplicate Tip To-Do must be an identity-preserving no-op");
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "ADD_TIP_TODO", tipId: "unknown-tip", simulatedCreatedAt: 1_287_552_241_000 }), foursquareTodoState, "F5a unknown Tip must not create a To-Do");
+  assert.equal(foursquareTodos.isFoursquareVenueTodoSaved(foursquareTodoState.todos, "night-owl"), true);
+  assert.equal(foursquareTodos.isFoursquareTipTodoSaved(foursquareTodoState.todos, "night-owl-tip"), true);
+  assert.equal(foursquareTodos.getActiveFoursquareTodos(foursquareTodoState.todos).length, 2);
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "TOGGLE_TODO_COMPLETED", todoId: tipTodoId });
+  assert.deepEqual([foursquareTodos.getCompletedFoursquareTodos(foursquareTodoState.todos).map(todo => todo.id), foursquareTodos.getActiveFoursquareTodos(foursquareTodoState.todos).map(todo => todo.id)], [[tipTodoId], [venueTodoId]], "F5a completion selectors must separate session state");
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "TOGGLE_TODO_COMPLETED", todoId: tipTodoId });
+  assert.equal(foursquareTodos.getFoursquareTipTodo(foursquareTodoState.todos, "night-owl-tip")?.completed, false, "F5a completion toggle must be reversible");
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "TOGGLE_TODO_COMPLETED", todoId: "unknown-todo" }), foursquareTodoState, "F5a unknown completion toggle must be a no-op");
+  const todosBeforeCheckIn = foursquareTodoState.todos;
+  const todoStateAfterCheckIn = foursquare.foursquareStateTransition(foursquareTodoState, { type: "CHECK_IN", venueId: "night-owl", checkedInBy: "Zoey", checkInTimestamp: 1_287_552_600_000 });
+  assert.strictEqual(todoStateAfterCheckIn.todos, todosBeforeCheckIn, "F5a CHECK_IN must not complete, remove, or replace To-Do state");
+  const todoStateAfterNavigation = foursquare.foursquareStateTransition(foursquareTodoState, { type: "SHOW_TAB", tab: "profile" });
+  assert.strictEqual(todoStateAfterNavigation.todos, foursquareTodoState.todos, "F5a internal navigation must preserve session To-Dos");
+  foursquareTodoState = foursquare.foursquareStateTransition(foursquareTodoState, { type: "REMOVE_TODO", todoId: venueTodoId });
+  assert.deepEqual(foursquareTodoState.todos.map(todo => todo.id), [tipTodoId], "F5a remove must affect only the requested To-Do");
+  assert.strictEqual(foursquare.foursquareStateTransition(foursquareTodoState, { type: "REMOVE_TODO", todoId: "unknown-todo" }), foursquareTodoState, "F5a unknown removal must be a no-op");
+  assert.deepEqual(foursquare.foursquareStateTransition(venueAndTipTodoState, { type: "RESET" }).todos, [], "F5a RESET must clear session-created To-Dos");
+  let f5cTodoState = foursquare.foursquareStateTransition(foursquare.createInitialFoursquareState(), { type: "ADD_VENUE_TODO", venueId: "night-owl", simulatedCreatedAt: 1_287_552_180_000 });
+  f5cTodoState = foursquare.foursquareStateTransition(f5cTodoState, { type: "ADD_VENUE_TODO", venueId: "main-street-diner", simulatedCreatedAt: 1_287_552_240_000 });
+  assert.deepEqual(f5cTodoState.todos.map(todo => todo.id), ["todo:venue:main-street-diner", "todo:venue:night-owl"], "F5c visible venue To-Dos must retain deterministic newest-first ordering");
+  assert.strictEqual(foursquare.foursquareStateTransition(f5cTodoState, { type: "ADD_VENUE_TODO", venueId: "main-street-diner", simulatedCreatedAt: 1_287_552_300_000 }), f5cTodoState, "F5c duplicate venue saves must remain reducer no-ops");
+  const f5cTodosRootState = foursquare.foursquareStateTransition(f5cTodoState, { type: "SHOW_TAB", tab: "todos", scrollPosition: 0 });
+  assert.deepEqual([f5cTodosRootState.activeTab, f5cTodosRootState.currentView], ["todos", "root"], "F5c must expose To-Dos as the existing root-tab surface");
+  const f5cVenueFromTodoState = foursquare.foursquareStateTransition(f5cTodosRootState, { type: "OPEN_VENUE", venueId: "night-owl", scrollPosition: 0 });
+  assert.deepEqual([f5cVenueFromTodoState.currentView, f5cVenueFromTodoState.selectedVenueId, f5cVenueFromTodoState.venueSubview], ["venue", "night-owl", "summary"], "F5c To-Do rows must open the existing venue summary route");
+  const f5cRemovedTodoState = foursquare.foursquareStateTransition(f5cTodoState, { type: "REMOVE_TODO", todoId: "todo:venue:main-street-diner" });
+  assert.deepEqual(f5cRemovedTodoState.todos.map(todo => todo.id), ["todo:venue:night-owl"], "F5c removal must remove only the selected venue To-Do");
+  const f5dTipRemovedState = foursquare.foursquareStateTransition(venueAndTipTodoState, { type: "REMOVE_TODO", todoId: tipTodoId });
+  assert.deepEqual(f5dTipRemovedState.todos.map(todo => todo.id), [venueTodoId], "F5d removing the Tip To-Do must leave the coexisting venue To-Do untouched");
+  assert.deepEqual(foursquareTodos.getFoursquareTipTodo(venueAndTipTodoState.todos, "night-owl-tip"), { id: tipTodoId, kind: "tip", tipId: "night-owl-tip", venueId: "night-owl", createdAt: 1_287_552_240_000, completed: false }, "F5d Tip save must retain its Tip identity and reducer-derived Night Owl venue");
   assert.equal(foursquareState.mayorState, "otherUser");
   assert.deepEqual(
     foursquareState.venues.map(venue => [venue.id, venue.mayor]),
@@ -2178,6 +2234,13 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   );
   assert.deepEqual(foursquareState.earnedBadges, []);
   assert.equal(foursquareState.socialActivities.length, 5);
+  assert.deepEqual(foursquareState.socialActivities.map(activity => [activity.friendId, activity.venueId, activity.simulatedCreatedAt, activity.shout ?? null, activity.source, activity.visible]), [
+    ["june", "main-street-diner", "2010-10-19T22:52:00-07:00", "Late dinner.", "seed", true],
+    ["foursquare-mia", "cedar-books", "2010-10-19T20:42:00-07:00", null, "seed", true],
+    ["alex", "riverside-park", "2010-10-19T20:41:00-07:00", "Evening walk with the dogs.", "seed", true],
+    ["katie", "riverside-park", "2010-10-19T17:18:00-07:00", null, "seed", true],
+    ["luca", "main-street-diner", "2010-10-19T15:06:00-07:00", null, "seed", true],
+  ], "F6e initial Friends feed must preserve the five-row visible order and semantics");
   assert.deepEqual(foursquareState.socialActivities.find(activity => activity.id === "mia-cedar-books"), { id: "mia-cedar-books", friendId: "foursquare-mia", venueId: "cedar-books", simulatedCreatedAt: "2010-10-19T20:42:00-07:00", source: "seed", visible: true }, "F1 structured migration must preserve the existing Mia/Cedar Books seed meaning");
   assert.equal(foursquareState.socialActivities.every(activity => activity.friendId && activity.venueId && activity.simulatedCreatedAt && !Object.hasOwn(activity, "message")), true, "Friends feed must use structured identity/venue/time records without freeform parsing");
   let foursquareVenueNavigation = foursquare.foursquareStateTransition(foursquare.createInitialFoursquareState(), { type: "OPEN_VENUE", venueId: "night-owl", scrollPosition: 73 });
@@ -2385,7 +2448,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const flickrB = flickr.createInitialFlickrState();
   assert.notStrictEqual(flickrA.photos, flickrB.photos);
   assert.notStrictEqual(flickrA.photos[0], flickrB.photos[0]);
-  assert.ok(flickrA.photos.every(photo => photo.origin === "seed" && parseExplicitFlickrTimestamp(photo.timestamp) < facebookSessionStartMs), "all initial Flickr seed photos must predate canonical session T0");
+  assert.ok(flickrA.photos.every(photo => photo.origin === "seed" && parseExplicitFlickrTimestamp(photo.timestamp) < facebookSessionStartMs));
   assert.deepEqual(flickrA.commentsState.map(comment => [comment.text, comment.origin]), [["Nice shot", "seed"]], "existing Flickr comments must normalize into session-local seed records");
   assert.ok(flickrA.sets.length <= 2 && flickrA.sets.every(set => set.photoIds.every(photoId => flickrA.photos.some(photo => photo.id === photoId))), "Flickr Sets must reference existing photo IDs without duplicate photo objects");
   flickrA = flickr.flickrStateTransition(flickrA, { type: "TOGGLE_FAVORITE", photoId: flickrA.photos[0].id });
@@ -2446,11 +2509,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
       ["june-ig-01", "IG01.JPG", "june", "instagram", "2010-10-20T07:05:30.000Z", "replacement", "hidden"],
       ["june-ig-02", "IG02.JPG", "june", "instagram", "2010-10-15", "nightclub-dancing", "visible"],
       ["june-ig-03", "IG03.JPG", "june", "instagram", "2010-10-16", "party", "visible"],
-      ["june-ig-04", "IG04.JPG", "june", "instagram", "2010-10-19T22:00:00-07:00", "accidental-intimate", "visible"],
+      ["june-ig-04", "IG04.JPG", "june", "instagram", "2010-10-20T00:00:00-07:00", "accidental-intimate", "visible"],
       ["june-profile-avatar", "June01.PNG", "june", "instagram", "2010-10-20", "profile-avatar", "visible"],
-      ["june-fb-F", "June-F.PNG", "june", "facebook", "2010-10-19T21:51:00-07:00", "facebook-photo", "visible"],
-      ["june-fb-10-18-01", "10-18-June.JPG", "june", "facebook", "2010-10-19T21:51:00-07:00", "facebook-photo", "visible"],
-      ["june-fb-10-18-02", "10-18-June0.JPG", "june", "facebook", "2010-10-19T21:51:00-07:00", "facebook-photo", "visible"],
+      ["june-fb-F", "June-F.PNG", "june", "facebook", "2010-10-19T23:51:00-07:00", "facebook-photo", "visible"],
+      ["june-fb-10-18-01", "10-18-June.JPG", "june", "facebook", "2010-10-19T23:51:00-07:00", "facebook-photo", "visible"],
+      ["june-fb-10-18-02", "10-18-June0.JPG", "june", "facebook", "2010-10-19T23:51:00-07:00", "facebook-photo", "visible"],
       ["june-facebook-profile-picture", "June01.PNG", "june", "facebook", "2010-10-10T16:00:00-07:00", "facebook-profile-picture", "visible"],
       ["june-birthday-main", "June-BH.PNG", "june", "facebook", "2010-06-06T20:30:00-07:00", "birthday", "visible"],
       ["june-birthday-gift", "June-BH01.jpg", "june", "facebook", "2010-06-06T21:05:00-07:00", "birthday", "visible"],
@@ -2497,10 +2560,10 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
       ["katie-profile-picture", "Katie03.PNG", "katie", "facebook", "2010-10-10T16:00:00-07:00", "facebook-profile-picture", "visible"],
       ["katie-selfie-july-2010", "Katie04.jpg", "katie", "facebook", "2010-07-17T15:00:00-07:00", "facebook-selfie", "visible"],
       ["katie-selfie-september-2010", "Katie05.jpg", "katie", "facebook", "2010-09-11T14:00:00-07:00", "facebook-selfie", "visible"],
-      ["luca-profile-picture", "Luca.png", "luca", "facebook", "2010-10-19T20:00:00-07:00", "facebook-profile-picture", "visible"],
-      ["luca-basketball-01", "guys.png", "luca", "facebook", "2010-10-19T21:28:00-07:00", "basketball-friends", "visible"],
-      ["luca-basketball-02", "guys02.PNG", "luca", "facebook", "2010-10-19T21:28:00-07:00", "basketball-friends", "visible"],
-      ["luca-basketball-03", "guys03.png", "luca", "facebook", "2010-10-19T21:28:00-07:00", "basketball-friends", "visible"],
+      ["luca-profile-picture", "Luca.png", "luca", "facebook", "2010-10-20T00:00:00-07:00", "facebook-profile-picture", "visible"],
+      ["luca-basketball-01", "guys.png", "luca", "facebook", "2010-10-19T22:58:00-07:00", "basketball-friends", "visible"],
+      ["luca-basketball-02", "guys02.PNG", "luca", "facebook", "2010-10-19T22:58:00-07:00", "basketball-friends", "visible"],
+      ["luca-basketball-03", "guys03.png", "luca", "facebook", "2010-10-19T22:58:00-07:00", "basketball-friends", "visible"],
       ["luca-work-main-street-diner", "Luca-work.png", "luca", "facebook", "2010-03-20T22:30:00-07:00", "restaurant-work", "visible"],
       ["alex-profile-picture", "Alex.png", "alex", "facebook", "2010-10-01T16:00:00-07:00", "facebook-profile-picture", "visible"],
       ["alex-dog-golden-2007", "Alex01.PNG", "alex", "facebook", "2007-10-03T16:00:00-07:00", "dog-history", "visible"],
@@ -2521,7 +2584,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(
     instagram.selectInstagramVisibleKnownPosts(instagramState, "june").map(post => [post.id, post.mediaId, post.timestamp, post.origin]),
     [
-      ["june-ig-04", "june-ig-04", "2010-10-19T22:00:00-07:00", "seed"],
+      ["june-ig-04", "june-ig-04", "2010-10-20T00:00:00-07:00", "seed"],
       ["june-ig-03", "june-ig-03", "2010-10-16", "seed"],
       ["june-ig-02", "june-ig-02", "2010-10-15", "seed"],
     ],
@@ -2586,7 +2649,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_EPHEMERAL_GOSSIP", postId: "facebook-june-jack-gossip-ryan-standalone", ephemeralId: "fof-ryan-001", text: "june + jack??? lol", timestamp: "12:04 AM", createdAt: "2010-10-20T00:04:15-07:00" });
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_EPHEMERAL_GOSSIP", postId: "facebook-june-jack-gossip-ryan-standalone", ephemeralId: "fof-ryan-001", text: "june + jack??? lol", timestamp: "12:04 AM", createdAt: "2010-10-20T00:04:15-07:00" });
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: "facebook-june-jack-gossip-chris", characterId: "chris", text: "lol no way" });
-  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: "10:04 PM" });
+  dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: "12:04 AM" });
   assert.deepEqual(dramaFacebook.comments.filter(comment => comment.itemId === "facebook-june-instagram-announcement").map(comment => [comment.id, comment.characterId, comment.text]), [["facebook-june-jack-gossip-katie", "katie", "june + jack???"], ["facebook-june-jack-gossip-chris", "chris", "lol no way"]]);
   assert.equal(dramaFacebook.comments.some(comment => comment.itemId === "facebook-june-instagram-announcement" && comment.characterId === "jay"), false, "Jay must have no June/Jack gossip activity");
   const standaloneGossip = dramaFacebook.feed.filter(item => item.id === "facebook-june-jack-gossip-ryan-standalone");
@@ -2595,7 +2658,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS[standaloneGossip[0].actor.ephemeralId], undefined, "standalone gossip author must not be canonical");
   assert.deepEqual(timelineDefinitions.find(event => event.id === "facebook-june-jack-gossip-ryan-standalone")?.atElapsedSeconds, 135);
   assert.deepEqual(dramaFacebook.comments.filter(comment => comment.itemId === "facebook-june-instagram-announcement").map(comment => comment.text), ["june + jack???", "lol no way"]);
-  assert.deepEqual(dramaFacebook.inboxThreads.find(thread => thread.id === "facebook-katie-jack-gossip-message"), { id: "facebook-katie-jack-gossip-message", friendId: "katie", sender: "Katie Dawson", preview: "Do you know Jack????", timestamp: "10:04 PM", status: "unread", origin: "live" });
+  assert.deepEqual(dramaFacebook.inboxThreads.find(thread => thread.id === "facebook-katie-jack-gossip-message"), { id: "facebook-katie-jack-gossip-message", friendId: "katie", sender: "Katie Dawson", preview: "Do you know Jack????", timestamp: "12:04 AM", status: "unread", origin: "live" });
   assert.equal(facebook.selectFacebookNotifications(dramaFacebook).filter(notification => notification.id === "facebook-notification-katie-gossip-message").length, 1, "Katie's unread message must drive one derived notification");
   const partyBeforeKatieReply = [dramaFacebook.partyInviteState, dramaFacebook.partyInviteEligibleFromJune, dramaFacebook.partyInviteEligibleFromJack, dramaFacebook.partyRsvp, dramaFacebook.friendRequestState];
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "OPEN_MESSAGE", messageId: "facebook-katie-jack-gossip-message" });
@@ -2605,7 +2668,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(facebook.selectFacebookThreadMessages(dramaFacebook, "facebook-katie-jack-gossip-message").length, 1, "whitespace-only Facebook replies must not send");
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "EDIT_MESSAGE_REPLY", value: "  who?  " });
   dramaFacebook = facebook.facebookStateTransition(dramaFacebook, { type: "SUBMIT_MESSAGE_REPLY", displayName: "Zoey", timestamp: "12:05 AM" });
-  assert.deepEqual(facebook.selectFacebookThreadMessages(dramaFacebook, "facebook-katie-jack-gossip-message").map(message => [message.authorType, message.author, message.body, message.timestamp, message.origin]), [["character", "Katie Dawson", "Do you know Jack????", "10:04 PM", "live"], ["session-user", "Zoey", "  who?  ", "12:05 AM", "user"]]);
+  assert.deepEqual(facebook.selectFacebookThreadMessages(dramaFacebook, "facebook-katie-jack-gossip-message").map(message => [message.authorType, message.author, message.body, message.timestamp, message.origin]), [["character", "Katie Dawson", "Do you know Jack????", "12:04 AM", "live"], ["session-user", "Zoey", "  who?  ", "12:05 AM", "user"]]);
   assert.deepEqual([dramaFacebook.partyInviteState, dramaFacebook.partyInviteEligibleFromJune, dramaFacebook.partyInviteEligibleFromJack, dramaFacebook.partyRsvp, dramaFacebook.friendRequestState], partyBeforeKatieReply, "Katie reply must remain independent from Jack and party state");
   assert.equal(facebook.selectFacebookNotifications(dramaFacebook).find(notification => notification.id === "facebook-notification-katie-gossip-message")?.unread, false, "sending a reply must not create self-unread state");
   const persistedKatieMessages = facebook.selectFacebookThreadMessages(facebook.facebookStateTransition(facebook.facebookStateTransition(dramaFacebook, { type: "SHOW_HOME" }), { type: "OPEN_MESSAGE", messageId: "facebook-katie-jack-gossip-message" }), "facebook-katie-jack-gossip-message");
@@ -2710,9 +2773,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual([benWallNavigation.currentView, benWallNavigation.selectedProfileName, benWallNavigation.profileWallScrollPositions["Ben Dawson"], benWallNavigation.scrollPosition], ["profile", "Ben Dawson", 912, 0], "Ben Wall Post Detail Back must restore the exact Wall snapshot and preserve Feed isolation");
   benWallNavigation = facebook.facebookStateTransition(benWallNavigation, { type: "OPEN_PROFILE", profileName: "Jack Keller" });
   assert.deepEqual([benWallNavigation.profileWallScrollPositions["Ben Dawson"], benWallNavigation.profileWallScrollPositions["Jack Keller"] ?? 0], [912, 0], "Ben Wall position must not leak into Jack or another profile");
-  const benFeedAtSessionStart = facebook.selectFacebookVisibleFeed(interactionFacebook, facebookSessionStartMs);
+  const benFeedAtSessionStart = facebook.selectFacebookVisibleFeed(interactionFacebook, Date.parse("2010-10-20T00:02:00-07:00"));
   assert.equal(benFeedAtSessionStart.some(item => item.id === "ben-photo-friday-2010"), true, "Ben's Oct 15 Friday photo must be eligible for the current Feed");
-  assert.equal(facebook.isFacebookNewsFeedEligible(interactionFacebook, interactionFacebook.feed.find(item => item.id === "ben-photo-friday-2010"), facebookSessionStartMs), true, "Ben's canonical Friday photo must pass centralized Feed eligibility");
+  assert.equal(facebook.isFacebookNewsFeedEligible(interactionFacebook, interactionFacebook.feed.find(item => item.id === "ben-photo-friday-2010"), Date.parse("2010-10-20T00:02:00-07:00")), true, "Ben's canonical Friday photo must pass centralized Feed eligibility");
   assert.equal(benFeedAtSessionStart.some(item => item.id.startsWith("ben-wall-") || ["ben-profile-current-update", "ben-car-2010", "ben-coffee-2009", "ben-coffee-2006", "ben-profile-2005-update"].includes(item.id)), false, "Ben Wall-only and Profile-activity records must remain outside the current Feed");
   const chrisProfileWallHistory = facebook.selectFacebookProfileWall(interactionFacebook, "Chris Morgan").filter(item => item.profileWallEligible === true);
   assert.deepEqual(chrisProfileWallHistory.map(item => [item.id, item.mediaId, item.createdAt]), [["chris-profile-picture-update", "chris-profile-picture", "2009-11-14T20:30:00-08:00"]], "Chris historical Profile Wall must remain intentionally sparse");
@@ -2720,11 +2783,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual(facebook.selectFacebookProfileWall(interactionFacebook, "Matt Ricci").filter(item => item.profileWallEligible === true).map(item => item.id), ["matt-code-photo-2010", "matt-jack-tagged-photo", "matt-profile-current-update", "matt-jack-birthday-photo", "matt-photo-2007", "matt-profile-2007-update"], "Matt Profile Wall must remain sparse and newest-first");
   const mattCodeStory = interactionFacebook.feed.find(item => item.id === "matt-code-photo-2010");
   assert.deepEqual([mattCodeStory?.createdAt, mattCodeStory?.visibility, mattCodeStory?.mediaId], ["2010-10-15T23:03:00-07:00", "friends", "matt-code-2010"], "Matt's Oct 15 story must retain its canonical timestamp and media identity");
-  assert.equal(facebook.isFacebookNewsFeedEligible(interactionFacebook, mattCodeStory, facebookSessionStartMs), true, "Matt's Oct 15 story must pass centralized Feed eligibility at session start");
+  assert.equal(facebook.isFacebookNewsFeedEligible(interactionFacebook, mattCodeStory, Date.parse("2010-10-20T00:02:00-07:00")), true, "Matt's Oct 15 story must pass centralized Feed eligibility at session start");
   assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "matt-code-photo-2010"), true, "Matt's Oct 15 story must enter the final Feed candidate list");
   assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id.startsWith("matt-profile-") || item.id === "matt-photo-2007"), false, "Matt Profile-activity and pre-2010 media must remain outside the current Feed");
   const canonicalFeedIdsBeforeSort = interactionFacebook.feed.map(item => item.id);
-  const feedAtSessionStart = facebook.selectFacebookVisibleFeed(interactionFacebook, facebookSessionStartMs);
+  const feedAtSessionStart = facebook.selectFacebookVisibleFeed(interactionFacebook, Date.parse("2010-10-20T00:02:00-07:00"));
   const feedTimeValues = feedAtSessionStart.map(item => Date.parse(item.createdAt));
   assert.equal(feedTimeValues.every((value, index) => index === 0 || feedTimeValues[index - 1] >= value), true, "News Feed timestamps must be monotonically descending");
   const chronologyIds = feedAtSessionStart.map(item => item.id);
@@ -2752,7 +2815,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(facebook.selectFacebookVisibleFeed(deliveredFutureLiveState, Date.parse("2010-10-20T00:02:59-07:00")).some(item => item.id === "facebook-june-instagram-announcement"), false, "a delivered 2010 live story must not appear before its canonical timestamp");
   const feedWithDeliveredLiveStory = facebook.selectFacebookVisibleFeed(deliveredFutureLiveState, Date.parse("2010-10-20T00:03:00-07:00"));
   assert.equal(feedWithDeliveredLiveStory.some(item => item.id === "facebook-june-instagram-announcement"), true, "a delivered live story may appear at its canonical timestamp");
-  assert.equal(feedWithDeliveredLiveStory[0]?.id, "facebook-june-instagram-announcement", "a delivered canonical live story must sort above Oct 19 content");
+  assert.equal(feedWithDeliveredLiveStory[0]?.id, "facebook-june-instagram-announcement", "a delivered Oct 20 live story must sort above Oct 19 content");
   assert.equal(facebookAlbums.getFacebookAlbum("luca-pickup-basketball")?.ownerActor.displayName, "Luca Bennett", "Luca must remain the owner of Pickup Basketball media");
   assert.equal(interactionFacebook.likes.some(like => like.itemId === "luca-pickup-basketball-photos" && like.characterId === "chris"), true, "Chris must retain his Like on Luca's basketball content");
   assert.deepEqual(facebook.selectFacebookComments(interactionFacebook, "luca-pickup-basketball-photos").filter(comment => comment.characterId === "chris").map(comment => comment.text), ["my shot was clean tho lol", "details details"], "Chris must retain his two comments on Luca's basketball content");
@@ -2768,7 +2831,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   ], "only Facebook-backed Jay caption identities may receive structured mention mappings");
   assert.equal(jayBandPost?.mentions?.some(mention => mention.token === "@Anil"), false, "offline-only @Anil must remain plain text");
   assert.deepEqual([jayMayPost?.mediaId, jayMayPost?.createdAt, jayMayPost?.text, jayMayPost?.visibility, jayMayPost?.customAudienceIncludesUser], ["jay-guitar-may", "2010-05-15T18:00:00-07:00", "hey baby", "friends", undefined]);
-  assert.equal(facebook.isFacebookNewsFeedEligible(interactionFacebook, jayMayPost, facebookSessionStartMs), true, "Jay's May story must pass centralized Feed eligibility at session start");
+  assert.equal(facebook.isFacebookNewsFeedEligible(interactionFacebook, jayMayPost, Date.parse("2010-10-20T00:02:00-07:00")), true, "Jay's May story must pass centralized Feed eligibility at session start");
   assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "jay-may-guitar-photo"), true, "Jay's valid May story must enter the current News Feed");
   assert.equal(coreSocialFriends.CORE_SOCIAL_CHARACTERS.anil, undefined, "plain-text @Anil must not create a canonical SNS identity");
   const katieSeptemberComments = facebook.selectFacebookComments(interactionFacebook, "katie-selfie-september-2010");
@@ -2790,7 +2853,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.equal(facebook.selectFacebookComments(katiePhotoNavigation, "katie-selfie-september-2010").length, 2, "Katie photo comment count must derive from real records");
   assert.deepEqual([formatFacebookTime("12:03 AM", 60), formatFacebookTime("12:03 AM", 480)], ["just now", "7 minutes ago"], "June live metadata must advance from the simulated clock");
   assert.deepEqual([formatFacebookTime("12:04 AM", 180), formatFacebookTime("12:04 AM", 480)], ["1 minute ago", "6 minutes ago"], "Ryan live metadata must advance from the simulated clock");
-  assert.deepEqual([interactionFacebook.feed.find(item => item.id === "jay-band-performance-photo")?.createdAt, interactionFacebook.feed.find(item => item.id === "luca-pickup-basketball-photos")?.createdAt], ["2010-10-19T22:00:00-07:00", "2010-10-19T21:28:00-07:00"], "formatter integration must not rewrite static story timestamps");
+  assert.deepEqual([interactionFacebook.feed.find(item => item.id === "jay-band-performance-photo")?.createdAt, interactionFacebook.feed.find(item => item.id === "luca-pickup-basketball-photos")?.createdAt], ["2010-10-19T22:00:00-07:00", "2010-10-19T22:58:00-07:00"], "formatter integration must not rewrite static story timestamps");
   interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "TOGGLE_LIKE", itemId: "jay-band-performance-photo", displayName: "Zoey" });
   assert.equal(interactionFacebook.likedItemIds.includes("jay-band-performance-photo"), true, "Feed and album performance photo must share one story interaction ID");
   interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "SHOW_FEED" });
@@ -2806,7 +2869,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.deepEqual([interactionFacebook.currentView, interactionFacebook.selectedFeedItemId, interactionFacebook.scrollPosition, interactionFacebook.likedItemIds, interactionFacebook.comments.length, interactionFacebook.partyInviteState], ["feedDetail", ...jayMentionState], "Z.tokyo mention Back must restore the exact Jay Post state");
   interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "DELIVER_JACK_REQUEST" });
   interactionFacebook = facebook.facebookStateTransition(interactionFacebook, { type: "ACCEPT_JACK" });
-  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "jack-movie"), true, "T0-M2 must restore Jack friends-only content visibility after acceptance");
+  assert.equal(facebook.selectFacebookVisibleFeed(interactionFacebook).some(item => item.id === "jack-movie"), true, "Jack friends-only content may become visible only after acceptance");
   dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "SHOW_PROFILE" });
   dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "SHOW_FACEBOOK_FRIENDS" });
   dramaInstagram = instagram.instagramStateTransition(dramaInstagram, { type: "OPEN_KNOWN_PROFILE", characterId: "june" });
@@ -3343,7 +3406,13 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const foursquareVenueDetailSource = foursquareContainerSource.match(/function VenueDetail\([\s\S]*?\n\}/)?.[0] ?? "";
   const foursquareVenueSummarySource = foursquareVenueDetailSource.match(/state\.venueSubview === "summary"[\s\S]*?state\.venueSubview === "info"/)?.[0] ?? "";
   assert.match(foursquareVenueSummarySource, /venueViewModel\.categoryIcon[\s\S]*venueViewModel\.name[\s\S]*venueViewModel\.categoryLabel[\s\S]*Check In[\s\S]*Info[\s\S]*Tips/, "F2b-1 summary must render truthful venue identity and the three approved entries");
-  assert.doesNotMatch(foursquareVenueSummarySource, /Mayor|Points|address|distance|To-Do|friends who|here now|phone|map|rating|review|photos/i, "F2b-1 summary must not restore placeholder or deferred venue metadata");
+  assert.doesNotMatch(foursquareVenueSummarySource, /Mayor|Points|address|distance|friends who|here now|phone|rating|review|photos/i, "F2b-1 summary must not restore placeholder or deferred venue metadata");
+  assert.match(foursquareVenueSummarySource, /venueTodo \? "Remove from To-Dos" : "Add to To-Dos"/, "F5c Venue summary must expose exactly the approved save/remove To-Do action states");
+  assert.equal(foursquareVenueSummarySource.match(/To-Dos/g)?.length, 2, "F5c Venue summary must contain no To-Do wording beyond the two approved action states");
+  assert.doesNotMatch(foursquareVenueSummarySource, /I've done this|\bDone\b|Completed/i, "F5c Venue summary must not expose To-Do completion wording");
+  assert.doesNotMatch(foursquareVenueSummarySource, /ADD_TIP_TODO|tipTodo|Add Tip to To-Dos|Save Tip/i, "F5c Venue summary must not expose Tip-to-To-Do UI");
+  assert.doesNotMatch(foursquareVenueSummarySource, /todo(?:s)?(?:Count|Badge)|To-Dos\s*\(\d+\)|\d+\s+To-Dos|badge/i, "F5c Venue summary must not expose a To-Do count or badge");
+  assert.doesNotMatch(foursquareVenueSummarySource, /map|filter/i, "F5c Venue summary must not expose map or filter UI");
   assert.match(foursquareVenueDetailSource, /state\.venueSubview === "checkIn"/, "F2b-1 must gate the existing functional form behind the Check In subview");
   assert.match(foursquareVenueDetailSource, /<IOS4Textarea[\s\S]*EDIT_CHECK_IN_SHOUT/, "F2b-1 must preserve the shared textarea and venue-keyed draft event");
   assert.match(foursquareVenueDetailSource, /<form className="foursquare-checkin-form"[\s\S]*type: "CHECK_IN"/, "F2b-1 must preserve the existing Check In submit event");
@@ -4016,6 +4085,168 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   // T0-M1 validates runtime-derived values only. Static narrative seeds remain
   // intentionally outside this block until T0-M2.
   const readSource = relativePath => readFile(resolve(projectRoot, relativePath), "utf8");
+  const canonicalVenueGeographySource = await readSource("src/data/canonicalVenueGeography.ts");
+  const canonicalMapGeometrySource = await readSource("src/data/canonicalMapGeometry.ts");
+  const shared2010MapSource = await readSource("src/device/Shared2010Map.tsx");
+  const foursquareMapOverlaySource = await readSource("src/device/FoursquareMapOverlay.tsx");
+  const facebookMapOverlaySource = await readSource("src/device/FacebookMapOverlay.tsx");
+  const facebookContainerSourceForGeography = await readSource("src/device/FacebookContainer.tsx");
+  const foursquareTodosSource = await readSource("src/data/foursquareTodos.ts");
+  const foursquareStateSourceForTodos = await readSource("src/state/foursquareState.ts");
+  const foursquareContainerSourceForTodos = await readSource("src/device/FoursquareContainer.tsx");
+  const deviceCssSourceForTodos = await readSource("src/styles/device.css");
+  const expectedCanonicalVenueGeography = {
+    "downtown-coffee": { xMiles: 0.15, yMiles: 0.15 },
+    "community-courts": { xMiles: -0.75, yMiles: -0.55 },
+    "main-street-diner": { xMiles: 0.45, yMiles: 0.10 },
+    "riverside-park": { xMiles: -0.50, yMiles: 0.10 },
+    "westside-library": { xMiles: -0.90, yMiles: 0.90 },
+    "gelato-roma": { xMiles: 0.80, yMiles: -0.60 },
+  };
+  const canonicalGeographyIds = Object.keys(canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY).sort();
+  const canonicalVenueIds = Object.keys(canonicalVenues.CANONICAL_VENUES).sort();
+  assert.equal(canonicalVenueGeography.SM2010_GEOGRAPHY_VERSION, "sm2010-la-local-v1", "F7b geography version must remain explicit and exact");
+  assert.deepEqual(canonicalGeographyIds, canonicalVenueIds, "F7b geography must contain six and only six canonical venue IDs");
+  assert.equal(canonicalGeographyIds.length, 6, "F7b geography must contain exactly six venue records");
+  assert.deepEqual(canonicalVenueGeography.SM2010_SESSION_PLAYER_MAP_POINT, { xMiles: 0, yMiles: 0 }, "F7b player point must remain the neutral session origin");
+  assert.deepEqual(canonicalVenueGeography.SM2010_LOCAL_MAP_BOUNDS, { minXMiles: -1, maxXMiles: 1, minYMiles: -1, maxYMiles: 1 }, "F7b local map extent must remain the approved two-mile square");
+  for (const venueId of canonicalVenueIds) {
+    const record = canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY[venueId];
+    assert.deepEqual(record.point, expectedCanonicalVenueGeography[venueId], `F7b ${venueId} coordinates must remain exact`);
+    assert.equal(record.venueId, venueId, `F7b ${venueId} geography must preserve canonical identity`);
+    assert.equal(record.classification, "PROJECT-CURATED-FICTION", `F7b ${venueId} geography must retain project-fiction classification`);
+    assert.equal(Number.isFinite(record.point.xMiles) && Number.isFinite(record.point.yMiles), true, `F7b ${venueId} coordinates must be finite`);
+    assert.equal(record.point.xMiles >= -1 && record.point.xMiles <= 1 && record.point.yMiles >= -1 && record.point.yMiles <= 1, true, `F7b ${venueId} must remain inside the approved local extent`);
+  }
+  assert.deepEqual(
+    canonicalVenueGeography.getCanonicalVenuesByDistanceFromPlayer().map(record => record.venueId),
+    ["downtown-coffee", "main-street-diner", "riverside-park", "community-courts", "gelato-roma", "westside-library"],
+    "F7b nearby sorting must follow raw player distance with canonical ID tie-breaking",
+  );
+  const expectedPlayerDistances = {
+    "downtown-coffee": 0.212,
+    "main-street-diner": 0.461,
+    "riverside-park": 0.510,
+    "community-courts": 0.930,
+    "gelato-roma": 1.000,
+    "westside-library": 1.273,
+  };
+  for (const [venueId, expectedDistance] of Object.entries(expectedPlayerDistances)) {
+    const actualDistance = canonicalVenueGeography.getCanonicalVenueDistanceFromPlayer(venueId);
+    assert.equal(Math.abs(actualDistance - expectedDistance) < 0.001, true, `F7b ${venueId} player distance must remain approximately ${expectedDistance} miles`);
+  }
+  assert.equal(canonicalVenueGeography.hasCanonicalVenueGeography("night-owl"), false, "F7b Night Owl must remain legacy and map-ineligible");
+  assert.equal(canonicalVenueGeography.hasCanonicalVenueGeography("cedar-books"), false, "F7b Cedar Books must remain legacy and map-ineligible");
+  assert.doesNotMatch(canonicalVenueGeographySource, /214 4th Street|38 Market Street|91 Cedar Avenue|Riverside Drive/, "F7b shared geography must not migrate legacy addresses");
+  assert.doesNotMatch(canonicalVenueGeographySource, /0\.[2357] mi/, "F7b shared geography must not consume legacy Foursquare distance strings");
+  assert.doesNotMatch(canonicalVenueGeographySource, /Night Owl Cafe|Cedar Books|Downtown Coffee|Community Courts|Main Street Diner|Riverside Park|Westside Library|Gelato Roma/, "F7b geography must not duplicate venue display names");
+  assert.doesNotMatch(canonicalVenueGeographySource, /navigator\.geolocation|Date\.now\s*\(|Math\.random\s*\(/, "F7b geography must not use browser location, host time, or randomness");
+  assert.doesNotMatch(`${foursquareContainerSourceForTodos}\n${facebookContainerSourceForGeography}`, /canonicalVenueGeography/, "F7b shared geography must remain disconnected from visible app UI");
+  assert.match(shared2010MapSource, /canonicalVenueGeography/, "F7c renderer must consume the shared canonical geography contract");
+  assert.doesNotMatch(`${canonicalMapGeometrySource}\n${shared2010MapSource}`, /sessionSeedContent|foursquareContent|navigator\.geolocation|Date\.now\s*\(|Math\.random\s*\(/, "F7c renderer must not consume legacy session geography, browser location, host time, or randomness");
+  assert.equal(canonicalMapGeometry.SM2010_CANONICAL_MAP_ROADS.filter(road => road.kind === "primary").length, 2, "F7c map must retain exactly two authored primary roads");
+  assert.equal(canonicalMapGeometry.SM2010_CANONICAL_MAP_ROADS.filter(road => road.kind === "local").length >= 4, true, "F7c map must retain several authored local roads");
+  assert.equal(canonicalMapGeometry.SM2010_CANONICAL_MAP_BLOCKS.length >= 4, true, "F7c map must retain a sparse authored block field");
+  assert.equal(shared2010Map.isLocalMapPointInRegion(canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY["riverside-park"].point, canonicalMapGeometry.SM2010_RIVERSIDE_PARK_REGION), true, "F7c Riverside Park geography must contain its canonical venue point");
+  assert.equal([...canonicalMapGeometry.SM2010_CANONICAL_MAP_ROADS, ...canonicalMapGeometry.SM2010_CANONICAL_MAP_BLOCKS, canonicalMapGeometry.SM2010_RIVERSIDE_PARK_REGION].every(feature => feature.points.every(point => Number.isFinite(point.xMiles) && Number.isFinite(point.yMiles))), true, "F7c authored geometry must remain finite local-map coordinates");
+  const playerNearbyViewport = shared2010Map.resolveMapViewport({ mode: "PLAYER_NEARBY" });
+  assert.ok(playerNearbyViewport, "F7c PLAYER_NEARBY must always resolve");
+  assert.equal(canonicalVenueIds.every(venueId => shared2010Map.isPointInsideViewport(canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY[venueId].point, playerNearbyViewport)), true, "F7c PLAYER_NEARBY must include all six canonical venues");
+  const northernProjection = shared2010Map.projectLocalMapPoint({ xMiles: 0, yMiles: 0.5 }, playerNearbyViewport, 320, 200);
+  const southernProjection = shared2010Map.projectLocalMapPoint({ xMiles: 0, yMiles: -0.5 }, playerNearbyViewport, 320, 200);
+  assert.equal(northernProjection.y < southernProjection.y, true, "F7c projection must invert local Y so north renders upward");
+  assert.deepEqual(shared2010Map.projectLocalMapPoint(canonicalVenueGeography.SM2010_SESSION_PLAYER_MAP_POINT, playerNearbyViewport, 320, 200), { x: 160, y: 100 }, "F7c player must project consistently in a 320 by 200 viewport");
+  assert.deepEqual(shared2010Map.projectLocalMapPoint(canonicalVenueGeography.SM2010_SESSION_PLAYER_MAP_POINT, playerNearbyViewport, 320, 240), { x: 160, y: 120 }, "F7c player must project consistently in a 320 by 240 viewport");
+  for (const venueId of canonicalVenueIds) {
+    const detailViewport = shared2010Map.resolveMapViewport({ mode: "VENUE_DETAIL", venueId });
+    assert.ok(detailViewport, `F7c VENUE_DETAIL must resolve ${venueId}`);
+    const venuePoint = canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY[venueId].point;
+    assert.equal(Math.abs((detailViewport.bounds.minXMiles + detailViewport.bounds.maxXMiles) / 2 - venuePoint.xMiles) < 1e-9, true, `F7c ${venueId} detail viewport must center on the venue X coordinate`);
+    assert.equal(Math.abs((detailViewport.bounds.minYMiles + detailViewport.bounds.maxYMiles) / 2 - venuePoint.yMiles) < 1e-9, true, `F7c ${venueId} detail viewport must center on the venue Y coordinate`);
+    for (const [width, height] of [[320, 200], [320, 240]]) {
+      const projected = shared2010Map.getProjectedVenuePoint(venueId, detailViewport, width, height);
+      assert.equal(Number.isFinite(projected.x) && Number.isFinite(projected.y), true, `F7c ${venueId} detail projection must remain finite at ${width} by ${height}`);
+    }
+  }
+  assert.equal(shared2010Map.resolveMapViewport({ mode: "VENUE_DETAIL", venueId: "night-owl" }), null, "F7c Night Owl must not resolve a canonical detail viewport");
+  assert.equal(shared2010Map.resolveMapViewport({ mode: "VENUE_DETAIL", venueId: "cedar-books" }), null, "F7c Cedar Books must not resolve a canonical detail viewport");
+  assert.equal(shared2010Map.getProjectedVenuePoint("night-owl", playerNearbyViewport, 320, 200), null, "F7c Night Owl must not resolve a canonical marker");
+  assert.equal(shared2010Map.getProjectedVenuePoint("cedar-books", playerNearbyViewport, 320, 200), null, "F7c Cedar Books must not resolve a canonical marker");
+  assert.equal(shared2010Map.resolveMapViewport({ mode: "MULTI_VENUE", venueIds: [] }), null, "F7c empty MULTI_VENUE input must resolve explicitly to null");
+  const singleVenueViewport = shared2010Map.resolveMapViewport({ mode: "MULTI_VENUE", venueIds: ["downtown-coffee"] });
+  assert.ok(singleVenueViewport && singleVenueViewport.bounds.maxXMiles > singleVenueViewport.bounds.minXMiles && singleVenueViewport.bounds.maxYMiles > singleVenueViewport.bounds.minYMiles, "F7c single-point MULTI_VENUE must retain a finite nonzero span");
+  const requestedMultiVenueIds = ["westside-library", "gelato-roma", "community-courts"];
+  const multiVenueViewport = shared2010Map.resolveMapViewport({ mode: "MULTI_VENUE", venueIds: requestedMultiVenueIds });
+  assert.ok(multiVenueViewport, "F7c eligible MULTI_VENUE input must resolve");
+  assert.equal(requestedMultiVenueIds.every(venueId => shared2010Map.isPointInsideViewport(canonicalVenueGeography.CANONICAL_VENUE_GEOGRAPHY[venueId].point, multiVenueViewport)), true, "F7c MULTI_VENUE bounds must include every requested venue");
+  assert.equal([[320, 200], [320, 240]].every(([width, height]) => canonicalVenueIds.every(venueId => {
+    const projected = shared2010Map.getProjectedVenuePoint(venueId, playerNearbyViewport, width, height);
+    return Number.isFinite(projected.x) && Number.isFinite(projected.y);
+  })), true, "F7c rectangular projections must remain finite for all canonical venues");
+  assert.doesNotMatch(`${canonicalMapGeometrySource}\n${shared2010MapSource}`, /fetch\s*\(|axios|https?:\/\/|Google Maps|Mapbox|Apple Maps|facebookMode|foursquareMode|#3b5998|#3b5999|#1769ff/i, "F7c shared renderer must contain no provider dependency, network call, app mode, or app-specific color");
+  assert.doesNotMatch(canonicalMapGeometrySource, /(?:x|y|left|top)(?:Px|Pixels)|streetName|roadName/, "F7c road and park geometry must remain unnamed local-map coordinates rather than screen pixels");
+  assert.doesNotMatch(`${foursquareContainerSourceForTodos}\n${facebookContainerSourceForGeography}`, /Shared2010Map|canonicalMapGeometry/, "F7c renderer must remain disconnected from Facebook and Foursquare UI");
+  assert.ok(foursquareMapOverlay.FoursquareMapOverlay({ venueId: "main-street-diner" }), "F7d-1 Main Street Diner must resolve a Foursquare Venue Info map");
+  assert.ok(foursquareMapOverlay.FoursquareMapOverlay({ venueId: "riverside-park" }), "F7d-1 Riverside Park must resolve a Foursquare Venue Info map");
+  assert.equal(foursquareMapOverlay.FoursquareMapOverlay({ venueId: "night-owl" }), null, "F7d-1 Night Owl must remain map-ineligible");
+  assert.equal(foursquareMapOverlay.FoursquareMapOverlay({ venueId: "cedar-books" }), null, "F7d-1 Cedar Books must remain map-ineligible");
+  assert.match(foursquareMapOverlaySource, /resolveMapViewport\(\{ mode: "VENUE_DETAIL", venueId \}\)/, "F7d-1 overlay must use the canonical VENUE_DETAIL viewport");
+  assert.match(foursquareMapOverlaySource, /<Shared2010Map[\s\S]*venueIds=\{\[\]\}/, "F7d-1 overlay must compose Shared2010Map without exposing neutral QA venue markers");
+  assert.match(foursquareMapOverlaySource, /foursquare-venue-map-pin[\s\S]*<path[\s\S]*<circle/, "F7d-1 must provide one minimal Foursquare-specific reconstructed pin");
+  assert.doesNotMatch(foursquareMapOverlaySource, /showPlayer|distance|address|label|callout|onClick|button|fetch\s*\(|navigator\.geolocation|Date\.now|Math\.random/i, "F7d-1 map must expose no player, distance, address, label, callout, interaction, network, location, host-time, or random behavior");
+  const f7dVenueInfoSource = foursquareContainerSourceForTodos.match(/\{state\.venueSubview === "info" && <section className="foursquare-venue-info"[\s\S]*?<FoursquareMapOverlay venueId=\{venue\.id\} \/><\/section>\}/)?.[0] ?? "";
+  assert.match(f7dVenueInfoSource, /<FoursquareMapOverlay venueId=\{venue\.id\} \/>/, "F7d-1 map must exist only inside the current Venue Info branch");
+  assert.equal((foursquareContainerSourceForTodos.match(/<FoursquareMapOverlay/g) ?? []).length, 1, "F7d-1 Foursquare UI must mount exactly one map integration point");
+  const f7dNonInfoSource = foursquareContainerSourceForTodos.replace(f7dVenueInfoSource, "");
+  assert.doesNotMatch(f7dNonInfoSource, /<FoursquareMapOverlay/, "F7d-1 must add no Places, Check-in, To-Dos, Tips, Friends, or Result map");
+  assert.doesNotMatch(foursquareContainerSourceForTodos, /mapList|mapMode|SHOW_MAP|PLAYER_NEARBY|TODO_MAP|TIPS_MAP|MULTI_VENUE/, "F7d-1 must add no map/list, Places, To-Dos, Tips, or Friends map state");
+  assert.doesNotMatch(facebookContainerSourceForGeography, /FoursquareMapOverlay|Shared2010Map/, "F7d-1 must not modify Facebook map integration");
+  assert.match(deviceCssSourceForTodos, /\.foursquare-venue-map \{[^}]*height: 176px;[^}]*overflow: hidden;/, "F7d-1 Venue Info map must retain deterministic reconstructed frame geometry");
+  assert.doesNotMatch(deviceCssSourceForTodos, /\.foursquare-venue-map[^}]*box-shadow/, "F7d-1 map must not introduce modern shadow treatment");
+  const facebookPlaceIds = facebookStateForMap.FACEBOOK_PLACE_OPTIONS.map(venue => venue.id);
+  assert.deepEqual(facebookPlaceIds, ["downtown-coffee", "community-courts", "main-street-diner", "riverside-park", "westside-library", "gelato-roma"], "F7f-1 must retain the exact six-row Facebook Nearby Places coverage and order");
+  assert.equal(facebookPlaceIds.every(venueId => canonicalVenueGeography.hasCanonicalVenueGeography(venueId)), true, "F7f-1 every Facebook place option must have canonical geography");
+  assert.equal(facebookPlaceIds.every(venueId => shared2010Map.resolveMapViewport({ mode: "VENUE_DETAIL", venueId }) !== null), true, "F7f-1 every Facebook place option must resolve a canonical VENUE_DETAIL viewport");
+  assert.equal(facebookPlaceIds.every(venueId => facebookMapOverlay.FacebookMapOverlay({ venueId }) !== null), true, "F7f-1 every selected Facebook place must resolve a map preview");
+  assert.equal(facebookPlaceIds.includes("night-owl") || facebookPlaceIds.includes("cedar-books"), false, "F7f-1 must not leak legacy Foursquare venues into Facebook map coverage");
+  assert.match(facebookMapOverlaySource, /resolveMapViewport\(\{ mode: "VENUE_DETAIL", venueId \}\)/, "F7f-1 overlay must use the canonical VENUE_DETAIL viewport");
+  assert.match(facebookMapOverlaySource, /<Shared2010Map[\s\S]*venueIds=\{\[\]\}/, "F7f-1 overlay must compose Shared2010Map without neutral QA markers");
+  assert.match(facebookMapOverlaySource, /facebook-place-map-pin[\s\S]*<path[\s\S]*<circle/, "F7f-1 must provide one compact Facebook-specific reconstructed pin");
+  assert.doesNotMatch(facebookMapOverlaySource, /FoursquareMapOverlay|showPlayer|distance|address|label|callout|onClick|button|fetch\s*\(|navigator\.geolocation|Date\.now|Math\.random/i, "F7f-1 map must expose no Foursquare overlay, player, metadata, interaction, provider, location, host-time, or random behavior");
+  const f7fCheckInSource = facebookContainerSourceForGeography.match(/function FacebookPlaceCheckIn[\s\S]*?(?=function FacebookPlaceTagFriends)/)?.[0] ?? "";
+  assert.match(f7fCheckInSource, /<FacebookMapOverlay venueId=\{venue\.id\} \/>/, "F7f-1 map must replace the HOLD slot inside Facebook Place Check In");
+  assert.match(f7fCheckInSource, /placeStatusDraft[\s\S]*OPEN_PLACE_TAG_FRIENDS[\s\S]*type="submit"/, "F7f-1 must preserve status, Tag Friends, and Check In controls after the map");
+  assert.equal((facebookContainerSourceForGeography.match(/<FacebookMapOverlay/g) ?? []).length, 1, "F7f-1 Facebook UI must mount exactly one map integration point");
+  assert.doesNotMatch(facebookContainerSourceForGeography.replace(f7fCheckInSource, ""), /<FacebookMapOverlay/, "F7f-1 must add no Places Home, Nearby Places, Place Detail, or Info map");
+  assert.doesNotMatch(facebookContainerSourceForGeography, /Map \/ Location view unavailable|Location view unavailable|mapMode|mapList|SHOW_MAP|PLAYER_NEARBY|MULTI_VENUE|eventCheckIn/i, "F7f-1 must remove placeholder copy without adding root Map View, map/list state, player map, multi-pin map, or event check-ins");
+  assert.match(deviceCssSourceForTodos, /\.facebook-place-map \{[^}]*height: 68px;[^}]*overflow: hidden;/, "F7f-1 Facebook check-in map must retain the exact 68px HOLD-slot geometry");
+  assert.doesNotMatch(deviceCssSourceForTodos, /\.facebook-place-map[^}]*box-shadow/, "F7f-1 map must not introduce modern shadow treatment");
+  assert.doesNotMatch(shared2010MapSource, /facebookMode|FacebookMapOverlay|facebook-place-map/, "F7f-1 must keep Shared2010Map app-neutral");
+  assert.doesNotMatch(`${foursquareTodosSource}\n${foursquareStateSourceForTodos}`, /Date\.now\s*\(/, "F5a To-Do creation must never use host time");
+  assert.match(foursquareContainerSourceForTodos, /state\.activeTab === "todos" && <TodosRoot/, "F5c must render a dedicated To-Dos root from the existing root tab");
+  assert.match(foursquareContainerSourceForTodos, /Add to To-Dos/, "F5c venue summary must expose Add to To-Dos");
+  assert.match(foursquareContainerSourceForTodos, /Remove from To-Dos/, "F5c saved venue summary must expose Remove from To-Dos");
+  assert.match(foursquareContainerSourceForTodos, /simulatedCreatedAt: currentDeviceDateTime\.getTime\(\)/, "F5c venue saves must use the simulated device clock");
+  const f5cTodosRootSource = foursquareContainerSourceForTodos.match(/function TodosRoot[\s\S]*?(?=function QuietRoot)/)?.[0] ?? "";
+  assert.match(f5cTodosRootSource, /todo\.kind === "venue"/, "F5d To-Dos root must retain the distinct venue To-Do row branch");
+  assert.match(f5cTodosRootSource, /selectFoursquareVenueTips\(todo\.venueId\)[\s\S]*candidate\.id === todo\.tipId/, "F5d To-Dos root must resolve Tip content from the canonical Tip reference");
+  assert.match(f5cTodosRootSource, /<strong>\{venue\.name\}<\/strong>/, "F5c To-Do rows must render the canonical venue name");
+  assert.match(f5cTodosRootSource, /onOpenVenue\(venue\.id\)/, "F5c To-Do rows must open the existing venue route");
+  assert.match(f5cTodosRootSource, /className="foursquare-todo-tip-row"[\s\S]*<strong>\{tip\.text\}<\/strong><small>\{venue\.name\}<\/small>/, "F5d Tip To-Do row must render only Tip text and venue name");
+  assert.match(f5cTodosRootSource, /onOpenTipVenue\(todo\.venueId\)/, "F5d Tip To-Do row must route through its canonical venue identity");
+  assert.match(foursquareContainerSourceForTodos, /onOpenTipVenue=\{venueId => \{ dispatch\(\{ type: "OPEN_VENUE"[\s\S]*dispatch\(\{ type: "SHOW_VENUE_TIPS" \}\); \}\}/, "F5d Tip To-Do row must open the existing venue Tips surface without a Tip detail route");
+  assert.doesNotMatch(f5cTodosRootSource, /authorDisplayName|completed|checkbox|checkmark|distance|address|category|timestamp|disclosure|done count/i, "F5d To-Do rows must not expose deferred metadata or completion controls");
+  const f5dVenueTipsSource = foursquareContainerSourceForTodos.match(/state\.venueSubview === "tips"[\s\S]*?(?=state\.venueSubview === "checkIn")/)?.[0] ?? "";
+  assert.match(f5dVenueTipsSource, /tip\.authorDisplayName[\s\S]*tip\.text/, "F5d must preserve the existing Tip author and text presentation");
+  assert.match(f5dVenueTipsSource, /tipTodo \? "Remove from To-Dos" : "Add to To-Dos"/, "F5d Tip surface must expose exactly the approved save/remove wording");
+  assert.match(f5dVenueTipsSource, /type: "ADD_TIP_TODO"[\s\S]*tipId: tip\.id[\s\S]*simulatedCreatedAt: currentDeviceDateTime\.getTime\(\)/, "F5d Tip save must use ADD_TIP_TODO and the simulated device clock");
+  assert.match(f5dVenueTipsSource, /type: "REMOVE_TODO"[\s\S]*todoId: tipTodo\.id/, "F5d Tip removal must use the existing REMOVE_TODO action");
+  assert.doesNotMatch(`${f5cTodosRootSource}\n${f5dVenueTipsSource}`, /I've done this|\bDone\b|Completed|checkbox|checkmark|done count/i, "F5d must keep completion UI hidden");
+  assert.match(foursquareContainerSourceForTodos, /state\.activeTab === "tips" && <QuietRoot label="Tips" \/>/, "F5c must leave the Tips root blank");
+  assert.doesNotMatch(foursquareContainerSourceForTodos, /TOGGLE_TODO_COMPLETED|getCompletedFoursquareTodos|foursquare-completed/, "F5g visible Foursquare UI must not consume the internal-only completion model");
+  assert.equal(foursquareContainerSourceForTodos.match(/state\.activeTab === "tips" && <QuietRoot label="Tips" \/>/g)?.length, 1, "F5g Tips root must remain exactly one blank HOLD branch with no Tip projection");
+  assert.doesNotMatch(f5cTodosRootSource, /No To-Dos|Nothing here|Add places/i, "F5c blank To-Dos state must not introduce empty-state copy");
+  assert.match(deviceCssSourceForTodos, /\.foursquare-todo-venue-row \{[^}]*height: 44px;/, "F5c To-Do rows must use compact reconstructed iPhone list geometry");
   const t0M1DeviceMachine = await readSource("src/state/deviceMachine.ts");
   const t0M1Timeline = await readSource("src/data/sessionTimeline.ts");
   const t0M1FacebookState = await readSource("src/state/facebookState.ts");
@@ -4057,7 +4288,16 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   for (const dto of mockTimeline.PUBLIC_TWITTER_MOCK_DTOS) assert.equal(Date.parse(dto.simulated_2010_created_at), Date.parse(deviceMachine.SESSION_START_ISO) + dto.simulated_elapsed_ms);
   const publicClock = await vite.ssrLoadModule("/src/data/publicTwitterRepository.ts");
   assert.equal(publicClock.PUBLIC_TWITTER_SIMULATED_END_MS, deviceMachine.SESSION_END_MS);
-  for (const source of [t0M1DeviceMachine, t0M1Timeline, t0M1PublicTwitterRepository, t0M1PublicTwitterFixtures]) {
+  assert.match(t0M1Foursquare, /FOURSQUARE_F1_REFERENCE_NOW = SESSION_START_ISO/, "T0-M1 Foursquare reference-now must derive from the master clock");
+  const t0M1JuneFriendsActivity = foursquare.createInitialFoursquareState().socialActivities.find(
+    activity => activity.id === "foursquare-history-june-2010-10-19-main-street-diner",
+  );
+  assert.deepEqual(
+    t0M1JuneFriendsActivity && [t0M1JuneFriendsActivity.id, t0M1JuneFriendsActivity.friendId, t0M1JuneFriendsActivity.venueId, t0M1JuneFriendsActivity.simulatedCreatedAt, t0M1JuneFriendsActivity.shout, t0M1JuneFriendsActivity.visible],
+    ["foursquare-history-june-2010-10-19-main-street-diner", "june", "main-street-diner", "2010-10-19T22:52:00-07:00", "Late dinner.", true],
+    "T0-M1 must retain June's valid pre-T0 Friends activity",
+  );
+  for (const source of [t0M1DeviceMachine, t0M1Timeline, t0M1PublicTwitterRepository, t0M1PublicTwitterFixtures, t0M1Foursquare]) {
     assert.ok(!source.includes("2010-10-19T22:02"), "no obsolete LIVE runtime anchor");
   }
 
@@ -4065,13 +4305,22 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const historicalActivitySource = await readSource("src/data/foursquareHistoricalActivity.ts");
   assert.deepEqual(
     [foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_START, foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_END, foursquareHistoricalActivity.FOURSQUARE_HISTORY_TIME_ZONE],
-    ["2010-08-21T00:00:00-07:00", "2010-10-19T22:02:00-07:00", "America/Los_Angeles"],
+    ["2010-08-22T00:00:00-07:00", "2010-10-20T00:02:00-07:00", "America/Los_Angeles"],
     "F6a history window and timezone must remain exact",
   );
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_NPC_IDS, ["alex", "katie", "june", "luca", "mia"], "F6a history must remain NPC-only");
   assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS, ["main-street-diner", "riverside-park", "downtown-coffee", "community-courts", "westside-library", "gelato-roma"], "F6a must whitelist only canonical historical venues");
   assert.equal(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.length, 39, "F6d must preserve Alex/Katie and add exactly 6 June plus 5 Luca historical check-ins");
-  assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS, [], "F6b must not migrate historical records into the Friends feed");
+  assert.deepEqual(
+    foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS,
+    [
+      "foursquare-history-june-2010-10-19-main-street-diner",
+      "foursquare-history-alex-2010-10-19-riverside-park",
+      "foursquare-history-katie-2010-10-19-riverside-park",
+      "foursquare-history-luca-2010-10-19-main-street-diner",
+    ],
+    "F6e Friends-feed historical projection must contain exactly the four approved canonical historical activity IDs",
+  );
 
   const historicalRecord = (overrides = {}) => ({
     id: "foursquare-history-alex-2010-10-09-riverside-park",
@@ -4089,8 +4338,8 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   for (const simulatedCreatedAt of ["2010-10-09 16:40:00", "2010-10-09T16:40:00Z", "2010-10-09T16:40:00-08:00", "2010-02-30T16:40:00-07:00"]) {
     assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ simulatedCreatedAt })), /foursquare-history/, `F6a must reject non-contract timestamp ${simulatedCreatedAt}`);
   }
-  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ simulatedCreatedAt: "2010-08-20T23:59:59-07:00", id: "foursquare-history-alex-2010-08-20-riverside-park" })), /outside the F6 window/);
-  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ simulatedCreatedAt: "2010-10-19T22:02:01-07:00", id: "foursquare-history-alex-2010-10-19-riverside-park" })), /outside the F6 window/);
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ simulatedCreatedAt: "2010-08-21T23:59:59-07:00", id: "foursquare-history-alex-2010-08-21-riverside-park" })), /outside the F6 window/);
+  assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ simulatedCreatedAt: "2010-10-20T00:02:01-07:00", id: "foursquare-history-alex-2010-10-20-riverside-park" })), /outside the F6 window/);
   assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoricalCheckin(historicalRecord({ characterId: "player" })), /approved NPC/);
   assert.throws(() => foursquareHistoricalActivity.assertValidFoursquareHistoryCompleteness({ characterId: "player", windowStart: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_START, windowEnd: foursquareHistoricalActivity.FOURSQUARE_HISTORY_WINDOW_END, level: "complete-for-game-window", mechanicsCoverage: [], lifetimeHistoryComplete: false }), /approved NPC/);
   for (const venueId of ["night-owl", "cedar-books", "unknown-venue"]) {
@@ -4167,19 +4416,19 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const juneHistory = foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.filter(record => record.characterId === "june");
   const expectedJuneHistory = [
     ["2010-09-03T12:20:00-07:00", "downtown-coffee", null],
-    ["2010-09-12T18:30:00-07:00", "main-street-diner", "Dinner with everyone."],
+    ["2010-09-12T18:30:00-07:00", "main-street-diner", null],
     ["2010-09-27T17:25:00-07:00", "riverside-park", null],
     ["2010-10-04T13:05:00-07:00", "downtown-coffee", null],
     ["2010-10-12T19:10:00-07:00", "gelato-roma", null],
-    ["2010-10-19T21:12:00-07:00", "main-street-diner", null],
+    ["2010-10-19T22:52:00-07:00", "main-street-diner", "Late dinner."],
   ];
   assert.deepEqual(juneHistory.map(record => [record.simulatedCreatedAt, record.venueId, record.shout]), expectedJuneHistory, "F6d June records must retain exact chronology, venue, and shout values");
   assert.equal(juneHistory.every(record => record.source === "seed" && record.classification === "PROJECT-CURATED-FICTION" && record.validForGameMechanics === true && record.validityClassification === "PROJECT-RECONSTRUCTED-VALID"), true, "F6d June records must remain seed-authored, project-curated, and game-valid");
   assert.deepEqual(Object.fromEntries(foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_VENUE_IDS.map(venueId => [venueId, juneHistory.filter(record => record.venueId === venueId).length])), { "main-street-diner": 2, "riverside-park": 1, "downtown-coffee": 2, "community-courts": 0, "westside-library": 0, "gelato-roma": 1 }, "F6d June venue distribution must remain exact");
-  assert.deepEqual(juneHistory.filter(record => record.shout !== null).map(record => record.shout), ["Dinner with everyone."], "F6d June history must contain exactly one approved shout");
+  assert.deepEqual(juneHistory.filter(record => record.shout !== null).map(record => record.shout), ["Late dinner."], "F6d June history must contain exactly one approved shout");
   assert.deepEqual(foursquareHistoricalActivity.getUniqueValidFoursquareVenueIds(juneHistory, "june"), ["downtown-coffee", "gelato-roma", "main-street-diner", "riverside-park"], "F6d June history must derive exactly four approved venues");
   assert.equal(new Set(juneHistory.map(record => foursquareHistoricalActivity.getFoursquareHistoricalVisitDayKey(record))).size, 6, "F6d June history must contain six unique valid visit-day facts");
-  assert.ok(juneHistory.some(record => record.id === "foursquare-history-june-2010-10-19-main-street-diner" && record.shout === null), "F6d must retain the preferred future June Friends-feed replacement candidate");
+  assert.ok(juneHistory.some(record => record.id === "foursquare-history-june-2010-10-19-main-street-diner" && record.shout === "Late dinner."), "F6d must retain the preferred future June Friends-feed replacement candidate");
   assert.equal(juneHistory.some(record => ["night-owl", "cedar-books"].includes(record.venueId)), false, "F6d June history must exclude Night Owl and Cedar Books");
 
   const lucaHistory = foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.filter(record => record.characterId === "luca");
@@ -4208,21 +4457,45 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
 
   const fixedAlexRiverside = alexHistory.find(record => record.simulatedCreatedAt === "2010-10-19T20:41:00-07:00");
   const foursquareHistoricalContent = await vite.ssrLoadModule("/src/data/foursquareContent.ts");
-  const legacyAlexRiverside = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "alex-riverside-evening");
-  assert.ok(fixedAlexRiverside && legacyAlexRiverside, "F6b must preserve both fixed Alex Riverside source representations");
-  assert.deepEqual([fixedAlexRiverside.characterId, fixedAlexRiverside.venueId, fixedAlexRiverside.simulatedCreatedAt, fixedAlexRiverside.shout], [legacyAlexRiverside.friendId, legacyAlexRiverside.venueId, legacyAlexRiverside.simulatedCreatedAt, legacyAlexRiverside.shout], "F6b historical and legacy F1 Alex Riverside rows must agree");
   const fixedKatieRiverside = katieHistory.find(record => record.simulatedCreatedAt === "2010-10-19T17:18:00-07:00");
-  const legacyKatieRiverside = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.friendId === "katie" && activity.venueId === "riverside-park");
-  assert.ok(fixedKatieRiverside && legacyKatieRiverside, "F6c must preserve both fixed Katie Riverside source representations");
-  assert.deepEqual([fixedKatieRiverside.characterId, fixedKatieRiverside.venueId, fixedKatieRiverside.simulatedCreatedAt, fixedKatieRiverside.shout ?? null], [legacyKatieRiverside.friendId, legacyKatieRiverside.venueId, legacyKatieRiverside.simulatedCreatedAt, legacyKatieRiverside.shout ?? null], "F6c historical and legacy F1 Katie Riverside rows must agree");
   const fixedLucaMainStreet = lucaHistory.find(record => record.simulatedCreatedAt === "2010-10-19T15:06:00-07:00");
-  const legacyLucaMainStreet = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "luca-main-street-diner");
-  assert.ok(fixedLucaMainStreet && legacyLucaMainStreet, "F6d must preserve both fixed Luca Main Street source representations");
-  assert.deepEqual([fixedLucaMainStreet.characterId, fixedLucaMainStreet.venueId, fixedLucaMainStreet.simulatedCreatedAt, fixedLucaMainStreet.shout ?? null], [legacyLucaMainStreet.friendId, legacyLucaMainStreet.venueId, legacyLucaMainStreet.simulatedCreatedAt, legacyLucaMainStreet.shout ?? null], "F6d historical and legacy F1 Luca Main Street rows must agree");
-  const quarantinedJuneMainStreet = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "june-main-street-diner");
-  assert.deepEqual([quarantinedJuneMainStreet?.simulatedCreatedAt, quarantinedJuneMainStreet?.shout, quarantinedJuneMainStreet?.visible], ["2010-10-19T22:52:00-07:00", "Late dinner.", false], "F6d must leave the invalid June 22:52 legacy row quarantined and unchanged");
   const legacyMiaCedar = foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.find(activity => activity.id === "mia-cedar-books");
   assert.deepEqual([legacyMiaCedar?.friendId, legacyMiaCedar?.venueId, legacyMiaCedar?.simulatedCreatedAt, legacyMiaCedar?.shout ?? null, legacyMiaCedar?.visible], ["foursquare-mia", "cedar-books", "2010-10-19T20:42:00-07:00", null, true], "F6d must leave Mia's unresolved Cedar legacy row unchanged");
+  assert.deepEqual(foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS, [
+    "foursquare-history-june-2010-10-19-main-street-diner",
+    "foursquare-history-alex-2010-10-19-riverside-park",
+    "foursquare-history-katie-2010-10-19-riverside-park",
+    "foursquare-history-luca-2010-10-19-main-street-diner",
+  ], "F6e must select exactly four canonical historical Friends-feed IDs");
+  assert.deepEqual(foursquareHistoricalContent.FOURSQUARE_F1_CHECKIN_ACTIVITIES.map(activity => activity.id), ["mia-cedar-books"], "F6e must retain only Mia as the deliberate legacy Friends-feed exception");
+  const projectedActivities = foursquareHistoricalContent.FOURSQUARE_HISTORICAL_FRIENDS_FEED_ACTIVITIES;
+  assert.equal(projectedActivities.length, 4, "F6e must resolve four historical-backed Friends rows");
+  for (const historicalId of foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS) {
+    const historical = foursquareHistoricalActivity.FOURSQUARE_HISTORICAL_CHECKINS.filter(record => record.id === historicalId);
+    const projected = projectedActivities.filter(activity => activity.id === historicalId);
+    assert.equal(historical.length, 1, `F6e projection ID ${historicalId} must resolve exactly once in history`);
+    assert.equal(projected.length, 1, `F6e projection ID ${historicalId} must resolve exactly once in Friends activity`);
+    assert.deepEqual([projected[0].friendId, projected[0].venueId, projected[0].simulatedCreatedAt, projected[0].shout ?? null], [historical[0].characterId, historical[0].venueId, historical[0].simulatedCreatedAt, historical[0].shout], `F6e ${historicalId} fields must derive from canonical history`);
+  }
+  assert.equal(foursquareHistoricalActivity.FOURSQUARE_FRIENDS_FEED_HISTORY_IDS.some(id => /mia|night-owl/.test(id)), false, "F6e historical projection must exclude Mia and Night Owl");
+  assert.deepEqual([foursquareHistoricalContent.FOURSQUARE_HIDDEN_LIVE_ACTIVITIES["june-night-owl-checkin"].source, foursquareHistoricalContent.FOURSQUARE_HIDDEN_LIVE_ACTIVITIES["june-night-owl-checkin"].visible], ["live", false], "F6e Night Owl must remain hidden realtime activity");
+
+  const foursquareHistoricalGameFacts = await vite.ssrLoadModule("/src/data/foursquareHistoricalGameFacts.ts");
+  const factsByCharacter = Object.fromEntries(foursquareHistoricalGameFacts.FOURSQUARE_HISTORICAL_GAME_FACTS.map(facts => [facts.characterId, facts]));
+  assert.deepEqual(Object.fromEntries(["alex", "katie", "june", "luca", "mia"].map(characterId => [characterId, [factsByCharacter[characterId].recordCount, factsByCharacter[characterId].validRecordCount, factsByCharacter[characterId].uniqueVenueIds.length, factsByCharacter[characterId].uniqueValidVisitDays.length]])), {
+    alex: [15, 15, 6, 15], katie: [13, 13, 5, 13], june: [6, 6, 4, 6], luca: [5, 5, 4, 5], mia: [0, 0, 0, 0],
+  }, "F6e historical facts must derive exact record, valid, venue, and visit-day counts");
+  assert.deepEqual(factsByCharacter.alex.validVisitDaysByVenue, { "main-street-diner": 3, "riverside-park": 4, "downtown-coffee": 4, "community-courts": 2, "westside-library": 1, "gelato-roma": 1 });
+  assert.deepEqual(factsByCharacter.katie.validVisitDaysByVenue, { "main-street-diner": 2, "riverside-park": 3, "downtown-coffee": 1, "community-courts": 0, "westside-library": 4, "gelato-roma": 3 });
+  assert.deepEqual(factsByCharacter.june.validVisitDaysByVenue, { "main-street-diner": 2, "riverside-park": 1, "downtown-coffee": 2, "community-courts": 0, "westside-library": 0, "gelato-roma": 1 });
+  assert.deepEqual(factsByCharacter.luca.validVisitDaysByVenue, { "main-street-diner": 1, "riverside-park": 1, "downtown-coffee": 0, "community-courts": 2, "westside-library": 0, "gelato-roma": 1 });
+  assert.deepEqual(factsByCharacter.katie.weeklyRepeatVisitFacts, [{ venueId: "westside-library", weekStartDate: "2010-09-26", visitDays: ["2010-09-26", "2010-10-01"] }], "F6e must derive Katie's sole Sunday-start Pacific weekly repeat fact");
+  assert.equal(["alex", "june", "luca"].every(characterId => factsByCharacter[characterId].weeklyRepeatVisitFacts.length === 0), true, "F6e must not invent weekly repeat facts");
+  assert.equal(["alex", "katie", "june", "luca"].every(characterId => factsByCharacter[characterId].consecutiveNightFacts.maximumRunLength === 1 && factsByCharacter[characterId].sameNightDistinctStopFacts.maximumDistinctStops === 1), true, "F6e histories must factually derive one-night and one-stop maxima");
+  assert.equal(factsByCharacter.mia.completeness, null, "F6e Mia must have no canonical complete mechanics dataset");
+  assert.equal(["alex", "katie", "june", "luca"].every(characterId => ["rolling-visit-days", "weekly-repeat-visits", "consecutive-nights", "same-night-stops"].every(coverage => foursquareHistoricalGameFacts.isFoursquareHistoricalMechanicsCoverageComplete(characterId, coverage))), true, "F6e complete NPCs must expose exhaustive in-window mechanics coverage only");
+  assert.equal(Object.keys(foursquareHistoricalGameFacts).some(key => /badge|mayor/i.test(key)), false, "F6e facts must expose no badge or mayor result");
+  assert.equal(foursquareHistoricalGameFacts.FOURSQUARE_HISTORICAL_GAME_FACTS.some(facts => facts.characterId === "player"), false, "F6e facts must prohibit player history");
   assert.equal(foursquareHistoricalActivity.FOURSQUARE_HISTORY_COMPLETENESS.some(entry => entry.characterId === "mia"), false, "F6d must not make a false Mia completeness claim");
   assert.equal(Object.keys(foursquareHistoricalActivity).some(key => /badge|mayor/i.test(key)), false, "F6a exports must contain no badge or mayor derivation");
   assert.doesNotMatch(historicalActivitySource, /foursquareGameSeed|foursquareGameModel|sessionTimeline/, "F6a history must remain isolated from F3/F4 and realtime domains");
@@ -4236,11 +4509,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     const recordStart = source.indexOf('id: "' + id + '"');
     assert.ok(recordStart >= 0 && source.slice(recordStart, recordStart + 1800).includes(value), "T0-M2 must migrate " + id);
   };
-  for (const pair of [["ben-long-day","2010-10-19T21:58:00-07:00"],["mike-anil-question","2010-10-19T21:54:00-07:00"],["june-show-photos-oct19","2010-10-19T21:51:00-07:00"],["jack-movie","2010-10-19T21:52:00-07:00"],["alex-jacks-party-friday","2010-10-19T21:47:00-07:00"],["katie-coffee","2010-10-19T21:41:00-07:00"],["jay-reading","2010-10-19T21:33:00-07:00"],["luca-pickup-basketball-photos","2010-10-19T21:28:00-07:00"],["luca-profile-picture-current","2010-10-19T20:00:00-07:00"],["luca-main-street-diner-checkin","2010-10-19T21:44:00-07:00"],["june-ig-04","2010-10-19T22:00:00-07:00"]]) assertM2Record(t0M2Seed, pair[0], pair[1]);
-  assert.match(t0M2Albums, /june-show-photos-oct19[\s\S]{0,300}2010-10-19T21:51:00-07:00/, "T0-M2 June show album must match its parent");
-  assert.match(t0M1SharedMedia, /june-ig-04[\s\S]{0,300}2010-10-19T22:00:00-07:00/, "v0.2 must preserve IG04 historical publication without retiming");
-  assert.match(t0M2Seed, /id: "apple-event"[\s\S]{0,300}Apple event tomorrow morning[\s\S]{0,300}timestamp: "9:47 PM"/, "T0-M2 Apple tomorrow invariant must remain true");
-  assert.match(t0M2Seed, /id: "katie-tomorrow"[\s\S]{0,300}see you tomorrow[\s\S]{0,300}timestamp: "9:14 PM"/, "T0-M2 Katie inbox must remain pre-T0 without changing copy");
+  for (const pair of [["ben-long-day","2010-10-19T23:58:00-07:00"],["mike-anil-question","2010-10-19T23:54:00-07:00"],["june-show-photos-oct19","2010-10-19T23:51:00-07:00"],["jack-movie","2010-10-19T23:52:00-07:00"],["alex-jacks-party-friday","2010-10-19T23:47:00-07:00"],["katie-coffee","2010-10-19T23:41:00-07:00"],["jay-reading","2010-10-19T23:33:00-07:00"],["luca-pickup-basketball-photos","2010-10-19T22:58:00-07:00"],["luca-profile-picture-current","2010-10-20T00:00:00-07:00"],["luca-main-street-diner-checkin","2010-10-19T22:44:00-07:00"],["june-ig-04","2010-10-20T00:00:00-07:00"]]) assertM2Record(t0M2Seed, pair[0], pair[1]);
+  assert.match(t0M2Albums, /june-show-photos-oct19[\s\S]{0,300}2010-10-19T23:51:00-07:00/, "T0-M2 June show album must match its parent");
+  assert.match(t0M1SharedMedia, /june-ig-04[\s\S]{0,300}2010-10-20T00:00:00-07:00/, "T0-M2 IG04 media must preserve T-2 freshness");
+  assert.match(t0M2Seed, /id: "apple-event"[\s\S]{0,300}Apple event tomorrow morning[\s\S]{0,300}timestamp: "10:47 PM"/, "T0-M2 Apple tomorrow invariant must remain true");
+  assert.match(t0M2Seed, /id: "katie-tomorrow"[\s\S]{0,300}see you tomorrow[\s\S]{0,300}timestamp: "10:14 PM"/, "T0-M2 Katie inbox must remain pre-T0 without changing copy");
   console.log("T0-M2 static narrative and atomic media checks: PASS");
 
   console.log("Historical seed-content state checks: PASS");

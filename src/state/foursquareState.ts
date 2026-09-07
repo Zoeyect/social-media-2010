@@ -1,7 +1,8 @@
-import { FOURSQUARE_F1_CHECKIN_ACTIVITIES, FOURSQUARE_HIDDEN_LIVE_ACTIVITIES, type FoursquareCheckinActivity } from "../data/foursquareContent";
+import { createInitialFoursquareFriendsActivities, FOURSQUARE_HIDDEN_LIVE_ACTIVITIES, type FoursquareCheckinActivity } from "../data/foursquareContent";
 import { buildCheckinResult, createCheckInPointEvent, type FoursquareCheckinResult, type FoursquarePointEvent } from "../data/foursquareGameModel";
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
+import { createFoursquareTipTodo, createFoursquareVenueTodo, getFoursquareTodoById, getFoursquareTipTodo, getFoursquareVenueTodo, sortFoursquareTodos, type FoursquareTodoItem } from "../data/foursquareTodos";
 
 export const FOURSQUARE_ROOT_TABS = ["friends", "places", "tips", "todos", "profile"] as const;
 export type FoursquareRootTab = typeof FOURSQUARE_ROOT_TABS[number];
@@ -15,7 +16,7 @@ export type FoursquareRootScrollPositions = Record<FoursquareRootTab, number>;
 export type FoursquareState = {
   activeTab: FoursquareRootTab; currentView: FoursquareView; venueSubview: FoursquareVenueSubview; selectedVenueId: string | null; rootScrollPositions: FoursquareRootScrollPositions;
   checkIns: Record<string, FoursquareCheckInRecord>; shoutDrafts: Record<string, string>; pointEvents: FoursquarePointEvent[]; latestCheckinResult: FoursquareCheckinResult | null; mayorState: FoursquareMayorState; earnedBadges: string[];
-  venues: FoursquareVenue[]; socialActivities: FoursquareCheckinActivity[]; unreadActivityCount: number;
+  venues: FoursquareVenue[]; socialActivities: FoursquareCheckinActivity[]; unreadActivityCount: number; todos: readonly FoursquareTodoItem[];
 };
 
 export type FoursquareEvent =
@@ -31,6 +32,10 @@ export type FoursquareEvent =
   | { type: "SET_ROOT_SCROLL_POSITION"; tab: FoursquareRootTab; scrollPosition: number }
   | { type: "EDIT_CHECK_IN_SHOUT"; venueId: string; value: string }
   | { type: "CHECK_IN"; venueId: string; checkedInBy: string; checkInTimestamp: number }
+  | { type: "ADD_VENUE_TODO"; venueId: string; simulatedCreatedAt: number }
+  | { type: "ADD_TIP_TODO"; tipId: string; simulatedCreatedAt: number }
+  | { type: "TOGGLE_TODO_COMPLETED"; todoId: string }
+  | { type: "REMOVE_TODO"; todoId: string }
   | { type: "DELIVER_SOCIAL_ACTIVITY"; activity: { id: string; message: string } }
   | { type: "RESET" };
 
@@ -41,7 +46,7 @@ export function createInitialFoursquareState(): FoursquareState {
     activeTab: "friends", currentView: "root", venueSubview: "summary", selectedVenueId: null, rootScrollPositions: emptyScrollPositions(),
     checkIns: {}, shoutDrafts: {}, pointEvents: [], latestCheckinResult: null, mayorState: "otherUser", earnedBadges: [],
     venues: SESSION_SEED_CONTENT.foursquare.venues.map(({ tip: _legacyTip, ...venue }) => ({ ...venue, contentStatus: "HOLD-fictional" })),
-    socialActivities: FOURSQUARE_F1_CHECKIN_ACTIVITIES.map(activity => ({ ...activity })), unreadActivityCount: 0,
+    socialActivities: createInitialFoursquareFriendsActivities(), unreadActivityCount: 0, todos: [],
   };
 }
 
@@ -70,6 +75,21 @@ export function foursquareStateTransition(state: FoursquareState, event: Foursqu
       const result = buildCheckinResult(state.pointEvents, pointEvent);
       return { ...state, checkIns: { ...state.checkIns, [event.venueId]: { checkedIn: true, checkedInBy: event.checkedInBy, checkInTimestamp: event.checkInTimestamp, shout: state.shoutDrafts[event.venueId]?.trim() || null, pointsAwarded: result.pointDelta, result } }, shoutDrafts: Object.fromEntries(Object.entries(state.shoutDrafts).filter(([venueId]) => venueId !== event.venueId)), pointEvents: [...state.pointEvents, pointEvent], latestCheckinResult: result, venueSubview: state.currentView === "venue" && state.selectedVenueId === event.venueId && state.venueSubview === "checkIn" ? "result" : state.venueSubview };
     }
+    case "ADD_VENUE_TODO": {
+      if (!state.venues.some(venue => venue.id === event.venueId) || getFoursquareVenueTodo(state.todos, event.venueId)) return state;
+      return { ...state, todos: sortFoursquareTodos([...state.todos, createFoursquareVenueTodo(event.venueId, event.simulatedCreatedAt)]) };
+    }
+    case "ADD_TIP_TODO": {
+      if (getFoursquareTipTodo(state.todos, event.tipId)) return state;
+      const todo = createFoursquareTipTodo(event.tipId, event.simulatedCreatedAt);
+      return todo ? { ...state, todos: sortFoursquareTodos([...state.todos, todo]) } : state;
+    }
+    case "TOGGLE_TODO_COMPLETED":
+      if (!getFoursquareTodoById(state.todos, event.todoId)) return state;
+      return { ...state, todos: state.todos.map(todo => todo.id === event.todoId ? { ...todo, completed: !todo.completed } : todo) };
+    case "REMOVE_TODO":
+      if (!getFoursquareTodoById(state.todos, event.todoId)) return state;
+      return { ...state, todos: state.todos.filter(todo => todo.id !== event.todoId) };
     case "DELIVER_SOCIAL_ACTIVITY": {
       if (state.socialActivities.some(activity => activity.id === event.activity.id)) return state;
       const structured = FOURSQUARE_HIDDEN_LIVE_ACTIVITIES[event.activity.id];

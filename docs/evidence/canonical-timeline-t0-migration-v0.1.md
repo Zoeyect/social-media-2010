@@ -2,16 +2,19 @@
 
 ## Status and authority
 
-`RUNTIME UPDATED BY v0.2 / HISTORICAL DECISIONS PRESERVED`
+`WRONG / SUPERSEDED MIGRATION`
 
-This record supersedes app-local or project-local runtime assumptions that
-conflict with the locked cross-app timeline.
+This evidence documents an incorrect migration to `2010-10-19 22:02–22:17 PT`
+that was later reversed. It is not authoritative for the current runtime. The
+project canonical runtime is confirmed as `2010-10-20 00:02–00:17 PT`; this
+record is retained only for project provenance. The current authoritative
+correction record is `canonical-timeline-oct20-restoration-v0.1.md`.
 
 | State | Runtime |
 | --- | --- |
-| OLD runtime state (superseded) | October 19 evening session |
-| LOCKED canonical T0 | `2010-10-20T00:02:00-07:00` |
-| LOCKED runtime end (start + 900000 ms) | `2010-10-20T00:17:00-07:00` |
+| OLD runtime state | `2010-10-20T00:02:00-07:00` |
+| FORMER INCORRECT target T0 | `2010-10-19T22:02:00-07:00` |
+| FORMER INCORRECT target end | `2010-10-19T22:17:00-07:00` |
 | Time zone | `America/Los_Angeles` |
 | Duration | 15 minutes |
 
@@ -58,19 +61,19 @@ Oct 20 Apple Back to the Mac event, remain unchanged.
 | D23 | Twitter DM `dm-katie` | Oct 19 9:46 PM |
 | D24 | Twitter DM `dm-matt` | Oct 19 9:21 PM |
 | D25 | Facebook inbox `katie-tomorrow` | Oct 19 9:14 PM; copy remains `see you tomorrow` |
-| D26 | Instagram `june-ig-04` | Oct 19 10:00 PM (historical; unchanged) |
+| D26 | Instagram `june-ig-04` | Oct 19 10:00 PM (T-2) |
 | D27 | Facebook check-in `ben-coffee-checkin` | Oct 19 9:12 PM |
 | D28 | Facebook check-in `luca-diner-checkin` | Oct 19 9:44 PM |
 | D29 | Facebook check-in `chris-courts-checkin` | Oct 19 9:48 PM |
 
 ## Locked narrative invariants
 
-- IG04 is published at `2010-10-19T22:00:00-07:00`, historical and unchanged, and is visible at startup.
-- IG04 deletion remains T+200 (`00:05:20`); replacement remains T+210 (`00:05:30`).
+- IG04 is published at `2010-10-19T22:00:00-07:00`, exactly T-2, and is visible at startup.
+- IG04 deletion remains T+200 (`22:05:20`); replacement remains T+210 (`22:05:30`).
 - The actual replacement identity remains `june-ig-01`; IG05/IG06 are not runtime IDs.
 - The Apple tweet remains at Oct 19 9:47 PM and truthfully describes the fixed Oct 20 Apple event as `tomorrow morning`.
-- Tumblr remains T+630 (`00:12:30`), title `Late watch`, content `The city gets quieter this late.`
-- Foursquare Night Owl remains scheduler-gated at T+510 (`00:10:30`).
+- Tumblr remains T+630 (`22:12:30`), title `Late watch`, content `The city gets quieter this late.`
+- Foursquare Night Owl remains scheduler-gated at T+510 (`22:10:30`).
 - `june-main-street-diner` remains at Oct 19 22:52 with `visible:false`: **QUARANTINED**, invalid as initial Friends-feed history, pending F6d replacement.
 
 ## Data integrity and implementation rules

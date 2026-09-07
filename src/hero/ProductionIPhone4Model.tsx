@@ -10,7 +10,6 @@ import {
 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.png";
-import { TemporaryIPhone4Placeholder } from "./TemporaryIPhone4Placeholder";
 import {
   inspectIPhone4Model,
   missingCriticalIPhone4MeshRoles,
@@ -28,7 +27,7 @@ import { normalizeIPhone4Model } from "./iphone4Normalization";
 import { useHeroHardware } from "./useHeroHardware";
 
 export type IPhone4ModelDiagnostics = Readonly<{
-  source: "production" | "placeholder";
+  source: "production" | "unavailable";
   fallbackReason: string | null;
   missingRoles: readonly (keyof IPhone4MeshRoles)[];
   missingCriticalRoles: readonly (keyof IPhone4MeshRoles)[];
@@ -196,15 +195,13 @@ export function ProductionIPhone4Model({
   onDiagnostics: (diagnostics: IPhone4ModelDiagnostics) => void;
 }>) {
   const [failure, setFailure] = useState<string | null>(url ? null : "asset not present at the production path");
-  const [ready, setReady] = useState<ReadyModel | null>(null);
 
   const handleFailure = useCallback((reason: string) => {
     reportFallbackOnce(reason);
     setFailure(reason);
-    setReady(null);
     onRolesReady(null);
     onDiagnostics({
-      source: "placeholder",
+      source: "unavailable",
       fallbackReason: reason,
       missingRoles: [],
       missingCriticalRoles: [],
@@ -214,7 +211,6 @@ export function ProductionIPhone4Model({
   }, [onDiagnostics, onRolesReady]);
 
   const handleReady = useCallback((model: ReadyModel) => {
-    setReady(model);
     onRolesReady(model.roles);
     onDiagnostics(model.diagnostics);
   }, [onDiagnostics, onRolesReady]);
@@ -224,7 +220,7 @@ export function ProductionIPhone4Model({
     reportFallbackOnce(failure);
     onRolesReady(null);
     onDiagnostics({
-      source: "placeholder",
+      source: "unavailable",
       fallbackReason: failure,
       missingRoles: [],
       missingCriticalRoles: [],
@@ -246,13 +242,6 @@ export function ProductionIPhone4Model({
           runtimePower={runtimePower}
           onFailure={handleFailure}
           onReady={handleReady}
-        />
-      ) : null}
-      {!url || failure || !ready ? (
-        <TemporaryIPhone4Placeholder
-          bootAmount={bootAmount}
-          powerEnabled={powerEnabled}
-          onPowerPress={onPowerPress}
         />
       ) : null}
     </>

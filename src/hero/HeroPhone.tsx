@@ -4,13 +4,13 @@ import { ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Group, MathUtils, Quaternion, Vector3 } from "three";
 import { heroBootOpacity, HERO_DETACH_DURATION_SECONDS, HERO_POWER_DURATION_SECONDS, HERO_POWER_LOSS_SECONDS, HERO_RETURN_SECONDS, HERO_RECHARGE_SECONDS, restrainedEase } from "./HeroController";
 import { measureHeroScreenGeometry } from "./heroScreenGeometry";
+import { heroPresentationReady } from "./heroPresentationReady";
 import {
   ProductionIPhone4Model,
   type IPhone4ModelDiagnostics,
 } from "./ProductionIPhone4Model";
 import {
   PRODUCTION_IPHONE4_MODEL_URL,
-  resolveIPhone4MeshRoles,
   type IPhone4MeshRoles,
 } from "./iphone4ModelContract";
 import type { HeroCableAnchor, HeroPhase, HeroScreenGeometry } from "./heroTypes";
@@ -118,7 +118,6 @@ export function HeroPhone({
     const phone = group.current;
     const mountedModel = modelRoot.current;
     if (!phone || !mountedModel) return;
-    if (!roles.current) roles.current = resolveIPhone4MeshRoles(mountedModel);
     phaseElapsed.current += Math.min(delta, 0.05);
 
     let x = initialX;
@@ -198,6 +197,7 @@ export function HeroPhone({
     phone.rotation.set(rotation.current.x + MathUtils.degToRad(0.75) * frontOffset.current,
       rotation.current.y + MathUtils.degToRad(2) * frontOffset.current, 0);
     phone.updateWorldMatrix(true, true);
+    mountedModel.visible = heroPresentationReady(Boolean(roles.current?.screen), phone, camera, size);
     if (import.meta.env.DEV && frontScreenOff && phase === "front-aligned") nextBootAmount = 0;
     setBootAmount((current) => Math.abs(current - nextBootAmount) > 0.015 ? nextBootAmount : current);
 
@@ -262,7 +262,7 @@ export function HeroPhone({
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
-      <group ref={modelRoot} name="HeroPhoneGeometry">
+      <group ref={modelRoot} name="HeroPhoneGeometry" visible={false}>
         <ProductionIPhone4Model
           url={modelUrl}
           bootAmount={softwareActive ? 0 : bootAmount}

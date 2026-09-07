@@ -32,16 +32,18 @@ export function calibrateIPhone4Stainless(root: Object3D, context?: { scene: Sce
     });
     object.material = Array.isArray(object.material) ? calibrated : calibrated[0];
   });
-  let effectiveIntensity: number | null = null;
-  let selectedRgb: number | null = null;
+  // One family per candidate; no global lighting/material changes.
+  const candidate = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("heroSteelCandidate") : null;
+  let effectiveIntensity: number | null = candidate === "reflection094" ? 0.94 : null;
+  let selectedRgb: number | null = candidate === "rgb60" ? 0.60 : null;
   const syncEnvironment = () => {
     if (!context) return;
     const { scene, invalidate } = context;
     const suggested = scene.environment?.userData.heroSteelEnvironmentIntensity;
     const intensity = effectiveIntensity ?? (typeof suggested === "number" ? suggested : null);
     const map = intensity === null ? null : scene.environment;
-    const charcoal = import.meta.env.DEV && /^charcoal(?:-v2)?:/.test(scene.environment?.userData.heroReflectionSource?.mode ?? "");
-    const red = selectedRgb ?? (charcoal ? 0.54 : 0.42);
+    const baseline = scene.environment?.userData.heroSteelBaseReflectance;
+    const red = selectedRgb ?? (typeof baseline === "number" ? baseline : 0.42);
     let changed = false;
     clones.forEach(material => {
       if (Math.abs(material.color.r - red) > 1e-8) {
@@ -65,7 +67,7 @@ export function calibrateIPhone4Stainless(root: Object3D, context?: { scene: Sce
   // side-view appearance have been confirmed on the live model.
   let cleanupDebug = () => {};
   if (import.meta.env.DEV && context && new URLSearchParams(window.location.search).get("heroSteelDebug") === "1") {
-    const rgbComparison = /^charcoal(?:-v2)?$/.test(new URLSearchParams(window.location.search).get("heroLighting") ?? "");
+    const rgbComparison = context.scene.environment?.userData.heroSteelBaseReflectance === 0.54;
     const panel = document.createElement("details");
     panel.open = true;
     Object.assign(panel.style, { position: "fixed", zIndex: "40", left: "8px", top: "8px", maxWidth: "min(480px,90vw)", background: "#101010ed", color: "#ddd", padding: "8px", font: "11px monospace" });
@@ -101,7 +103,8 @@ export function calibrateIPhone4Stainless(root: Object3D, context?: { scene: Sce
             anisotropy: material instanceof MeshPhysicalMaterial ? material.anisotropy : null,
           } : { name: material.name, uuid: material.uuid, calibrated: false }) });
       });
-      output.textContent = JSON.stringify({ comparison: rgbComparison ? "RGB only; roughness selection deferred" : "environment intensity",
+      output.textContent = JSON.stringify({ comparison: candidate === "reflection094" ? "steel-only environment intensity" : rgbComparison ? "RGB only; roughness selection deferred" : "environment intensity",
+        queryCandidate: candidate ?? "baseline",
         selectedCandidate: rgbComparison ? selectedRgb === null ? "Charcoal candidate steel-54" : `steel-${Math.round(selectedRgb * 100)}` : "environment test",
         requestedEffectiveIntensity: effectiveIntensity ?? scene.environment?.userData.heroSteelEnvironmentIntensity ?? "unchanged baseline",
         calibratedMaterialCount: clones.size, pmremSource: scene.environment?.userData.heroReflectionSource ?? "not available",

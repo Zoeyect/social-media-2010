@@ -100,6 +100,8 @@ function ReflectionEnvironment({ preset, reflectionV2, frontDepth }: { preset: H
       }
     }
     const map = generator.fromScene(room, preset === "studio" ? 0.08 : 0.16);
+    // Material calibration is runtime configuration, not DEV diagnostic metadata.
+    map.texture.userData.heroSteelBaseReflectance = isCharcoal(preset) ? 0.54 : 0.42;
     if (import.meta.env.DEV) {
       // Read-only metadata for Safari's steel audit; no lighting changes.
       map.texture.userData.heroReflectionSource = {
@@ -202,7 +204,7 @@ function SceneContents(props: HeroSceneProps & { lightingPreset: HeroLightingPre
 export function HeroScene(props: HeroSceneProps) {
   const portal = useRef<ScreenPortalHandle>(null);
   const [portalHost, setPortalHost] = useState<HTMLDivElement|null>(null);
-  const portalDebug = import.meta.env.DEV && new URLSearchParams(window.location.search).get("screenPortalDebug") === "1";
+  const portalDebug = import.meta.env.DEV && (new URLSearchParams(window.location.search).get("screenPortalDebug") === "1" || new URLSearchParams(window.location.search).get("heroDebug") === "1");
   const portalEnabled = Boolean(props.screen) || (import.meta.env.DEV && (portalDebug || new URLSearchParams(window.location.search).get("screenPortal") === "qa"));
   const [portalState, setPortalState] = useState<ScreenPortalState>("hidden");
   useEffect(() => {

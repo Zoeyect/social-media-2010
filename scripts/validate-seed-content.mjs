@@ -86,7 +86,9 @@ function assertStableDevicePresentation(sources) {
   assert.equal((portal.match(/\{software\}/g) ?? []).length, 1, "v0.3: portal must render software only once");
   assert.doesNotMatch(portal, /key=\{(?:state|host|software|.*experienceSessionId)/, "v0.3: portal target/content must not use phase/session keys");
   assert.match(portal, /aria-hidden=\{state !== "software"\} inert=\{state !== "software"\}/, "v0.3: hidden software must not receive focus or pointer input");
-  assert.match(css, /\.hero-screen-portal\[data-state="software"\] \{ opacity: 1; pointer-events: auto; transition: none; \}/, "v0.3: pointer handoff must be separate from mounting");
+  assert.match(css, /\.hero-screen-portal\[data-state="software"\] \{ opacity: var\(--screen-facing-visibility, 0\); transition: none; \}/, "v0.3: software visibility must respect physical facing without changing mounting");
+  assert.match(portal, /const pointerEnabled = portalPointerEnabled\(state, bootActive, facing\);[\s\S]*?element\.style\.pointerEvents = pointerEnabled \? "auto" : "none";\s+element\.inert = !pointerEnabled;/, "v0.3: input handoff must share the phase/boot/facing gate independently of mounting");
+  assert.match(source("src/hero/screenPortalMath.ts"), /return state === "software" && !bootActive && visibility === 1;/, "v0.3: only fully front-facing software may own portal input");
   assert.match(portal, /const width=320, height=software \? 480 : width\/quad\.aspectRatio;/, "v0.3: real software must retain 320x480 logical coordinates");
   assert.match(portal, /!software && !bootActive && <div className="hero-screen-portal-grid"/, "v0.3: QA grid must not cover real software or Hero boot");
   assert.match(scene, /setPortalState\(props\.bootComplete && props\.phase === "experience" && props\.softwareReady \? "software" : "hidden"\)/, "v0.3: software stays hidden through Hero Apple boot");

@@ -3,13 +3,13 @@
 import fs from "node:fs";
 import assert from "node:assert/strict";
 import { stripTypeScriptTypes } from "node:module";
-import { Vector3, PerspectiveCamera } from "three";
+import { Box3, Matrix3, Vector3, PerspectiveCamera } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 const source=fs.readFileSync(new URL("./screenPortalMath.ts",import.meta.url),"utf8")
   .replace(/^import .*;\n/gm,"").replaceAll("export ","");
-const {projectScreenQuad,screenQuadMatrix,quadCorners}=new Function("Vector3",
-  stripTypeScriptTypes(source)+";return {projectScreenQuad,screenQuadMatrix,quadCorners};")(Vector3);
+const {projectScreenQuad,screenQuadMatrix,quadCorners,screenFacingVisibility,portalPointerEnabled}=new Function("Vector3", "Box3", "Matrix3",
+  stripTypeScriptTypes(source)+";return {projectScreenQuad,screenQuadMatrix,quadCorners,screenFacingVisibility,portalPointerEnabled};")(Vector3,Box3,Matrix3);
 const bytes=fs.readFileSync(new URL("../assets/hero/iphone4/iphone4.glb",import.meta.url));
 const loader=new GLTFLoader();
 loader.register(()=>({name:"HeadlessNoTexture",loadTexture:()=>Promise.resolve(null)}));
@@ -37,4 +37,18 @@ for(let loop=0;loop<2;loop++)for(const [width,height]of [[1440,900],[1920,1080],
 }
 assert.equal(screenQuadMatrix(Array(4).fill({x:0,y:0}),320,480),null);
 assert.equal(projectScreenQuad(screen,camera,{left:0,top:0,width:0,height:900}),null);
+for (let loop=0; loop<2; loop++) for (const yaw of [0, 70, 82, 88, 90, 100, 180, 270, 360]) {
+  scene.rotation.set(0,yaw*Math.PI/180,0);scene.updateMatrixWorld(true);
+  const q=projectScreenQuad(screen,camera,{left:0,top:0,width:1440,height:900});assert.ok(q);
+  if(yaw===0 || yaw===360) { assert.equal(q.screenFacingVisibility,1); assert.equal(portalPointerEnabled("software",false,q.screenFacingVisibility),true); }
+  if(yaw===82) assert.ok(q.screenFacingVisibility>0 && q.screenFacingVisibility<1,"edge approach fades");
+  if(yaw>=88 && yaw<=270) { assert.equal(q.screenFacingVisibility,0); assert.equal(portalPointerEnabled("software",false,q.screenFacingVisibility),false); }
+  if(yaw===180) { assert.equal(q.screenRearFacing,true); assert.ok(q.screenFacingDot<-.99); }
+  assert.equal(portalPointerEnabled("hidden",true,q.screenFacingVisibility),false,"boot never captures software pointers");
+}
+assert.equal(screenFacingVisibility(NaN),0);
+const portalSource=fs.readFileSync(new URL("./ScreenPortal.tsx",import.meta.url),"utf8");
+assert.match(portalSource,/element\.inert = !pointerEnabled/);
+assert.match(portalSource,/element\.style\.pointerEvents = pointerEnabled \? "auto" : "none"/);
+assert.match(portalSource,/opacity: "var\(--screen-facing-visibility, 0\)"/,"boot shares the facing opacity");
 console.log(`PASS: ${cases} real-GLB pose/viewport/loop cases; maximum numerical corner error ${maximumError} CSS px. Safari QA remains pending.`);

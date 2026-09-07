@@ -31,6 +31,9 @@ type SMSMessageReceivedTargets = {
   badgeDispatch: (event: MessagesBadgeEvent) => void;
   messagesDispatch: (event: MessagesEvent) => void;
   lockNotificationDispatch?: (event: LockNotificationEvent) => void;
+} | {
+  messagesDispatch: (event: MessagesEvent) => void;
+  deliver: (sms: IncomingSMS, source: SMSNotificationSource) => void;
 };
 
 export function smsMessageReceived(
@@ -38,6 +41,11 @@ export function smsMessageReceived(
   source: SMSNotificationSource,
   targets: SMSMessageReceivedTargets,
 ): void {
+  if ("deliver" in targets) {
+    targets.messagesDispatch({ type: "RECEIVE_MESSAGE", id: sms.id, conversationId: sms.conversationId, sender: sms.sender, message: sms.message, timestamp: sms.timestamp });
+    targets.deliver(sms, source);
+    return;
+  }
   targets.notificationDispatch({ type: "RECEIVE", notification: { ...sms, source } });
   DeviceAudio.notificationReceived("message");
   targets.badgeDispatch({ type: "ADD_UNREAD", messageId: sms.id });

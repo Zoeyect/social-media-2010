@@ -4,8 +4,42 @@ import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { createServer } from "vite";
+import { runNotificationChecks } from "../src/state/notificationState.test.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+function assertNotificationArchitecture(sources) {
+  const production = sources.filter(file => !file.path.includes(".test."));
+  const source = path => production.find(file => file.path === path)?.source ?? "";
+  const app = source("src/device/App.tsx");
+  const state = source("src/state/notificationState.ts");
+  const delivery = source("src/system/notificationDelivery.ts");
+  const screen = source("src/device/DeviceScreen.tsx");
+  const owners = production.flatMap(file => [...file.source.matchAll(/useReducer\(notificationTransition,/g)].map(() => file.path));
+  assert.deepEqual(owners, ["src/device/App.tsx"], "notification v1: one App-owned notification controller");
+  assert.doesNotMatch(app, /useReducer\((?:smsNotificationStateTransition|lockNotificationStateTransition|messagesBadgeStateTransition)/, "notification v1: no parallel legacy alert/badge owner");
+  assert.equal((app.match(/const event = nextDueDeviceEvent\(/g) ?? []).length, 1, "notification v1: one scheduler consumer");
+  assert.match(app, /const appNotification = scheduledNotificationEvent\(event, eventTime\);\s+if \(appNotification\) deliverNotification\(appNotification, deliveryContext, notificationRef\.current, dispatchNotifications\);/, "notification v1: social policy consumes existing canonical scheduler events");
+  assert.match(app, /const deliveryContext = \{ \.\.\.notificationContext, systemAlert: notificationContext\.systemAlert[\s\S]+currentWarning\(elapsed, session\.dismissedWarnings\) !== null/, "notification v1: same-tick battery threshold has sound priority");
+  assert.equal((app.match(/deliver: deliverSMS,/g) ?? []).length, 4, "notification v1: all four existing SMS delivery paths use the shared controller");
+  const reset = app.slice(app.indexOf("const resetDisposableRuntime"), app.indexOf("const resetExperienceSession"));
+  assert.match(reset, /dispatchNotifications\(\{ type: "RESET" \}\)/, "notification v1: completed runtime reset clears notifications");
+  assert.match(state, /case "RESET": return createInitialNotificationState\(\);/, "notification v1: reset recreates session-local queue, unread IDs and dedup claims");
+  assert.doesNotMatch(state + delivery, /localStorage|sessionStorage|setTimeout|setInterval|Date\.now|new Date|new Audio|AudioContext|createElement\(["']audio/, "notification v1: no persistence, parallel clock or audio bypass");
+  assert.doesNotMatch(app + state + delivery + source("src/system/smsNotification.ts") + source("src/device/AppNotificationAlert.tsx") + source("src/device/NotificationDebug.tsx"), /new Audio|HTMLAudioElement|AudioContext|<audio\b|createElement\(["']audio/, "notification v1: presentation and adapters cannot bypass DeviceAudio");
+  assert.match(delivery, /if \(decision\.sound\) DeviceAudio\.notificationReceived\("message"\);/, "notification v1: sound uses DeviceAudio only at delivery");
+  assert.match(delivery, /state\.delivered\.includes\(`\$\{event\.app\}:\$\{event\.id\}`\)/, "notification v1: delivery sound is idempotent");
+  for (const appName of ["messages", "facebook", "twitter", "instagram", "foursquare"]) assert.match(state, new RegExp(`${appName}: \\{ kinds:`), `notification v1: explicit ${appName} policy`);
+  assert.match(state, /context\.terminal \|\| context\.systemAlert \|\| context\.keyboard \|\| context\.multitasking/, "notification v1: system/keyboard/multitasking priority is explicit");
+  assert.match(app, /messagesBadgeCount: messagesUnreadIds\.length,\s+notificationBadgeCounts: notificationBadges\(notifications\)/, "notification v1: badges derive from shared unread state, not legacy Session.badges");
+  assert.match(screen, /onVisibilityChange=\{setNotificationKeyboardVisible\}/, "notification v1: keyboard reports actual visibility");
+  assert.match(app, /DeviceAudio\.lowBatteryWarning\(\)/, "notification v1: system battery sound remains owned by App");
+  assert.doesNotMatch(state + delivery, /DeviceAudio\.lowBatteryWarning|app: "battery"|app: "power"/, "notification v1: system alerts never enter app queue");
+  assert.match(screen, /<LowBatteryAlert[\s\S]+<SMSAlertOverlay[\s\S]+<AppNotificationAlert/, "notification v1: retain system/SMS ordering and one social surface");
+  assert.match(app, /appNotification: currentNotification\?\.app !== "messages" && session\.phase !== "locked" \? currentNotification : null/, "notification v1: social and SMS surfaces are mutually exclusive");
+  assert.doesNotMatch(screen + source("src/device/AppNotificationAlert.tsx"), /<(?:NotificationCenter|NotificationBanner)|className="(?:notification-center|notification-banner)/, "notification v1: no modern notification surfaces");
+  assert.match(source("src/device/NotificationDebug.tsx"), /!import\.meta\.env\.DEV[\s\S]+get\("notificationDebug"\) !== "1"/, "notification v1: diagnostics require DEV and query opt-in");
+}
 
 // v0.3 composition guards. Kept callable so the same invariants can be tested
 // against in-memory mutations without altering application files.
@@ -3151,6 +3185,16 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const runtimeSources = await readRuntimeSources("src");
   runtimeSources.push({ path: "src/hero/hero.css", source: await readFile(resolve(projectRoot, "src/hero/hero.css"), "utf8") });
   assertStableDevicePresentation(runtimeSources);
+  assertNotificationArchitecture(runtimeSources);
+  for (const [path, mutation, expected] of [
+    ["src/device/App.tsx", text => text + "\nuseReducer(notificationTransition, undefined);", /one App-owned/],
+    ["src/device/App.tsx", text => text.replace('dispatchNotifications({ type: "RESET" });', ''), /completed runtime reset/],
+    ["src/system/notificationDelivery.ts", text => text + "\nnew Audio();", /audio bypass/],
+    ["src/state/notificationState.ts", text => text.replace(" || context.systemAlert", ""), /priority is explicit/],
+  ]) {
+    assert.throws(() => assertNotificationArchitecture(runtimeSources.map(file => file.path === path ? { ...file, source: mutation(file.source) } : file)), expected);
+  }
+  await runNotificationChecks(vite);
   const presentationMutations = [
     ["duplicate Hero lifecycle", "src/hero/HeroSandbox.tsx", text => text.replace("const handoff =", "useReducer(heroTransition, initialHeroState); const handoff ="), /one Hero lifecycle/],
     ["second DeviceScreen", "src/device/App.tsx", text => text.replace("const screen = <DeviceScreen", "const duplicate = <DeviceScreen />;\n  const screen = <DeviceScreen"), /exactly one DeviceScreen/],
@@ -3186,7 +3230,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     "AppLaunchContainer", "IOS4KeyboardSystem", "CameraContainer", "PhotosContainer",
     "MobileSMSContainer", "CameraContainer", "TwitterContainer", "FacebookContainer",
     "InstagramContainer", "FlickrContainer", "TumblrContainer", "FoursquareContainer",
-    "MultitaskingBar", "PowerOffConfirm", "LowBatteryAlert", "SMSAlertOverlay",
+    "MultitaskingBar", "PowerOffConfirm", "LowBatteryAlert", "SMSAlertOverlay", "AppNotificationAlert",
   ], "screen-local components must preserve their original multiplicity and status/lock/app/overlay order");
   const keyboardSubtreeSource = screenPresentationSource.match(/<IOS4KeyboardSystem\s[\s\S]*?<\/IOS4KeyboardSystem>/)?.[0];
   assert.ok(keyboardSubtreeSource, "the app subtree must retain its keyboard provider");

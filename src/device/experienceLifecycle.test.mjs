@@ -114,6 +114,9 @@ try {
     assert.equal(t0, clock); assert.equal(view.lifecycleDiagnostics.elapsedMs, 0);
     assert.equal(view.screen.props.apps.messagesState.draft, "");
     assert.equal(view.screen.props.apps.messagesState.messages.some(message => message.id === "mom-home-yet"), false);
+    const initialMessagesBadgeCount = view.screen.props.navigation.messagesBadgeCount;
+    assert.equal(view.screen.props.overlays.activeLockNotification, null, "new user has no previous notification");
+    assert.equal(view.screen.props.navigation.notificationBadgeCounts.facebook, 0);
     view.screen.props.actions.completeScreenUnlock(); await flush();
     assert.equal(view.lifecycleDiagnostics.softwarePhase, "springboard");
     view.screen.props.navigation.launchSpringBoardApp("camera"); await flush();
@@ -130,7 +133,43 @@ try {
     assert.equal(sceneSelections, run + 1, "sleep/wake does not reroll Camera");
     await tick(60000);
     assert.equal(view.screen.props.apps.messagesState.messages.filter(message => message.id === "mom-home-yet").length, 1, "scheduler can deliver again in each new run");
-    await tick(840000);
+    assert.equal(view.screen.props.navigation.messagesBadgeCount, initialMessagesBadgeCount + 1);
+    assert.equal(view.screen.props.overlays.activeLockNotification.id, "mom-home-yet");
+    await tick(95000);
+    assert.equal(view.screen.props.navigation.notificationBadgeCounts.facebook, 2, "existing scheduler delivers request and direct message");
+    assert.equal(view.lifecycleDiagnostics.softwarePhase, "sleeping", "social alerts do not wake the phone");
+    view.powerControl.begin(); view.powerControl.end(); await flush();
+    // SMS stays first; social arrivals cannot replace it or overlap it.
+    assert.equal(view.screen.props.overlays.activeLockNotification.id, "mom-home-yet");
+    view.screen.props.actions.openLockNotificationTarget(view.screen.props.overlays.activeLockNotification); await flush();
+    assert.equal(view.screen.props.navigation.appRuntime.activeAppId, "messages");
+    assert.equal(view.screen.props.display.session.activeWarning, 20);
+    assert.equal(view.screen.props.overlays.appNotification, null, "real low-battery warning has priority over the queued app alert");
+    view.screen.props.actions.dismissScreenBatteryWarning(); await flush();
+    assert.equal(view.screen.props.overlays.appNotification.id, "facebook-jack-request");
+    view.screen.props.actions.setNotificationKeyboardVisible(true); await flush();
+    assert.equal(view.screen.props.overlays.appNotification, null, "keyboard defers without consuming queue");
+    view.screen.props.actions.setNotificationKeyboardVisible(false); await flush();
+    assert.equal(view.screen.props.overlays.appNotification.id, "facebook-jack-request");
+    view.screen.props.actions.dismissScreenSMSAlert(); await flush();
+    assert.equal(view.screen.props.overlays.appNotification.id, "facebook-katie-jack-gossip-message");
+    view.screen.props.actions.viewScreenAppAlert(); await flush();
+    assert.equal(view.screen.props.navigation.appRuntime.activeAppId, "facebook", "View suspends previous app and routes to existing destination");
+    assert.equal(view.screen.props.navigation.notificationBadgeCounts.facebook, 0);
+    assert.equal(view.screen.props.overlays.appNotification, null);
+    // Keep awake so the June delivery tests same-app foreground suppression.
+    for (const delay of [50000, 50000, 15000]) { view.onUserActivity(); await flush(); await tick(delay); }
+    assert.equal(view.lifecycleDiagnostics.elapsedMs, 270000);
+    assert.equal(view.screen.props.navigation.appRuntime.activeAppId, "facebook");
+    assert.equal(view.screen.props.apps.facebookState.inboxThreads.some(thread => thread.id === "june-live-message"), true, "same-app delivery still updates app data");
+    assert.equal(view.screen.props.overlays.appNotification, null);
+    assert.equal(view.screen.props.navigation.notificationBadgeCounts.facebook, 0);
+    await tick(240000);
+    // Social delivery never wakes a sleeping phone. Queued until manual wake.
+    assert.equal(view.lifecycleDiagnostics.softwarePhase, "sleeping");
+    view.powerControl.begin(); view.powerControl.end(); await flush();
+    assert.equal(view.screen.props.overlays.activeLockNotification.id, "foursquare-friend-checkin");
+    await tick(390000);
     assert.equal(view.lifecycle.phase, "power-loss");
     assert.equal(view.lifecycle.terminalFired, true);
     view.simulateExperienceEnd(); view.simulateExperienceEnd(); await flush();
@@ -145,6 +184,10 @@ try {
     assert.equal(view.lifecycleDiagnostics.experienceSessionId, null);
     assert.equal(view.screen.props.apps.messagesState.draft, "");
     assert.equal(view.screen.props.navigation.appRuntime.phase, "none");
+    assert.equal(view.screen.props.navigation.notificationBadgeCounts.facebook, 0);
+    assert.equal(view.screen.props.navigation.messagesBadgeCount, initialMessagesBadgeCount);
+    assert.equal(view.screen.props.overlays.appNotification, null);
+    assert.equal(view.screen.props.overlays.activeLockNotification, null);
     assert.equal(timers.size, baselineTimers, "no accumulated session timers");
     assert.deepEqual(await world.submit(draft), accepted, "world submission remains idempotently accepted");
   }

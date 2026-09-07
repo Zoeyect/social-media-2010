@@ -18,6 +18,7 @@ import { MultitaskingBar } from "./MultitaskingBar";
 import { MobileSMSContainer } from "./MobileSMSContainer";
 import { PhotosContainer } from "./PhotosContainer";
 import { SMSAlertOverlay } from "./SMSAlertOverlay";
+import { AppNotificationAlert } from "./AppNotificationAlert";
 import { SpringBoard } from "./SpringBoard";
 import { StatusBar } from "./StatusBar";
 import { TwitterContainer } from "./TwitterContainer";
@@ -47,6 +48,7 @@ export type DeviceScreenProps = {
     activeFolderSlotIndex: ComponentProps<typeof SpringBoard>["activeFolderSlotIndex"];
     setActiveFolderSlotIndex: ComponentProps<typeof SpringBoard>["onActiveFolderSlotChange"];
     messagesBadgeCount: number;
+    notificationBadgeCounts: ComponentProps<typeof SpringBoard>["notificationBadgeCounts"];
     launchSpringBoardApp: ComponentProps<typeof SpringBoard>["onLaunchApp"];
     multitaskingBar: ComponentProps<typeof MultitaskingBar>["state"];
     dispatchMultitaskingBar: ComponentProps<typeof MultitaskingBar>["dispatch"];
@@ -82,6 +84,7 @@ export type DeviceScreenProps = {
   overlays: {
     activeLockNotification: ComponentProps<typeof LockScreen>["activeLockNotification"];
     smsNotification: ComponentProps<typeof SMSAlertOverlay>["notificationState"];
+    appNotification: ComponentProps<typeof AppNotificationAlert>["notification"] | null;
   };
   actions: {
     openLockNotificationTarget: ComponentProps<typeof LockScreen>["onViewNotification"];
@@ -99,6 +102,8 @@ export type DeviceScreenProps = {
     dismissScreenBatteryWarning: () => void;
     dismissScreenSMSAlert: ComponentProps<typeof SMSAlertOverlay>["onClose"];
     viewScreenSMSAlert: ComponentProps<typeof SMSAlertOverlay>["onView"];
+    viewScreenAppAlert: () => void;
+    setNotificationKeyboardVisible: (visible: boolean) => void;
   };
 };
 
@@ -123,6 +128,7 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
     activeFolderSlotIndex,
     setActiveFolderSlotIndex,
     messagesBadgeCount,
+    notificationBadgeCounts,
     launchSpringBoardApp,
     multitaskingBar,
     dispatchMultitaskingBar,
@@ -158,6 +164,7 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
   const {
     activeLockNotification,
     smsNotification,
+    appNotification,
   } = overlays;
   const {
     openLockNotificationTarget,
@@ -175,6 +182,8 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
     dismissScreenBatteryWarning,
     dismissScreenSMSAlert,
     viewScreenSMSAlert,
+    viewScreenAppAlert,
+    setNotificationKeyboardVisible,
   } = actions;
 
   return <div className={`screen ${session.phase}`}>
@@ -204,6 +213,7 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
       activeFolderSlotIndex={activeFolderSlotIndex}
       onActiveFolderSlotChange={setActiveFolderSlotIndex}
       messagesBadgeCount={messagesBadgeCount}
+      notificationBadgeCounts={notificationBadgeCounts}
       onLaunchApp={launchSpringBoardApp}
     />}
     {session.phase === "app" && <AppLaunchContainer
@@ -212,6 +222,7 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
       onClosed={completeScreenAppClose}
     >
       <IOS4KeyboardSystem
+        onVisibilityChange={setNotificationKeyboardVisible}
         suspended={multitaskingBar !== "closed" || cameraRuntime.cameraPicker.phase !== "none"}
         suspendReason={multitaskingBar !== "closed" ? "app-switch" : "navigation"}
       >
@@ -300,6 +311,7 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
       onClose={dismissScreenSMSAlert}
       onView={viewScreenSMSAlert}
     />}
+    {appNotification && <AppNotificationAlert notification={appNotification} onClose={dismissScreenSMSAlert} onView={viewScreenAppAlert} />}
   </div>;
 }
 

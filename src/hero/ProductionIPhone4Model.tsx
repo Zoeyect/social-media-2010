@@ -52,7 +52,12 @@ function reportFallbackOnce(reason: string): void {
 }
 
 function prepareProductionModel(source: Object3D, bootTexture: Texture): ReadyModel | string {
-  const normalized = normalizeIPhone4Model(source);
+  let normalized: ReturnType<typeof normalizeIPhone4Model>;
+  try {
+    normalized = normalizeIPhone4Model(source);
+  } catch (error) {
+    return error instanceof Error ? error.message : "invalid chassis normalization contract";
+  }
   const { root, roles } = normalized;
   const missingCriticalRoles = missingCriticalIPhone4MeshRoles(roles);
   if (missingCriticalRoles.length) return `missing critical mesh role(s): ${missingCriticalRoles.join(", ")}`;

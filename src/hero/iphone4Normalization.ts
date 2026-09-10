@@ -2,7 +2,28 @@ import { Box3, Group, Matrix4, Quaternion, Vector3, type Mesh, type Object3D } f
 import { resolveIPhone4MeshRoles, type IPhone4MeshRoles } from "./iphone4ModelContract";
 
 const CANONICAL_PHONE_HEIGHT = 2.82;
+export const CHASSIS_NORMALIZATION_ROLES = ["stainlessFrame", "body", "frontGlass", "backGlass"] as const;
 const AXES = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)] as const;
+
+/** Bound the resolved structural primitives only, never their attached details
+ * or hit volumes. Multi-material decal/control siblings are not chassis roles. */
+export function chassisNormalizationBounds(roles: IPhone4MeshRoles): Box3 {
+  const bounds = new Box3();
+  for (const role of CHASSIS_NORMALIZATION_ROLES) {
+    const mesh = roles[role];
+    if (!mesh) throw new Error(`Invalid iPhone4 chassis normalization: missing ${role}`);
+    mesh.geometry.computeBoundingBox();
+    const local = mesh.geometry.boundingBox;
+    if (!local || local.isEmpty()) throw new Error(`Invalid iPhone4 chassis normalization: empty ${role}`);
+    mesh.updateWorldMatrix(true, false);
+    const world = local.clone().applyMatrix4(mesh.matrixWorld);
+    if (![...world.min.toArray(), ...world.max.toArray()].every(Number.isFinite)) {
+      throw new Error(`Invalid iPhone4 chassis normalization: non-finite ${role}`);
+    }
+    bounds.union(world);
+  }
+  return bounds;
+}
 
 function screenDirections(screen: Mesh, phoneCenter: Vector3, topReference: Mesh | null): { normal: Vector3; up: Vector3 } {
   screen.geometry.computeBoundingBox();
@@ -52,19 +73,19 @@ export function normalizeIPhone4Model(source: Object3D): NormalizedIPhone4Model 
   root.updateMatrixWorld(true);
 
   let roles = resolveIPhone4MeshRoles(root);
-  const initialBounds = new Box3().setFromObject(root);
+  const initialBounds = chassisNormalizationBounds(roles);
   const initialCenter = initialBounds.getCenter(new Vector3());
 
   if (roles.screen) root.quaternion.copy(canonicalOrientation(roles.screen, initialCenter, roles.powerButton));
   root.updateMatrixWorld(true);
 
-  const orientedBounds = new Box3().setFromObject(root);
+  const orientedBounds = chassisNormalizationBounds(roles);
   const orientedSize = orientedBounds.getSize(new Vector3());
   const scale = orientedSize.y > 0 ? CANONICAL_PHONE_HEIGHT / orientedSize.y : 1;
   root.scale.setScalar(scale);
   root.updateMatrixWorld(true);
 
-  const scaledCenter = new Box3().setFromObject(root).getCenter(new Vector3());
+  const scaledCenter = chassisNormalizationBounds(roles).getCenter(new Vector3());
   root.position.sub(scaledCenter);
   root.updateMatrixWorld(true);
   roles = resolveIPhone4MeshRoles(root);

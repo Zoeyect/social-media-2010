@@ -1,0 +1,961 @@
+{
+  "aabb_warnings": [
+    {
+      "bvh_candidates": 0,
+      "pair": [
+        "AntennaBreaks",
+        "HeadphoneJack"
+      ]
+    },
+    {
+      "bvh_candidates": 0,
+      "pair": [
+        "AntennaBreaks",
+        "MuteSwitch"
+      ]
+    },
+    {
+      "bvh_candidates": 0,
+      "pair": [
+        "AntennaBreaks",
+        "PhoneBody"
+      ]
+    },
+    {
+      "bvh_candidates": 0,
+      "pair": [
+        "AntennaBreaks",
+        "PowerButton"
+      ]
+    },
+    {
+      "bvh_candidates": 213,
+      "pair": [
+        "AntennaBreaks",
+        "StainlessFrame"
+      ]
+    },
+    {
+      "bvh_candidates": 0,
+      "pair": [
+        "AntennaBreaks",
+        "VolumeDown"
+      ]
+    },
+    {
+      "bvh_candidates": 0,
+      "pair": [
+        "AntennaBreaks",
+        "VolumeUp"
+      ]
+    },
+    {
+      "bvh_candidates": 232,
+      "pair": [
+        "BackGlass",
+        "PhoneBody"
+      ]
+    },
+    {
+      "bvh_candidates": 0,
+      "pair": [
+        "BackGlass",
+        "RearCamera"
+      ]
+    },
+    {
+      "bvh_candidates": 0,
+      "pair": [
+        "BackGlass",
+        "RearFlash"
+      ]
+    },
+    {
+      "bvh_candidates": 134,
+      "pair": [
+        "BottomMicrophoneOpenings",
+        "PhoneBody"
+      ]
+    },
+    {
+      "bvh_candidates": 164,
+      "pair": [
+        "BottomMicrophoneOpenings",
+        "StainlessFrame"
+      ]
+    },
+    {
+      "bvh_candidates": 124,
+      "pair": [
+        "BottomSpeakerOpenings",
+        "PhoneBody"
+      ]
+    },
+    {
+      "bvh_candidates": 152,
+      "pair": [
+        "BottomSpeakerOpenings",
+        "StainlessFrame"
+      ]
+    },
+    {
+      "bvh_candidates": 104,
+      "pair": [
+        "Dock30Pin",
+        "PhoneBody"
+      ]
+    },
+    {
+      "bvh_candidates": 104,
+      "pair": [
+        "Dock30Pin",
+        "StainlessFrame"
+      ]
+    },
+    {
+      "bvh_candidates": 128,
+      "pair": [
+        "FrontGlass",
+        "HomeButton"
+      ]
+    },
+    {
+      "bvh_candidates": 232,
+      "pair": [
+        "FrontGlass",
+        "PhoneBody"
+      ]
+    },
+    {
+      "bvh_candidates": 442,
+      "pair": [
+        "FrontGlass",
+        "StainlessFrame"
+      ]
+    },
+    {
+      "bvh_candidates": 140,
+      "pair": [
+        "HeadphoneJack",
+        "PhoneBody"
+      ]
+    },
+    {
+      "bvh_candidates": 140,
+      "pair": [
+        "HeadphoneJack",
+        "StainlessFrame"
+      ]
+    },
+    {
+      "bvh_candidates": 76,
+      "pair": [
+        "MuteSwitch",
+        "StainlessFrame"
+      ]
+    },
+    {
+      "bvh_candidates": 1230,
+      "pair": [
+        "PhoneBody",
+        "StainlessFrame"
+      ]
+    },
+    {
+      "bvh_candidates": 56,
+      "pair": [
+        "PowerButton",
+        "StainlessFrame"
+      ]
+    },
+    {
+      "bvh_candidates": 114,
+      "pair": [
+        "StainlessFrame",
+        "VolumeDown"
+      ]
+    },
+    {
+      "bvh_candidates": 114,
+      "pair": [
+        "StainlessFrame",
+        "VolumeUp"
+      ]
+    }
+  ],
+  "motion_crossings": [
+    [
+      "PowerButton",
+      "StainlessFrame"
+    ],
+    [
+      "PowerButton",
+      "PhoneBody"
+    ],
+    [
+      "HomeButton",
+      "FrontGlass"
+    ],
+    [
+      "VolumeUp",
+      "StainlessFrame"
+    ],
+    [
+      "VolumeUp",
+      "PhoneBody"
+    ],
+    [
+      "VolumeDown",
+      "StainlessFrame"
+    ],
+    [
+      "VolumeDown",
+      "PhoneBody"
+    ]
+  ],
+  "objects": {
+    "AntennaBreaks": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        29.35000228881836,
+        3.56000018119812,
+        57.630001068115234
+      ],
+      "min": [
+        -29.35000228881836,
+        -3.56000018119812,
+        -43.775001525878906
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        -11.800000190734863,
+        0.0,
+        57.58000183105469
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        58.70000457763672,
+        7.12000036239624,
+        101.40500259399414
+      ],
+      "triangles": 132,
+      "zero_area_faces": 0
+    },
+    "BackGlass": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 1485,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        29.049999237060547,
+        4.820000648498535,
+        57.349998474121094
+      ],
+      "min": [
+        -29.049999237060547,
+        4.050000190734863,
+        -57.349998474121094
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        0.0,
+        4.349999904632568,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        58.099998474121094,
+        0.7700004577636719,
+        114.69999694824219
+      ],
+      "triangles": 2111,
+      "zero_area_faces": 0
+    },
+    "BottomMicrophoneOpenings": {
+      "degenerate_triangles": 8,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        -16.799999237060547,
+        0.8250001072883606,
+        -56.59000015258789
+      ],
+      "min": [
+        -25.200000762939453,
+        -0.8250001072883606,
+        -57.10000228881836
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        -21.0,
+        0.0,
+        -56.650001525878906
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        8.400001525878906,
+        1.6500002145767212,
+        0.5100021362304688
+      ],
+      "triangles": 324,
+      "zero_area_faces": 0
+    },
+    "BottomSpeakerOpenings": {
+      "degenerate_triangles": 8,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        25.200000762939453,
+        0.8250001072883606,
+        -56.59000015258789
+      ],
+      "min": [
+        16.799999237060547,
+        -0.8250001072883606,
+        -57.10000228881836
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        21.0,
+        0.0,
+        -56.650001525878906
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        8.400001525878906,
+        1.6500002145767212,
+        0.5100021362304688
+      ],
+      "triangles": 324,
+      "zero_area_faces": 0
+    },
+    "Dock30Pin": {
+      "degenerate_triangles": 8,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        11.0,
+        1.399999976158142,
+        -56.59000015258789
+      ],
+      "min": [
+        -11.0,
+        -1.4000002145767212,
+        -57.269996643066406
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        0.0,
+        0.0,
+        -57.75
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        22.0,
+        2.8000001907348633,
+        0.6799964904785156
+      ],
+      "triangles": 296,
+      "zero_area_faces": 0
+    },
+    "Earpiece": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        5.199999809265137,
+        -4.720000267028809,
+        47.35000228881836
+      ],
+      "min": [
+        -5.199999809265137,
+        -4.889999866485596,
+        45.650001525878906
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        0.0,
+        -4.78000020980835,
+        46.5
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        10.399999618530273,
+        0.1699995994567871,
+        1.7000007629394531
+      ],
+      "triangles": 444,
+      "zero_area_faces": 0
+    },
+    "FrontCamera": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        -9.050000190734863,
+        -4.659999847412109,
+        47.75
+      ],
+      "min": [
+        -11.550000190734863,
+        -4.830000400543213,
+        45.250003814697266
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        -10.300000190734863,
+        -4.78000020980835,
+        46.5
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        2.5,
+        0.17000055313110352,
+        2.4999961853027344
+      ],
+      "triangles": 1144,
+      "zero_area_faces": 0
+    },
+    "FrontGlass": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        29.049999237060547,
+        -4.050000190734863,
+        57.349998474121094
+      ],
+      "min": [
+        -29.049999237060547,
+        -4.650000095367432,
+        -57.349998474121094
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        0.0,
+        -4.349999904632568,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        58.099998474121094,
+        0.5999999046325684,
+        114.69999694824219
+      ],
+      "triangles": 716,
+      "zero_area_faces": 0
+    },
+    "HeadphoneJack": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        -16.23699951171875,
+        1.9129999876022339,
+        56.44999694824219
+      ],
+      "min": [
+        -19.762998580932617,
+        -1.6130000352859497,
+        56.150001525878906
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        -18.0,
+        0.15000000596046448,
+        56.29999923706055
+      ],
+      "scale": [
+        0.8600000143051147,
+        0.8600000143051147,
+        1.0
+      ],
+      "size": [
+        3.525999069213867,
+        3.5260000228881836,
+        0.29999542236328125
+      ],
+      "triangles": 668,
+      "zero_area_faces": 0
+    },
+    "HomeButton": {
+      "degenerate_triangles": 82,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        5.400000095367432,
+        -4.629999160766602,
+        -41.79999923706055
+      ],
+      "min": [
+        -5.400000095367432,
+        -4.810000419616699,
+        -52.60000228881836
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        0.0,
+        -4.679999828338623,
+        -47.20000076293945
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        10.800000190734863,
+        0.18000125885009766,
+        10.800003051757812
+      ],
+      "triangles": 1196,
+      "zero_area_faces": 0
+    },
+    "MuteSwitch": {
+      "degenerate_triangles": 32,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        -29.25,
+        1.7999999523162842,
+        44.29999923706055
+      ],
+      "min": [
+        -29.649999618530273,
+        -1.7999999523162842,
+        37.70000076293945
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        -29.44999885559082,
+        0.0,
+        41.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        0.39999961853027344,
+        3.5999999046325684,
+        6.599998474121094
+      ],
+      "triangles": 280,
+      "zero_area_faces": 0
+    },
+    "PhoneBody": {
+      "degenerate_triangles": 8,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        29.149999618530273,
+        4.449999809265137,
+        57.45000076293945
+      ],
+      "min": [
+        -29.149999618530273,
+        -4.449999809265137,
+        -57.45000076293945
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        58.29999923706055,
+        8.899999618530273,
+        114.9000015258789
+      ],
+      "triangles": 1220,
+      "zero_area_faces": 0
+    },
+    "PowerButton": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        21.0,
+        1.3000000715255737,
+        57.95000076293945
+      ],
+      "min": [
+        10.599998474121094,
+        -1.3000000715255737,
+        57.45000076293945
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        15.799999237060547,
+        0.0,
+        57.70000076293945
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        10.400001525878906,
+        2.6000001430511475,
+        0.5
+      ],
+      "triangles": 332,
+      "zero_area_faces": 0
+    },
+    "RearCamera": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        24.149999618530273,
+        4.830000400543213,
+        52.04999923706055
+      ],
+      "min": [
+        18.049999237060547,
+        4.659999847412109,
+        45.95000076293945
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        21.100000381469727,
+        4.78000020980835,
+        49.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        6.100000381469727,
+        0.17000055313110352,
+        6.099998474121094
+      ],
+      "triangles": 1336,
+      "zero_area_faces": 0
+    },
+    "RearFlash": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        16.100000381469727,
+        4.830000400543213,
+        50.29999923706055
+      ],
+      "min": [
+        13.5,
+        4.659999847412109,
+        47.70000076293945
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        14.800000190734863,
+        4.78000020980835,
+        49.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        2.6000003814697266,
+        0.17000055313110352,
+        2.5999984741210938
+      ],
+      "triangles": 1144,
+      "zero_area_faces": 0
+    },
+    "Screen": {
+      "degenerate_triangles": 0,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        24.649999618530273,
+        -4.659999847412109,
+        37.974998474121094
+      ],
+      "min": [
+        -24.649999618530273,
+        -4.699999809265137,
+        -35.97500228881836
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        0.0,
+        -4.679999828338623,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        49.29999923706055,
+        0.039999961853027344,
+        73.95000076293945
+      ],
+      "triangles": 316,
+      "zero_area_faces": 0
+    },
+    "StainlessFrame": {
+      "degenerate_triangles": 12,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        29.459999084472656,
+        3.549999952316284,
+        57.599998474121094
+      ],
+      "min": [
+        -29.30000114440918,
+        -4.5,
+        -57.715003967285156
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        58.760000228881836,
+        8.049999952316284,
+        115.31500244140625
+      ],
+      "triangles": 3636,
+      "zero_area_faces": 0
+    },
+    "VolumeDown": {
+      "degenerate_triangles": 24,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        -29.149999618530273,
+        2.5999999046325684,
+        21.80000114440918
+      ],
+      "min": [
+        -29.739999771118164,
+        -2.5999999046325684,
+        16.600000381469727
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        -29.399999618530273,
+        0.0,
+        19.200000762939453
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        0.5900001525878906,
+        5.199999809265137,
+        5.200000762939453
+      ],
+      "triangles": 776,
+      "zero_area_faces": 0
+    },
+    "VolumeUp": {
+      "degenerate_triangles": 36,
+      "intentional_decal_boundary_edges": 0,
+      "invalid_normals": 0,
+      "loose_vertices": 0,
+      "max": [
+        -29.149999618530273,
+        2.5999999046325684,
+        32.099998474121094
+      ],
+      "min": [
+        -29.739999771118164,
+        -2.5999999046325684,
+        26.899999618530273
+      ],
+      "non_manifold_solid_edges": 0,
+      "origin_blender": [
+        -29.399999618530273,
+        0.0,
+        29.5
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "size": [
+        0.5900001525878906,
+        5.199999809265137,
+        5.19999885559082
+      ],
+      "triangles": 884,
+      "zero_area_faces": 0
+    }
+  },
+  "overall_blender_xyz": [
+    59.19999885559082,
+    9.720000267028809,
+    115.66500473022461
+  ],
+  "overall_gltf_xyz": [
+    59.19999885559082,
+    115.66500473022461,
+    9.720000267028809
+  ],
+  "surface_crossings": [
+    [
+      "AntennaBreaks",
+      "StainlessFrame"
+    ],
+    [
+      "BackGlass",
+      "PhoneBody"
+    ],
+    [
+      "BottomMicrophoneOpenings",
+      "PhoneBody"
+    ],
+    [
+      "BottomMicrophoneOpenings",
+      "StainlessFrame"
+    ],
+    [
+      "BottomSpeakerOpenings",
+      "PhoneBody"
+    ],
+    [
+      "BottomSpeakerOpenings",
+      "StainlessFrame"
+    ],
+    [
+      "Dock30Pin",
+      "PhoneBody"
+    ],
+    [
+      "Dock30Pin",
+      "StainlessFrame"
+    ],
+    [
+      "FrontGlass",
+      "HomeButton"
+    ],
+    [
+      "FrontGlass",
+      "PhoneBody"
+    ],
+    [
+      "FrontGlass",
+      "StainlessFrame"
+    ],
+    [
+      "HeadphoneJack",
+      "PhoneBody"
+    ],
+    [
+      "HeadphoneJack",
+      "StainlessFrame"
+    ],
+    [
+      "MuteSwitch",
+      "StainlessFrame"
+    ],
+    [
+      "PhoneBody",
+      "StainlessFrame"
+    ],
+    [
+      "PowerButton",
+      "StainlessFrame"
+    ],
+    [
+      "StainlessFrame",
+      "VolumeDown"
+    ],
+    [
+      "StainlessFrame",
+      "VolumeUp"
+    ]
+  ],
+  "topology_failures": [
+    "BottomMicrophoneOpenings",
+    "BottomSpeakerOpenings",
+    "Dock30Pin",
+    "HomeButton",
+    "MuteSwitch",
+    "PhoneBody",
+    "StainlessFrame",
+    "VolumeDown",
+    "VolumeUp"
+  ],
+  "triangles": 17279,
+  "units": "mm"
+}

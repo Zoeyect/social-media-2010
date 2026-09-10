@@ -124,13 +124,18 @@ function keepFocusedControlVisible(element: IOS4TextControl) {
   });
 }
 
-export function IOS4KeyboardSystem({ children, suspended = false, suspendReason = "app-switch" }: {
+export function IOS4KeyboardSystem({ children, suspended = false, suspendReason = "app-switch", onVisibilityChange }: {
   children: ReactNode;
   suspended?: boolean;
   suspendReason?: IOS4KeyboardDismissReason;
+  onVisibilityChange?: (visible: boolean) => void;
 }) {
   const activeRegistration = useRef<IOS4InputRegistration | null>(null);
   const [state, setState] = useState<IOS4KeyboardViewState>(INITIAL_KEYBOARD_STATE);
+  useLayoutEffect(() => {
+    onVisibilityChange?.(state.keyboardVisible);
+    return () => onVisibilityChange?.(false);
+  }, [onVisibilityChange, state.keyboardVisible]);
 
   const closeKeyboard = useCallback((reason: IOS4KeyboardDismissReason, inputId?: string) => {
     const active = activeRegistration.current;

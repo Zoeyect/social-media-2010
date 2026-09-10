@@ -32,6 +32,7 @@ import folderShadowBottomSrc from "../assets/historical/ios4.1/springboard/folde
 import folderShadowTopSrc from "../assets/historical/ios4.1/springboard/folder/chrome/FolderShadowTop@2x.browser.png";
 import { SPRINGBOARD_SOCIAL_APPS } from "../data/springBoardSocialApps";
 import { FolderEvent, FolderState } from "../state/folderState";
+import type { NotificationApp } from "../state/notificationState";
 
 type SpringBoardProps = {
   currentPage: 0 | 1;
@@ -42,6 +43,7 @@ type SpringBoardProps = {
   onActiveFolderSlotChange: (slotIndex: number) => void;
   onLaunchApp: (appId: string) => void;
   messagesBadgeCount: number;
+  notificationBadgeCounts?: Partial<Record<NotificationApp, number>>;
 };
 
 type SwipeStart = {
@@ -137,7 +139,7 @@ const DOCK_APPS = [
   { name: "YouTube", iconSrc: youtubeIconSrc },
 ] as const;
 
-export function SpringBoard({ currentPage, onPageChange, folderState, dispatchFolderEvent, activeFolderSlotIndex, onActiveFolderSlotChange, onLaunchApp, messagesBadgeCount }: SpringBoardProps) {
+export function SpringBoard({ currentPage, onPageChange, folderState, dispatchFolderEvent, activeFolderSlotIndex, onActiveFolderSlotChange, onLaunchApp, messagesBadgeCount, notificationBadgeCounts }: SpringBoardProps) {
   const swipeStart = useRef<SwipeStart | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -228,7 +230,7 @@ export function SpringBoard({ currentPage, onPageChange, folderState, dispatchFo
         className={`springboard-pages-track${isDragging ? " is-dragging" : ""}`}
         style={{ transform: `translateX(${-currentPage * PAGE_WIDTH + dragOffset}px)` }}
       >
-        <SpringBoardPage apps={PAGE_ONE_APPS} pageNumber={1} folderSourceSlotIndex={folderIsActive ? activeFolderSlotIndex : undefined} onAppActivate={index => {
+        <SpringBoardPage apps={PAGE_ONE_APPS} pageNumber={1} badgeCounts={Object.fromEntries(PAGE_ONE_APPS.map((app, index) => [index, notificationBadgeCounts?.[app?.launchId as NotificationApp] ?? 0]))} folderSourceSlotIndex={folderIsActive ? activeFolderSlotIndex : undefined} onAppActivate={index => {
           const app = PAGE_ONE_APPS[index];
           if (app?.folderId) openFolder(index);
           else if (app?.launchId) onLaunchApp(app.launchId);
@@ -438,7 +440,7 @@ function SpringBoardPageIndicator({ currentPage }: { currentPage: 0 | 1 }) {
 }
 
 export function SpringBoardBadge({ count }: { count: number }) {
-  return <span className="springboard-badge" aria-label={`${count} unread messages`}>
+  return <span className="springboard-badge" aria-label={`${count} unread notifications`}>
     <span
       className="springboard-badge-artwork"
       style={{ backgroundImage: `url(${badgeBackgroundSrc})`, maskImage: `url(${badgeMaskSrc})`, WebkitMaskImage: `url(${badgeMaskSrc})` }}

@@ -25,10 +25,11 @@ import { createInitialInstagramState, instagramStateTransition } from "../state/
 import { multitaskingBarStateTransition } from "../state/multitaskingBarState";
 import { createInitialMessagesState, DAD_LOVE_REPLY_DUE_ELAPSED_MS, deterministicMomLoveReplyDelayMs, messagesStateTransition } from "../state/messagesState";
 import { createLockScreenModel } from "../state/lockScreenModel";
-import { initialLockNotificationState, lockNotificationStateTransition } from "../state/lockNotificationState";
 import type { ActiveLockNotification } from "../state/lockNotificationState";
-import { createInitialMessagesBadgeState, messagesBadgeStateTransition } from "../state/messagesBadgeState";
-import { initialSMSNotificationState, smsNotificationStateTransition } from "../state/smsNotificationState";
+import type { MessagesBadgeEvent } from "../state/messagesBadgeState";
+import { activeNotification, createInitialNotificationState, notificationBadges, notificationLockPreview, notificationSMSPresentation, notificationTransition, NOTIFICATION_APPS, type NotificationAction, type NotificationApp, type NotificationContext } from "../state/notificationState";
+import { deliverNotification, scheduledNotificationEvent, smsNotificationEvent } from "../system/notificationDelivery";
+import { NotificationDebug } from "./NotificationDebug";
 import { createSessionIdentity, SessionIdentityContext } from "../state/sessionIdentity";
 import { createStatusBarState } from "../state/statusBarModel";
 import { createInitialTwitterState, twitterStateTransition } from "../state/twitterState";
@@ -38,7 +39,7 @@ import { selectPublicVisitorPostIds } from "../state/twitterTimelineComposition"
 import { createMockPublicTwitterRepository } from "../data/mockPublicTwitterRepository";
 import { createMockPublicTwitterSubmissionRepository } from "../data/mockPublicTwitterSubmissionRepository";
 import { initialPublicTwitterOutroState, publicTwitterOutroTransition, selectEligibleLocalTweetIds } from "../state/publicTwitterOutroState";
-import { createSMSLockNotification, smsMessageReceived } from "../system/smsNotification";
+import { smsMessageReceived } from "../system/smsNotification";
 import { createInitialFlickrState, flickrStateTransition } from "../state/flickrState";
 import { createInitialTumblrState, tumblrStateTransition } from "../state/tumblrState";
 import { DeviceScreen, type DeviceScreenProps } from "./DeviceScreen";
@@ -134,9 +135,29 @@ export function App() {
   }, []);
   const [multitaskingBar, dispatchMultitaskingBar] = useReducer(multitaskingBarStateTransition, "closed");
   const [messagesState, dispatchMessages] = useReducer(messagesStateTransition, undefined, createInitialMessagesState);
-  const [messagesUnreadIds, dispatchMessagesBadge] = useReducer(messagesBadgeStateTransition, undefined, createInitialMessagesBadgeState);
-  const [smsNotification, dispatchSMSNotification] = useReducer(smsNotificationStateTransition, initialSMSNotificationState);
-  const [activeLockNotification, dispatchLockNotification] = useReducer(lockNotificationStateTransition, initialLockNotificationState);
+  const [notifications, notificationDispatch] = useReducer(notificationTransition, undefined, createInitialNotificationState);
+  const notificationRef = useRef(notifications);
+  notificationRef.current = notifications;
+  // Claim synchronously so a repeated scheduler effect cannot replay a delivery sound.
+  const dispatchNotifications = useCallback((action: NotificationAction) => {
+    notificationRef.current = notificationTransition(notificationRef.current, action);
+    notificationDispatch(action);
+  }, []);
+  const dispatchMessagesBadge = useCallback((event: MessagesBadgeEvent) => dispatchNotifications({ type: "MESSAGE_BADGE", event }), [dispatchNotifications]);
+  const messagesUnreadIds = notifications.unread.messages;
+  const [notificationKeyboardVisible, setNotificationKeyboardVisible] = useState(false);
+  const notificationContext: NotificationContext = {
+    phase: session.phase,
+    foregroundApp: session.phase === "app" ? appRuntime.activeAppId : null,
+    terminal: session.returnToHeroPending || session.phase === "shutdown" || session.phase === "poweredOff" || session.phase === "hero" || session.phase === "booting",
+    systemAlert: ((session.phase === "app" || session.phase === "springboard") && session.activeWarning !== null)
+      || session.phase === "powerOffConfirm" || session.phase === "lowBatteryWarning",
+    keyboard: session.phase === "app" && notificationKeyboardVisible,
+    multitasking: multitaskingBar !== "closed",
+  };
+  const currentNotification = activeNotification(notifications, notificationContext);
+  const smsNotification = notificationSMSPresentation(currentNotification, session.phase);
+  const activeLockNotification = session.phase === "locked" ? notificationLockPreview(currentNotification) : null;
   const [facebookState, dispatchFacebook] = useReducer(
     facebookStateTransition,
     session.sessionIdentity.name,
@@ -276,9 +297,8 @@ export function App() {
     appliedCameraSession.current = null;
     cameraCaptureNamespace.current += 1;
     dispatchMessages({ type: "RESET_RUNTIME" });
-    dispatchMessagesBadge({ type: "RESET" });
-    dispatchSMSNotification({ type: "RESET" });
-    dispatchLockNotification({ type: "RESET" });
+    dispatchNotifications({ type: "RESET" });
+    setNotificationKeyboardVisible(false);
     dispatchFacebook({ type: "RESET" });
     dispatchInstagram({ type: "RESET" });
     dispatchFoursquare({ type: "RESET" });
@@ -527,13 +547,18 @@ export function App() {
       && messagesState.view === "conversation"
       && messagesState.activeConversationId === "dad";
     let wakesSleepingDevice = false;
+    // A battery threshold crossed on this same scheduler tick already owns priority,
+    // even before the existing battery effect commits its visible warning state.
+    const deliveryContext = { ...notificationContext, systemAlert: notificationContext.systemAlert
+      || ((session.phase === "app" || session.phase === "springboard") && currentWarning(elapsed, session.dismissedWarnings) !== null) };
+    const deliverSMS = (sms: Parameters<typeof smsNotificationEvent>[0]) => {
+      deliverNotification(smsNotificationEvent(sms, event.dueElapsedMs), deliveryContext, notificationRef.current, dispatchNotifications);
+    };
 
     if (event.type === "initialSMS" && event.payload?.kind === "initial-sms") {
       smsMessageReceived(event.payload, source, {
-        notificationDispatch: dispatchSMSNotification,
-        badgeDispatch: dispatchMessagesBadge,
         messagesDispatch: dispatchMessages,
-        lockNotificationDispatch: dispatchLockNotification,
+        deliver: deliverSMS,
       });
       wakesSleepingDevice = session.phase === "sleeping";
     } else if (event.type === "momReply") {
@@ -541,10 +566,8 @@ export function App() {
         dispatchMessages({ type: "DELIVER_MOM_REPLY" });
       } else if (messagesState.momReply === "pending") {
         smsMessageReceived(MOM_REPLY_SMS, source, {
-          notificationDispatch: dispatchSMSNotification,
-          badgeDispatch: dispatchMessagesBadge,
           messagesDispatch: dispatchMessages,
-          lockNotificationDispatch: dispatchLockNotification,
+          deliver: deliverSMS,
         });
         dispatchMessages({ type: "MARK_MOM_REPLY_DELIVERED" });
         wakesSleepingDevice = session.phase === "sleeping";
@@ -554,10 +577,8 @@ export function App() {
         dispatchMessages({ type: "DELIVER_MOM_LOVE_REPLY" });
       } else if (messagesState.momLoveReply === "pending") {
         smsMessageReceived(MOM_LOVE_REPLY_SMS, source, {
-          notificationDispatch: dispatchSMSNotification,
-          badgeDispatch: dispatchMessagesBadge,
           messagesDispatch: dispatchMessages,
-          lockNotificationDispatch: dispatchLockNotification,
+          deliver: deliverSMS,
         });
         dispatchMessages({ type: "MARK_MOM_LOVE_REPLY_DELIVERED" });
         wakesSleepingDevice = session.phase === "sleeping";
@@ -567,10 +588,8 @@ export function App() {
         dispatchMessages({ type: "DELIVER_DAD_LOVE_REPLY" });
       } else if (messagesState.dadLoveReply === "pending") {
         smsMessageReceived(DAD_LOVE_REPLY_SMS, source, {
-          notificationDispatch: dispatchSMSNotification,
-          badgeDispatch: dispatchMessagesBadge,
           messagesDispatch: dispatchMessages,
-          lockNotificationDispatch: dispatchLockNotification,
+          deliver: deliverSMS,
         });
         dispatchMessages({ type: "MARK_DAD_LOVE_REPLY_DELIVERED" });
         wakesSleepingDevice = session.phase === "sleeping";
@@ -605,6 +624,8 @@ export function App() {
     } else if (event.type === "tumblrBackgroundPost" && event.payload?.kind === "tumblr-post") {
       dispatchTumblr({ type: "DELIVER_BACKGROUND_POST", post: event.payload.post });
     }
+    const appNotification = scheduledNotificationEvent(event, eventTime);
+    if (appNotification) deliverNotification(appNotification, deliveryContext, notificationRef.current, dispatchNotifications);
     setSession(current => ({
       ...current,
       deviceEvents: removeDeviceEvent(current.deviceEvents, event.id),
@@ -615,17 +636,10 @@ export function App() {
     }));
   }, [appRuntime.activeAppId, elapsed, messagesState.activeConversationId, messagesState.dadLoveReply, messagesState.momLoveReply, messagesState.momReply, messagesState.view, session.deliveredTimelineEventIds, session.deviceEvents, session.phase]);
   useEffect(() => {
-    if ((session.phase !== "sleeping" && session.phase !== "locked") || smsNotification.status !== "alert-visible") return;
-    dispatchSMSNotification({ type: "SHOW_PREVIEW" });
-    dispatchLockNotification({
-      type: "PRESENT",
-      notification: createSMSLockNotification({
-        id: smsNotification.notification.id,
-        sender: smsNotification.notification.sender,
-        message: smsNotification.notification.message,
-      }),
-    });
-  }, [session.phase, smsNotification.status]);
+    if (session.phase === "app" && NOTIFICATION_APPS.includes(appRuntime.activeAppId as NotificationApp)) {
+      dispatchNotifications({ type: "OPEN_APP", app: appRuntime.activeAppId as NotificationApp });
+    }
+  }, [session.phase, appRuntime.activeAppId, dispatchNotifications]);
   useEffect(() => {
     const unreadMessageIds = messagesState.messages
       .filter(message => message.direction === "incoming" && message.status === "unread")
@@ -648,9 +662,7 @@ export function App() {
     if (messagesUnreadIds.includes(messageId)) {
       dispatchMessagesBadge({ type: "MARK_READ", messageId });
     }
-    if (smsNotification.notification?.id === messageId && smsNotification.status !== "opened") {
-      dispatchSMSNotification({ type: "OPEN" });
-    }
+    dispatchNotifications({ type: "DISMISS", id: messageId });
   }, [appRuntime.activeAppId, messagesState.activeConversationId, messagesState.messages, messagesState.view, messagesUnreadIds, session.phase, smsNotification.notification, smsNotification.status]);
   useEffect(() => {
     if (cameraRuntime.cameraApp.phase === "launching"
@@ -829,27 +841,35 @@ export function App() {
     update({ phase: "app" });
   };
   const openLockNotificationTarget = (notification: ActiveLockNotification) => {
-    dispatchLockNotification({ type: "CLEAR" });
+    dispatchNotifications({ type: "DISMISS", id: notification.id });
     if (notification.target.type === "messagesConversation") {
-      openMessagesConversation(true);
+      openMessagesConversation(true, notification.target.conversationId);
       return;
     }
-    const targetAppId = notification.target.appId;
+    openNotificationApp(notification.target.appId);
+  };
+  const openNotificationApp = (targetAppId: string) => {
     const targetIsRetained = appRuntime.activeAppId === targetAppId
       || appRuntime.suspendedAppIds.includes(targetAppId);
+    if (appRuntime.activeAppId && appRuntime.activeAppId !== targetAppId) {
+      const previousCameraOwner = cameraOwnerForApp(appRuntime.activeAppId);
+      if (previousCameraOwner) dispatchCameraRuntime({ type: "SUSPEND", owner: previousCameraOwner });
+      dispatchAppRuntime({ type: "SUSPEND" });
+    }
     if (targetIsRetained) {
       const cameraOwner = cameraOwnerForApp(targetAppId);
       if (cameraOwner) dispatchCameraRuntime({ type: "RESUME", owner: cameraOwner });
       dispatchAppRuntime({ type: "RESUME", appId: targetAppId });
       update({ phase: "app" });
     } else {
-      launchSpringBoardApp(targetAppId);
+      dispatchAppRuntime({ type: "LAUNCH", appId: targetAppId });
+      update({ phase: "app" });
     }
     setUnlockReturnAppId(null);
   };
-  const openMessagesConversation = (fromNotification = false) => {
-    if (fromNotification) dispatchSMSNotification({ type: "BEGIN_VIEW" });
-    dispatchMessages({ type: "OPEN_CONVERSATION" });
+  const openMessagesConversation = (fromNotification = false, conversationId?: string) => {
+    if (fromNotification && currentNotification) dispatchNotifications({ type: "DISMISS", id: currentNotification.id });
+    dispatchMessages({ type: "OPEN_CONVERSATION", conversationId });
 
     if (appRuntime.activeAppId === "messages") {
       if (appRuntime.phase === "suspended") dispatchAppRuntime({ type: "RESUME", appId: "messages" });
@@ -1140,9 +1160,20 @@ export function App() {
     };
   });
 
-  const dismissScreenSMSAlert: DeviceScreenProps["actions"]["dismissScreenSMSAlert"] = () => dispatchSMSNotification({ type: "DISMISS" });
+  const dismissScreenSMSAlert: DeviceScreenProps["actions"]["dismissScreenSMSAlert"] = () => {
+    if (currentNotification) dispatchNotifications({ type: "DISMISS", id: currentNotification.id });
+  };
 
-  const viewScreenSMSAlert: DeviceScreenProps["actions"]["viewScreenSMSAlert"] = () => openMessagesConversation(true);
+  const viewScreenSMSAlert: DeviceScreenProps["actions"]["viewScreenSMSAlert"] = () => openMessagesConversation(true,
+    currentNotification?.destination.type === "messagesConversation" ? currentNotification.destination.conversationId : undefined);
+  const viewScreenAppAlert = () => {
+    if (!currentNotification) return;
+    const target = notificationLockPreview(currentNotification);
+    if (!target || target.target.type !== "app") return;
+    // Existing app reducer owns suspension/navigation. Never mount another runtime.
+    dispatchNotifications({ type: "OPEN_APP", app: currentNotification.app });
+    openNotificationApp(target.target.appId);
+  };
 
   return <SessionIdentityContext.Provider value={session.sessionIdentity}>
     <AmbientWorld
@@ -1153,6 +1184,8 @@ export function App() {
       onCameraLookPointerOffsetClamped={setCameraLookPointerOffset}
       onCameraCaptureReady={setCameraCaptureReady}
     />
+    {import.meta.env.DEV && <NotificationDebug state={notifications} context={notificationContext} />}
+
     <main className={`stage has-ambient-world`}>
       <section
       className={`device${displayIsLit ? " is-display-lit" : ""}`}
@@ -1192,6 +1225,7 @@ export function App() {
           activeFolderSlotIndex,
           setActiveFolderSlotIndex,
           messagesBadgeCount: messagesUnreadIds.length,
+          notificationBadgeCounts: notificationBadges(notifications),
           launchSpringBoardApp,
           multitaskingBar,
           dispatchMultitaskingBar,
@@ -1227,6 +1261,7 @@ export function App() {
         overlays={{
           activeLockNotification,
           smsNotification,
+          appNotification: currentNotification?.app !== "messages" && session.phase !== "locked" ? currentNotification : null,
         }}
         actions={{
           openLockNotificationTarget,
@@ -1244,6 +1279,8 @@ export function App() {
           dismissScreenBatteryWarning,
           dismissScreenSMSAlert,
           viewScreenSMSAlert,
+          viewScreenAppAlert,
+          setNotificationKeyboardVisible,
         }}
       />
       <button

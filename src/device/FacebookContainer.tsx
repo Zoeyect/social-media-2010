@@ -46,8 +46,9 @@ import { getFacebookPage } from "../data/facebookPages";
 import { FacebookHomeIcon } from "./FacebookHomeIcons";
 import { Facebook2010BackButton, FacebookCameraArtwork, FacebookGridLauncherArtwork, FacebookMicroGlyph, FacebookNotificationActionBubble, FacebookStoryActionBubble, FacebookUnreadBadge } from "./FacebookMicroChrome";
 import { IOS4Input, IOS4Textarea } from "./IOS4KeyboardSystem";
+import { PendingMediaAttachment } from "./MediaAttachmentPresentation";
 
-type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number };
+type FacebookContainerProps = { state: FacebookState; dispatch: Dispatch<FacebookEvent>; currentDeviceTime: string; elapsedMs: number; onRequestMedia: () => void; mediaAttachmentActive: boolean };
 
 type FacebookFeedAnchor = { storyId: string; viewportOffset: number };
 type FacebookPlacePresentation = { id: CanonicalVenueId; name: string };
@@ -67,7 +68,7 @@ function captureFacebookFeedAnchor(feed: HTMLDivElement): FacebookFeedAnchor | n
   return null;
 }
 
-export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedMs }: FacebookContainerProps) {
+export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedMs, onRequestMedia, mediaAttachmentActive }: FacebookContainerProps) {
   const sessionIdentity = useSessionIdentity();
   const feedRef = useRef<HTMLDivElement>(null);
   const feedAnchorRef = useRef<FacebookFeedAnchor | null>(null);
@@ -129,14 +130,14 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
     };
   });
 
-  return <section className="facebook-container" aria-label="Facebook" data-chrome-status="HOLD">
+  return <section className="facebook-container" aria-label="Facebook" data-chrome-status="HOLD" inert={mediaAttachmentActive}>
     <FacebookNavigationHeader state={state} displayName={sessionIdentity.name} selectedItem={selectedItem} dispatch={dispatch} />
 
     {state.currentView === "home" && <FacebookHome state={state} displayName={sessionIdentity.name} requestCount={requestCount} inboxUnreadCount={inboxUnreadCount} eventInviteUnseenCount={eventInviteUnseenCount} activeNotification={activeHomeNotificationBanner} onDismissNotification={() => setActiveHomeNotificationBannerId(null)} dispatch={dispatch} />}
 
     {state.currentView === "feed" && <>
       <div className="facebook-feed-composer-strip" aria-label="Create">
-        <button className="facebook-feed-camera-control" type="button" disabled aria-label="Camera" data-provenance-status="HOLD">
+        <button className="facebook-feed-camera-control" type="button" aria-label="Camera" data-provenance-status="RECONSTRUCTED" onClick={() => { dispatch({ type: "OPEN_STATUS_COMPOSER" }); onRequestMedia(); }}>
           <FacebookCameraArtwork />
         </button>
         <button className="facebook-feed-status-control" type="button" aria-expanded={state.statusComposerOpen} onClick={() => dispatch({ type: "OPEN_STATUS_COMPOSER" })}>What's on your mind?</button>
@@ -146,7 +147,8 @@ export function FacebookContainer({ state, dispatch, currentDeviceTime, elapsedM
         dispatch({ type: "SUBMIT_STATUS", displayName: sessionIdentity.name, timestamp: currentDeviceTime, createdAt: new Date(simulatedNowMs).toISOString() });
       }}>
         <IOS4Textarea keyboardInputId="facebook-status" aria-label="Status" autoFocus value={state.statusDraft} onValueChange={value => dispatch({ type: "EDIT_STATUS", value })} />
-        <div><button type="button" onClick={() => dispatch({ type: "CANCEL_STATUS" })}>Cancel</button><button type="submit" disabled={!state.statusDraft.trim()}>Share</button></div>
+        {state.pendingAttachment && <PendingMediaAttachment attachment={state.pendingAttachment} onRemove={() => dispatch({ type: "REMOVE_ATTACHMENT" })} />}
+        <div><button type="submit" disabled={!state.statusDraft.trim() && !state.pendingAttachment}>Share</button></div>
       </form>}
       <div ref={feedRef} className="facebook-feed" onScroll={event => dispatch({ type: "SET_SCROLL_POSITION", scrollPosition: event.currentTarget.scrollTop })}>
         {visibleFeed.map(item => <FacebookStoryView
@@ -855,6 +857,9 @@ function FacebookStoryView({ surface, item, liked, commentCount, likeCount, stor
 }
 
 function FacebookStoryMedia({ item, dispatch, onBeforeNavigate }: { item: FacebookFeedItem; dispatch: Dispatch<FacebookEvent>; onBeforeNavigate?: () => void }) {
+  if (item.attachment) return <span className="facebook-story-photo-media" data-media-id={item.attachment.id}>
+    <img src={item.attachment.objectUrl} alt={`${item.author} photo`} />
+  </span>;
   const mediaIds = item.mediaIds ?? (item.mediaId ? [item.mediaId] : []);
   const media = mediaIds.flatMap(mediaId => {
     const record = getFacebookStoryMedia(mediaId);

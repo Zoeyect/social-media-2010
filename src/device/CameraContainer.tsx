@@ -23,6 +23,7 @@ type CameraContainerProps = {
   owner: CameraOwner;
   session: CameraSession;
   onCancel?: () => void;
+  mediaAttachment?: boolean;
   previewCanvasRef?: (canvas: HTMLCanvasElement | null) => void;
   onLookPointerOffsetChange?: (offset: CameraLookOffset) => void;
   onCapture?: () => void;
@@ -41,6 +42,7 @@ export function CameraContainer({
   owner,
   session,
   onCancel,
+  mediaAttachment = false,
   previewCanvasRef,
   onLookPointerOffsetChange,
   onCapture,
@@ -119,6 +121,7 @@ export function CameraContainer({
     className="camera-runtime-container"
     aria-label={owner === "cameraApp" ? "Camera" : "Camera attachment picker"}
     data-camera-owner={owner}
+    data-media-attachment={mediaAttachment || undefined}
     data-camera-launch-mode={session.cameraLaunchMode}
     data-camera-phase={session.phase}
     data-camera-mode={session.mode}
@@ -214,10 +217,10 @@ export function CameraContainer({
         <img className="camera-runtime-mode-icon is-video" src={videoModeIconSrc} alt="" />
       </div>
     </>}
-    {owner === "cameraPicker" && onCancel && <button
+    {onCancel && <button
       type="button"
       className="camera-picker-cancel"
-      data-visual-status="HOLD"
+      data-visual-status="RECONSTRUCTED"
       onClick={onCancel}
     >Cancel</button>}
   </section>;

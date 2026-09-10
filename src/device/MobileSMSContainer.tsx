@@ -2,11 +2,14 @@ import { Dispatch, useEffect, useRef } from "react";
 import { DeviceAudio } from "../audio/deviceAudio";
 import { MessagesEvent, MessagesState, MobileSMSMessage, shouldScheduleDadLoveReply, shouldScheduleMomLoveReply, shouldScheduleMomReply } from "../state/messagesState";
 import { IOS4Input } from "./IOS4KeyboardSystem";
+import { PendingMediaAttachment } from "./MediaAttachmentPresentation";
 
 type MobileSMSContainerProps = {
   state: MessagesState;
   dispatch: Dispatch<MessagesEvent>;
   currentElapsedMs: number;
+  currentDeviceDateTime: Date;
+  currentDeviceTime: string;
   onScheduleMomReply: () => void;
   onScheduleMomLoveReply: () => void;
   onScheduleDadLoveReply: () => void;
@@ -14,39 +17,28 @@ type MobileSMSContainerProps = {
   cameraPickerActive: boolean;
 };
 
-export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onScheduleMomReply, onScheduleMomLoveReply, onScheduleDadLoveReply, onOpenCameraPicker, cameraPickerActive }: MobileSMSContainerProps) {
+export function MobileSMSContainer({ state, dispatch, currentElapsedMs, currentDeviceDateTime, currentDeviceTime, onScheduleMomReply, onScheduleMomLoveReply, onScheduleDadLoveReply, onOpenCameraPicker, cameraPickerActive }: MobileSMSContainerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const conversationRef = useRef<HTMLDivElement>(null);
-  const pickerWasActive = useRef(false);
-  const restoreKeyboardAfterPicker = useRef(false);
   const conversationOpen = state.view === "conversation";
   const conversationSummaries = createConversationSummaries(state.messages);
   const activeMessages = state.activeConversationId
     ? state.messages.filter(message => message.conversationId === state.activeConversationId)
     : [];
   const contactName = activeMessages.find(message => message.direction === "incoming")?.sender ?? "Messages";
-  const canSend = Boolean(state.draft.trim());
+  const pendingAttachment = state.activeConversationId ? state.pendingAttachments[state.activeConversationId] : undefined;
+  const canSend = Boolean(state.draft.trim() || pendingAttachment);
   const sendDraft = () => {
     if (!canSend) return;
     const schedulesMomReply = shouldScheduleMomReply(state, state.draft);
     const schedulesMomLoveReply = shouldScheduleMomLoveReply(state, state.draft);
     const schedulesDadLoveReply = shouldScheduleDadLoveReply(state, state.draft, currentElapsedMs);
     DeviceAudio.messageSent();
-    dispatch({ type: "SEND", elapsedMs: currentElapsedMs });
+    dispatch({ type: "SEND", elapsedMs: currentElapsedMs, createdAt: currentDeviceDateTime.toISOString(), timestamp: currentDeviceTime });
     if (schedulesMomReply) onScheduleMomReply();
     if (schedulesMomLoveReply) onScheduleMomLoveReply();
     if (schedulesDadLoveReply) onScheduleDadLoveReply();
   };
-
-  useEffect(() => {
-    if (cameraPickerActive && !pickerWasActive.current) {
-      inputRef.current?.blur();
-    } else if (!cameraPickerActive && pickerWasActive.current
-      && restoreKeyboardAfterPicker.current) {
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-    pickerWasActive.current = cameraPickerActive;
-  }, [cameraPickerActive]);
 
   useEffect(() => {
     const transcript = conversationRef.current;
@@ -58,7 +50,7 @@ export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onSchedu
     return () => observer.disconnect();
   }, [state.activeConversationId, activeMessages.length]);
 
-  return <section className="mobilesms-container" aria-label="Messages">
+  return <section className="mobilesms-container" aria-label="Messages" inert={cameraPickerActive}>
     <header className="mobilesms-navigation-bar">
       {!conversationOpen && conversationSummaries.length > 0 && <span
         className="mobilesms-list-edit-control"
@@ -83,11 +75,12 @@ export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onSchedu
             className={`mobilesms-message-row is-${message.direction}`}
           >
             <p
-              className={`mobilesms-bubble is-${message.direction}`}
+              className={`mobilesms-bubble is-${message.direction}${message.attachment ? " is-mms" : ""}`}
               data-message-status={message.status}
-            >{message.text}</p>
+            >{message.attachment && <img className="mobilesms-image-message" src={message.attachment.objectUrl} alt="Photo" />}{message.text}</p>
           </div>)}
         </div>
+        {pendingAttachment && <PendingMediaAttachment attachment={pendingAttachment} onRemove={() => dispatch({ type: "REMOVE_ATTACHMENT", contextId: state.activeConversationId! })} />}
         <div className="mobilesms-composer">
           <button
             type="button"
@@ -95,9 +88,6 @@ export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onSchedu
             data-provenance-status="READY"
             data-asset-source="8B117:/Applications/MobileSMS.app/PhotoButton@2x~iphone.png"
             aria-label="Camera"
-            onPointerDown={() => {
-              restoreKeyboardAfterPicker.current = document.activeElement === inputRef.current;
-            }}
             onClick={() => {
               onOpenCameraPicker();
             }}
@@ -134,7 +124,7 @@ export function MobileSMSContainer({ state, dispatch, currentElapsedMs, onSchedu
         >
           <span className="mobilesms-conversation-copy">
             <strong>{summary.contactName}</strong>
-            <span>{summary.latestMessage.text}</span>
+            <span>{summary.latestMessage.text || (summary.latestMessage.attachment ? "Photo" : "")}</span>
           </span>
           {summary.latestMessage.timestamp && <time>{summary.latestMessage.timestamp}</time>}
         </button>)}

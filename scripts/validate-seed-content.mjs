@@ -105,6 +105,7 @@ function assertStableDevicePresentation(sources) {
     [/useState<Session>\(/g, 1, "session controller"],
     [/useReducer\(appRuntimeStateTransition,/g, 1, "app runtime"],
     [/useReducer\(cameraRuntimeTransition,/g, 1, "Camera runtime"],
+    [/useReducer\(mediaRequestTransition, null\)/g, 1, "shared media request"],
     [/cameraRollBootstrap\.current\.get\(experienceSessionId,/g, 1, "Camera Roll bootstrap"],
     [/useReducer\(heroTransition, initialHeroState\)/g, 1, "Hero lifecycle"],
     [/nextDueDeviceEvent\(session\.deviceEvents, elapsed\)/g, 1, "scheduler"],
@@ -3129,6 +3130,16 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const twitterContainerSource = await readFile(resolve(projectRoot, "src/device/TwitterContainer.tsx"), "utf8");
   const twitterAvatarSource = await readFile(resolve(projectRoot, "src/device/TwitterAvatar.tsx"), "utf8");
   const deviceCssSource = await readFile(resolve(projectRoot, "src/styles/device.css"), "utf8");
+  const publishingTwitterStateSource = await readFile(resolve(projectRoot, "src/state/twitterState.ts"), "utf8");
+  const pendingMediaSource = await readFile(resolve(projectRoot, "src/device/MediaAttachmentPresentation.tsx"), "utf8");
+  assert.doesNotMatch(`${facebookContainerSource}\n${twitterContainerSource}\n${pendingMediaSource}`, /Photo posting unavailable|postingUnsupported/, "media publishing must not expose temporary engineering copy");
+  for (const source of [facebookStateSource, publishingTwitterStateSource]) {
+    assert.match(source, /attachment\?: MediaAttachment;/, "published records support one shared selected-media reference");
+    assert.match(source, /attachment: state\.pendingAttachment/, "existing publication consumes the selected Camera Roll resource");
+    assert.doesNotMatch(source, /attachment\?: MediaAttachment\[\]|mediaPosts:|mediaTweets:/, "media must not add multiple attachments or a parallel publication store");
+  }
+  assert.match(deviceCssSource, /\.mobilesms-bubble\.is-outgoing\.is-mms \{[^}]*padding: 3px;/, "MMS uses a narrow inset on the existing outgoing bubble");
+  assert.match(deviceCssSource, /\.mobilesms-bubble\.is-outgoing\.is-mms::after/, "outgoing MMS retains a directional tail");
   const twitterProfileSource = twitterContainerSource.match(/function TwitterProfile[\s\S]*?\n\}\n\nfunction TwitterSearchLanding/)?.[0] ?? "";
   const twitterChromeSources = await Promise.all([
     "twitter-tab-timeline-2010-reconstructed.svg",
@@ -3165,7 +3176,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceScreenMountSource, /camera=\{\{\s+cameraRuntime,\s+cameraRoll,\s+setCameraPreviewCanvas,\s+setCameraLookPointerOffset,\s+captureCameraPhoto,\s+openLatestCameraPhoto,\s*\}\}/, "Camera presentation must use the existing App-owned runtime, roll and bridge callbacks");
   assert.match(deviceScreenSource, /const \{\s+session,[^}]+deviceDateTime,[^}]*\} = display;/, "DeviceScreen must consume the App display values");
   assert.match(deviceScreenSource, /const \{\s+cameraRuntime,\s+cameraRoll,\s+setCameraPreviewCanvas,\s+setCameraLookPointerOffset,\s+captureCameraPhoto,\s+openLatestCameraPhoto,\s*\} = camera;/, "DeviceScreen must consume the existing Camera bridge without substituting another owner");
-  assert.match(deviceScreenSource, /return <div className=\{`screen \$\{session\.phase\}`\}>/, "the sole screen root must retain its screen and session-phase classes");
+  assert.match(deviceScreenSource, /return <div className=\{`screen \$\{session\.phase\}`\} data-media-camera=\{media\.cameraActive \|\| undefined\}>/, "the sole screen root must retain its phase classes and scoped media-camera presentation flag");
   assert.doesNotMatch(deviceScreenSource, /\buse(?:State|Reducer|Effect|LayoutEffect|Ref)\s*\(|\b(?:setTimeout|setInterval|createRoot|createPortal|createExperienceSessionId|initializeCameraRollPersistence|selectCameraVideoScene)\s*\(/, "DeviceScreen must remain presentation-only without another runtime, persistence, timer or portal owner");
   assert.doesNotMatch(deviceScreenSource, /<SessionIdentityContext\.Provider\b|<AmbientWorld\b|<PublicTwitterOutro\b|className=\{`home\$\{|className=["']device["']/, "hardware, identity provider, world and page-level outro must stay outside DeviceScreen");
   assert.match(appSource, /return <SessionIdentityContext\.Provider value=\{session\.sessionIdentity\}>\s+<AmbientWorld\s[\s\S]+presenter === "hero" \? renderHero\(\{\s+screen,[\s\S]+\{screen\}[\s\S]+<\/SessionIdentityContext\.Provider>;/, "App must keep the identity provider above both exclusive screen presenters and AmbientWorld");
@@ -3225,29 +3236,30 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const screenRoots = runtimeSources.flatMap(({ path, source }) => [...source.matchAll(/className=(?:["']screen(?:\s|["'])|\{`screen(?:\s|`))/g)].map(() => path));
   assert.deepEqual(screenRoots, ["src/device/DeviceScreen.tsx"], "only DeviceScreen may declare the single software screen root");
 
-  const screenPresentationSource = deviceScreenSource.match(/return <div className=\{`screen \$\{session\.phase\}`\}>[\s\S]*?\n  <\/div>;/)?.[0];
+  const screenPresentationSource = deviceScreenSource.match(/return <div className=\{`screen \$\{session\.phase\}`\} data-media-camera=\{media\.cameraActive \|\| undefined\}>[\s\S]*?\n  <\/div>;/)?.[0];
   assert.ok(screenPresentationSource, "the screen presentation boundary must remain explicit");
   assert.deepEqual([...screenPresentationSource.matchAll(/<([A-Z]\w*)\b/g)].map(match => match[1]), [
     "LockScreenStatusPresentation", "StatusBar", "BootLogo", "LockScreen", "SpringBoard",
     "AppLaunchContainer", "IOS4KeyboardSystem", "CameraContainer", "PhotosContainer",
-    "MobileSMSContainer", "CameraContainer", "TwitterContainer", "FacebookContainer",
+    "MobileSMSContainer", "TwitterContainer", "FacebookContainer",
     "InstagramContainer", "FlickrContainer", "TumblrContainer", "FoursquareContainer",
-    "MultitaskingBar", "PowerOffConfirm", "LowBatteryAlert", "SMSAlertOverlay", "AppNotificationAlert",
+    "MediaSourceChooser", "PhotosContainer", "MultitaskingBar", "PowerOffConfirm", "LowBatteryAlert", "SMSAlertOverlay", "AppNotificationAlert",
   ], "screen-local components must preserve their original multiplicity and status/lock/app/overlay order");
   const keyboardSubtreeSource = screenPresentationSource.match(/<IOS4KeyboardSystem\s[\s\S]*?<\/IOS4KeyboardSystem>/)?.[0];
   assert.ok(keyboardSubtreeSource, "the app subtree must retain its keyboard provider");
   assert.deepEqual([...keyboardSubtreeSource.matchAll(/<([A-Z]\w*)\b/g)].map(match => match[1]), [
     "IOS4KeyboardSystem", "CameraContainer", "PhotosContainer", "MobileSMSContainer",
-    "CameraContainer", "TwitterContainer", "FacebookContainer", "InstagramContainer",
-    "FlickrContainer", "TumblrContainer", "FoursquareContainer",
+    "TwitterContainer", "FacebookContainer", "InstagramContainer",
+    "FlickrContainer", "TumblrContainer", "FoursquareContainer", "MediaSourceChooser", "PhotosContainer",
   ], "the keyboard must wrap exactly the same app and Camera picker presentation subtree");
   assert.match(screenPresentationSource, /<\/IOS4KeyboardSystem>\s+<\/AppLaunchContainer>\}\s+\{session\.phase === "app" && <MultitaskingBar/, "keyboard and app viewport must close before the screen-level multitasking overlay");
-  assert.match(keyboardSubtreeSource, /appRuntime\.activeAppId === "camera" && cameraRuntime\.cameraApp\.phase !== "none" && <CameraContainer\s+owner="cameraApp"\s+session=\{cameraRuntime\.cameraApp\}\s+previewCanvasRef=\{setCameraPreviewCanvas\}/, "standalone Camera must retain its existing phase gate, owner and preview bridge");
-  assert.match(keyboardSubtreeSource, /appRuntime\.activeAppId === "messages" && cameraRuntime\.cameraPicker\.phase !== "none" && <CameraContainer\s+owner="cameraPicker"\s+session=\{cameraRuntime\.cameraPicker\}\s+onCancel=\{cancelScreenCameraPicker\}/, "the Camera picker must remain under Messages inside the same keyboard subtree");
-  assert.match(screenPresentationSource, /session\.phase === "locked"\s+\|\| session\.phase === "springboard"\s+\|\| \(session\.phase === "app"\s+&& !\(appRuntime\.activeAppId === "camera" && cameraRuntime\.cameraApp\.phase !== "none"\)\)\) && <div className="device-status-bar-layer">\s+\{session\.phase === "locked"\s+\? <LockScreenStatusPresentation model=\{lockScreenModel\} \/>\s+: <StatusBar state=\{statusBarState\} \/>\}/, "status-bar phase selection and standalone Camera exclusion must remain unchanged");
+  assert.match(keyboardSubtreeSource, /\(appRuntime\.activeAppId === "camera" \|\| media\.cameraActive\) && cameraRuntime\.cameraApp\.phase !== "none" && <CameraContainer\s+owner="cameraApp"\s+mediaAttachment=\{media\.cameraActive\}\s+onCancel=\{media\.cameraActive \? cancelScreenCameraPicker : undefined\}\s+session=\{cameraRuntime\.cameraApp\}\s+previewCanvasRef=\{setCameraPreviewCanvas\}/, "standalone and attachment Camera must share exactly the same runtime and preview bridge");
+  assert.equal((deviceScreenSource.match(/<CameraContainer\b/g) ?? []).length, 1, "shared media must not add a second Camera preview");
+  assert.match(keyboardSubtreeSource, /media\.visible && media\.request\?\.stage === "library"[\s\S]+<PhotosContainer mode="picker" cameraRoll=\{cameraRoll\} onPickerCancel=\{cancelScreenCameraPicker\} onPickerSelect=\{media\.selectPhoto\}/, "all requesters must select from the existing App Camera Roll");
+  assert.match(screenPresentationSource, /session\.phase === "locked"\s+\|\| session\.phase === "springboard"\s+\|\| \(session\.phase === "app"\s+&& !\(\(appRuntime\.activeAppId === "camera" \|\| media\.cameraActive\) && cameraRuntime\.cameraApp\.phase !== "none"\)\)\) && <div className="device-status-bar-layer">\s+\{session\.phase === "locked"\s+\? <LockScreenStatusPresentation model=\{lockScreenModel\} \/>\s+: <StatusBar state=\{statusBarState\} \/>\}/, "status-bar phases must remain unchanged except full-screen shared Camera exclusion");
   assert.match(screenPresentationSource, /session\.phase === "sleeping" && <div className="screen-off-surface"[^\n]+\n\s+\{session\.phase === "powerOffConfirm"[\s\S]+session\.phase === "shutdown" && <div className="screen-off-surface"[^\n]+\n\s+\{session\.phase === "lowBatteryWarning"[\s\S]+<LowBatteryAlert[\s\S]+<SMSAlertOverlay/, "off, confirmation, shutdown, low-battery and SMS surfaces must preserve their layering");
   assert.equal((ios4KeyboardSource.match(/export function IOS4KeyboardSystem/g) ?? []).length, 1, "the device must own exactly one shared software-keyboard runtime");
-  assert.match(deviceScreenSource, /session\.phase === "app" && <AppLaunchContainer[\s\S]+<IOS4KeyboardSystem[\s\S]+suspended=\{multitaskingBar !== "closed" \|\| cameraRuntime\.cameraPicker\.phase !== "none"\}[\s\S]+suspendReason=/, "the shared keyboard must live at the device app-runtime boundary and retain explicit lifecycle dismissal");
+  assert.match(deviceScreenSource, /session\.phase === "app" && <AppLaunchContainer[\s\S]+<IOS4KeyboardSystem[\s\S]+suspended=\{multitaskingBar !== "closed" \|\| media\.visible\}[\s\S]+suspendReason=/, "the shared keyboard must remain at the app boundary and suspend for all shared media sources");
   assert.match(deviceMachineSource, /experienceSessionId: string \| null;[\s\S]+initialSession[\s\S]+experienceSessionId: null/, "experience ownership must extend the canonical Session and remain empty at Hero");
   assert.match(appSource, /submitName[\s\S]+createExperienceSessionId\(\)[\s\S]+experienceSessionId,/, "only valid Hero name submission may activate a new experience ID");
   assert.match(appSource, /experienceSessionId: persisted\.experienceSessionId/, "runtime reload reconstruction must preserve the persisted canonical experience ID");
@@ -3431,7 +3443,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(facebookContainerSource, /keyboardInputId=\{`facebook-chat-\$\{peer\.characterId\}`\}[\s\S]+EDIT_CHAT_DRAFT/, "Facebook Chat must register with the shared keyboard and retain its handler");
   assert.match(facebookContainerSource, /keyboardInputId=\{`facebook-place-\$\{venue\.id\}`\}[\s\S]+EDIT_PLACE_STATUS/, "Facebook Places status must register without changing check-in state handling");
   assert.match(facebookContainerSource, /keyboardInputId=\{`facebook-photo-comment-\$\{photo\.storyId\}`\}[\s\S]+EDIT_COMMENT/, "Facebook Photo comments must register with the shared keyboard");
-  assert.match(ios4KeyboardSource, /openWhenMounted \|\| document\.activeElement === registration\.element[\s\S]+context\.openKeyboard\(registration\)/, "auto-focused and already-focused controls must explicitly acquire keyboard ownership during layout");
+  assert.match(ios4KeyboardSource, /const initialAutofocus = openWhenMounted && !initialFocusHandled\.current;\s+initialFocusHandled\.current = true;\s+if \(context\.suspended\) return;\s+if \(\(initialAutofocus \|\| document\.activeElement === registration\.element\)[\s\S]+context\.openKeyboard\(registration\)/, "initial autofocus and explicit focus must acquire ownership only while the shared keyboard is not suspended");
   assert.match(ios4KeyboardSource, /registration\.inputType === "multi-line" && registration\.returnKeyType === "return"[\s\S]+applyTextEdit\("\\n"\)[\s\S]+return;/, "multiline Return must insert a newline rather than submit");
   assert.match(facebookContainerSource, /new ResizeObserver\(scrollToLatest\)[\s\S]+observer\.observe\(transcript\)/, "Facebook Chat must preserve its latest-message viewport while the keyboard resizes it");
   assert.match(mobileSmsContainerSource, /<IOS4Input[\s\S]+keyboardInputId="messages-compose"[\s\S]+onValueChange=\{value => dispatch\(\{ type: "EDIT_DRAFT", value \}\)\}/, "Messages compose must use the shared keyboard and canonical draft event");
@@ -4116,9 +4128,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.twitter-attachments-capsule \{[^}]*width: 148px; height: 26px;[^}]*border-radius: 13px;/, "D2 attachments capsule must retain reconstructed native-scale geometry");
   assert.match(deviceCssSource, /\.twitter-character-count \{[^}]*width: 52px; height: 26px;[^}]*font-size: 13px; font-weight: 700; line-height: 16px;/, "D2 counter must retain reconstructed capsule geometry and compact typography");
   assert.match(deviceCssSource, /\.twitter-character-count::before \{[^}]*border-right: 5px solid #dce5ea;/, "D2 counter detail must remain decorative filled artwork without behavior");
-  assert.match(twitterContainerSource, /<div className="twitter-composer-tools" aria-hidden="true"[\s\S]*is-camera[\s\S]*Camera[\s\S]*is-photo-library[\s\S]*Photo Library[\s\S]*is-geotag[\s\S]*Geotag[\s\S]*is-usernames[\s\S]*Usernames[\s\S]*is-hashtags[\s\S]*Hashtags[\s\S]*is-shrink-urls[\s\S]*Shrink URLs/, "D3 must preserve the confirmed six-tool order in a decorative panel");
+  assert.match(twitterContainerSource, /<div className="twitter-composer-tools"[\s\S]*is-camera[\s\S]*Camera[\s\S]*is-photo-library[\s\S]*Photo Library[\s\S]*is-geotag[\s\S]*Geotag[\s\S]*is-usernames[\s\S]*Usernames[\s\S]*is-hashtags[\s\S]*Hashtags[\s\S]*is-shrink-urls[\s\S]*Shrink URLs/, "D3 must preserve the confirmed six-tool order");
   assert.equal((twitterContainerSource.match(/<img src=\{composeTool(?:Camera|PhotoLibrary|Geotag|Usernames|Hashtags|ShrinkUrls)Src\} alt="" \/>/g) ?? []).length, 6, "D3 must render all six reconstructed tool assets through deterministic direct SVG images");
-  assert.doesNotMatch(twitterContainerSource, /<button[^>]*twitter-compose-tool|twitter-compose-tool[^>]*onClick|twitter-composer-tools[^>]*aria-label=/, "D3 unsupported Compose tools must remain non-interactive and hidden from accessibility APIs");
+  assert.deepEqual([...twitterContainerSource.matchAll(/<button[^>]*className="twitter-compose-tool is-([\w-]+)"/g)].map(match => match[1]), ["camera", "photo-library"], "only the approved shared-media tools may become interactive");
+  assert.match(twitterContainerSource, /is-camera" onClick=\{\(\) => onRequestMedia\("camera"\)\}/, "Twitter Camera must request the shared Camera source");
+  assert.match(twitterContainerSource, /is-photo-library" onClick=\{\(\) => onRequestMedia\("library"\)\}/, "Twitter Photos must request the shared library source");
   assert.match(deviceCssSource, /\.twitter-composer-tools \{[^}]*width: 320px; height: 92px;[^}]*grid-template-columns: repeat\(3,1fr\); grid-template-rows: repeat\(2,46px\);/, "D3 panel must retain the locked 320-by-92 three-by-two geometry");
   assert.match(deviceCssSource, /\.twitter-compose-tool \{[^}]*grid-template-rows: 31px 13px;[^}]*color: #e4e9eb;[^}]*font-size: 11px; font-weight: 500; line-height: 13px;/, "D3.1 icons and labels must retain reconstructed native-scale alignment and brighter typography");
   assert.match(deviceCssSource, /\.twitter-compose-tool\.is-camera > img \{ width: 28px; height: 21px; \}[\s\S]*\.twitter-compose-tool\.is-photo-library > img \{ width: 30px; height: 24px; \}[\s\S]*\.twitter-compose-tool\.is-geotag > img \{ width: 25px; height: 27px; \}[\s\S]*\.twitter-compose-tool\.is-usernames > img \{ width: 29px; height: 27px; \}[\s\S]*\.twitter-compose-tool\.is-hashtags > img \{ width: 28px; height: 27px; \}[\s\S]*\.twitter-compose-tool\.is-shrink-urls > img \{ width: 30px; height: 24px; \}/, "D3.1 must preserve independently measured icon bounds rather than one universal scale");

@@ -1,4 +1,5 @@
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+import type { MediaAttachment } from "./mediaAttachment";
 import type { ContentOrigin } from "../data/sessionSeedContent";
 import { CORE_SOCIAL_CHARACTERS } from "../data/coreSocialFriends";
 import type { CoreSocialCharacterId } from "../data/coreSocialFriends";
@@ -160,6 +161,7 @@ export type FacebookFeedItem = {
   profileWallEligible?: boolean;
   sourceApp?: string;
   mediaId?: FacebookStoryMediaId;
+  attachment?: MediaAttachment;
   mediaIds?: readonly FacebookStoryMediaId[];
   kind: FacebookStoryKind;
   visibility: FacebookVisibility;
@@ -282,6 +284,7 @@ export type FacebookState = {
   pageFanIds: FacebookPageId[];
   statusComposerOpen: boolean;
   statusDraft: string;
+  pendingAttachment: MediaAttachment | null;
   partyInviteState: FacebookPartyInviteState;
   partyRsvp: FacebookPartyRsvp;
   partyInviteEligibleFromJune: boolean;
@@ -393,6 +396,8 @@ export type FacebookEvent =
   | { type: "EDIT_STATUS"; value: string }
   | { type: "CANCEL_STATUS" }
   | { type: "SUBMIT_STATUS"; displayName: string; timestamp: string; createdAt: string }
+  | { type: "MEDIA_RETURN"; attachment?: MediaAttachment }
+  | { type: "REMOVE_ATTACHMENT" }
   | { type: "GO_BACK" }
   /** @deprecated Internal fallback only; Generic Post Detail has no normal user-facing caller. */
   | { type: "OPEN_FEED_ITEM"; itemId: string; scrollPosition: number; origin?: "feed" | "profileWall"; profileName?: string }
@@ -454,6 +459,7 @@ export function createInitialFacebookState(displayName: string): FacebookState {
     pageFanIds: [],
     statusComposerOpen: false,
     statusDraft: "",
+    pendingAttachment: null,
     partyInviteState: "none",
     partyRsvp: null,
     partyInviteEligibleFromJune: false,
@@ -814,11 +820,15 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
     case "EDIT_STATUS":
       return state.statusComposerOpen ? { ...state, statusDraft: event.value } : state;
     case "CANCEL_STATUS":
-      return { ...state, statusComposerOpen: false, statusDraft: "" };
+      return { ...state, statusComposerOpen: false, statusDraft: "", pendingAttachment: null };
+    case "MEDIA_RETURN":
+      return { ...state, currentView: "feed", statusComposerOpen: true, pendingAttachment: event.attachment ?? state.pendingAttachment };
+    case "REMOVE_ATTACHMENT":
+      return { ...state, pendingAttachment: null };
     case "SUBMIT_STATUS": {
       const text = state.statusDraft.trim();
-      if (!state.statusComposerOpen || !text) return state;
-      const userStatusCount = state.feed.filter(item => item.origin === "user" && item.kind === "status").length;
+      if (!state.statusComposerOpen || (!text && !state.pendingAttachment)) return state;
+      const userStatusCount = state.feed.filter(item => item.origin === "user" && item.id.startsWith("facebook-user-status-")).length;
       return {
         ...state,
         feed: [{
@@ -827,13 +837,15 @@ export function facebookStateTransition(state: FacebookState, event: FacebookEve
           text,
           timestamp: event.timestamp,
           createdAt: event.createdAt,
-          kind: "status",
+          kind: state.pendingAttachment ? "photo" : "status",
+          ...(state.pendingAttachment ? { attachment: state.pendingAttachment } : {}),
           visibility: "friends",
           contentStatus: "USER-GENERATED",
           origin: "user",
         }, ...state.feed],
         statusComposerOpen: false,
         statusDraft: "",
+        pendingAttachment: null,
       };
     }
     case "GO_BACK": {

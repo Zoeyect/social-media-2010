@@ -1,5 +1,6 @@
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
+import type { MediaAttachment } from "./mediaAttachment";
 
 export type MessagesView = "list" | "conversation";
 export type MessageDirection = "incoming" | "outgoing";
@@ -10,6 +11,8 @@ export type MomReplyClassification = "love" | "affirmative" | "negative" | "ambi
 export type ScriptedLoveReplyState = "none" | "pending" | "delivered";
 
 export type MobileSMSMessage = {
+  attachment?: MediaAttachment;
+  createdAt?: string;
   id: string;
   conversationId: string;
   sender: string;
@@ -21,6 +24,7 @@ export type MobileSMSMessage = {
 };
 
 export type MessagesState = {
+  pendingAttachments: Readonly<Record<string, MediaAttachment>>;
   view: MessagesView;
   activeConversationId: string | null;
   messages: readonly MobileSMSMessage[];
@@ -33,11 +37,13 @@ export type MessagesState = {
 };
 
 export type MessagesEvent =
+  | { type: "MEDIA_RETURN"; contextId: string; attachment?: MediaAttachment }
+  | { type: "REMOVE_ATTACHMENT"; contextId: string }
   | { type: "OPEN_CONVERSATION"; conversationId?: string }
   | { type: "RECEIVE_MESSAGE"; id: string; conversationId?: string; sender: string; message: string; timestamp?: string | null }
   | { type: "BACK_TO_LIST" }
   | { type: "EDIT_DRAFT"; value: string }
-  | { type: "SEND"; elapsedMs?: number }
+  | { type: "SEND"; elapsedMs?: number; createdAt?: string; timestamp?: string }
   | { type: "DELIVER_MOM_REPLY" }
   | { type: "MARK_MOM_REPLY_DELIVERED" }
   | { type: "DELIVER_MOM_LOVE_REPLY" }
@@ -48,6 +54,7 @@ export type MessagesEvent =
 
 export function createInitialMessagesState(): MessagesState {
   return {
+    pendingAttachments: {},
     view: "list",
     activeConversationId: null,
     messages: SESSION_SEED_CONTENT.messages.map(message => ({ ...message })),
@@ -144,6 +151,14 @@ export function deterministicMomLoveReplyDelayMs(sessionKey: string): number {
 
 export function messagesStateTransition(state: MessagesState, event: MessagesEvent): MessagesState {
   switch (event.type) {
+    case "MEDIA_RETURN":
+      return { ...state, view: "conversation", activeConversationId: event.contextId,
+        pendingAttachments: event.attachment ? { ...state.pendingAttachments, [event.contextId]: event.attachment } : state.pendingAttachments };
+    case "REMOVE_ATTACHMENT": {
+      const pendingAttachments = { ...state.pendingAttachments };
+      delete pendingAttachments[event.contextId];
+      return { ...state, pendingAttachments };
+    }
     case "OPEN_CONVERSATION":
       const conversationId = event.conversationId ?? "mom";
       return {
@@ -176,14 +191,18 @@ export function messagesStateTransition(state: MessagesState, event: MessagesEve
       return { ...state, draft: event.value };
     case "SEND": {
       const text = state.draft.trim();
+      const attachment = state.activeConversationId ? state.pendingAttachments[state.activeConversationId] : undefined;
+      const pendingAttachments = { ...state.pendingAttachments };
+      if (state.activeConversationId) delete pendingAttachments[state.activeConversationId];
       const outgoingSequence = state.messages.filter(message => message.direction === "outgoing").length + 1;
       const schedulesMomLoveReply = shouldScheduleMomLoveReply(state, text);
       const schedulesMomReply = shouldScheduleMomReply(state, text);
       const schedulesDadLoveReply = shouldScheduleDadLoveReply(state, text, event.elapsedMs ?? 0);
-      return text
+      return text || attachment
         ? {
             ...state,
             draft: "",
+            pendingAttachments,
             momReplyEligibility: schedulesMomReply ? "affirmative" : state.momReplyEligibility,
             momReply: schedulesMomReply ? "pending" : state.momReply,
             momLoveReply: schedulesMomLoveReply ? "pending" : state.momLoveReply,
@@ -195,7 +214,8 @@ export function messagesStateTransition(state: MessagesState, event: MessagesEve
               sender: "Me",
               text,
               direction: "outgoing",
-              timestamp: null,
+              timestamp: attachment ? event.timestamp ?? null : null,
+              ...(attachment ? { attachment, createdAt: event.createdAt } : {}),
               status: "sent",
               origin: "live",
             }],

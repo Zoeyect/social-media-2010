@@ -1,4 +1,5 @@
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
+import type { MediaAttachment } from "./mediaAttachment";
 import type { ContentOrigin } from "../data/sessionSeedContent";
 import type { CoreSocialFriendId } from "../data/coreSocialFriends";
 
@@ -35,6 +36,7 @@ export type TwitterAccountStatistics = {
 
 export type TwitterTweet = {
   id: string;
+  attachment?: MediaAttachment;
   friendId?: CoreSocialFriendId;
   displayName: string;
   authorHandle?: string;
@@ -296,6 +298,7 @@ export type TwitterState = {
   newTweetDraft: string;
   nextUserTweetSequence: number;
   composerKind: TwitterComposerKind | null;
+  pendingAttachment: MediaAttachment | null;
   revealedTweetId: string | null;
   selectedUserId: string | null;
   profileOriginView: TwitterProfileOrigin | null;
@@ -330,6 +333,8 @@ export type TwitterEvent =
   | { type: "CANCEL_REPLY" }
   | { type: "SUBMIT_REPLY"; displayName: string }
   | { type: "SUBMIT_NEW_TWEET"; displayName: string; createdAt: number; timestamp: string }
+  | { type: "MEDIA_RETURN"; contextId: string; attachment?: MediaAttachment }
+  | { type: "REMOVE_ATTACHMENT" }
   | { type: "DELIVER_TIMELINE_TWEET"; tweet: Omit<TwitterTweet, "contentStatus" | "origin"> }
   | { type: "OPEN_USER_PROFILE"; displayName: string; originView: TwitterProfileOrigin }
   | { type: "OPEN_USER_PROFILE_BY_ID"; profileId: string; originView: TwitterProfileOrigin; scrollPosition?: number }
@@ -365,6 +370,7 @@ export function createInitialTwitterState(sessionDisplayName: string): TwitterSt
     newTweetDraft: "",
     nextUserTweetSequence: 1,
     composerKind: null,
+    pendingAttachment: null,
     revealedTweetId: null,
     selectedUserId: null,
     profileOriginView: null,
@@ -464,6 +470,7 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
     case "BEGIN_NEW_TWEET":
       return {
         ...state,
+        pendingAttachment: null,
         currentView: "composer",
         composerKind: "new",
         replyComposerTweetId: null,
@@ -507,6 +514,7 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
         const sameReply = state.composerKind === "reply" && state.replyComposerTweetId === event.tweetId;
         return {
           ...state,
+          pendingAttachment: sameReply ? state.pendingAttachment : null,
           currentView: "composer",
           composerKind: "reply",
           replyComposerTweetId: event.tweetId,
@@ -597,10 +605,18 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
         ...state,
         currentView: state.selectedTweetId ? "tweetDetail" : "timeline",
         composerKind: null,
+        pendingAttachment: null,
         replyComposerTweetId: null,
         ...(state.composerKind === "reply" ? { replyDraft: "" } : { newTweetDraft: "" }),
       };
+    case "MEDIA_RETURN":
+      return { ...state, currentView: "composer", composerKind: event.contextId === "new" ? "new" : "reply",
+        replyComposerTweetId: event.contextId === "new" ? null : event.contextId,
+        pendingAttachment: event.attachment ?? state.pendingAttachment };
+    case "REMOVE_ATTACHMENT":
+      return { ...state, pendingAttachment: null };
     case "SUBMIT_REPLY": {
+      if (state.pendingAttachment) return state;
       const text = state.replyDraft.trim();
       const targetTweetId = state.replyComposerTweetId;
       if (!text || targetTweetId === null || ![...state.timeline, ...state.mentionTweets, ...state.linkedTweets].some(tweet => tweet.id === targetTweetId)) return state;
@@ -631,6 +647,7 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
         type: "tweet",
         contentStatus: "USER",
         origin: "user",
+        ...(state.pendingAttachment ? { attachment: state.pendingAttachment } : {}),
       };
       return {
         ...state,
@@ -640,6 +657,7 @@ export function twitterStateTransition(state: TwitterState, event: TwitterEvent)
         replyComposerTweetId: null,
         newTweetDraft: "",
         nextUserTweetSequence: state.nextUserTweetSequence + 1,
+        pendingAttachment: null,
         scrollPosition: 0,
         timeline: sortTwitterTimeline([...state.timeline, tweet]),
       };

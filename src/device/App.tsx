@@ -17,6 +17,7 @@ import type { CameraPhotoRecord } from "../state/cameraCaptureState";
 import { deleteStalePlayerCameraRolls, discardPersistedCameraPhoto, eraseAllPlayerCameraRolls, eraseCurrentCameraRoll, initializeCameraRollPersistence, isCameraCaptureOwnerCurrent, persistCameraCapturedArtifact } from "../state/cameraRollPersistence";
 import { initialCameraRoll, initialPhotosState, photosStateTransition, sortCameraRollRecords } from "../state/cameraRollState";
 import type { CameraRollInitialization } from "../state/cameraRollState";
+import { mediaRequestTransition, mediaRequestVisible, type ActiveMediaRequest, type MediaAttachment, type MediaAttachmentRequest } from "../state/mediaAttachment";
 import { nextDueDeviceEvent, removeDeviceEvent, scheduleDeviceEvent, scheduleDeviceEvents } from "../state/deviceEventScheduler";
 import { batteryPercent, BOOT_DURATION_MS, createExperienceSessionId, currentWarning, elapsedMs, formatDeviceDate, formatDeviceTime, formatLockScreenTime, hasReachedSessionTerminal, homeButtonTransition, initialSession, loadSession, longPowerTransition, POWER_HOLD_MS, saveSession, SESSION_DURATION_MS, Session, shortPowerTransition, simulatedDeviceDateTime } from "../state/deviceMachine";
 import { folderStateTransition } from "../state/folderState";
@@ -32,6 +33,7 @@ import type { MessagesBadgeEvent } from "../state/messagesBadgeState";
 import { activeNotification, createInitialNotificationState, notificationBadges, notificationLockPreview, notificationSMSPresentation, notificationTransition, NOTIFICATION_APPS, type NotificationAction, type NotificationApp, type NotificationContext } from "../state/notificationState";
 import { deliverNotification, scheduledNotificationEvent, smsNotificationEvent } from "../system/notificationDelivery";
 import { NotificationDebug } from "./NotificationDebug";
+import { MediaAttachmentDebug } from "./MediaAttachmentDebug";
 import { createSessionIdentity, SessionIdentityContext } from "../state/sessionIdentity";
 import { createStatusBarState } from "../state/statusBarModel";
 import { createInitialTwitterState, twitterStateTransition } from "../state/twitterState";
@@ -139,7 +141,12 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   const [activeFolderSlotIndex, setActiveFolderSlotIndex] = useState(0);
   const [appRuntime, dispatchAppRuntime] = useReducer(appRuntimeStateTransition, initialAppRuntimeState);
   const [cameraRuntime, dispatchCameraRuntime] = useReducer(cameraRuntimeTransition, bootstrapCameraRuntimeState);
-  const cameraUiVisible = session.phase === "app" && appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none";
+  const [mediaRequest, dispatchMediaRequest] = useReducer(mediaRequestTransition, null);
+  const mediaRequestRef = useRef<ActiveMediaRequest | null>(null);
+  mediaRequestRef.current = mediaRequest;
+  const mediaVisible = mediaRequestVisible(mediaRequest, session.phase, appRuntime.activeAppId);
+  const mediaCameraActive = mediaVisible && mediaRequest?.stage === "camera";
+  const cameraUiVisible = session.phase === "app" && (appRuntime.activeAppId === "camera" || mediaCameraActive) && cameraRuntime.cameraApp.phase !== "none";
   const [photosState, dispatchPhotos] = useReducer(photosStateTransition, initialPhotosState);
   const cameraCapture = useRef<CameraStillCapture | null>(null);
   const cameraCaptureInFlight = useRef(false);
@@ -318,6 +325,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
     shutdownResetStarted.current = true;
     deliveredEventClaims.current.clear();
     dispatchMessages({ type: "RESET_RUNTIME" });
+    dispatchMediaRequest({ type: "RESET" });
     dispatchNotifications({ type: "RESET" });
     setNotificationKeyboardVisible(false);
     dispatchFacebook({ type: "RESET" });
@@ -390,6 +398,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
     }
 
     const namespace = cameraCaptureNamespace.current;
+    const captureRequestId = mediaCameraActive ? mediaRequest?.id : null;
     const createdAt = simulatedDeviceDateTime(elapsedMs(session, Date.now())).toISOString();
     try {
       if (import.meta.env.DEV && failNextCameraCapture.current) {
@@ -420,6 +429,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
       const nextCameraRoll: CameraRollInitialization = { status: "ready", records, error: null };
       cameraRollRef.current = nextCameraRoll;
       setCameraRoll(nextCameraRoll);
+      if (captureRequestId) dispatchMediaRequest({ type: "SELECT", id: captureRequestId, mediaId: record.id });
       if (namespace === cameraCaptureNamespace.current) {
         dispatchCameraRuntime({ type: "PROCESSING_COMPLETE", owner: "cameraApp" });
       }
@@ -459,6 +469,8 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   };
   const cameraOwnerForApp = (appId: string | null): CameraOwner | null => appId === "camera"
     ? "cameraApp"
+    : mediaRequest?.requester === appId && mediaRequest.stage === "camera"
+      ? "cameraApp"
     : appId === "messages" && cameraRuntime.cameraPicker.phase !== "none"
       ? "cameraPicker"
       : null;
@@ -745,7 +757,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   }, [appRuntime.activeAppId, messagesState.activeConversationId, messagesState.messages, messagesState.view, messagesUnreadIds, session.phase, smsNotification.notification, smsNotification.status]);
   useEffect(() => {
     if (cameraRuntime.cameraApp.phase === "launching"
-      && appRuntime.activeAppId === "camera"
+      && (appRuntime.activeAppId === "camera" || mediaCameraActive)
       && appRuntime.phase === "running") {
       dispatchCameraRuntime({ type: "LAUNCH_COMPLETE", owner: "cameraApp" });
     }
@@ -754,7 +766,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
       && session.phase === "app") {
       dispatchCameraRuntime({ type: "LAUNCH_COMPLETE", owner: "cameraPicker" });
     }
-  }, [appRuntime.activeAppId, appRuntime.phase, cameraRuntime.cameraApp.phase, cameraRuntime.cameraPicker.phase, session.phase]);
+  }, [appRuntime.activeAppId, appRuntime.phase, cameraRuntime.cameraApp.phase, cameraRuntime.cameraPicker.phase, session.phase, mediaCameraActive]);
   useEffect(() => {
     if (cameraRuntime.cameraPicker.phase !== "returning") return;
     const frame = window.requestAnimationFrame(() => {
@@ -1193,7 +1205,48 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
 
   const completeScreenAppClose: DeviceScreenProps["actions"]["completeScreenAppClose"] = () => update({ phase: "springboard" });
 
-  const openScreenCameraPicker: DeviceScreenProps["actions"]["openScreenCameraPicker"] = () => dispatchCameraRuntime({ type: "LAUNCH", owner: "cameraPicker" });
+  const requestMediaAttachment = (request: MediaAttachmentRequest) => {
+    if (session.phase !== "app" || appRuntime.activeAppId !== request.requester || !session.experienceSessionId) return;
+    const previousRequest = mediaRequestRef.current;
+    if (previousRequest?.requester === request.requester) return;
+    // Flickr/Tumblr are reserved contract values, not invented upload surfaces.
+    if (request.requester === "flickr" || request.requester === "tumblr") return;
+    const contextId = request.contextId ?? (request.requester === "messages" ? messagesState.activeConversationId
+      : request.requester === "twitter" ? twitterState.composerKind === "reply" ? twitterState.replyComposerTweetId : "new" : "status");
+    if (!contextId) return;
+    // Only an explicit new foreground media action supersedes a background flow.
+    // Home/sleep alone still retain it; drafts and pending images are untouched.
+    if (previousRequest) {
+      dispatchMediaRequest({ type: "CANCEL", id: previousRequest.id });
+      if (previousRequest.stage === "camera") dispatchCameraRuntime({ type: "SUSPEND", owner: "cameraApp" });
+    }
+    dispatchMediaRequest({ type: "BEGIN", request: { ...request, contextId }, id: crypto.randomUUID(), experienceSessionId: session.experienceSessionId });
+    if (request.source === "camera") dispatchCameraRuntime({ type: "LAUNCH", owner: "cameraApp" });
+  };
+  const openScreenCameraPicker: DeviceScreenProps["actions"]["openScreenCameraPicker"] = () => {
+    if (messagesState.activeConversationId) requestMediaAttachment({ requester: "messages", mode: "photo", source: "camera-or-library", contextId: messagesState.activeConversationId });
+  };
+  const returnMediaToRequester = useCallback((request: ActiveMediaRequest, attachment?: MediaAttachment) => {
+    if (request.requester === "messages" && request.contextId) dispatchMessages({ type: "MEDIA_RETURN", contextId: request.contextId, attachment });
+    if (request.requester === "facebook") dispatchFacebook({ type: "MEDIA_RETURN", attachment });
+    if (request.requester === "twitter" && request.contextId) dispatchTwitter({ type: "MEDIA_RETURN", contextId: request.contextId, attachment });
+    dispatchMediaRequest({ type: "CANCEL", id: request.id });
+    if (request.stage === "camera" || request.stage === "result") dispatchCameraRuntime({ type: "SUSPEND", owner: "cameraApp" });
+  }, []);
+  useEffect(() => {
+    if (!mediaVisible || mediaRequest?.stage !== "result" || mediaRequest.experienceSessionId !== session.experienceSessionId) return;
+    const record = cameraRoll.records.find(photo => photo.id === mediaRequest.selectedMediaId);
+    if (record) returnMediaToRequester(mediaRequest, { id: record.id, objectUrl: record.objectUrl, filename: record.filename });
+  }, [mediaVisible, mediaRequest, cameraRoll.records, session.experienceSessionId, returnMediaToRequester]);
+  const chooseMediaSource = (source: "camera" | "library") => {
+    if (!mediaVisible || !mediaRequest || mediaRequest.stage !== "source") return;
+    dispatchMediaRequest({ type: "SOURCE", id: mediaRequest.id, source });
+    if (source === "camera") dispatchCameraRuntime({ type: "LAUNCH", owner: "cameraApp" });
+  };
+  const selectMediaPhoto = (photoId: string) => {
+    if (!mediaVisible || !mediaRequest || mediaRequest.stage !== "library" || !cameraRoll.records.some(photo => photo.id === photoId)) return;
+    dispatchMediaRequest({ type: "SELECT", id: mediaRequest.id, mediaId: photoId });
+  };
 
   const scheduleScreenMomReply: DeviceScreenProps["actions"]["scheduleScreenMomReply"] = () => setSession(current => ({
     ...current,
@@ -1227,7 +1280,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   }));
 
   const cancelScreenCameraPicker: DeviceScreenProps["actions"]["cancelScreenCameraPicker"] = () => {
-    dispatchCameraRuntime({ type: "CANCEL", owner: "cameraPicker" });
+    if (mediaVisible && mediaRequest) returnMediaToRequester(mediaRequest);
   };
 
   const recordScreenLocalTweet: DeviceScreenProps["actions"]["recordScreenLocalTweet"] = snapshot => localTweetSnapshotsRef.current.set(snapshot.localTweetId, snapshot);
@@ -1289,6 +1342,7 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
   </>;
 
   const screen = <DeviceScreen
+        media={{ request: mediaRequest, visible: mediaVisible, cameraActive: mediaCameraActive, requestAttachment: requestMediaAttachment, chooseSource: chooseMediaSource, selectPhoto: selectMediaPhoto }}
         presentation={{ presenter, experienceSessionId: session.experienceSessionId }}
         display={{
           session,
@@ -1378,6 +1432,8 @@ export function App({ presenter = "legacy", renderHero }: { presenter?: DevicePr
       onCameraCaptureReady={setCameraCaptureReady}
     />
     {import.meta.env.DEV && <NotificationDebug state={notifications} context={notificationContext} />}
+    {import.meta.env.DEV && <MediaAttachmentDebug request={mediaRequest} cameraSceneSessionId={cameraSelection.current.experienceSessionId} foregroundApp={session.phase === "app" ? appRuntime.activeAppId : null}
+      pending={{ messages: Object.fromEntries(Object.entries(messagesState.pendingAttachments).map(([thread, photo]) => [thread, photo.id])), facebook: facebookState.pendingAttachment?.id ?? null, twitter: twitterState.pendingAttachment?.id ?? null }} />}
     {presenter === "hero" ? renderHero({
       screen,
       softwareReady: session.phase !== "hero" && session.phase !== "poweredOff" && session.phase !== "booting",

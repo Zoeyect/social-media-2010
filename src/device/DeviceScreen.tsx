@@ -23,11 +23,21 @@ import { SpringBoard } from "./SpringBoard";
 import { StatusBar } from "./StatusBar";
 import { TwitterContainer } from "./TwitterContainer";
 import { IOS4KeyboardSystem } from "./IOS4KeyboardSystem";
+import type { ActiveMediaRequest, MediaAttachmentRequest } from "../state/mediaAttachment";
+import { MediaSourceChooser } from "./MediaAttachmentPresentation";
 
 type PhotosBrowseProps = Exclude<ComponentProps<typeof PhotosContainer>, { mode: "picker" }>;
 
 // Presentation only: App retains the single runtime and all controller side effects.
 export type DeviceScreenProps = {
+  media: {
+    request: ActiveMediaRequest | null;
+    visible: boolean;
+    cameraActive: boolean;
+    requestAttachment: (request: MediaAttachmentRequest) => void;
+    chooseSource: (source: "camera" | "library") => void;
+    selectPhoto: (photoId: string) => void;
+  };
   presentation: { presenter: DevicePresenter; experienceSessionId: string | null };
   display: {
     session: Pick<Session, "phase" | "returnToHeroPending" | "activeWarning">;
@@ -94,7 +104,7 @@ export type DeviceScreenProps = {
     scheduleScreenMomReply: ComponentProps<typeof MobileSMSContainer>["onScheduleMomReply"];
     scheduleScreenMomLoveReply: ComponentProps<typeof MobileSMSContainer>["onScheduleMomLoveReply"];
     scheduleScreenDadLoveReply: ComponentProps<typeof MobileSMSContainer>["onScheduleDadLoveReply"];
-    cancelScreenCameraPicker: ComponentProps<typeof CameraContainer>["onCancel"];
+    cancelScreenCameraPicker: () => void;
     recordScreenLocalTweet: ComponentProps<typeof TwitterContainer>["onLocalTweetSubmitted"];
     selectScreenMultitaskingApp: ComponentProps<typeof MultitaskingBar>["onSelectApp"];
     cancelScreenPowerOff: () => void;
@@ -107,7 +117,7 @@ export type DeviceScreenProps = {
   };
 };
 
-export function DeviceScreen({ presentation, display, navigation, apps, camera, overlays, actions }: DeviceScreenProps) {
+export function DeviceScreen({ presentation, display, navigation, apps, camera, overlays, actions, media }: DeviceScreenProps) {
   useDeviceScreenDiagnostics(presentation.presenter, presentation.experienceSessionId);
   const {
     session,
@@ -186,11 +196,11 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
     setNotificationKeyboardVisible,
   } = actions;
 
-  return <div className={`screen ${session.phase}`}>
+  return <div className={`screen ${session.phase}`} data-media-camera={media.cameraActive || undefined}>
     {(session.phase === "locked"
       || session.phase === "springboard"
       || (session.phase === "app"
-        && !(appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none"))) && <div className="device-status-bar-layer">
+        && !((appRuntime.activeAppId === "camera" || media.cameraActive) && cameraRuntime.cameraApp.phase !== "none"))) && <div className="device-status-bar-layer">
       {session.phase === "locked"
         ? <LockScreenStatusPresentation model={lockScreenModel} />
         : <StatusBar state={statusBarState} />}
@@ -223,17 +233,19 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
     >
       <IOS4KeyboardSystem
         onVisibilityChange={setNotificationKeyboardVisible}
-        suspended={multitaskingBar !== "closed" || cameraRuntime.cameraPicker.phase !== "none"}
+        suspended={multitaskingBar !== "closed" || media.visible}
         suspendReason={multitaskingBar !== "closed" ? "app-switch" : "navigation"}
       >
-      {appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none" && <CameraContainer
+      {(appRuntime.activeAppId === "camera" || media.cameraActive) && cameraRuntime.cameraApp.phase !== "none" && <CameraContainer
         owner="cameraApp"
+        mediaAttachment={media.cameraActive}
+        onCancel={media.cameraActive ? cancelScreenCameraPicker : undefined}
         session={cameraRuntime.cameraApp}
         previewCanvasRef={setCameraPreviewCanvas}
         onLookPointerOffsetChange={setCameraLookPointerOffset}
         onCapture={cameraRoll.status === "ready" ? captureCameraPhoto : undefined}
         latestPhoto={cameraRoll.records[cameraRoll.records.length - 1] ?? null}
-        onOpenLatestPhoto={openLatestCameraPhoto}
+        onOpenLatestPhoto={media.cameraActive ? undefined : openLatestCameraPhoto}
       />}
       {appRuntime.activeAppId === "photos" && <PhotosContainer
         state={photosState}
@@ -244,18 +256,17 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
         state={messagesState}
         dispatch={dispatchMessages}
         currentElapsedMs={elapsed}
-        cameraPickerActive={cameraRuntime.cameraPicker.phase !== "none"}
+        currentDeviceDateTime={deviceDateTime}
+        currentDeviceTime={deviceStatusTime}
+        cameraPickerActive={media.visible}
         onOpenCameraPicker={openScreenCameraPicker}
         onScheduleMomReply={scheduleScreenMomReply}
         onScheduleMomLoveReply={scheduleScreenMomLoveReply}
         onScheduleDadLoveReply={scheduleScreenDadLoveReply}
       />}
-      {appRuntime.activeAppId === "messages" && cameraRuntime.cameraPicker.phase !== "none" && <CameraContainer
-        owner="cameraPicker"
-        session={cameraRuntime.cameraPicker}
-        onCancel={cancelScreenCameraPicker}
-      />}
       {appRuntime.activeAppId === "twitter" && <TwitterContainer
+        mediaAttachmentActive={media.visible}
+        onRequestMedia={source => media.requestAttachment({ requester: "twitter", mode: "photo", source, contextId: twitterState.composerKind === "reply" ? twitterState.replyComposerTweetId! : "new" })}
         state={twitterState}
         dispatch={dispatchTwitter}
         publicState={publicTwitterState}
@@ -266,6 +277,8 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
         currentDeviceTime={deviceStatusTime}
       />}
       {appRuntime.activeAppId === "facebook" && <FacebookContainer
+        mediaAttachmentActive={media.visible}
+        onRequestMedia={() => media.requestAttachment({ requester: "facebook", mode: "photo", source: "camera-or-library", contextId: "status" })}
         state={facebookState}
         dispatch={dispatchFacebookEvent}
         currentDeviceTime={deviceStatusTime}
@@ -290,6 +303,8 @@ export function DeviceScreen({ presentation, display, navigation, apps, camera, 
         dispatch={dispatchFoursquare}
         currentDeviceDateTime={deviceDateTime}
       />}
+      {media.visible && media.request?.stage === "source" && <MediaSourceChooser onSource={media.chooseSource} onCancel={cancelScreenCameraPicker} />}
+      {media.visible && media.request?.stage === "library" && <div className="media-library-picker"><PhotosContainer mode="picker" cameraRoll={cameraRoll} onPickerCancel={cancelScreenCameraPicker} onPickerSelect={media.selectPhoto} /></div>}
       </IOS4KeyboardSystem>
     </AppLaunchContainer>}
     {session.phase === "app" && <MultitaskingBar

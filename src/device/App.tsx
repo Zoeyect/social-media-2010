@@ -1,6 +1,4 @@
 import { FormEvent, PointerEvent, useCallback, useEffect, useReducer, useRef, useState } from "react";
-import bootLogoSrc from "../assets/historical/ios4.1/applelogo-iphone3,1-8B117.png?inline";
-import lowBatterySrc from "../assets/device/low-battery-iphone4.png";
 import { DeviceAudio } from "../audio/deviceAudio";
 import { buildSessionTimelineEvents } from "../data/sessionTimeline";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
@@ -42,24 +40,8 @@ import { initialPublicTwitterOutroState, publicTwitterOutroTransition, selectEli
 import { createSMSLockNotification, smsMessageReceived } from "../system/smsNotification";
 import { createInitialFlickrState, flickrStateTransition } from "../state/flickrState";
 import { createInitialTumblrState, tumblrStateTransition } from "../state/tumblrState";
-import { LockScreen } from "./LockScreen";
-import { CameraContainer } from "./CameraContainer";
-import { FacebookContainer } from "./FacebookContainer";
-import { FoursquareContainer } from "./FoursquareContainer";
-import { InstagramContainer } from "./InstagramContainer";
-import { FlickrContainer } from "./FlickrContainer";
-import { TumblrContainer } from "./TumblrContainer";
-import { LockScreenStatusPresentation } from "./LockScreenStatusPresentation";
-import { AppLaunchContainer } from "./AppLaunchContainer";
-import { MultitaskingBar } from "./MultitaskingBar";
-import { MobileSMSContainer } from "./MobileSMSContainer";
-import { PhotosContainer } from "./PhotosContainer";
-import { SMSAlertOverlay } from "./SMSAlertOverlay";
-import { SpringBoard } from "./SpringBoard";
-import { StatusBar } from "./StatusBar";
-import { TwitterContainer } from "./TwitterContainer";
+import { DeviceScreen, type DeviceScreenProps } from "./DeviceScreen";
 import { PublicTwitterOutro } from "./PublicTwitterOutro";
-import { IOS4KeyboardSystem } from "./IOS4KeyboardSystem";
 import { AmbientWorld } from "../world/AmbientWorld";
 import type { CameraStillCapture } from "../world/AmbientWorld";
 import { getCameraVideoScene, selectCameraVideoScene, type CameraVideoSceneSelection } from "../world/cameraVideoScenes";
@@ -1074,6 +1056,92 @@ export function App() {
   });
   const selectedOutroTweet = outroTweets.find(tweet => tweet.id === publicTwitterOutro.selectedTweetId) ?? null;
 
+  const completeScreenUnlock: DeviceScreenProps["actions"]["completeScreenUnlock"] = () => {
+    const canResume = unlockReturnAppId !== null
+      && (appRuntime.activeAppId === unlockReturnAppId || appRuntime.suspendedAppIds.includes(unlockReturnAppId));
+    if (canResume && unlockReturnAppId) {
+      const cameraOwner = cameraOwnerForApp(unlockReturnAppId);
+      if (cameraOwner) dispatchCameraRuntime({ type: "RESUME", owner: cameraOwner });
+      dispatchAppRuntime({ type: "RESUME", appId: unlockReturnAppId });
+    }
+    DeviceAudio.unlock();
+    update({
+      phase: canResume ? "app" : "springboard",
+      batteryCriticalRevealAtMs: null,
+    });
+    setUnlockReturnAppId(null);
+  };
+
+  const completeScreenAppClose: DeviceScreenProps["actions"]["completeScreenAppClose"] = () => update({ phase: "springboard" });
+
+  const openScreenCameraPicker: DeviceScreenProps["actions"]["openScreenCameraPicker"] = () => dispatchCameraRuntime({ type: "LAUNCH", owner: "cameraPicker" });
+
+  const scheduleScreenMomReply: DeviceScreenProps["actions"]["scheduleScreenMomReply"] = () => setSession(current => ({
+    ...current,
+    deviceEvents: scheduleDeviceEvent(current.deviceEvents, {
+      id: "mom-reply-good-sleep-early",
+      type: "momReply",
+      dueElapsedMs: elapsedMs(current, Date.now()) + MOM_REPLY_DELAY_MS,
+    }),
+  }));
+
+  const scheduleScreenMomLoveReply: DeviceScreenProps["actions"]["scheduleScreenMomLoveReply"] = () => setSession(current => ({
+    ...current,
+    deviceEvents: scheduleDeviceEvent(current.deviceEvents, {
+      id: "mom-love-reply",
+      type: "momLoveReply",
+      dueElapsedMs: elapsedMs(current, Date.now()) + deterministicMomLoveReplyDelayMs(current.sessionIdentity.name),
+      sourceApp: "messages",
+      deliveryPolicy: "notification",
+    }),
+  }));
+
+  const scheduleScreenDadLoveReply: DeviceScreenProps["actions"]["scheduleScreenDadLoveReply"] = () => setSession(current => ({
+    ...current,
+    deviceEvents: scheduleDeviceEvent(current.deviceEvents, {
+      id: "dad-love-terminal-reply",
+      type: "dadLoveReply",
+      dueElapsedMs: DAD_LOVE_REPLY_DUE_ELAPSED_MS,
+      sourceApp: "messages",
+      deliveryPolicy: "notification",
+    }),
+  }));
+
+  const cancelScreenCameraPicker: DeviceScreenProps["actions"]["cancelScreenCameraPicker"] = () => {
+    dispatchCameraRuntime({ type: "CANCEL", owner: "cameraPicker" });
+  };
+
+  const recordScreenLocalTweet: DeviceScreenProps["actions"]["recordScreenLocalTweet"] = snapshot => localTweetSnapshotsRef.current.set(snapshot.localTweetId, snapshot);
+
+  const selectScreenMultitaskingApp: DeviceScreenProps["actions"]["selectScreenMultitaskingApp"] = appId => {
+    dispatchMultitaskingBar("CLOSE");
+    if (appRuntime.activeAppId !== appId || appRuntime.phase !== "running") {
+      const cameraOwner = cameraOwnerForApp(appId);
+      if (cameraOwner) dispatchCameraRuntime({ type: "RESUME", owner: cameraOwner });
+      dispatchAppRuntime({ type: "RESUME", appId });
+    }
+  };
+
+  const cancelScreenPowerOff: DeviceScreenProps["actions"]["cancelScreenPowerOff"] = () => update({ phase: session.previousPhase ?? "locked", previousPhase: null });
+
+  const confirmScreenPowerOff: DeviceScreenProps["actions"]["confirmScreenPowerOff"] = () => update({ phase: "shutdown", shutdownReason: "manual" });
+
+  const dismissScreenBatteryWarning: DeviceScreenProps["actions"]["dismissScreenBatteryWarning"] = () => setSession(current => {
+    const warning = current.activeWarning;
+    if (warning !== 20 && warning !== 10) return current;
+    return {
+      ...current,
+      activeWarning: null,
+      dismissedWarnings: current.dismissedWarnings.includes(warning)
+        ? current.dismissedWarnings
+        : [...current.dismissedWarnings, warning],
+    };
+  });
+
+  const dismissScreenSMSAlert: DeviceScreenProps["actions"]["dismissScreenSMSAlert"] = () => dispatchSMSNotification({ type: "DISMISS" });
+
+  const viewScreenSMSAlert: DeviceScreenProps["actions"]["viewScreenSMSAlert"] = () => openMessagesConversation(true);
+
   return <SessionIdentityContext.Provider value={session.sessionIdentity}>
     <AmbientWorld
       cameraViewfinder={cameraPreviewCanvas}
@@ -1102,188 +1170,80 @@ export function App() {
       <span className="device-volume-button is-down" aria-hidden="true" />
       <button className="power" aria-label="Power button" onPointerDown={beginPower} onPointerUp={endPower} onPointerCancel={cancelPower} onPointerLeave={cancelPower} />
       <div className="speaker" /><div className="camera" />
-      <div className={`screen ${session.phase}`}>
-        {(session.phase === "locked"
-          || session.phase === "springboard"
-          || (session.phase === "app"
-            && !(appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none"))) && <div className="device-status-bar-layer">
-          {session.phase === "locked"
-            ? <LockScreenStatusPresentation model={lockScreenModel} />
-            : <StatusBar state={statusBarState} />}
-        </div>}
-        {session.phase === "poweredOff" && (session.returnToHeroPending
-          ? <div className="dead" />
-          : <div className="off"><p>Press and hold the power button.</p><div className="hold"><i style={{ width: `${powerProgress * 100}%` }} /></div></div>)}
-        {session.phase === "booting" && <div className="boot"><BootLogo /></div>}
-        {session.phase === "locked" && <LockScreen
-          model={lockScreenModel}
-          activeLockNotification={activeLockNotification}
-          onViewNotification={openLockNotificationTarget}
-          onUnlock={() => {
-            const canResume = unlockReturnAppId !== null
-              && (appRuntime.activeAppId === unlockReturnAppId || appRuntime.suspendedAppIds.includes(unlockReturnAppId));
-            if (canResume && unlockReturnAppId) {
-              const cameraOwner = cameraOwnerForApp(unlockReturnAppId);
-              if (cameraOwner) dispatchCameraRuntime({ type: "RESUME", owner: cameraOwner });
-              dispatchAppRuntime({ type: "RESUME", appId: unlockReturnAppId });
-            }
-            DeviceAudio.unlock();
-            update({
-              phase: canResume ? "app" : "springboard",
-              batteryCriticalRevealAtMs: null,
-            });
-            setUnlockReturnAppId(null);
-          }}
-        />}
-        {session.phase === "springboard" && <SpringBoard
-          currentPage={springBoardPage}
-          onPageChange={setSpringBoardPage}
-          folderState={folderState}
-          dispatchFolderEvent={dispatchFolderEvent}
-          activeFolderSlotIndex={activeFolderSlotIndex}
-          onActiveFolderSlotChange={setActiveFolderSlotIndex}
-          messagesBadgeCount={messagesUnreadIds.length}
-          onLaunchApp={launchSpringBoardApp}
-        />}
-        {session.phase === "app" && <AppLaunchContainer
-          runtime={appRuntime}
-          dispatch={dispatchAppRuntime}
-          onClosed={() => update({ phase: "springboard" })}
-        >
-          <IOS4KeyboardSystem
-            suspended={multitaskingBar !== "closed" || cameraRuntime.cameraPicker.phase !== "none"}
-            suspendReason={multitaskingBar !== "closed" ? "app-switch" : "navigation"}
-          >
-          {appRuntime.activeAppId === "camera" && cameraRuntime.cameraApp.phase !== "none" && <CameraContainer
-            owner="cameraApp"
-            session={cameraRuntime.cameraApp}
-            previewCanvasRef={setCameraPreviewCanvas}
-            onLookPointerOffsetChange={setCameraLookPointerOffset}
-            onCapture={cameraRoll.status === "ready" ? captureCameraPhoto : undefined}
-            latestPhoto={cameraRoll.records[cameraRoll.records.length - 1] ?? null}
-            onOpenLatestPhoto={openLatestCameraPhoto}
-          />}
-          {appRuntime.activeAppId === "photos" && <PhotosContainer
-            state={photosState}
-            dispatch={dispatchPhotos}
-            cameraRoll={cameraRoll}
-          />}
-          {appRuntime.activeAppId === "messages" && <MobileSMSContainer
-            state={messagesState}
-            dispatch={dispatchMessages}
-            currentElapsedMs={elapsed}
-            cameraPickerActive={cameraRuntime.cameraPicker.phase !== "none"}
-            onOpenCameraPicker={() => dispatchCameraRuntime({ type: "LAUNCH", owner: "cameraPicker" })}
-            onScheduleMomReply={() => setSession(current => ({
-              ...current,
-              deviceEvents: scheduleDeviceEvent(current.deviceEvents, {
-                id: "mom-reply-good-sleep-early",
-                type: "momReply",
-                dueElapsedMs: elapsedMs(current, Date.now()) + MOM_REPLY_DELAY_MS,
-              }),
-            }))}
-            onScheduleMomLoveReply={() => setSession(current => ({
-              ...current,
-              deviceEvents: scheduleDeviceEvent(current.deviceEvents, {
-                id: "mom-love-reply",
-                type: "momLoveReply",
-                dueElapsedMs: elapsedMs(current, Date.now()) + deterministicMomLoveReplyDelayMs(current.sessionIdentity.name),
-                sourceApp: "messages",
-                deliveryPolicy: "notification",
-              }),
-            }))}
-            onScheduleDadLoveReply={() => setSession(current => ({
-              ...current,
-              deviceEvents: scheduleDeviceEvent(current.deviceEvents, {
-                id: "dad-love-terminal-reply",
-                type: "dadLoveReply",
-                dueElapsedMs: DAD_LOVE_REPLY_DUE_ELAPSED_MS,
-                sourceApp: "messages",
-                deliveryPolicy: "notification",
-              }),
-            }))}
-          />}
-          {appRuntime.activeAppId === "messages" && cameraRuntime.cameraPicker.phase !== "none" && <CameraContainer
-            owner="cameraPicker"
-            session={cameraRuntime.cameraPicker}
-            onCancel={() => {
-              dispatchCameraRuntime({ type: "CANCEL", owner: "cameraPicker" });
-            }}
-          />}
-          {appRuntime.activeAppId === "twitter" && <TwitterContainer
-            state={twitterState}
-            dispatch={dispatchTwitter}
-            publicState={publicTwitterState}
-            dispatchPublic={dispatchPublicTwitterEvent}
-            currentElapsedMs={elapsed}
-            onLocalTweetSubmitted={snapshot => localTweetSnapshotsRef.current.set(snapshot.localTweetId, snapshot)}
-            currentDeviceDateTime={deviceDateTime}
-            currentDeviceTime={deviceStatusTime}
-          />}
-          {appRuntime.activeAppId === "facebook" && <FacebookContainer
-            state={facebookState}
-            dispatch={dispatchFacebookEvent}
-            currentDeviceTime={deviceStatusTime}
-            elapsedMs={elapsed}
-          />}
-          {appRuntime.activeAppId === "instagram" && <InstagramContainer
-            state={instagramState}
-            dispatch={dispatchInstagram}
-            currentDeviceDateTime={deviceDateTime}
-            cameraRoll={cameraRoll}
-          />}
-          {appRuntime.activeAppId === "flickr" && <FlickrContainer
-            state={flickrState}
-            dispatch={dispatchFlickr}
-          />}
-          {appRuntime.activeAppId === "tumblr" && <TumblrContainer
-            state={tumblrState}
-            dispatch={dispatchTumblr}
-          />}
-          {appRuntime.activeAppId === "foursquare" && <FoursquareContainer
-            state={foursquareState}
-            dispatch={dispatchFoursquare}
-            currentDeviceDateTime={deviceDateTime}
-          />}
-          </IOS4KeyboardSystem>
-        </AppLaunchContainer>}
-        {session.phase === "app" && <MultitaskingBar
-          state={multitaskingBar}
-          appRuntime={appRuntime}
-          dispatch={dispatchMultitaskingBar}
-          onSelectApp={appId => {
-            dispatchMultitaskingBar("CLOSE");
-            if (appRuntime.activeAppId !== appId || appRuntime.phase !== "running") {
-              const cameraOwner = cameraOwnerForApp(appId);
-              if (cameraOwner) dispatchCameraRuntime({ type: "RESUME", owner: cameraOwner });
-              dispatchAppRuntime({ type: "RESUME", appId });
-            }
-          }}
-        />}
-        {session.phase === "sleeping" && <div className="screen-off-surface" aria-hidden="true" />}
-        {session.phase === "powerOffConfirm" && <PowerOffConfirm onCancel={() => update({ phase: session.previousPhase ?? "locked", previousPhase: null })} onConfirm={() => update({ phase: "shutdown", shutdownReason: "manual" })} />}
-        {session.phase === "shutdown" && <div className="screen-off-surface" aria-hidden="true" />}
-        {session.phase === "lowBatteryWarning" && <img className="low-battery-screen" src={lowBatterySrc} alt="" aria-hidden="true" />}
-        {(session.activeWarning === 20 || session.activeWarning === 10) && (session.phase === "springboard" || session.phase === "app") && <LowBatteryAlert
-          level={session.activeWarning}
-          onDismiss={() => setSession(current => {
-            const warning = current.activeWarning;
-            if (warning !== 20 && warning !== 10) return current;
-            return {
-              ...current,
-              activeWarning: null,
-              dismissedWarnings: current.dismissedWarnings.includes(warning)
-                ? current.dismissedWarnings
-                : [...current.dismissedWarnings, warning],
-            };
-          })}
-        />}
-        {smsNotification.status === "alert-visible" && session.phase !== "locked" && session.phase !== "sleeping" && <SMSAlertOverlay
-          notificationState={smsNotification}
-          onClose={() => dispatchSMSNotification({ type: "DISMISS" })}
-          onView={() => openMessagesConversation(true)}
-        />}
-      </div>
+      <DeviceScreen
+        display={{
+          session,
+          powerProgress,
+          lockScreenModel,
+          statusBarState,
+          elapsed,
+          deviceDateTime,
+          deviceStatusTime,
+        }}
+        navigation={{
+          appRuntime,
+          dispatchAppRuntime,
+          springBoardPage,
+          setSpringBoardPage,
+          folderState,
+          dispatchFolderEvent,
+          activeFolderSlotIndex,
+          setActiveFolderSlotIndex,
+          messagesBadgeCount: messagesUnreadIds.length,
+          launchSpringBoardApp,
+          multitaskingBar,
+          dispatchMultitaskingBar,
+        }}
+        apps={{
+          photosState,
+          dispatchPhotos,
+          messagesState,
+          dispatchMessages,
+          twitterState,
+          dispatchTwitter,
+          publicTwitterState,
+          dispatchPublicTwitterEvent,
+          facebookState,
+          dispatchFacebookEvent,
+          instagramState,
+          dispatchInstagram,
+          flickrState,
+          dispatchFlickr,
+          tumblrState,
+          dispatchTumblr,
+          foursquareState,
+          dispatchFoursquare,
+        }}
+        camera={{
+          cameraRuntime,
+          cameraRoll,
+          setCameraPreviewCanvas,
+          setCameraLookPointerOffset,
+          captureCameraPhoto,
+          openLatestCameraPhoto,
+        }}
+        overlays={{
+          activeLockNotification,
+          smsNotification,
+        }}
+        actions={{
+          openLockNotificationTarget,
+          completeScreenUnlock,
+          completeScreenAppClose,
+          openScreenCameraPicker,
+          scheduleScreenMomReply,
+          scheduleScreenMomLoveReply,
+          scheduleScreenDadLoveReply,
+          cancelScreenCameraPicker,
+          recordScreenLocalTweet,
+          selectScreenMultitaskingApp,
+          cancelScreenPowerOff,
+          confirmScreenPowerOff,
+          dismissScreenBatteryWarning,
+          dismissScreenSMSAlert,
+          viewScreenSMSAlert,
+        }}
+      />
       <button
         className={`home${homePressed ? " is-pressed" : ""}`}
         aria-label="Home button"
@@ -1337,26 +1297,4 @@ function AppDevAccess({ appId, disabled, onOpen }: {
     <button type="button" disabled={disabled} onClick={onOpen}>DEV · Open {appName}</button>
     {disabled && <span>Available on SpringBoard</span>}
   </aside>;
-}
-
-function LowBatteryAlert({ level, onDismiss }: { level: 20 | 10; onDismiss: () => void }) {
-  return <div className="sms-system-alert-layer low-battery-alert-layer" role="presentation">
-    <section className="sms-alert-sheet low-battery-alert" role="alertdialog" aria-modal="true" aria-labelledby="low-battery-alert-title" aria-describedby="low-battery-alert-message">
-      <strong id="low-battery-alert-title" className="sms-alert-title">Low Battery</strong>
-      <div className="sms-alert-content">
-        <p id="low-battery-alert-message" className="sms-alert-body">{level}% of battery remaining</p>
-      </div>
-      <div className="sms-alert-actions low-battery-alert-actions">
-        <button type="button" onClick={onDismiss}>Dismiss</button>
-      </div>
-    </section>
-  </div>;
-}
-
-function BootLogo() {
-  return <img className="boot-logo" src={bootLogoSrc} alt="" aria-hidden="true" />;
-}
-
-function PowerOffConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
-  return <div className="modal-shade"><div className="battery-alert"><strong>Power Off</strong><p>Power-off UI artwork: HOLD.</p><button onClick={onConfirm}>Confirm power off</button><button onClick={onCancel}>Cancel</button></div></div>;
 }

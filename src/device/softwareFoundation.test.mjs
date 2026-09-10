@@ -16,5 +16,9 @@ try {
   assert.equal(simulatedDeviceDateTime(890000).toISOString(),'2010-10-20T07:16:50.000Z');
   assert.equal(simulatedClock(890000),'12:16 AM');
   assert.equal(buildSessionTimelineEvents().find(e=>e.id==='twitter-terminal-goodnight-world').payload.post.timestamp,'12:16 AM');
+  const {formatRelativeActivityTime} = await server.ssrLoadModule('/src/device/FoursquareContainer.tsx');
+  const created='2010-10-20T00:00:00-07:00';
+  assert.equal(formatRelativeActivityTime(created,simulatedDeviceDateTime(0).getTime()),'2 min ago');
+  assert.equal(formatRelativeActivityTime(created,simulatedDeviceDateTime(600000).getTime()),'12 min ago');
   console.log('PASS: session-keyed resource deduplication and canonical event clock.');
 } finally {await server.close();}

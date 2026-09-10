@@ -68,7 +68,7 @@ class DeviceAudioService {
   }
 
   get diagnostics() {
-    return { muteMode: this.audioMode?.() ?? "ringer", audioGateOpen: this.canPlayAudio, lastSuppressedSound: this.lastSuppressedSound };
+    return { muteMode: this.canPlayAudio ? "ringer" : "silent", audioGateOpen: this.canPlayAudio, lastSuppressedSound: this.lastSuppressedSound };
   }
 
   setVolume(volume: number): void {

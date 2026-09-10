@@ -62,7 +62,7 @@ and dismissal remain in App. No app alert replaces a battery or power confirmati
 
 Sounds play once at delivery through `DeviceAudio.notificationReceived("message")`.
 The existing registry maps this to recovered iOS 4.1 8B117 `sms-received1.caf`.
-Physical mute still gates the sole DeviceAudio playback service. Queued/promoted
+The software audio mode gates the sole DeviceAudio playback service. Queued/promoted
 alerts, wake and unmute never play deferred sounds. Notifications arriving during a
 system alert discard their sound. Camera, keyboard, lock/unlock and battery assets/
 semantics are untouched; no new assets or audio playback engine added.

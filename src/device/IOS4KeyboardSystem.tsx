@@ -58,6 +58,7 @@ type IOS4KeyboardViewState = {
 };
 
 type IOS4KeyboardContextValue = {
+  suspended: boolean;
   state: IOS4KeyboardViewState;
   openKeyboard: (registration: IOS4InputRegistration) => void;
   refreshKeyboard: (registration: IOS4InputRegistration) => void;
@@ -131,21 +132,29 @@ export function IOS4KeyboardSystem({ children, suspended = false, suspendReason 
   onVisibilityChange?: (visible: boolean) => void;
 }) {
   const activeRegistration = useRef<IOS4InputRegistration | null>(null);
+  const suspendedRef = useRef(suspended);
+  suspendedRef.current = suspended;
   const [state, setState] = useState<IOS4KeyboardViewState>(INITIAL_KEYBOARD_STATE);
+  const keyboardVisible = !suspended && state.keyboardVisible;
   useLayoutEffect(() => {
-    onVisibilityChange?.(state.keyboardVisible);
+    onVisibilityChange?.(keyboardVisible);
     return () => onVisibilityChange?.(false);
-  }, [onVisibilityChange, state.keyboardVisible]);
+  }, [onVisibilityChange, keyboardVisible]);
 
   const closeKeyboard = useCallback((reason: IOS4KeyboardDismissReason, inputId?: string) => {
     const active = activeRegistration.current;
     if (inputId && active?.inputId !== inputId) return;
     active?.onDismiss?.(reason);
     activeRegistration.current = null;
+    if (active && document.activeElement === active.element) active.element.blur();
     setState(INITIAL_KEYBOARD_STATE);
   }, []);
 
   const openKeyboard = useCallback((registration: IOS4InputRegistration) => {
+    if (suspendedRef.current) {
+      if (document.activeElement === registration.element) registration.element.blur();
+      return;
+    }
     const previous = activeRegistration.current;
     if (previous && previous.inputId !== registration.inputId) previous.onDismiss?.("input-switch");
     activeRegistration.current = registration;
@@ -162,6 +171,7 @@ export function IOS4KeyboardSystem({ children, suspended = false, suspendReason 
   }, []);
 
   const refreshKeyboard = useCallback((registration: IOS4InputRegistration) => {
+    if (suspendedRef.current) return;
     if (activeRegistration.current?.inputId !== registration.inputId) return;
     activeRegistration.current = registration;
     setState(current => current.textValue === registration.value
@@ -169,7 +179,7 @@ export function IOS4KeyboardSystem({ children, suspended = false, suspendReason 
       : { ...current, textValue: registration.value });
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (suspended) closeKeyboard(suspendReason);
   }, [closeKeyboard, suspendReason, suspended]);
 
@@ -201,7 +211,7 @@ export function IOS4KeyboardSystem({ children, suspended = false, suspendReason 
       shiftState: insertedText && current.mode === "letters" && current.shiftState === "upper" ? "lower" : current.shiftState,
     }));
     requestAnimationFrame(() => {
-      if (!element.isConnected) return;
+      if (!element.isConnected || suspendedRef.current || activeRegistration.current?.inputId !== registration.inputId) return;
       element.focus({ preventScroll: true });
       element.setSelectionRange(nextCaret, nextCaret);
     });
@@ -249,21 +259,22 @@ export function IOS4KeyboardSystem({ children, suspended = false, suspendReason 
   }, [applyTextEdit, submitRegistration]);
 
   const contextValue: IOS4KeyboardContextValue = {
-    state,
+    suspended,
+    state: suspended ? INITIAL_KEYBOARD_STATE : state,
     openKeyboard,
     refreshKeyboard,
     closeKeyboard,
     submitKeyboardFromHost,
-    isInputActive: inputId => state.activeInputId === inputId,
+    isInputActive: inputId => !suspended && state.activeInputId === inputId,
   };
 
   const rows = state.mode === "letters" ? LETTER_ROWS : state.mode === "numbers" ? NUMBER_ROWS : SYMBOL_ROWS;
   const bottomCharacters = state.mode === "symbols" ? SYMBOL_BOTTOM_ROW : NUMBER_BOTTOM_ROW;
 
   return <IOS4KeyboardContext.Provider value={contextValue}>
-    <div className={`ios4-keyboard-system${state.keyboardVisible ? " is-keyboard-visible" : ""}`}>
+    <div className={`ios4-keyboard-system${keyboardVisible ? " is-keyboard-visible" : ""}`} data-keyboard-owner={keyboardVisible ? state.activeInputId ?? undefined : undefined} data-keyboard-visible={keyboardVisible}>
       <div className="ios4-keyboard-viewport">{children}</div>
-      <section className="ios4-keyboard" aria-label="iOS 4.1 software keyboard" aria-hidden={!state.keyboardVisible}>
+      {!suspended && <section className="ios4-keyboard" aria-label="iOS 4.1 software keyboard" aria-hidden={!keyboardVisible}>
         {rows.map((row, index) => <div className={`ios4-keyboard-row is-row-${index + 1}${state.mode !== "letters" && index === 1 ? " is-ten-key-punctuation" : ""}`} key={`${state.mode}-${index}`}>
           {row.map(key => <IOS4KeyboardKey key={key} label={key} onPress={() => pressCharacter(key)} />)}
         </div>)}
@@ -290,7 +301,7 @@ export function IOS4KeyboardSystem({ children, suspended = false, suspendReason 
           <IOS4KeyboardKey label="Space" className="is-space" onPress={pressSpace}>space</IOS4KeyboardKey>
           <IOS4KeyboardKey label={state.returnKeyType} className={`is-function is-return${state.returnKeyType !== "return" ? " is-action" : ""}`} onPress={pressReturn}>{state.returnKeyType}</IOS4KeyboardKey>
         </div>
-      </section>
+      </section>}
     </div>
   </IOS4KeyboardContext.Provider>;
 }
@@ -350,6 +361,7 @@ function useIOS4KeyboardBinding({
   const context = useContext(IOS4KeyboardContext);
   if (!context) throw new Error("iOS 4 inputs must be rendered inside IOS4KeyboardSystem");
   const elementRef = useRef<IOS4TextControl | null>(null);
+  const initialFocusHandled = useRef(false);
   const createRegistration = (): IOS4InputRegistration | null => elementRef.current ? ({
     inputId,
     inputType,
@@ -366,7 +378,10 @@ function useIOS4KeyboardBinding({
   useLayoutEffect(() => {
     const registration = createRegistration();
     if (!registration) return;
-    if ((openWhenMounted || document.activeElement === registration.element) && !context.isInputActive(inputId)) {
+    const initialAutofocus = openWhenMounted && !initialFocusHandled.current;
+    initialFocusHandled.current = true;
+    if (context.suspended) return;
+    if ((initialAutofocus || document.activeElement === registration.element) && !context.isInputActive(inputId)) {
       context.openKeyboard(registration);
       return;
     }

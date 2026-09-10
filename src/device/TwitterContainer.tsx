@@ -1,4 +1,6 @@
 import { Dispatch, PointerEvent, useLayoutEffect, useRef } from "react";
+import { PendingMediaAttachment } from "./MediaAttachmentPresentation";
+import type { MediaAttachment } from "../state/mediaAttachment";
 import {
   selectTwitterFollowingUsers,
   selectTwitterDirectMessagesUnreadCount,
@@ -36,18 +38,20 @@ type TwitterContainerProps = {
   onLocalTweetSubmitted: (snapshot: PublicTwitterPendingSubmission) => void;
   currentDeviceDateTime: Date;
   currentDeviceTime: string;
+  onRequestMedia: (source: "camera" | "library") => void;
+  mediaAttachmentActive: boolean;
 };
 
-export function TwitterContainer({ state, dispatch, publicState, dispatchPublic, currentElapsedMs, onLocalTweetSubmitted, currentDeviceDateTime, currentDeviceTime }: TwitterContainerProps) {
+export function TwitterContainer({ state, dispatch, publicState, dispatchPublic, currentElapsedMs, onLocalTweetSubmitted, currentDeviceDateTime, currentDeviceTime, onRequestMedia, mediaAttachmentActive }: TwitterContainerProps) {
   const sessionIdentity = useSessionIdentity();
   const timelineRef = useRef<HTMLDivElement>(null);
   const selectedTweet = [...state.timeline, ...state.mentionTweets, ...state.linkedTweets].find(tweet => tweet.id === state.selectedTweetId) ?? null;
   const composerTarget = [...state.timeline, ...state.mentionTweets, ...state.linkedTweets].find(tweet => tweet.id === state.replyComposerTweetId) ?? null;
   const composerHandle = composerTarget ? (composerTarget.authorHandle || twitterReplyHandle(composerTarget.displayName)) : null;
   const composerValue = state.composerKind === "new" ? state.newTweetDraft : state.replyDraft;
-  const composerCanSend = state.composerKind === "new"
+  const composerCanSend = composerValue.trim().length <= 140 && (state.composerKind === "new"
     ? composerValue.trim().length > 0
-    : state.composerKind === "reply" && Boolean(composerHandle) && composerValue.trim() !== composerHandle;
+    : !state.pendingAttachment && state.composerKind === "reply" && Boolean(composerHandle) && composerValue.trim() !== composerHandle);
   const timelineActivities = composeTwitterTimelineActivities(selectTwitterTimelineActivities(state), publicState.status === "ready" ? publicState.approvedPosts : [], publicState.selectedArchiveIds, currentElapsedMs);
   const suggestedPeople = state.suggestedUsers.map(user => ({
     ...user,
@@ -78,7 +82,7 @@ export function TwitterContainer({ state, dispatch, publicState, dispatchPublic,
     retweetActionTimestamp: currentDeviceDateTime.getTime(),
   });
 
-  return <section className="twitter-container" aria-label="Twitter" data-chrome-status="HOLD">
+  return <section className="twitter-container" aria-label="Twitter" data-chrome-status="HOLD" inert={mediaAttachmentActive}>
     <header className={`twitter-navigation-bar${state.currentView === "composer" && state.composerKind === "new" ? " twitter-new-tweet-navigation" : ""}`}>
       {state.activeTab === "timeline" && state.currentView === "timeline" && <>
         <button type="button" className="twitter-account-button" onClick={() => dispatch({ type: "SHOW_TAB", tab: "more" })}>Accounts</button>
@@ -189,6 +193,10 @@ export function TwitterContainer({ state, dispatch, publicState, dispatchPublic,
     />}
 
     {state.currentView === "composer" && <TwitterComposer
+      attachment={state.pendingAttachment}
+      onRemoveAttachment={() => dispatch({ type: "REMOVE_ATTACHMENT" })}
+      onRequestMedia={onRequestMedia}
+      suspended={mediaAttachmentActive}
       identity={sessionIdentity.name}
       value={composerValue}
       replyTarget={composerTarget}
@@ -196,6 +204,7 @@ export function TwitterContainer({ state, dispatch, publicState, dispatchPublic,
       onChange={value => dispatch({ type: "EDIT_COMPOSER", value })}
       onSubmit={() => state.composerKind === "new"
         ? (() => {
+          if (!composerCanSend) return;
           const body = state.newTweetDraft.trim();
           const createdAt = currentDeviceDateTime.getTime();
           const snapshot: PublicTwitterPendingSubmission = Object.freeze({
@@ -331,6 +340,7 @@ function TimelineTweet({ itemId, tweet, retweetAttribution, favorite, retweeted,
         </strong>
         <time>{tweet.timestamp}</time>
         <span>{tweet.text}</span>
+        {tweet.attachment && <img className="twitter-tweet-photo" data-media-id={tweet.attachment.id} src={tweet.attachment.objectUrl} alt="Attached photo" />}
         {retweetAttribution && <small>{retweetAttribution}</small>}
       </span>
       {favorite && <span className="twitter-favorite-marker" aria-hidden="true" />}
@@ -384,6 +394,7 @@ function TweetDetail({ tweet, favorite, retweeted, replies, retweetAllowed, onRe
       </div>
     </header>
     <p>{tweet.text}</p>
+    {tweet.attachment && <img className="twitter-tweet-photo" data-media-id={tweet.attachment.id} src={tweet.attachment.objectUrl} alt="Attached photo" />}
     {onOpenLinkedTweet && <button type="button" className="twitter-linked-status" onClick={onOpenLinkedTweet}>View linked Tweet</button>}
     <time>October 20, 2010 · {tweet.timestamp}</time>
     <div className="twitter-detail-actions" aria-label="Tweet actions" data-chrome-status="HOLD">
@@ -397,7 +408,11 @@ function TweetDetail({ tweet, favorite, retweeted, replies, retweetAllowed, onRe
   </article>;
 }
 
-function TwitterComposer({ identity, value, replyTarget, canSend, onChange, onSubmit }: {
+function TwitterComposer({ identity, value, replyTarget, canSend, onChange, onSubmit, attachment, onRemoveAttachment, onRequestMedia, suspended }: {
+  attachment: MediaAttachment | null;
+  onRemoveAttachment: () => void;
+  onRequestMedia: (source: "camera" | "library") => void;
+  suspended: boolean;
   identity: string;
   value: string;
   replyTarget: TwitterTweet | null;
@@ -405,7 +420,7 @@ function TwitterComposer({ identity, value, replyTarget, canSend, onChange, onSu
   onChange: (value: string) => void;
   onSubmit: () => void;
 }) {
-  return <form id="twitter-composer-form" className="twitter-composer" onSubmit={event => {
+  return <form id="twitter-composer-form" className="twitter-composer" inert={suspended} onSubmit={event => {
     event.preventDefault();
     if (canSend) onSubmit();
   }}>
@@ -422,9 +437,10 @@ function TwitterComposer({ identity, value, replyTarget, canSend, onChange, onSu
       </span>
       <span className="twitter-character-count" aria-label={`${140 - value.length} characters remaining`}>{140 - value.length}</span>
     </div>
-    <div className="twitter-composer-tools" aria-hidden="true" data-chrome-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
-      <span className="twitter-compose-tool is-camera"><img src={composeToolCameraSrc} alt="" />Camera</span>
-      <span className="twitter-compose-tool is-photo-library"><img src={composeToolPhotoLibrarySrc} alt="" />Photo Library</span>
+    {attachment && <PendingMediaAttachment attachment={attachment} onRemove={onRemoveAttachment} />}
+    <div className="twitter-composer-tools" data-chrome-status="RECONSTRUCTED_FROM_PERIOD_SCREENSHOT">
+      <button type="button" className="twitter-compose-tool is-camera" onClick={() => onRequestMedia("camera")}><img src={composeToolCameraSrc} alt="" />Camera</button>
+      <button type="button" className="twitter-compose-tool is-photo-library" onClick={() => onRequestMedia("library")}><img src={composeToolPhotoLibrarySrc} alt="" />Photo Library</button>
       <span className="twitter-compose-tool is-geotag"><img src={composeToolGeotagSrc} alt="" />Geotag</span>
       <span className="twitter-compose-tool is-usernames"><img src={composeToolUsernamesSrc} alt="" />Usernames</span>
       <span className="twitter-compose-tool is-hashtags"><img src={composeToolHashtagsSrc} alt="" />Hashtags</span>

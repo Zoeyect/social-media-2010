@@ -991,9 +991,9 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
     "Luca's photo story must retain canonical Chris participation without fabricated tag UI",
   );
   facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JACK_REQUEST" });
-  facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JUNE_MESSAGE" });
+  facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JUNE_MESSAGE", timestamp: "12:06 AM" });
   facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JACK_REQUEST" });
-  facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JUNE_MESSAGE" });
+  facebookA = facebook.facebookStateTransition(facebookA, { type: "DELIVER_JUNE_MESSAGE", timestamp: "12:06 AM" });
   assert.equal(facebookA.friendRequestState, "pending");
   assert.equal(facebook.selectFacebookJuneMessageState(facebookA), "unread");
   assert.equal(facebook.selectFacebookRequestCount(facebookA), 1, "Requests count must derive from pending state");
@@ -1894,7 +1894,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   );
   assert.deepEqual(
     [terminalTweetEvent?.atElapsedSeconds, terminalTweetEvent?.payload?.kind === "twitter-post" ? terminalTweetEvent.payload.post.text : null, terminalTweetEvent?.payload?.kind === "twitter-post" ? terminalTweetEvent.payload.post.timestamp : null, terminalTweetEvent?.role],
-    [890, "goodnight, world.", "12:17 AM", "terminal-easter-egg"],
+    [890, "goodnight, world.", "12:16 AM", "terminal-easter-egg"],
   );
   assert.ok(terminalTweetEvent.atElapsedSeconds * 1_000 < deviceMachine.SESSION_DURATION_MS, "terminal Tweet must be due before the T+900s battery boundary");
   assert.equal(deviceMachine.SESSION_DURATION_MS, 900_000, "battery terminal must remain T+900s");
@@ -2875,7 +2875,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "TOGGLE_LIKE", itemId: facebookZoey.feed[0].id });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "DELIVER_JACK_REQUEST" });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "ACCEPT_JACK" });
-  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "DELIVER_JUNE_MESSAGE" });
+  facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "DELIVER_JUNE_MESSAGE", timestamp: "12:06 AM" });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "OPEN_JUNE_MESSAGE" });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "EDIT_MESSAGE_REPLY", value: "yes" });
   facebookZoey = facebook.facebookStateTransition(facebookZoey, { type: "SUBMIT_MESSAGE_REPLY", displayName: "Zoey", timestamp: "12:06 AM" });
@@ -3100,7 +3100,7 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(cameraRollPersistenceSource, /oldVersion < 2[\s\S]+origin === "player-camera"[\s\S]+typeof value\.experienceSessionId !== "string"[\s\S]+cursor\.delete\(\)/, "v1 player-camera records without provable ownership must be deleted rather than assigned to the current player");
   assert.match(cameraRollPersistenceSource, /index\(CAMERA_ROLL_OWNER_INDEX\)\.getAll\(\["player-camera", experienceSessionId\]\)/, "Camera Roll initialization and current-owner erase must query an explicit owner namespace");
   assert.match(cameraRollPersistenceSource, /cameraRollSequenceMetadataKey\(experienceSessionId\)[\s\S]+photoStore\.add\(record\)[\s\S]+nextSequence: sequence \+ 1/, "record insertion and owner-scoped sequence advancement must share one transaction");
-  assert.match(appSource, /cameraRollPageBootstrapReset\.current = eraseCurrentCameraRoll\(experienceSessionId\)[\s\S]+\.then\(\(\) => initializeCameraRollPersistence\(experienceSessionId\)\)/, "page bootstrap must erase the current Camera Roll before hydrating it");
+  assert.match(appSource, /cameraRollBootstrap\.current.get\(experienceSessionId,[\s\S]+eraseCurrentCameraRoll\(experienceSessionId\)[\s\S]+\.then\(\(\) => initializeCameraRollPersistence\(experienceSessionId\)\)/, "session bootstrap must erase the current Camera Roll before hydrating it");
   assert.match(ambientWorldRendererSource, /normalizedViewfinder[\s\S]+bounds\.left \/ canvas\.width[\s\S]+canvas\.height - bounds\.top - bounds\.height[\s\S]+lastPresentedCameraFrame/, "Camera capture must freeze the live bottom-origin viewfinder mapping");
   assert.match(ambientWorldRendererSource, /CAMERA_CAPTURE_GRAIN_SCALE,[\s\S]+canvasWidth: CAMERA_CAPTURE_WIDTH,[\s\S]+canvasHeight: CAMERA_CAPTURE_HEIGHT,[\s\S]+width: 1,[\s\S]+height: 1/, "offscreen capture must reuse the captured viewport-mapped source geometry");
   assert.match(appSource, /const experienceSessionId = session\.experienceSessionId;[\s\S]+isCameraCaptureOwnerCurrent\(experienceSessionId, activeExperienceSessionIdRef\.current\)[\s\S]+persistCameraCapturedArtifact\(artifact, experienceSessionId\)[\s\S]+discardPersistedCameraPhoto\(durableRecord\)/, "capture must freeze shutter-time ownership and discard a record if its owner becomes stale before runtime exposure");
@@ -4151,11 +4151,11 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   for (const offset of [60, 75, 200, 210, 510, 630, 890]) {
     assert.match(t0M1Timeline, new RegExp(`atElapsedSeconds:\\s*${offset}\\b`), `T0-M1 must preserve T+${offset}`);
   }
-  assert.match(t0M1Timeline, /2010-10-20T00:05:30-07:00/, "T0-M1 Instagram replacement must remain T+210");
+  assert.match(t0M1Timeline, /simulatedDeviceDateTime\(210 \* 1000\)/, "T0-M1 Instagram replacement must remain T+210");
   assert.match(t0M1SharedMedia, /2010-10-20T00:05:30-07:00/, "T0-M1 Instagram replacement media must remain atomic with T+210");
   assert.match(t0M1Foursquare, /2010-10-20T00:10:30-07:00/, "T0-M1 Night Owl must remain T+510");
-  assert.match(t0M1Timeline, /2010-10-20 12:12 AM/, "T0-M1 Tumblr timestamp must remain T+630");
-  assert.match(t0M1Timeline, /timestamp: "12:17 AM"/, "T0-M1 terminal Tweet must remain T+890");
+  assert.match(t0M1Timeline, /simulatedClock\(630 \* 1000\)/, "T0-M1 Tumblr timestamp must remain T+630");
+  assert.match(t0M1Timeline, /timestamp: simulatedClock\(890 \* 1000\)/, "T0-M1 terminal Tweet must remain T+890");
   assert.doesNotMatch(`${t0M1Timeline}\n${t0M1FacebookState}`, /timestamp:\s*"10:(03|06|07|08|11|13|17) PM"/, "T0-M1 runtime labels must not retain stale PM times");
   assert.match(t0M1PublicTwitterRepository, /Date\.parse\(SESSION_START_ISO\)/, "T0-M1 public Twitter must derive from the master clock");
   for (const time of ["00:04", "00:05", "00:07", "00:09", "00:11", "00:13"]) {

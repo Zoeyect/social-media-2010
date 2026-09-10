@@ -1,4 +1,5 @@
 import { FormEvent, PointerEvent, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { createExperienceSessionResource } from "./experienceSessionResources";
 import { DeviceAudio } from "../audio/deviceAudio";
 import { buildSessionTimelineEvents } from "../data/sessionTimeline";
 import { appRuntimeStateTransition, initialAppRuntimeState } from "../state/appRuntimeState";
@@ -44,7 +45,7 @@ import { DeviceScreen, type DeviceScreenProps } from "./DeviceScreen";
 import { PublicTwitterOutro } from "./PublicTwitterOutro";
 import { AmbientWorld } from "../world/AmbientWorld";
 import type { CameraStillCapture } from "../world/AmbientWorld";
-import { getCameraVideoScene, selectCameraVideoScene, type CameraVideoSceneSelection } from "../world/cameraVideoScenes";
+import { selectCameraVideoScene, type CameraVideoSceneSelection } from "../world/cameraVideoScenes";
 
 const TERMINAL_DEPLETED_DISPLAY_MS = 1_500;
 const AUTO_SLEEP_DELAY_MS = 60_000;
@@ -61,25 +62,7 @@ const publicTwitterSubmissionRepository = createMockPublicTwitterSubmissionRepos
 const cameraVideoQuery = import.meta.env.DEV
   ? new URLSearchParams(window.location.search)
   : new URLSearchParams();
-const bootstrapCameraVideoSelection: CameraVideoSceneSelection = selectCameraVideoScene({
-  cameraVideo: cameraVideoQuery.get("cameraVideo"),
-  cameraScene: cameraVideoQuery.get("cameraScene"),
-  cameraEvent: cameraVideoQuery.get("cameraEvent"),
-});
-const bootstrapCameraRuntimeState = createInitialCameraRuntimeState(
-  bootstrapCameraVideoSelection.sceneId,
-  bootstrapCameraVideoSelection.eventType,
-);
-if (import.meta.env.DEV) {
-  const selectedScene = getCameraVideoScene(bootstrapCameraVideoSelection.sceneId);
-  console.info("[CameraWorld] session scene selected", {
-    eventType: bootstrapCameraVideoSelection.eventType,
-    sceneId: bootstrapCameraVideoSelection.sceneId,
-    forcedByQuery: bootstrapCameraVideoSelection.forcedByQuery,
-    cropOffsetX: selectedScene.cropOffsetX ?? 0,
-    cropOffsetY: selectedScene.cropOffsetY ?? 0,
-  });
-}
+const bootstrapCameraRuntimeState = createInitialCameraRuntimeState();
 
 type PublicTwitterQaHandle = Readonly<{
   state: () => PublicTwitterState;
@@ -119,6 +102,8 @@ function loadRuntimeSession(): Session {
 
 export function App() {
   const [session, setSession] = useState<Session>(loadRuntimeSession);
+  const cameraSelection = useRef(createExperienceSessionResource<CameraVideoSceneSelection>());
+  const appliedCameraSession = useRef<string | null>(null);
   const [cameraPreviewCanvas, setCameraPreviewCanvas] = useState<HTMLCanvasElement | null>(null);
   const requestedDevApp = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("devApp") : null;
   const devAppId = requestedDevApp === "twitter" || requestedDevApp === "facebook" || requestedDevApp === "instagram" || requestedDevApp === "foursquare" || requestedDevApp === "flickr" || requestedDevApp === "tumblr" ? requestedDevApp : null;
@@ -138,7 +123,7 @@ export function App() {
   const [cameraRoll, setCameraRoll] = useState<CameraRollInitialization>(initialCameraRoll);
   const cameraRollRef = useRef<CameraRollInitialization>(initialCameraRoll);
   const cameraRollMounted = useRef(true);
-  const cameraRollPageBootstrapReset = useRef<Promise<void> | null>(null);
+  const cameraRollBootstrap = useRef(createExperienceSessionResource<ReturnType<typeof initializeCameraRollPersistence>>());
   const failNextCameraCapture = useRef(false);
   const cameraCaptureResetActive = useRef(false);
   const setCameraCaptureReady = useCallback((capture: CameraStillCapture | null) => {
@@ -187,7 +172,7 @@ export function App() {
   const devAutoOpenConsumed = useRef(false);
   const deliveredEventClaims = useRef(new Set<string>());
   const shutdownResetStarted = useRef(false);
-  const elapsed = elapsedMs(session, now);
+  const elapsed = Math.min(SESSION_DURATION_MS, elapsedMs(session, now));
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
   const deviceStatusTime = formatDeviceTime(deviceDateTime);
   const lockScreenTime = formatLockScreenTime(deviceDateTime);
@@ -286,6 +271,10 @@ export function App() {
     if (shutdownResetStarted.current) return;
     shutdownResetStarted.current = true;
     deliveredEventClaims.current.clear();
+    cameraSelection.current.clear();
+    cameraRollBootstrap.current.clear();
+    appliedCameraSession.current = null;
+    cameraCaptureNamespace.current += 1;
     dispatchMessages({ type: "RESET_RUNTIME" });
     dispatchMessagesBadge({ type: "RESET" });
     dispatchSMSNotification({ type: "RESET" });
@@ -432,18 +421,29 @@ export function App() {
   useEffect(() => saveSession(session), [session]);
   useEffect(() => {
     const experienceSessionId = session.experienceSessionId;
+    if (!experienceSessionId || appliedCameraSession.current === experienceSessionId) return;
+    const selection = cameraSelection.current.get(experienceSessionId, () => selectCameraVideoScene({
+      cameraVideo: cameraVideoQuery.get("cameraVideo"),
+      cameraScene: cameraVideoQuery.get("cameraScene"),
+      cameraEvent: cameraVideoQuery.get("cameraEvent"),
+    }));
+    appliedCameraSession.current = experienceSessionId;
+    dispatchCameraRuntime({ type: "INITIALIZE_SESSION", sceneId: selection.sceneId, eventType: selection.eventType });
+  }, [session.experienceSessionId]);
+  useEffect(() => {
+    const experienceSessionId = session.experienceSessionId;
     let cancelled = false;
     clearRuntimeCameraRoll("loading");
     if (!experienceSessionId) return () => { cancelled = true; };
 
-    if (!cameraRollPageBootstrapReset.current) {
-      cameraRollPageBootstrapReset.current = eraseCurrentCameraRoll(experienceSessionId);
-    }
-    void deleteStalePlayerCameraRolls(experienceSessionId).catch(error => {
-      console.error("Stale Camera Roll cleanup failed; owner filtering remains active.", error);
+    const bootstrap = cameraRollBootstrap.current.get(experienceSessionId, () => {
+      const erased = eraseCurrentCameraRoll(experienceSessionId);
+      void deleteStalePlayerCameraRolls(experienceSessionId).catch(error => {
+        console.error("Stale Camera Roll cleanup failed; owner filtering remains active.", error);
+      });
+      return erased.then(() => initializeCameraRollPersistence(experienceSessionId));
     });
-    void cameraRollPageBootstrapReset.current
-      .then(() => initializeCameraRollPersistence(experienceSessionId))
+    void bootstrap
       .then(durableRecords => {
       const restoredRecords: CameraPhotoRecord[] = [];
       try {
@@ -515,6 +515,8 @@ export function App() {
       return;
     }
     if (isTimelineEvent) deliveredEventClaims.current.add(event.id);
+    const eventDateTime = simulatedDeviceDateTime(event.dueElapsedMs);
+    const eventTime = formatDeviceTime(eventDateTime);
     const source = session.phase === "sleeping" || session.phase === "locked" ? "lockscreen" : "foreground";
     const displayingMomConversation = session.phase === "app"
       && appRuntime.activeAppId === "messages"
@@ -576,17 +578,17 @@ export function App() {
     } else if (event.type === "facebookJackRequest") {
       dispatchFacebook({ type: "DELIVER_JACK_REQUEST" });
     } else if (event.type === "facebookJuneMessage") {
-      dispatchFacebook({ type: "DELIVER_JUNE_MESSAGE" });
+      dispatchFacebook({ type: "DELIVER_JUNE_MESSAGE", timestamp: eventTime });
     } else if (event.type === "facebookPartyInvite" && event.payload?.kind === "facebook-party-invite") {
-      dispatchFacebook({ type: "DELIVER_PARTY_INVITE", timestamp: deviceStatusTime });
+      dispatchFacebook({ type: "DELIVER_PARTY_INVITE", timestamp: eventTime });
     } else if (event.type === "facebookJuneInstagramAnnouncement" && event.payload?.kind === "facebook-june-instagram-announcement") {
-      dispatchFacebook({ type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: deviceStatusTime, createdAt: deviceDateTime.toISOString() });
+      dispatchFacebook({ type: "DELIVER_JUNE_INSTAGRAM_ANNOUNCEMENT", timestamp: eventTime, createdAt: eventDateTime.toISOString() });
     } else if (event.type === "facebookJuneJackGossip" && event.payload?.kind === "facebook-june-jack-gossip") {
       dispatchFacebook({ type: "DELIVER_JUNE_JACK_GOSSIP", reactionId: event.payload.reactionId, characterId: event.payload.characterId, text: event.payload.text });
     } else if (event.type === "facebookEphemeralGossip" && event.payload?.kind === "facebook-ephemeral-gossip") {
-      dispatchFacebook({ type: "DELIVER_EPHEMERAL_GOSSIP", postId: event.payload.postId, ephemeralId: event.payload.ephemeralId, text: event.payload.text, timestamp: deviceStatusTime, createdAt: deviceDateTime.toISOString() });
+      dispatchFacebook({ type: "DELIVER_EPHEMERAL_GOSSIP", postId: event.payload.postId, ephemeralId: event.payload.ephemeralId, text: event.payload.text, timestamp: eventTime, createdAt: eventDateTime.toISOString() });
     } else if (event.type === "facebookKatieGossipMessage" && event.payload?.kind === "facebook-katie-jack-gossip-message") {
-      dispatchFacebook({ type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: deviceStatusTime });
+      dispatchFacebook({ type: "DELIVER_KATIE_GOSSIP_MESSAGE", timestamp: eventTime });
     } else if (event.type === "facebookSophieJuneComment" && event.payload?.kind === "facebook-sophie-june-comment") {
       dispatchFacebook({ type: "DELIVER_SOPHIE_JUNE_COMMENT", commentId: event.payload.commentId, text: event.payload.text });
     } else if (event.type === "instagramJunePost" && event.payload?.kind === "instagram-june-post") {
@@ -1147,7 +1149,7 @@ export function App() {
       cameraViewfinder={cameraPreviewCanvas}
       cameraLook={cameraRuntime.cameraApp.cameraLook}
       cameraVideoSceneId={cameraRuntime.cameraApp.cameraVideoSceneId}
-      cameraVideoDisabled={bootstrapCameraVideoSelection.videoDisabled}
+      cameraVideoDisabled={cameraSelection.current.value?.videoDisabled ?? true}
       onCameraLookPointerOffsetClamped={setCameraLookPointerOffset}
       onCameraCaptureReady={setCameraCaptureReady}
     />

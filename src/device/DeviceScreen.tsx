@@ -37,7 +37,7 @@ export type DeviceScreenProps = {
     selectPhoto: (photoId: string) => void;
   };
   display: {
-    session: Pick<Session, "phase" | "returnToHeroPending" | "activeWarning">;
+    session: Pick<Session, "phase" | "returnToHeroPending" | "activeWarning" | "experienceSessionId">;
     powerProgress: number;
     lockScreenModel: ComponentProps<typeof LockScreen>["model"];
     statusBarState: ComponentProps<typeof StatusBar>["state"];
@@ -75,6 +75,7 @@ export type DeviceScreenProps = {
     dispatchInstagram: ComponentProps<typeof InstagramContainer>["dispatch"];
     flickrState: ComponentProps<typeof FlickrContainer>["state"];
     dispatchFlickr: ComponentProps<typeof FlickrContainer>["dispatch"];
+    flickrMail: ComponentProps<typeof FlickrContainer>["mail"];
     tumblrState: ComponentProps<typeof TumblrContainer>["state"];
     dispatchTumblr: ComponentProps<typeof TumblrContainer>["dispatch"];
     foursquareState: ComponentProps<typeof FoursquareContainer>["state"];
@@ -154,6 +155,7 @@ export function DeviceScreen({ display, navigation, apps, camera, overlays, acti
     dispatchInstagram,
     flickrState,
     dispatchFlickr,
+    flickrMail,
     tumblrState,
     dispatchTumblr,
     foursquareState,
@@ -220,6 +222,7 @@ export function DeviceScreen({ display, navigation, apps, camera, overlays, acti
       onActiveFolderSlotChange={setActiveFolderSlotIndex}
       messagesBadgeCount={messagesBadgeCount}
       notificationBadgeCounts={notificationBadgeCounts}
+      flickrUploadCount={flickrState.upload ? 1 : 0}
       onLaunchApp={launchSpringBoardApp}
     />}
     {session.phase === "app" && <AppLaunchContainer
@@ -289,6 +292,11 @@ export function DeviceScreen({ display, navigation, apps, camera, overlays, acti
       {appRuntime.activeAppId === "flickr" && <FlickrContainer
         state={flickrState}
         dispatch={dispatchFlickr}
+        mail={flickrMail}
+        elapsedMs={elapsed}
+        experienceSessionId={session.experienceSessionId}
+        mediaAttachmentActive={media.visible && media.request?.requester === "flickr"}
+        onRequestMedia={source => media.requestAttachment({ requester: "flickr", mode: "photo", source, contextId: "upload" })}
       />}
       {appRuntime.activeAppId === "tumblr" && <TumblrContainer
         state={tumblrState}
@@ -299,7 +307,7 @@ export function DeviceScreen({ display, navigation, apps, camera, overlays, acti
         dispatch={dispatchFoursquare}
         currentDeviceDateTime={deviceDateTime}
       />}
-      {media.visible && media.request?.stage === "source" && <MediaSourceChooser onSource={media.chooseSource} onCancel={cancelScreenCameraPicker} />}
+      {media.visible && media.request?.stage === "source" && <MediaSourceChooser requester={media.request.requester} onSource={media.chooseSource} onCancel={cancelScreenCameraPicker} />}
       {media.visible && media.request?.stage === "library" && <div className="media-library-picker"><PhotosContainer mode="picker" cameraRoll={cameraRoll} onPickerCancel={cancelScreenCameraPicker} onPickerSelect={media.selectPhoto} /></div>}
       </IOS4KeyboardSystem>
     </AppLaunchContainer>}

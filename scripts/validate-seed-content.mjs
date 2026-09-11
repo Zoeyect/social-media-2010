@@ -2429,41 +2429,41 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   const flickrB = flickr.createInitialFlickrState();
   assert.notStrictEqual(flickrA.photos, flickrB.photos);
   assert.notStrictEqual(flickrA.photos[0], flickrB.photos[0]);
-  assert.ok(flickrA.photos.every(photo => photo.origin === "seed" && parseExplicitFlickrTimestamp(photo.timestamp) < facebookSessionStartMs));
-  assert.deepEqual(flickrA.commentsState.map(comment => [comment.text, comment.origin]), [["Nice shot", "seed"]], "existing Flickr comments must normalize into session-local seed records");
+  assert.ok(flickrA.photos.every(photo => photo.origin === "seed" && Date.parse(photo.uploadedAt) < facebookSessionStartMs));
+  assert.deepEqual(flickrA.commentsState.map(comment => [comment.text, comment.origin]), [], "canonical Flickr photos must not invent seeded comments");
   assert.ok(flickrA.sets.length <= 2 && flickrA.sets.every(set => set.photoIds.every(photoId => flickrA.photos.some(photo => photo.id === photoId))), "Flickr Sets must reference existing photo IDs without duplicate photo objects");
   flickrA = flickr.flickrStateTransition(flickrA, { type: "TOGGLE_FAVORITE", photoId: flickrA.photos[0].id });
   assert.equal(flickrA.favoritePhotoIds.length, 1);
   assert.equal(flickrB.favoritePhotoIds.length, 0, "Flickr Favorite state must remain session-local");
-  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_PHOTO", photoId: "sunset-brooklyn", origin: { view: "photostream" }, photostreamScrollPosition: 91 });
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_PHOTO", photoId: "flickr:jay-band-performance", origin: { view: "photostream" }, photostreamScrollPosition: 91 });
   flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_COMMENTS" });
   flickrA = flickr.flickrStateTransition(flickrA, { type: "EDIT_COMMENT", value: "Still beautiful." });
   flickrA = flickr.flickrStateTransition(flickrA, { type: "SUBMIT_COMMENT", author: "Zoey" });
   assert.deepEqual(flickrA.commentsState.at(-1), {
     id: "flickr-user-comment-1",
-    photoId: "sunset-brooklyn",
+    photoId: "flickr:jay-band-performance",
     author: "Zoey",
     text: "Still beautiful.",
     origin: "user",
   });
   assert.deepEqual(seed.flickr[0].comments, ["Nice shot"], "user comment must not mutate the Flickr seed definition");
-  assert.deepEqual(flickrA.favoritePhotoIds, ["sunset-brooklyn"], "commenting must not alter Favorite state");
+  assert.deepEqual(flickrA.favoritePhotoIds, ["flickr:jay-band-performance"], "commenting must not alter Favorite state");
   assert.equal(flickrA.photostreamScrollPosition, 91);
   flickrA = flickr.flickrStateTransition(flickrA, { type: "BACK_TO_PHOTO" });
   flickrA = flickr.flickrStateTransition(flickrA, { type: "BACK_FROM_PHOTO" });
   assert.equal(flickrA.currentView, "photostream");
   assert.equal(flickrA.photostreamScrollPosition, 91, "photo opened from Photostream must restore its scroll position");
   flickrA = flickr.flickrStateTransition(flickrA, { type: "SHOW_SETS" });
-  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_SET", setId: "late-night" });
-  const setMembershipBeforePhoto = [...flickrA.sets.find(set => set.id === "late-night").photoIds];
-  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_PHOTO", photoId: "platform", origin: { view: "set", setId: "late-night" } });
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_SET", setId: "jay-music" });
+  const setMembershipBeforePhoto = [...flickrA.sets.find(set => set.id === "jay-music").photoIds];
+  flickrA = flickr.flickrStateTransition(flickrA, { type: "OPEN_PHOTO", photoId: "flickr:jay-guitar", origin: { view: "set", setId: "jay-music" } });
   assert.equal(flickrA.currentView, "photo");
-  assert.deepEqual(flickrA.photoNavigationOrigin, { view: "set", setId: "late-night" });
+  assert.deepEqual(flickrA.photoNavigationOrigin, { view: "set", setId: "jay-music" });
   flickrA = flickr.flickrStateTransition(flickrA, { type: "BACK_FROM_PHOTO" });
   assert.equal(flickrA.currentView, "set", "photo opened from a Set must return to that Set");
-  assert.equal(flickrA.currentSetId, "late-night");
-  assert.deepEqual(flickrA.sets.find(set => set.id === "late-night").photoIds, setMembershipBeforePhoto, "navigation and comments must not alter Set membership");
-  assert.deepEqual(flickrA.favoritePhotoIds, ["sunset-brooklyn"]);
+  assert.equal(flickrA.currentSetId, "jay-music");
+  assert.deepEqual(flickrA.sets.find(set => set.id === "jay-music").photoIds, setMembershipBeforePhoto, "navigation and comments must not alter Set membership");
+  assert.deepEqual(flickrA.favoritePhotoIds, ["flickr:jay-band-performance"]);
   assert.equal(flickrA.commentsState.filter(comment => comment.origin === "user").length, 1);
 
   let instagramState = instagram.createInitialInstagramState();
@@ -2974,12 +2974,15 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   );
   assert.equal(facebookAlex.feed.some(item => item.id === "owner-late" || item.author === "session-owner"), false, "Facebook seed must not contain pre-authored session-owner content");
   assert.deepEqual(flickrAlex.favoritePhotoIds, []);
-  assert.equal(flickrAlex.currentView, "photostream");
+  assert.equal(flickrAlex.currentView, "home");
   assert.equal(flickrAlex.selectedPhotoId, null);
   assert.equal(flickrAlex.currentSetId, null);
   assert.equal(flickrAlex.photostreamScrollPosition, 0);
   assert.equal(flickrAlex.commentsState.filter(comment => comment.origin === "user").length, 0);
-  assert.deepEqual(flickrAlex.commentsState.map(comment => [comment.text, comment.origin]), [["Nice shot", "seed"]]);
+  assert.deepEqual(flickrAlex.commentsState.map(comment => [comment.text, comment.origin]), []);
+  assert.equal(flickrAlex.pendingUpload, null);
+  assert.equal(flickrAlex.upload, null);
+  assert.deepEqual(flickrAlex.recentSearches, []);
   assert.deepEqual(tumblrAlex.likedPostIds, []);
   assert.deepEqual(tumblrAlex.rebloggedPostIds, []);
   assert.deepEqual(tumblrAlex.reblogs, []);
@@ -3456,6 +3459,16 @@ assert.deepEqual(seed.facebook.feed.filter(story => ["jack-birthday-june-post", 
   assert.match(deviceCssSource, /\.foursquare-venue-info > div \{[^}]*min-height: 48px;[^}]*grid-template-columns: 80px minmax\(0,1fr\);/, "F2b-2 Info must retain its reconstructed compact row geometry");
   assert.match(deviceCssSource, /\.foursquare-container \{[^}]*grid-template-rows: 44px minmax\(0,1fr\) 49px;/, "F1 must retain the reconstructed 44/content/49 shell geometry");
   assert.match(deviceCssSource, /\.foursquare-tab-bar \{[^}]*grid-template-columns: repeat\(5,64px\);/, "F1 tab bar must use five equal 64px cells");
+  const flickrContent = await vite.ssrLoadModule("/src/data/flickrContent.ts");
+  assert.equal(flickrContent.FLICKR_VERSION, "1.2");
+  assert.equal(flickrContent.FLICKR_VERSION_CONFIDENCE, "EVIDENCE-BACKED BEST FIT");
+  assert.equal((appSource.match(/useReducer\(flickrStateTransition,/g) ?? []).length, 1, "one App-owned Flickr reducer");
+  assert.match(appSource, /request.requester === "flickr"\) dispatchFlickr\(\{ type: "MEDIA_RETURN"/, "shared media returns explicitly to Flickr");
+  assert.match(appSource, /dispatchFlickr\(\{ type: "ADVANCE_UPLOAD", experienceSessionId: session.experienceSessionId, elapsedMs: elapsed/, "background upload uses shared clock/session");
+  assert.match(appSource, /dispatchFlickr\(\{ type: "RESET"/, "Flickr remains in reset inventory");
+  assert.match(deviceScreenSource, /flickrUploadCount=\{flickrState.upload \? 1 : 0\}/, "processing badge is independent of unread policy");
+  assert.doesNotMatch(flickrContainerSource, /<StatusBar|<IOS4KeyboardSystem|navigator.geolocation|Notification Center|Camera Filters|Auto Upload|Community|Albums|Explore/, "no duplicated device systems or later Flickr surfaces");
+  assert.doesNotMatch(flickrContainerSource, /fetch\(|XMLHttpRequest|localStorage|setInterval|setTimeout|Date.now/, "Flickr has no network, persistence or parallel clock");
   assert.match(flickrContainerSource, /<IOS4Textarea[\s\S]+keyboardInputId=\{`flickr-comment-[\s\S]+EDIT_COMMENT/, "Flickr comments must use the shared keyboard and existing event");
   assert.match(tumblrContainerSource, /<IOS4Textarea[\s\S]+keyboardInputId=\{`tumblr-reblog-[\s\S]+EDIT_REBLOG_TEXT/, "Tumblr optional reblog text must use the shared keyboard and existing event");
   const registeredEditableSources = `${facebookContainerSource}\n${mobileSmsContainerSource}\n${twitterContainerSource}\n${instagramContainerSource}\n${foursquareContainerSource}\n${flickrContainerSource}\n${tumblrContainerSource}`;

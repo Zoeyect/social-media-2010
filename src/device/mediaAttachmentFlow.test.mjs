@@ -67,7 +67,7 @@ const server = await createServer({ server: { middlewareMode: true }, appType: "
   },
   transform(code, id) {
     if (id.endsWith("/src/device/App.tsx")) return code.replace('from "react";', 'from "virtual:lifecycle-hooks";');
-    if (/\/src\/device\/(TwitterContainer|FacebookContainer|MobileSMSContainer)\.tsx$/.test(id)) return code.replace('from "react";', 'from "virtual:lifecycle-hooks";').replaceAll('useSessionIdentity()', '({ name: "Media Visitor" })');
+    if (/\/src\/device\/(TwitterContainer|FacebookContainer|MobileSMSContainer|FlickrContainer)\.tsx$/.test(id)) return code.replace('from "react";', 'from "virtual:lifecycle-hooks";').replaceAll('useSessionIdentity()', '({ name: "Media Visitor" })');
     if (id.endsWith("/src/world/cameraVideoScenes.ts")) return code.replace("  const random = options.random ?? Math.random;", "  globalThis.__sceneSelected();\n  const random = options.random ?? Math.random;");
   },
 }] });
@@ -99,14 +99,14 @@ try {
   };
   const clickMedia = (requester, source) => {
     const surface=DeviceScreen(view.screen.props);
-    const container=walk(surface).find(node=>node.type?.name===({messages:"MobileSMSContainer",facebook:"FacebookContainer",twitter:"TwitterContainer"}[requester]));
+    const container=walk(surface).find(node=>node.type?.name===({messages:"MobileSMSContainer",facebook:"FacebookContainer",twitter:"TwitterContainer",flickr:"FlickrContainer"}[requester]));
     assert.ok(container);
     let content=renderComponent(container.type,container.props);
     if(requester==="twitter") {
       const composer=walk(content).find(node=>node.type?.name==="TwitterComposer");assert.ok(composer);
       content=renderComponent(composer.type,composer.props);
     }
-    const className=requester==="messages"?"mobilesms-camera-slot":requester==="facebook"?"facebook-feed-camera-control":`twitter-compose-tool is-${source==="camera"?"camera":"photo-library"}`;
+    const className=requester==="flickr"?"flickr-right flickr-upload-icon":requester==="messages"?"mobilesms-camera-slot":requester==="facebook"?"facebook-feed-camera-control":`twitter-compose-tool is-${source==="camera"?"camera":"photo-library"}`;
     const button=walk(content).find(node=>node.type==="button" && node.props.className===className);
     assert.ok(button && !button.props.disabled);assert.equal(typeof button.props.onClick,"function");
     button.props.onClick();
@@ -256,6 +256,71 @@ try {
       await request(requester,"library");screen().media.selectPhoto(photo.id);await flush();
       assert.ok(attachment(requester)); // Keep unsent attachments in all three apps for reset.
     }
+    // Flickr A–L through the same App, Camera, Camera Roll, DeviceScreen and UI control.
+    await open("flickr");
+    const flickr = () => screen().apps.flickrState;
+    const sendFlickr = async event => { screen().apps.dispatchFlickr(event); await flush(); };
+    assert.equal(flickr().currentView, "home");
+    assert.equal(flickr().pendingUpload, null);
+    await sendFlickr({type:"EDIT_UPLOAD",field:"description",value:"Kept across Camera"});
+    clickMedia("flickr","camera-or-library");await flush();
+    assert.equal(screen().media.request.requester,"flickr");
+    assert.equal(screen().media.request.contextId,"upload");
+    assert.match(markup(),/Upload from Library/);
+    const sourceScreen=DeviceScreen(view.screen.props);
+    assert.equal(walk(sourceScreen).find(n=>n.type?.name==="IOS4KeyboardSystem").props.suspended,true);
+    screen().media.chooseSource("camera");await flush();
+    assert.equal(screen().media.cameraActive,true);
+    assert.equal((markup().match(/data-camera-owner="cameraApp"/g)??[]).length,1);
+    await screen().camera.captureCameraPhoto();await flush();
+    assert.equal(screen().media.request,null);
+    assert.equal(flickr().currentView,"upload");
+    const pendingFlickr=flickr().pendingUpload;
+    assert.ok(pendingFlickr);
+    const retainedPhoto=screen().camera.cameraRoll.records.find(p=>p.id===pendingFlickr.attachment.id);
+    assert.ok(retainedPhoto);assert.equal(pendingFlickr.takenAt,retainedPhoto.createdAt);
+    assert.equal(pendingFlickr.attachment.objectUrl,retainedPhoto.objectUrl);
+    const originalCount=flickr().photos.length;
+    assert.equal(flickr().photos.filter(p=>p.origin==="live").length,0,"selection is not publication");
+    screen().media.requestAttachment({requester:"flickr",source:"library",mode:"photo"});await flush();
+    screen().actions.cancelScreenCameraPicker();await flush();
+    assert.strictEqual(flickr().pendingUpload,pendingFlickr);
+    assert.equal(flickr().uploadDraft.description,"Kept across Camera");
+    const flickrNode=walk(DeviceScreen(view.screen.props)).find(n=>n.type?.name==="FlickrContainer");
+    const flickrUi=renderComponent(flickrNode.type,flickrNode.props);
+    const uploadButton=walk(flickrUi).find(n=>n.props?.className==="flickr-publish");
+    assert.ok(uploadButton&&!uploadButton.props.disabled);uploadButton.props.onClick();uploadButton.props.onClick();await flush();
+    const job=flickr().upload;assert.ok(job);
+    assert.equal(flickr().photos.length,originalCount,"upload must finish before publication");
+    assert.equal(job.photo.uploadedAt,device.simulatedDeviceDateTime(job.dueElapsedMs).toISOString());
+    assert.ok(Date.parse(job.photo.takenAt)<=Date.parse(job.photo.uploadedAt));
+    await home();
+    assert.equal(walk(DeviceScreen(view.screen.props)).find(n=>n.type?.name==="SpringBoard").props.flickrUploadCount,1);
+    await open("facebook");await tick(3500);
+    assert.equal(flickr().photos.length,originalCount+1);assert.equal(flickr().upload,null);
+    assert.equal(flickr().pendingUpload,null);
+    assert.equal(flickr().photos.filter(p=>p.id===job.photo.id).length,1);
+    assert.strictEqual(screen().camera.cameraRoll.records.find(p=>p.id===retainedPhoto.id),retainedPhoto);
+    await home();assert.equal(walk(DeviceScreen(view.screen.props)).find(n=>n.type?.name==="SpringBoard").props.flickrUploadCount,0);
+    await open("flickr");assert.equal(flickr().currentView,"upload","Home/app switching preserves location");
+    await sendFlickr({type:"SHOW_PHOTOSTREAM"});
+    assert.match(markup(),/Kept across Camera|YOUR PHOTOSTREAM/);
+    await sendFlickr({type:"SEARCH_QUERY",value:"Guitar"});await sendFlickr({type:"NAVIGATE",view:"search"});await sendFlickr({type:"SEARCH"});
+    view.powerControl.begin();view.powerControl.end();await flush();
+    view.powerControl.begin();view.powerControl.end();await flush();screen().actions.completeScreenUnlock();await flush();
+    assert.equal(flickr().currentView,"search");assert.equal(flickr().searchQuery,"Guitar");
+    await home();await open("messages");await open("flickr");
+    assert.equal(flickr().currentView,"search");assert.equal(flickr().searchedQuery,"Guitar");
+    screen().media.requestAttachment({requester:"flickr",source:"library",mode:"photo"});await flush();
+    assert.equal(screen().media.request.stage,"library");
+    screen().media.selectPhoto(retainedPhoto.id);await flush();
+    assert.equal(flickr().pendingUpload.attachment.id,retainedPhoto.id);
+    assert.equal(flickr().photos.length,originalCount+1);
+    assert.equal(sceneSelections,run+1,"Flickr never rerolls the shared Camera scene");
+    assert.equal(view.sessionDiagnostics.cameraSceneSessionId,sessionId);
+    // Leave an unfinished second upload for the normal end-of-session reset below.
+    await sendFlickr({type:"EDIT_UPLOAD",field:"tags",value:"test"});
+    await open("twitter");
     // Safari sequence: leave an unfinished app request, then tap another app's real control.
     await request("twitter","camera");
     await open("messages");clickMedia("messages","camera-or-library");await flush();
@@ -303,6 +368,11 @@ try {
     assert.deepEqual(screen().apps.messagesState.pendingAttachments,{});
     assert.equal(screen().apps.facebookState.pendingAttachment,null);
     assert.equal(screen().apps.twitterState.pendingAttachment,null);
+    assert.equal(screen().apps.flickrState.pendingUpload,null);
+    assert.equal(screen().apps.flickrState.upload,null);
+    assert.equal(screen().apps.flickrState.currentView,"home");
+    assert.equal(screen().apps.flickrState.photos.filter(p=>p.origin==="live").length,0);
+    assert.deepEqual(screen().apps.flickrState.recentSearches,[]);
     await tick(5000);await tick(5000);
     assert.ok(walk(tree).find(node=>node.type==='form'));
   }
@@ -310,5 +380,5 @@ try {
   assert.equal(sceneSelections,2);assert.equal(initializeCount,2);
   slots.forEach(slot=>slot?.cleanup?.());
   assert.equal(timers.size,0);
-  console.log("PASS: Shared Media A–R + routing through real Facebook/Twitter/Messages controls; Mom/Dad context, background request supersession, capture/library/cancel/draft/publication, Home/Power, stale capture, same scene, public outro and two resets. Safari pixels pending.");
+  console.log("PASS: Flickr A–L, background upload, badge, search/Home/Power/reset + Shared Media A–R + routing through real Facebook/Twitter/Messages controls; Mom/Dad context, background request supersession, capture/library/cancel/draft/publication, Home/Power, stale capture, same scene, public outro and two resets. Safari pixels pending.");
 } finally { globalThis.FormData=realFormData;Date.now=realDateNow;performance.now=realPerformanceNow;await server.close(); }

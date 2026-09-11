@@ -42,6 +42,7 @@ import { createMockPublicTwitterRepository } from "../data/mockPublicTwitterRepo
 import { createMockPublicTwitterSubmissionRepository } from "../data/mockPublicTwitterSubmissionRepository";
 import { initialPublicTwitterOutroState, publicTwitterOutroTransition, selectEligibleLocalTweetIds } from "../state/publicTwitterOutroState";
 import { smsMessageReceived } from "../system/smsNotification";
+import { FlickrMailController } from "../mail/flickrMailController";
 import { createInitialFlickrState, flickrStateTransition } from "../state/flickrState";
 import { createInitialTumblrState, tumblrStateTransition } from "../state/tumblrState";
 import { DeviceScreen, type DeviceScreenProps } from "./DeviceScreen";
@@ -173,6 +174,10 @@ export function App() {
   const [instagramState, dispatchInstagram] = useReducer(instagramStateTransition, undefined, createInitialInstagramState);
   const [foursquareState, dispatchFoursquare] = useReducer(foursquareStateTransition, undefined, createInitialFoursquareState);
   const [flickrState, dispatchFlickr] = useReducer(flickrStateTransition, undefined, createInitialFlickrState);
+  const [flickrMail] = useState(() => new FlickrMailController());
+  const [, refreshFlickrMail] = useReducer((revision: number) => revision + 1, 0);
+  useEffect(() => flickrMail.subscribe(refreshFlickrMail), [flickrMail]);
+  useEffect(() => () => flickrMail.reset(), [flickrMail]);
   const [tumblrState, dispatchTumblr] = useReducer(tumblrStateTransition, undefined, createInitialTumblrState);
   const [twitterState, dispatchTwitter] = useReducer(
     twitterStateTransition,
@@ -202,6 +207,9 @@ export function App() {
   const shutdownResetStarted = useRef(false);
   const elapsed = Math.min(SESSION_DURATION_MS, elapsedMs(session, now));
   const deviceDateTime = simulatedDeviceDateTime(elapsed);
+  useEffect(() => {
+    dispatchFlickr({ type: "ADVANCE_UPLOAD", experienceSessionId: session.experienceSessionId, elapsedMs: elapsed });
+  }, [elapsed, session.experienceSessionId]);
   const deviceStatusTime = formatDeviceTime(deviceDateTime);
   const lockScreenTime = formatLockScreenTime(deviceDateTime);
   const deviceDate = formatDeviceDate(deviceDateTime);
@@ -312,6 +320,7 @@ export function App() {
     dispatchFacebook({ type: "RESET" });
     dispatchInstagram({ type: "RESET" });
     dispatchFoursquare({ type: "RESET" });
+    flickrMail.reset();
     dispatchFlickr({ type: "RESET" });
     dispatchTumblr({ type: "RESET" });
     dispatchTwitter({ type: "RESET" });
@@ -1109,10 +1118,10 @@ export function App() {
     if (session.phase !== "app" || appRuntime.activeAppId !== request.requester || !session.experienceSessionId) return;
     const previousRequest = mediaRequestRef.current;
     if (previousRequest?.requester === request.requester) return;
-    // Flickr/Tumblr are reserved contract values, not invented upload surfaces.
-    if (request.requester === "flickr" || request.requester === "tumblr") return;
+    // Tumblr remains reserved; Flickr uses the same shared media transaction.
+    if (request.requester === "tumblr") return;
     const contextId = request.contextId ?? (request.requester === "messages" ? messagesState.activeConversationId
-      : request.requester === "twitter" ? twitterState.composerKind === "reply" ? twitterState.replyComposerTweetId : "new" : "status");
+      : request.requester === "twitter" ? twitterState.composerKind === "reply" ? twitterState.replyComposerTweetId : "new" : request.requester === "flickr" ? "upload" : "status");
     if (!contextId) return;
     // Only an explicit new foreground media action supersedes a background flow.
     // Home/sleep alone still retain it; drafts and pending images are untouched.
@@ -1128,6 +1137,8 @@ export function App() {
   };
   const returnMediaToRequester = useCallback((request: ActiveMediaRequest, attachment?: MediaAttachment) => {
     if (request.requester === "messages" && request.contextId) dispatchMessages({ type: "MEDIA_RETURN", contextId: request.contextId, attachment });
+    if (request.requester === "flickr") dispatchFlickr({ type: "MEDIA_RETURN", attachment,
+      takenAt: cameraRollRef.current.records.find(photo => photo.id === attachment?.id)?.createdAt });
     if (request.requester === "facebook") dispatchFacebook({ type: "MEDIA_RETURN", attachment });
     if (request.requester === "twitter" && request.contextId) dispatchTwitter({ type: "MEDIA_RETURN", contextId: request.contextId, attachment });
     dispatchMediaRequest({ type: "CANCEL", id: request.id });
@@ -1303,6 +1314,7 @@ export function App() {
           dispatchInstagram,
           flickrState,
           dispatchFlickr,
+          flickrMail,
           tumblrState,
           dispatchTumblr,
           foursquareState,

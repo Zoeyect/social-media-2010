@@ -43,6 +43,7 @@ type SpringBoardProps = {
   onActiveFolderSlotChange: (slotIndex: number) => void;
   onLaunchApp: (appId: string) => void;
   messagesBadgeCount: number;
+  flickrUploadCount?: number;
   notificationBadgeCounts?: Partial<Record<NotificationApp, number>>;
 };
 
@@ -139,7 +140,7 @@ const DOCK_APPS = [
   { name: "YouTube", iconSrc: youtubeIconSrc },
 ] as const;
 
-export function SpringBoard({ currentPage, onPageChange, folderState, dispatchFolderEvent, activeFolderSlotIndex, onActiveFolderSlotChange, onLaunchApp, messagesBadgeCount, notificationBadgeCounts }: SpringBoardProps) {
+export function SpringBoard({ currentPage, onPageChange, folderState, dispatchFolderEvent, activeFolderSlotIndex, onActiveFolderSlotChange, onLaunchApp, messagesBadgeCount, notificationBadgeCounts, flickrUploadCount = 0 }: SpringBoardProps) {
   const swipeStart = useRef<SwipeStart | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -230,7 +231,7 @@ export function SpringBoard({ currentPage, onPageChange, folderState, dispatchFo
         className={`springboard-pages-track${isDragging ? " is-dragging" : ""}`}
         style={{ transform: `translateX(${-currentPage * PAGE_WIDTH + dragOffset}px)` }}
       >
-        <SpringBoardPage apps={PAGE_ONE_APPS} pageNumber={1} badgeCounts={Object.fromEntries(PAGE_ONE_APPS.map((app, index) => [index, notificationBadgeCounts?.[app?.launchId as NotificationApp] ?? 0]))} folderSourceSlotIndex={folderIsActive ? activeFolderSlotIndex : undefined} onAppActivate={index => {
+        <SpringBoardPage apps={PAGE_ONE_APPS} pageNumber={1} badgeCounts={Object.fromEntries(PAGE_ONE_APPS.map((app, index) => [index, app?.launchId === "flickr" ? flickrUploadCount : notificationBadgeCounts?.[app?.launchId as NotificationApp] ?? 0]))} folderSourceSlotIndex={folderIsActive ? activeFolderSlotIndex : undefined} onAppActivate={index => {
           const app = PAGE_ONE_APPS[index];
           if (app?.folderId) openFolder(index);
           else if (app?.launchId) onLaunchApp(app.launchId);

@@ -16,6 +16,8 @@ export type TumblrPost = {
   timestamp: string;
   origin: ContentOrigin;
   attachment?: MediaAttachment;
+  sessionAuthored?: boolean;
+  publishedElapsedMs?: number;
 };
 
 export type TumblrReblog = {
@@ -37,6 +39,7 @@ export type TumblrNote = {
 
 export type TumblrState = {
   currentView: TumblrView;
+  dashboardSegment: "dashboard" | "my-posts";
   selectedPostId: string | null;
   composerKind: TumblrComposerKind | null;
   pendingAttachment: MediaAttachment | null;
@@ -56,6 +59,7 @@ export type TumblrState = {
 };
 
 export type TumblrEvent =
+  | { type: "SELECT_DASHBOARD_SEGMENT"; segment: "dashboard" | "my-posts" }
   | { type: "TOGGLE_SEARCH" }
   | { type: "SEARCH_QUERY"; value: string }
   | { type: "MEDIA_RETURN"; contextId: string; attachment?: MediaAttachment }
@@ -88,6 +92,7 @@ const TUMBLR_SEED_NOTES: ReadonlyArray<TumblrNote> = Object.freeze([
 export function createInitialTumblrState(): TumblrState {
   return {
     currentView: "dashboard",
+    dashboardSegment: "dashboard",
     selectedPostId: null,
     composerKind: null,
     pendingAttachment: null,
@@ -111,6 +116,8 @@ export const initialTumblrState: TumblrState = createInitialTumblrState();
 
 export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): TumblrState {
   switch (event.type) {
+    case "SELECT_DASHBOARD_SEGMENT":
+      return state.currentView === "dashboard" ? { ...state, dashboardSegment: event.segment, dashboardScrollPosition: 0 } : state;
     case "TOGGLE_SEARCH":
       return { ...state, searchVisible: !state.searchVisible, searchQuery: "", dashboardScrollPosition: 0 };
     case "SEARCH_QUERY":
@@ -282,6 +289,8 @@ export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): T
             type: state.composerKind,
             ...(photo && state.pendingAttachment ? { attachment: state.pendingAttachment } : {}),
             blog: event.author,
+            sessionAuthored: true,
+            publishedElapsedMs: event.publishedAtMs,
             title: photo ? "" : title || "Untitled",
             content,
             timestamp,
@@ -305,4 +314,17 @@ export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): T
     case "RESET":
       return createInitialTumblrState();
   }
+}
+
+
+/** A view of existing records, never a second publication store. */
+export function tumblrMyPosts(state: TumblrState): Array<{ post: TumblrPost; reblog?: TumblrReblog }> {
+  const entries: Array<{ post: TumblrPost; reblog?: TumblrReblog }> = state.posts
+    .filter(post => post.sessionAuthored === true).map(post => ({ post }));
+  for (const reblog of state.reblogs) {
+    const post = state.posts.find(post => post.id === reblog.sourcePostId);
+    if (post) entries.push({ post, reblog });
+  }
+  const elapsed = (entry: typeof entries[number]) => entry.reblog?.actionTimestamp ?? entry.post.publishedElapsedMs ?? 0;
+  return entries.sort((a, b) => elapsed(b) - elapsed(a));
 }

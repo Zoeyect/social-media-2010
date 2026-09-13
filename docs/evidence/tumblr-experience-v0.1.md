@@ -181,3 +181,27 @@ Photo uses requester `tumblr` and the existing source chooser, Camera owner, Cam
 Remaining HOLDs: remote search semantics, Tumblr/My Posts semantics, Quote/Link/Chat/Audio/Video composers, advanced-option controls, settings/account details, Ask, Following, push, Notes expansion and November redesign. No Flickr behavior or other app UI changes are intended.
 
 Verification: build, seed validator, diff whitespace, Tumblr state/SSR, software foundation/session, notification state, media keyboard ownership, shared media integration, media publishing, Flickr state and public Twitter checks pass. Shared media integration exercises Tumblr camera/library/cancel/reference identity/caption/double-submit/reset in two sessions alongside existing requesters. Safari reference JPEG inspection completed; updated implementation interaction/visual acceptance remains pending device power/unlock, which the available native automation cannot reliably hold. QA URL: `http://localhost:5175/?devApp=tumblr&autoOpen=1`. No claim of completed Safari acceptance is made.
+
+
+## v0.4 — My Posts / Settings / Notes audit
+
+Target remains October 20, 2010, iPhone 4 / iOS 4.1. This section supersedes My Posts and the empty Settings shell HOLD only.
+
+| Detail | Evidence / decision | Classification |
+| --- | --- | --- |
+| Dashboard and reblog availability | [Macworld, March 30 2009](https://www.macworld.com/article/195615/tumblr.html) explicitly describes followed-blog Dashboard and reblogging. | FACT (availability, not exact October pixels) |
+| My Posts segment, compact list, Settings tab | Previously directly inspected approved [2010 archive](https://www.webdesignmuseum.org/iphone/tumblr-for-iphone-in-2010), images 03/06 and 02. | EVIDENCE-BACKED BEST FIT; not exact October build |
+| My Posts ownership | Session-created Text/Photo plus existing user reblog relationships, projected from the single reducer. Explicit session ownership excludes matching historical blog names and latewatch. | RECONSTRUCTED semantics authorized by v0.4 brief |
+| Left Tumblr segment | No sufficiently specific target-period meaning established. | HOLD; visible disabled |
+| Settings contents | No inspected exact Settings capture. Read-only Account / Blog identity uses existing session name; no invented email, credentials, logout, preferences or blog switching. Gray grouped table is conservative fallback authorized in brief. | RECONSTRUCTED; exact rows/chrome HOLD |
+| Notes | Existing seed/user likes and source-linked reblogs retained; counts derive from notes. Compact blog/action rows, no invented avatars, timestamps or replies. | RECONSTRUCTED presentation; existing project-state basis |
+
+Contemporaneous Gizmodo search results were reviewed but did not provide usable Settings/Notes detail; no unseen screenshot details inferred. November 2010 redesign remains an exclusion boundary, never a source for missing UI.
+
+Reblog records already store sourcePostId, current author, optional text and canonical elapsed time; My Posts projects them without duplicating source content or image resources. Opening one returns to its source detail with existing attribution. Likes never imply ownership. Reset restores default Dashboard segment and seed notes/posts, clearing session posts/reblogs and navigation. Photo delivery is manually accepted per the v0.4 brief; its routing is unchanged.
+
+Remaining HOLD: left Tumblr semantics, exact Settings options, logout/blog switching, Notes avatars/timestamps/replies, Quote/Link/Chat/Audio/Video, Ask, Following, push, November redesign, exact icon artwork/micro-spacing.
+
+Verification: build, seed, diff check, focused Tumblr tests, software foundation/session, media attachment/keyboard/publishing, notifications, Flickr and public Twitter all PASS. Existing software-session and shared-media integration tests cover Camera scene stability and reset; no separate Camera test file is present. Focused tests run two sessions with Text/Photo/reblog, like/unlike, identity collision, source-object preservation, sub-minute reverse ordering, Settings, Notes counts, reset and exactly-once Dashboard-only T+630 delivery.
+
+Safari v0.4 QA is ready at `http://127.0.0.1:5175/?devApp=tumblr&autoOpen=1`; browser currently at identity entry. Visual acceptance of these new surfaces is pending, not claimed complete. After power/unlock: publish Text/Photo, inspect My Posts, open source detail → Like/Unlike/Reblog → Notes, then Settings → Dashboard. Verify selected segment/tab and preserved search keyboard. No exact October Settings or Notes fidelity claim.

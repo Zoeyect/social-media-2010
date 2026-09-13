@@ -1,5 +1,6 @@
 import { Dispatch, useLayoutEffect, useRef } from "react";
-import { TumblrEvent, TumblrPost, TumblrState } from "../state/tumblrState";
+import { TumblrEvent, TumblrPost, TumblrState, TumblrReblog, tumblrMyPosts } from "../state/tumblrState";
+import { simulatedClock } from "../state/deviceMachine";
 import { useSessionIdentity } from "../state/sessionIdentity";
 import { IOS4Input, IOS4Textarea } from "./IOS4KeyboardSystem";
 
@@ -28,7 +29,9 @@ export function TumblrContainer({ state, dispatch, currentElapsedMs, mediaAttach
   const selectedReblog = selected ? state.reblogs.find(reblog => reblog.sourcePostId === selected.id) ?? null : null;
   const selectedNotes = selected ? state.notes.filter(note => note.sourcePostId === selected.id) : [];
   const query = state.searchQuery.trim().toLocaleLowerCase();
-  const dashboardPosts = postsInReverseChronologicalOrder(state.posts).filter(post => !query || `${post.blog} ${post.title} ${post.content}`.toLocaleLowerCase().includes(query));
+  const dashboardEntries = (state.dashboardSegment === "my-posts" ? tumblrMyPosts(state)
+    : postsInReverseChronologicalOrder(state.posts).map(post => ({ post, reblog: undefined as TumblrReblog | undefined })))
+    .filter(({ post, reblog }) => !query || `${post.blog} ${post.title} ${post.content} ${reblog?.optionalUserText ?? ""}`.toLocaleLowerCase().includes(query));
   const composing = state.currentView === "post" && state.composerKind !== null;
   const canPublish = !mediaAttachmentActive && (state.composerKind === "photo" ? Boolean(state.pendingAttachment) : state.composerTitle.trim().length > 0 || state.composerContent.trim().length > 0);
 
@@ -72,16 +75,17 @@ export function TumblrContainer({ state, dispatch, currentElapsedMs, mediaAttach
       </div>
       <div className="tumblr-dashboard-segments" role="group" aria-label="Dashboard sections">
         <button type="button" disabled>Tumblr</button>
-        <button type="button" aria-pressed="true">Dashboard</button>
-        <button type="button" disabled>My Posts</button>
+        <button type="button" aria-pressed={state.dashboardSegment === "dashboard"} onClick={() => dispatch({ type: "SELECT_DASHBOARD_SEGMENT", segment: "dashboard" })}>Dashboard</button>
+        <button type="button" aria-pressed={state.dashboardSegment === "my-posts"} onClick={() => dispatch({ type: "SELECT_DASHBOARD_SEGMENT", segment: "my-posts" })}>My Posts</button>
       </div>
       <div
         ref={dashboardRef}
         className="tumblr-dashboard"
         onScroll={event => dispatch({ type: "SET_DASHBOARD_SCROLL_POSITION", dashboardScrollPosition: event.currentTarget.scrollTop })}
       >
-        {dashboardPosts.map(post => <PostRow
-          key={post.id}
+        {dashboardEntries.map(({ post, reblog }) => <PostRow
+          key={reblog?.id ?? post.id}
+          reblog={reblog}
           post={post}
           notesCount={state.notes.filter(note => note.sourcePostId === post.id).length}
           isLiked={state.likedPostIds.includes(post.id)}
@@ -92,6 +96,7 @@ export function TumblrContainer({ state, dispatch, currentElapsedMs, mediaAttach
             dashboardScrollPosition: dashboardRef.current?.scrollTop ?? state.dashboardScrollPosition,
           })}
         />)}
+        {state.dashboardSegment === "my-posts" && dashboardEntries.length === 0 && <p className="tumblr-empty">No posts.</p>}
       </div>
     </>}
 
@@ -135,7 +140,10 @@ export function TumblrContainer({ state, dispatch, currentElapsedMs, mediaAttach
       </form>
     </section>}
 
-    {state.currentView === "settings" && <section className="tumblr-settings" aria-label="Settings" data-evidence-status="HOLD" />}
+    {state.currentView === "settings" && <section className="tumblr-settings" aria-label="Settings" data-evidence-status="RECONSTRUCTED">
+      <h2>Account</h2>
+      <dl><div><dt>Blog</dt><dd>{identity.name}</dd></div></dl>
+    </section>}
 
     {state.currentView === "post" && !composing && selected && <article className="tumblr-post-detail">
       <PostContent post={selected} />
@@ -178,7 +186,8 @@ export function TumblrContainer({ state, dispatch, currentElapsedMs, mediaAttach
       </form>
     </section>}
 
-    {state.currentView === "notes" && selected && <section className="tumblr-notes" data-copy-status="CURATED/HOLD">
+    {state.currentView === "notes" && selected && <section className="tumblr-notes" data-copy-status="RECONSTRUCTED">
+      <h2 className="tumblr-notes-heading">{selectedNotes.length} notes on {selected.title || "Photo"}</h2>
       {selectedNotes.length === 0
         ? <p>No notes.</p>
         : selectedNotes.map(note => <article key={note.id} data-origin={note.origin}>
@@ -211,8 +220,9 @@ function PostContent({ post }: { post: TumblrPost }) {
   </>;
 }
 
-function PostRow({ post, notesCount, isLiked, isReblogged, onOpen }: {
+function PostRow({ post, reblog, notesCount, isLiked, isReblogged, onOpen }: {
   post: TumblrPost;
+  reblog?: TumblrReblog;
   notesCount: number;
   isLiked: boolean;
   isReblogged: boolean;
@@ -223,6 +233,8 @@ function PostRow({ post, notesCount, isLiked, isReblogged, onOpen }: {
     className="tumblr-post-row"
     onClick={onOpen}
   >
+    {reblog && <span className="tumblr-reblog-attribution">{reblog.rebloggedBy} reblogged {post.blog} · {simulatedClock(reblog.actionTimestamp)}</span>}
+    {reblog?.optionalUserText && <p className="tumblr-reblog-caption">{reblog.optionalUserText}</p>}
     <span className="tumblr-feed-byline"><span>{post.blog}</span><span className="tumblr-notes-count">{notesCount} notes</span></span>
     {post.title && <strong>{post.title}</strong>}
     {post.attachment && <img className="tumblr-published-photo" src={post.attachment.objectUrl} alt={post.content || "Photo"} />}
@@ -253,7 +265,14 @@ type TumblrIconName = "text" | "photo" | "quote" | "link" | "chat" | "audio" | "
 
 // RECONSTRUCTED artwork; no modern icon library or claimed exact raster provenance.
 function TumblrIcon({ name }: { name: TumblrIconName }) {
-  const paths: Record<TumblrIconName, string> = {
+  if (name === "post") return <svg className="tumblr-icon is-post" viewBox="0 0 36 38" aria-hidden="true" focusable="false">
+    <g transform="rotate(-20 18 19)" fill="currentColor" stroke="#8c8c8c" strokeWidth="0.6" strokeLinejoin="round">
+      <polygon points="5,5 31,5 29,14 7,14" />
+      <polygon points="12,14 24,14 25,25 11,25" />
+      <polygon points="15,25 21,25 18,34" />
+    </g>
+  </svg>;
+  const paths: Record<Exclude<TumblrIconName, "post">, string> = {
     text: "M3 27 12 5h5l9 22h-6l-2-6H10l-2 6Zm9-10h5l-2.5-7Z",
     photo: "M3 8h7l2-3h8l2 3h7v20H3Zm13 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm0 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z",
     quote: "M4 7h10v11l-7 8H3l5-8H4Zm15 0h10v11l-7 8h-4l5-8h-4Z",
@@ -261,7 +280,6 @@ function TumblrIcon({ name }: { name: TumblrIconName }) {
     chat: "M2 4h23v16H12l-7 6v-6H2Zm24 7h4v15h-4v5l-7-5h-7v-3h14Z",
     audio: "M14 5 29 2v21a5 5 0 1 1-4-5V9l-7 2v15a5 5 0 1 1-4-5Z",
     video: "M2 5h28v23H2Zm4 4v3h3V9Zm0 6v3h3v-3Zm0 6v3h3v-3ZM23 9v3h3V9Zm0 6v3h3v-3Zm0 6v3h3v-3ZM13 11v12l8-6Z",
-    post: "M8 2 22 16l-3 3-4-2-4 5-4-4 5-4-2-4-4-4Zm11 18 11 12-13-10Z",
     dashboard: "M12 2h7v8h8v6h-8v9c0 3 4 3 8 1v6c-11 4-16 0-16-6V16H6v-5c4-1 6-5 6-9Z",
     settings: "M13 2h6l1 5 4 2 5-1 3 5-4 4v4l2 4-5 4-4-3-4 1-3 4-6-2v-5l-3-3-5-1v-6l5-2 2-4-1-4 5-3Zm3 9a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z",
     refresh: "M26 6V1l6 9-10 2 2-3A10 10 0 1 0 26 22l4 2A14 14 0 1 1 26 6Z",

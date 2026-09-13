@@ -18,6 +18,7 @@ const server = await createServer({ server: { middlewareMode: true }, appType: "
 try {
   const {
     createInitialTumblrState: initial,
+    tumblrMyPosts,
     tumblrStateTransition: reduce,
   } = await server.ssrLoadModule("/src/state/tumblrState.ts");
   const { TumblrContainer } = await server.ssrLoadModule("/src/device/TumblrContainer.tsx");
@@ -115,7 +116,7 @@ try {
   currentState = reduce(currentState, { type: "RESET" });
   currentState = reduce(currentState, { type: "SELECT_TAB", tab: "settings" });
   markup = renderTumblr(currentState, 0);
-  assert.match(markup, /class="tumblr-settings".*?data-evidence-status="HOLD"/);
+  assert.match(markup, /class="tumblr-settings".*?data-evidence-status="RECONSTRUCTED"/);
   assert.deepEqual(currentState.posts, originalPosts, "Settings preserves posts");
   currentState = reduce(currentState, { type: "SELECT_TAB", tab: "dashboard" });
   assert.equal(currentState.currentView, "dashboard", "Dashboard tab restores feed");
@@ -230,6 +231,62 @@ try {
   assert.equal(currentState.posts.filter(post => post.id === livePost.id).length, 1, "T+630 live post appears exactly once");
   assert.equal(currentState.posts.find(post => post.id === livePost.id)?.title, "After midnight");
 
+
+  // Two complete v0.4 sessions, including identity collision with a seeded blog.
+  for (let run = 0; run < 2; run++) {
+    currentState = initial();
+    assert.deepEqual(tumblrMyPosts(currentState), []);
+    const source = currentState.posts[0];
+    const seedNoteCount = currentState.notes.filter(n => n.sourcePostId === source.id).length;
+    for (const kind of ["text", "photo"]) {
+      currentState = reduce(currentState, { type: "OPEN_COMPOSER", kind });
+      currentState = reduce(currentState, { type: "EDIT_COMPOSER_CONTENT", value: `Own ${kind}` });
+      if (kind === "photo") currentState = reduce(currentState, { type: "MEDIA_RETURN", contextId: `photo:${currentState.composerSubmissionToken}`, attachment: media });
+      currentState = reduce(currentState, { type: "SUBMIT_COMPOSER_POST", author: source.blog, publishedAtMs: kind === "text" ? 1000 : 2000, submissionToken: currentState.composerSubmissionToken });
+    }
+    assert.equal(tumblrMyPosts(currentState).length, 2, "Name collision never includes seed posts");
+    assert.equal(tumblrMyPosts(currentState)[0].post.attachment, media);
+    currentState = reduce(currentState, { type: "OPEN_POST", postId: source.id, dashboardScrollPosition: 0 });
+    currentState = reduce(currentState, { type: "TOGGLE_LIKE", postId: source.id, blogName: "Visitor" });
+    assert.equal(currentState.notes.filter(n => n.sourcePostId === source.id).length, seedNoteCount + 1);
+    assert.equal(tumblrMyPosts(currentState).length, 2, "Likes do not confer authorship");
+    currentState = reduce(currentState, { type: "TOGGLE_LIKE", postId: source.id, blogName: "Visitor" });
+    assert.equal(currentState.notes.filter(n => n.sourcePostId === source.id).length, seedNoteCount);
+    currentState = reduce(currentState, { type: "OPEN_REBLOG", postId: source.id });
+    const confirm = { type: "CONFIRM_REBLOG", rebloggedBy: "Visitor", actionElapsedMs: 3000 };
+    currentState = reduce(reduce(currentState, confirm), confirm);
+    assert.equal(currentState.notes.filter(n => n.sourcePostId === source.id).length, seedNoteCount + 1);
+    const own = tumblrMyPosts(currentState);
+    assert.equal(own.length, 3);
+    assert.equal(own[0].post, source, "Reblog keeps original object/source attribution");
+    assert.equal(own[0].reblog.actionTimestamp, 3000);
+    assert.deepEqual(own.slice(1).map(e => e.post.type), ["photo", "text"]);
+    currentState = reduce(currentState, { type: "OPEN_NOTES", postId: source.id });
+    markup = renderTumblr(currentState, 3000);
+    assert.match(markup, new RegExp(`${seedNoteCount + 1} notes on`));
+    assert.match(markup, /reblogged this/);
+    currentState = reduce(currentState, { type: "BACK_TO_DASHBOARD" });
+    currentState = reduce(currentState, { type: "SELECT_DASHBOARD_SEGMENT", segment: "my-posts" });
+    currentState = reduce(reduce(currentState, { type: "DELIVER_BACKGROUND_POST", post: livePost }), { type: "DELIVER_BACKGROUND_POST", post: livePost });
+    markup = renderTumblr(currentState, 3000);
+    assert.match(markup, /aria-pressed="true">My Posts/);
+    assert.match(markup, /Visitor reblogged/);
+    assert.match(markup, /Own text/);
+    assert.match(markup, /src="blob:camera-resource"/);
+    assert.doesNotMatch(markup, /After midnight/);
+    assert.equal(currentState.posts.filter(p => p.id === livePost.id).length, 1);
+    assert.equal([...markup.matchAll(/aria-current="page"/g)].length, 1);
+    currentState = reduce(currentState, { type: "SELECT_TAB", tab: "settings" });
+    markup = renderTumblr(currentState, 3000);
+    assert.match(markup, /<dt>Blog<.*Visitor/s);
+    assert.doesNotMatch(markup, /<input|<textarea/);
+    assert.equal([...markup.matchAll(/aria-current="page"/g)].length, 1);
+    currentState = reduce(currentState, { type: "SELECT_TAB", tab: "dashboard" });
+    assert.equal(currentState.dashboardSegment, "my-posts");
+    currentState = reduce(currentState, { type: "RESET" });
+    assert.deepEqual(currentState, initial());
+    assert.deepEqual(tumblrMyPosts(currentState), []);
+  }
   console.log("PASS: Tumblr Phase-1/v0.3 structure, search, photo identity/publication, HOLD, keyboard, reblog/reset/timing checks complete.");
 } finally {
   await server.close();

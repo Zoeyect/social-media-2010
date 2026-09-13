@@ -22,6 +22,7 @@ function postsInReverseChronologicalOrder(posts: readonly TumblrPost[]) {
 
 export function TumblrContainer({ state, dispatch, currentElapsedMs, mediaAttachmentActive = false, onRequestMedia }: TumblrContainerProps) {
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const identity = useSessionIdentity();
   const selected = state.posts.find(post => post.id === state.selectedPostId) ?? null;
   const selectedReblog = selected ? state.reblogs.find(reblog => reblog.sourcePostId === selected.id) ?? null : null;
@@ -50,7 +51,7 @@ export function TumblrContainer({ state, dispatch, currentElapsedMs, mediaAttach
           if (dashboardRef.current) dashboardRef.current.scrollTop = 0;
           dispatch({ type: "SET_DASHBOARD_SCROLL_POSITION", dashboardScrollPosition: 0 });
         }}><TumblrIcon name="refresh" /></button>
-        <button type="button" className="tumblr-nav-right tumblr-nav-icon" aria-label="Search" aria-expanded={state.searchVisible} onClick={() => dispatch({ type: "TOGGLE_SEARCH" })}><TumblrIcon name="search" /></button>
+        <button type="button" className="tumblr-nav-right tumblr-nav-icon" aria-label="Search" aria-controls="tumblr-dashboard-search" onClick={() => searchRef.current?.focus()}><TumblrIcon name="search" /></button>
       </>}
       {(state.currentView === "reblog" || state.currentView === "notes") && <button type="button" className="tumblr-nav-left" onClick={() => dispatch({ type: "BACK_TO_POST" })}>Post</button>}
       {state.currentView === "post" && !composing && <button type="button" className="tumblr-nav-left" onClick={() => dispatch({ type: "BACK_TO_DASHBOARD" })}>Dashboard</button>}
@@ -62,13 +63,13 @@ export function TumblrContainer({ state, dispatch, currentElapsedMs, mediaAttach
     </header>
 
     {state.currentView === "dashboard" && <>
-      {state.searchVisible && <div className="tumblr-search-bar">
+      <div className="tumblr-search-bar">
         <TumblrIcon name="search" />
-        {!mediaAttachmentActive && <IOS4Input keyboardInputId="tumblr-search" aria-label="Search Tumblr" placeholder="Search"
+        {!mediaAttachmentActive && <IOS4Input ref={searchRef} id="tumblr-dashboard-search" keyboardInputId="tumblr-search" aria-label="Search Tumblr" placeholder="Search"
           value={state.searchQuery} keyboardReturnKeyType="search" keyboardDismissOnSubmit
           onValueChange={value => dispatch({ type: "SEARCH_QUERY", value })} />}
-        <button type="button" aria-label="Clear search" onClick={() => dispatch({ type: "SEARCH_QUERY", value: "" })}>×</button>
-      </div>}
+        <button type="button" disabled={!state.searchQuery} aria-label="Clear search" onClick={() => dispatch({ type: "SEARCH_QUERY", value: "" })}>×</button>
+      </div>
       <div className="tumblr-dashboard-segments" role="group" aria-label="Dashboard sections">
         <button type="button" disabled>Tumblr</button>
         <button type="button" aria-pressed="true">Dashboard</button>

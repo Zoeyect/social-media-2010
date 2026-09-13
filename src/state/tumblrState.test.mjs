@@ -59,7 +59,11 @@ try {
 
   assert.match(markup, /aria-label="Tumblr tabs"/, "Fixed bottom navigation renders");
   assert.match(markup, /aria-label="Refresh"/, "Dashboard refresh is present");
-  assert.match(markup, /aria-label="Search" aria-expanded="false"/, "Search shell starts closed");
+  assert.match(markup, /aria-label="Search" aria-controls="tumblr-dashboard-search"/, "Search targets the mounted field");
+  assert.match(markup, /class="tumblr-search-bar"/, "Default Dashboard includes search before focus");
+  assert.match(markup, /id="tumblr-dashboard-search"[^>]*placeholder="Search"[^>]*value=""/, "Default search is empty, not a hardcoded query");
+  assert.ok(markup.indexOf('class="tumblr-search-bar"') < markup.indexOf('class="tumblr-dashboard-segments"'), "Search row precedes segments");
+  assert.doesNotMatch(markup, /class="ios4-keyboard /, "Default search does not open keyboard");
   assert.match(markup, />Tumblr<.*aria-pressed="true">Dashboard<.*>My Posts</s, "Historical segments, Dashboard selected");
   assert.doesNotMatch(markup, /class="tumblr-post-type-selector"/, "Post selector is no longer embedded in Dashboard");
   const originalPosts = currentState.posts;
@@ -102,7 +106,7 @@ try {
   assert.match(renderTumblr(currentState, 2000), /src="blob:camera-resource"/);
   currentState = reduce(currentState, { type: "RESET" });
   assert.deepEqual(currentState.posts, originalPosts);
-  currentState = reduce(currentState, { type: "TOGGLE_SEARCH" });
+
   currentState = reduce(currentState, { type: "SEARCH_QUERY", value: "no-matching-post" });
   markup = renderTumblr(currentState, 0);
   assert.match(markup, /aria-label="Search Tumblr"/);
@@ -135,6 +139,10 @@ try {
   const tumblrSource = await readFile(new URL("../device/TumblrContainer.tsx", import.meta.url), "utf8");
   assert.match(markup, /Close advanced options/);
   assert.ok(tumblrSource.includes("IOS4Input"), "Title uses IOS4Input");
+  assert.match(tumblrSource, /onClick=\{\(\) => searchRef\.current\?\.focus\(\)\}/, "Top Search focuses existing field without navigation or query mutation");
+  assert.match(tumblrSource, /IOS4Input ref=\{searchRef\} id="tumblr-dashboard-search" keyboardInputId="tumblr-search"/, "Search focus goes through shared keyboard binding");
+  assert.doesNotMatch(tumblrSource, /state\.searchVisible|TOGGLE_SEARCH/, "Focus and blur cannot toggle row mounting");
+  assert.match(tumblrSource, /keyboardReturnKeyType="search" keyboardDismissOnSubmit/, "Shared keyboard uses Search action");
   assert.ok(tumblrSource.includes("IOS4Textarea"), "Body uses IOS4Textarea");
   assert.doesNotMatch(tumblrSource, /<(?:input|textarea)\b/, "No app-specific native keyboard bypass");
   assert.match(tumblrSource, /kind === "Text" \? \(\) => dispatch\(\{ type: "OPEN_COMPOSER", kind: "text" \}\)/, "Only Text row opens composer");

@@ -265,12 +265,9 @@ type TumblrIconName = "text" | "photo" | "quote" | "link" | "chat" | "audio" | "
 
 // RECONSTRUCTED artwork; no modern icon library or claimed exact raster provenance.
 function TumblrIcon({ name }: { name: TumblrIconName }) {
-  if (name === "post") return <svg className="tumblr-icon is-post" viewBox="0 0 36 38" aria-hidden="true" focusable="false">
-    <g transform="rotate(-20 18 19)" fill="currentColor" stroke="#8c8c8c" strokeWidth="0.6" strokeLinejoin="round">
-      <polygon points="5,5 31,5 29,14 7,14" />
-      <polygon points="12,14 24,14 25,25 11,25" />
-      <polygon points="15,25 21,25 18,34" />
-    </g>
+  if (name === "post") return <svg className="tumblr-icon is-post" viewBox="-1 0 34 38" aria-hidden="true" focusable="false">
+    <path transform="translate(0 1) rotate(-28 18 19)" fill="currentColor"
+      d="M8.5 6.5 Q8 6.5 8 7 L8.5 8.3 L14.5 8.3 L15.2 20.7 L12.7 22.2 Q12.4 22.6 13 22.8 L17.3 22.8 L18 32 L18.7 22.8 L23 22.8 Q23.6 22.6 23.3 22.2 L20.8 20.7 L21.5 8.3 L27.5 8.3 L28 7 Q28 6.5 27.5 6.5 Z" />
   </svg>;
   const paths: Record<Exclude<TumblrIconName, "post">, string> = {
     text: "M3 27 12 5h5l9 22h-6l-2-6H10l-2 6Zm9-10h5l-2.5-7Z",

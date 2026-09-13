@@ -1000,9 +1000,9 @@ button.twitter-compose-tool { appearance: none; padding: 0; border: 0; border-ra
 .tumblr-tab-bar .tumblr-icon { width: 30px; height: 30px; }
 .tumblr-tab-bar > button[aria-current="page"] { color: #cbd9e7; background: linear-gradient(#454545,#303030 49%,#252525 51%,#222); box-shadow: inset 0 1px #515151; }
 .tumblr-tab-bar > button[aria-current="page"] .tumblr-icon { color: #86c9f3; filter: drop-shadow(0 -1px 0 #d8eeff); }
-/* Post only: chunky reconstructed office pin; preserve the existing tab hit box. */
-.tumblr-tab-bar .tumblr-icon.is-post { width: 34px; height: 38px; margin: -4px 0; color: #b8b8b8; filter: drop-shadow(0 1px 0 #333); }
-.tumblr-tab-bar > button[aria-current="page"] .tumblr-icon.is-post { color: #d0d0d0; filter: drop-shadow(0 1px 0 #333); }
+/* Post only: light archival silhouette; preserve the existing tab hit box. */
+.tumblr-tab-bar .tumblr-icon.is-post { width: 34px; height: 38px; margin: -4px 0; color: #b5b5b5; filter: none; }
+.tumblr-tab-bar > button[aria-current="page"] .tumblr-icon.is-post { color: #4ab7e8; filter: none; }
 
 .tumblr-advanced-row { display: block; width: 100%; height: 24px; border: 0; border-top: 1px solid #ddd; border-bottom: 1px solid #999; border-radius: 0; color: #565656; background: linear-gradient(#eee,#bcbcbc); font: bold 12px Helvetica,Arial,sans-serif; }
 .tumblr-photo-preview { padding: 8px; border-bottom: 1px solid #bcc6ce; }

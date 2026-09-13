@@ -1,8 +1,11 @@
+import type { MediaAttachment } from "./mediaAttachment";
 import { SESSION_SEED_CONTENT } from "../data/sessionSeedContent";
 import type { ContentOrigin } from "../data/sessionSeedContent";
+import { simulatedClock, simulatedDeviceDateTime } from "./deviceMachine";
 
-export type TumblrView = "dashboard" | "post" | "reblog" | "notes";
+export type TumblrView = "dashboard" | "post-types" | "settings" | "post" | "reblog" | "notes";
 export type TumblrPostType = "text" | "photo" | "quote";
+export type TumblrComposerKind = "text" | "photo";
 
 export type TumblrPost = {
   id: string;
@@ -12,6 +15,7 @@ export type TumblrPost = {
   content: string;
   timestamp: string;
   origin: ContentOrigin;
+  attachment?: MediaAttachment;
 };
 
 export type TumblrReblog = {
@@ -34,6 +38,14 @@ export type TumblrNote = {
 export type TumblrState = {
   currentView: TumblrView;
   selectedPostId: string | null;
+  composerKind: TumblrComposerKind | null;
+  pendingAttachment: MediaAttachment | null;
+  searchVisible: boolean;
+  searchQuery: string;
+  composerTitle: string;
+  composerContent: string;
+  composerSubmissionToken: number;
+  lastComposerSubmissionToken: number | null;
   dashboardScrollPosition: number;
   likedPostIds: string[];
   rebloggedPostIds: string[];
@@ -44,18 +56,28 @@ export type TumblrState = {
 };
 
 export type TumblrEvent =
+  | { type: "TOGGLE_SEARCH" }
+  | { type: "SEARCH_QUERY"; value: string }
+  | { type: "MEDIA_RETURN"; contextId: string; attachment?: MediaAttachment }
+  | { type: "SELECT_TAB"; tab: "post-types" | "dashboard" | "settings" }
   | { type: "OPEN_POST"; postId: string; dashboardScrollPosition: number }
   | { type: "BACK_TO_DASHBOARD" }
   | { type: "TOGGLE_LIKE"; postId: string; blogName: string }
   | { type: "OPEN_REBLOG"; postId: string }
   | { type: "EDIT_REBLOG_TEXT"; value: string }
   | { type: "CANCEL_REBLOG" }
+  | { type: "CONFIRM_REBLOG"; rebloggedBy: string; actionElapsedMs: number }
   | { type: "CONFIRM_REBLOG"; rebloggedBy: string; actionTimestamp: number }
   | { type: "REMOVE_REBLOG"; postId: string }
   | { type: "OPEN_NOTES"; postId: string }
   | { type: "BACK_TO_POST" }
   | { type: "SET_DASHBOARD_SCROLL_POSITION"; dashboardScrollPosition: number }
   | { type: "DELIVER_BACKGROUND_POST"; post: Omit<TumblrPost, "origin"> }
+  | { type: "OPEN_COMPOSER"; kind: TumblrComposerKind }
+  | { type: "EDIT_COMPOSER_TITLE"; value: string }
+  | { type: "EDIT_COMPOSER_CONTENT"; value: string }
+  | { type: "CANCEL_COMPOSER" }
+  | { type: "SUBMIT_COMPOSER_POST"; author: string; publishedAtMs: number; submissionToken: number }
   | { type: "RESET" };
 
 const TUMBLR_SEED_NOTES: ReadonlyArray<TumblrNote> = Object.freeze([
@@ -67,6 +89,14 @@ export function createInitialTumblrState(): TumblrState {
   return {
     currentView: "dashboard",
     selectedPostId: null,
+    composerKind: null,
+    pendingAttachment: null,
+    searchVisible: false,
+    searchQuery: "",
+    composerTitle: "",
+    composerContent: "",
+    composerSubmissionToken: 0,
+    lastComposerSubmissionToken: null,
     dashboardScrollPosition: 0,
     likedPostIds: [],
     rebloggedPostIds: [],
@@ -81,6 +111,24 @@ export const initialTumblrState: TumblrState = createInitialTumblrState();
 
 export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): TumblrState {
   switch (event.type) {
+    case "TOGGLE_SEARCH":
+      return { ...state, searchVisible: !state.searchVisible, searchQuery: "", dashboardScrollPosition: 0 };
+    case "SEARCH_QUERY":
+      return { ...state, searchQuery: event.value.slice(0, 140), dashboardScrollPosition: 0 };
+    case "MEDIA_RETURN":
+      if (state.currentView !== "post" || state.composerKind !== "photo" || event.contextId !== `photo:${state.composerSubmissionToken}`) return state;
+      return event.attachment ? { ...state, pendingAttachment: event.attachment } : state;
+    case "SELECT_TAB":
+      return {
+        ...state,
+        currentView: event.tab,
+        selectedPostId: null,
+        composerKind: null,
+        pendingAttachment: null,
+        composerTitle: "",
+        composerContent: "",
+        reblogDraft: "",
+      };
     case "OPEN_POST": {
       const exists = state.posts.some(post => post.id === event.postId);
       if (!exists) return state;
@@ -90,6 +138,10 @@ export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): T
         selectedPostId: event.postId,
         dashboardScrollPosition: Math.max(0, event.dashboardScrollPosition),
         reblogDraft: "",
+        composerKind: null,
+        pendingAttachment: null,
+        composerTitle: "",
+        composerContent: "",
       };
     }
     case "BACK_TO_DASHBOARD":
@@ -98,6 +150,10 @@ export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): T
         currentView: "dashboard",
         selectedPostId: null,
         reblogDraft: "",
+        composerKind: null,
+        pendingAttachment: null,
+        composerTitle: "",
+        composerContent: "",
       };
     case "TOGGLE_LIKE": {
       if (!state.posts.some(post => post.id === event.postId)) return state;
@@ -143,7 +199,7 @@ export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): T
           reblogged: true,
           rebloggedBy: event.rebloggedBy,
           optionalUserText: state.reblogDraft.trim() || null,
-          actionTimestamp: event.actionTimestamp,
+          actionTimestamp: "actionTimestamp" in event ? event.actionTimestamp : event.actionElapsedMs,
         }],
         notes: [...state.notes.filter(note => note.id !== relationId), {
           id: relationId,
@@ -169,6 +225,72 @@ export function tumblrStateTransition(state: TumblrState, event: TumblrEvent): T
       return state.selectedPostId === event.postId && state.posts.some(post => post.id === event.postId)
         ? { ...state, currentView: "notes" }
         : state;
+    case "OPEN_COMPOSER":
+
+      return {
+        ...state,
+        currentView: "post",
+        composerKind: event.kind,
+        pendingAttachment: null,
+        composerTitle: "",
+        composerContent: "",
+        composerSubmissionToken: state.composerSubmissionToken + 1,
+        selectedPostId: null,
+        reblogDraft: "",
+      };
+    case "EDIT_COMPOSER_TITLE":
+      return state.currentView === "post" && state.composerKind === "text"
+        ? { ...state, composerTitle: event.value.slice(0, 60) }
+        : state;
+    case "EDIT_COMPOSER_CONTENT":
+      return state.currentView === "post" && state.composerKind !== null
+        ? { ...state, composerContent: event.value.slice(0, 280) }
+        : state;
+    case "CANCEL_COMPOSER":
+      return {
+        ...state,
+        currentView: "dashboard",
+        composerKind: null,
+        pendingAttachment: null,
+        composerTitle: "",
+        composerContent: "",
+        selectedPostId: null,
+      };
+    case "SUBMIT_COMPOSER_POST": {
+      if (state.currentView !== "post" || !state.composerKind) return state;
+      if (state.lastComposerSubmissionToken === event.submissionToken || state.composerSubmissionToken !== event.submissionToken) return state;
+      const title = state.composerTitle.trim();
+      const content = state.composerContent.trim();
+      const photo = state.composerKind === "photo";
+      if (photo ? !state.pendingAttachment : !title && !content) return state;
+      const timestamp = `${simulatedDeviceDateTime(event.publishedAtMs).toISOString().slice(0, 10)} ${simulatedClock(event.publishedAtMs)}`;
+      return {
+        ...state,
+        currentView: "dashboard",
+        selectedPostId: null,
+        composerKind: null,
+        pendingAttachment: null,
+        composerTitle: "",
+        composerContent: "",
+        lastComposerSubmissionToken: event.submissionToken,
+        searchVisible: false,
+        searchQuery: "",
+        dashboardScrollPosition: 0,
+        posts: [
+          {
+            id: `user-${state.composerKind}:${event.publishedAtMs}:${event.submissionToken}`,
+            type: state.composerKind,
+            ...(photo && state.pendingAttachment ? { attachment: state.pendingAttachment } : {}),
+            blog: event.author,
+            title: photo ? "" : title || "Untitled",
+            content,
+            timestamp,
+            origin: "live",
+          },
+          ...state.posts,
+        ],
+      };
+    }
     case "BACK_TO_POST":
       return state.selectedPostId ? { ...state, currentView: "post", reblogDraft: "" } : state;
     case "SET_DASHBOARD_SCROLL_POSITION":

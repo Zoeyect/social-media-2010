@@ -34,7 +34,7 @@ const server=await createServer({server:{middlewareMode:true},appType:"custom",l
 try {
   const {IOS4KeyboardSystem,IOS4Textarea}=await server.ssrLoadModule("/src/device/IOS4KeyboardSystem.tsx");
   const walk=node=>!node||typeof node!=="object"?[]:Array.isArray(node)?node.flatMap(walk):[node,...walk(node.props?.children)];
-  for(let loop=0;loop<2;loop++)for(const inputId of ["facebook-status","twitter-compose","messages-compose","flickr-upload-description","flickr-search","flickr-comment-photo"]){
+  for(let loop=0;loop<2;loop++)for(const inputId of ["facebook-status","twitter-compose","messages-compose","flickr-upload-description","flickr-search","flickr-comment-photo","tumblr-photo-caption","tumblr-composer-text","tumblr-search"]){
     const provider=host(),binding=host();let tree,suspended=false,visible=false;
     draft="preserved draft";
     element={isConnected:true,selectionStart:4,selectionEnd:4,closest:()=>null,

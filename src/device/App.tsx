@@ -1118,8 +1118,7 @@ export function App() {
     if (session.phase !== "app" || appRuntime.activeAppId !== request.requester || !session.experienceSessionId) return;
     const previousRequest = mediaRequestRef.current;
     if (previousRequest?.requester === request.requester) return;
-    // Tumblr remains reserved; Flickr uses the same shared media transaction.
-    if (request.requester === "tumblr") return;
+    // All supported requesters share this same Camera / Camera Roll transaction.
     const contextId = request.contextId ?? (request.requester === "messages" ? messagesState.activeConversationId
       : request.requester === "twitter" ? twitterState.composerKind === "reply" ? twitterState.replyComposerTweetId : "new" : request.requester === "flickr" ? "upload" : "status");
     if (!contextId) return;
@@ -1139,6 +1138,7 @@ export function App() {
     if (request.requester === "messages" && request.contextId) dispatchMessages({ type: "MEDIA_RETURN", contextId: request.contextId, attachment });
     if (request.requester === "flickr") dispatchFlickr({ type: "MEDIA_RETURN", attachment,
       takenAt: cameraRollRef.current.records.find(photo => photo.id === attachment?.id)?.createdAt });
+    if (request.requester === "tumblr" && request.contextId) dispatchTumblr({ type: "MEDIA_RETURN", contextId: request.contextId, attachment });
     if (request.requester === "facebook") dispatchFacebook({ type: "MEDIA_RETURN", attachment });
     if (request.requester === "twitter" && request.contextId) dispatchTwitter({ type: "MEDIA_RETURN", contextId: request.contextId, attachment });
     dispatchMediaRequest({ type: "CANCEL", id: request.id });

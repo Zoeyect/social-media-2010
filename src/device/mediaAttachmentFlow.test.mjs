@@ -67,7 +67,7 @@ const server = await createServer({ server: { middlewareMode: true }, appType: "
   },
   transform(code, id) {
     if (id.endsWith("/src/device/App.tsx")) return code.replace('from "react";', 'from "virtual:lifecycle-hooks";');
-    if (/\/src\/device\/(TwitterContainer|FacebookContainer|MobileSMSContainer|FlickrContainer)\.tsx$/.test(id)) return code.replace('from "react";', 'from "virtual:lifecycle-hooks";').replaceAll('useSessionIdentity()', '({ name: "Media Visitor" })');
+    if (/\/src\/device\/(TwitterContainer|FacebookContainer|MobileSMSContainer|FlickrContainer|TumblrContainer)\.tsx$/.test(id)) return code.replace('from "react";', 'from "virtual:lifecycle-hooks";').replaceAll('useSessionIdentity()', '({ name: "Media Visitor" })');
     if (id.endsWith("/src/world/cameraVideoScenes.ts")) return code.replace("  const random = options.random ?? Math.random;", "  globalThis.__sceneSelected();\n  const random = options.random ?? Math.random;");
   },
 }] });
@@ -99,14 +99,14 @@ try {
   };
   const clickMedia = (requester, source) => {
     const surface=DeviceScreen(view.screen.props);
-    const container=walk(surface).find(node=>node.type?.name===({messages:"MobileSMSContainer",facebook:"FacebookContainer",twitter:"TwitterContainer",flickr:"FlickrContainer"}[requester]));
+    const container=walk(surface).find(node=>node.type?.name===({messages:"MobileSMSContainer",facebook:"FacebookContainer",twitter:"TwitterContainer",flickr:"FlickrContainer",tumblr:"TumblrContainer"}[requester]));
     assert.ok(container);
     let content=renderComponent(container.type,container.props);
     if(requester==="twitter") {
       const composer=walk(content).find(node=>node.type?.name==="TwitterComposer");assert.ok(composer);
       content=renderComponent(composer.type,composer.props);
     }
-    const className=requester==="flickr"?"flickr-right flickr-upload-icon":requester==="messages"?"mobilesms-camera-slot":requester==="facebook"?"facebook-feed-camera-control":`twitter-compose-tool is-${source==="camera"?"camera":"photo-library"}`;
+    const className=requester==="tumblr"?"tumblr-photo-row":requester==="flickr"?"flickr-right flickr-upload-icon":requester==="messages"?"mobilesms-camera-slot":requester==="facebook"?"facebook-feed-camera-control":`twitter-compose-tool is-${source==="camera"?"camera":"photo-library"}`;
     const button=walk(content).find(node=>node.type==="button" && node.props.className===className);
     assert.ok(button && !button.props.disabled);assert.equal(typeof button.props.onClick,"function");
     button.props.onClick();
@@ -256,6 +256,52 @@ try {
       await request(requester,"library");screen().media.selectPhoto(photo.id);await flush();
       assert.ok(attachment(requester)); // Keep unsent attachments in all three apps for reset.
     }
+    // Tumblr v0.3: actual Photo row -> shared Camera/Library -> same reducer.
+    await open("tumblr");
+    const tumblr = () => screen().apps.tumblrState;
+    const sendTumblr = async event => { screen().apps.dispatchTumblr(event); await flush(); };
+    await sendTumblr({type:"SELECT_TAB",tab:"post-types"});
+    clickMedia("tumblr","camera-or-library");await flush();
+    assert.equal(tumblr().composerKind,"photo");
+    assert.equal(screen().media.request.requester,"tumblr");
+    assert.equal(screen().media.request.contextId,`photo:${tumblr().composerSubmissionToken}`);
+    assert.equal(walk(DeviceScreen(view.screen.props)).find(n=>n.type?.name==="IOS4KeyboardSystem").props.suspended,true);
+    await sendTumblr({type:"EDIT_COMPOSER_CONTENT",value:"Tumblr caption survives picker"});
+    screen().media.chooseSource("camera");await flush();
+    assert.equal(screen().media.cameraActive,true);
+    assert.equal(view.sessionDiagnostics.cameraSceneSessionId,sessionId);
+    await screen().camera.captureCameraPhoto();await flush();
+    assert.equal(screen().media.request,null);
+    const tumblrImage=tumblr().pendingAttachment;
+    assert.ok(tumblrImage);
+    const tumblrRollSource=screen().camera.cameraRoll.records.find(p=>p.id===tumblrImage.id);
+    assert.ok(tumblrRollSource);
+    assert.equal(tumblrImage.objectUrl,tumblrRollSource.objectUrl);
+    assert.equal(tumblr().composerContent,"Tumblr caption survives picker");
+    screen().media.requestAttachment({requester:"tumblr",mode:"photo",source:"library",contextId:`photo:${tumblr().composerSubmissionToken}`});await flush();
+    screen().actions.cancelScreenCameraPicker();await flush();
+    assert.strictEqual(tumblr().pendingAttachment,tumblrImage);
+    const tumblrNode=walk(DeviceScreen(view.screen.props)).find(n=>n.type?.name==="TumblrContainer");
+    const tumblrUi=renderComponent(tumblrNode.type,tumblrNode.props);
+    const postButton=walk(tumblrUi).find(n=>n.type==="button"&&n.props.className==="tumblr-nav-right");
+    const tumblrCount=tumblr().posts.length;
+    assert.ok(postButton&&!postButton.props.disabled);
+    postButton.props.onClick();postButton.props.onClick();await flush();
+    assert.equal(tumblr().posts.length,tumblrCount+1);
+    assert.strictEqual(tumblr().posts[0].attachment,tumblrImage);
+    assert.equal(tumblr().posts[0].timestamp,`${device.simulatedDeviceDateTime(screen().display.elapsed).toISOString().slice(0,10)} ${device.simulatedClock(screen().display.elapsed)}`);
+    assert.equal(tumblr().pendingAttachment,null);
+    assert.strictEqual(screen().camera.cameraRoll.records.find(p=>p.id===tumblrRollSource.id),tumblrRollSource);
+    await sendTumblr({type:"SELECT_TAB",tab:"post-types"});
+    clickMedia("tumblr","camera-or-library");await flush();
+    await sendTumblr({type:"EDIT_COMPOSER_CONTENT",value:"Unsent library caption"});
+    screen().media.chooseSource("library");await flush();
+    screen().media.selectPhoto(tumblrRollSource.id);await flush();
+    assert.equal(tumblr().pendingAttachment.id,tumblrRollSource.id);
+    assert.equal(tumblr().composerContent,"Unsent library caption");
+    assert.equal(sceneSelections,run+1,"Tumblr Camera and Library never reroll");
+    assert.equal(walk(tree).filter(n=>n.type?.name==="AmbientWorld").length,1);
+    // Leave the unsent attachment/draft for the existing end-of-session reset.
     // Flickr A–L through the same App, Camera, Camera Roll, DeviceScreen and UI control.
     await open("flickr");
     const flickr = () => screen().apps.flickrState;
@@ -368,6 +414,9 @@ try {
     assert.deepEqual(screen().apps.messagesState.pendingAttachments,{});
     assert.equal(screen().apps.facebookState.pendingAttachment,null);
     assert.equal(screen().apps.twitterState.pendingAttachment,null);
+    assert.equal(screen().apps.tumblrState.pendingAttachment,null);
+    assert.equal(screen().apps.tumblrState.composerContent,"");
+    assert.equal(screen().apps.tumblrState.posts.some(p=>p.attachment),false);
     assert.equal(screen().apps.flickrState.pendingUpload,null);
     assert.equal(screen().apps.flickrState.upload,null);
     assert.equal(screen().apps.flickrState.currentView,"home");

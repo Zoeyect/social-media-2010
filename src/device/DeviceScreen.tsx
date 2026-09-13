@@ -301,6 +301,9 @@ export function DeviceScreen({ display, navigation, apps, camera, overlays, acti
       {appRuntime.activeAppId === "tumblr" && <TumblrContainer
         state={tumblrState}
         dispatch={dispatchTumblr}
+        currentElapsedMs={elapsed}
+        mediaAttachmentActive={media.visible && media.request?.requester === "tumblr"}
+        onRequestMedia={contextId => media.requestAttachment({ requester: "tumblr", mode: "photo", source: "camera-or-library", contextId })}
       />}
       {appRuntime.activeAppId === "foursquare" && <FoursquareContainer
         state={foursquareState}
